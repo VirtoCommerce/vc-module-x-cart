@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<module>
+  <id>VirtoCommerce.XCart</id>
+  <version>3.800.0</version>
+  <version-tag></version-tag>
+
+  <platformVersion>3.825.0</platformVersion>
+  <dependencies>
+    <dependency id="VirtoCommerce.Xapi" version="3.800.0" />
+    <dependency id="VirtoCommerce.XCatalog" version="3.800.0" />
+    <dependency id="VirtoCommerce.Cart" version="3.803.0" />
+    <dependency id="VirtoCommerce.Inventory" version="3.800.0" />
+    <dependency id="VirtoCommerce.Marketing" version="3.800.0" />
+    <dependency id="VirtoCommerce.Payment" version="3.800.0" />
+    <dependency id="VirtoCommerce.Pricing" version="3.800.0" />
+    <dependency id="VirtoCommerce.Shipping" version="3.800.0" />
+  </dependencies>
+
+  <title>VirtoCommerce XCart module</title>
+  <description>VirtoCommerce XCart module</description>
+
+  <authors>
+    <author>Konstantin Savosteev</author>
+  </authors>
+  <owners>
+    <owner>VirtoCommerce</owner>
+  </owners>
+
+  <projectUrl>https://github.com/VirtoCommerce/vc-module-x-cart</projectUrl>
+  <iconUrl>Modules/$(VirtoCommerce.XCart)/Content/logo.png</iconUrl>
+  <requireLicenseAcceptance>false</requireLicenseAcceptance>
+
+  <assemblyFile>VirtoCommerce.XCart.Web.dll</assemblyFile>
+  <moduleType>VirtoCommerce.XCart.Web.Module, VirtoCommerce.XCart.Web</moduleType>
+
+  <releaseNotes>First version.</releaseNotes>
+  <copyright>Copyright © 2024 VirtoCommerce. All rights reserved</copyright>
+  <tags>extension module</tags>
+  <useFullTypeNameInSwagger>false</useFullTypeNameInSwagger>
+</module>
