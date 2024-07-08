@@ -1,23 +1,17 @@
 using System.Threading;
 using System.Threading.Tasks;
-using VirtoCommerce.CustomerModule.Core.Model;
-using VirtoCommerce.CustomerModule.Core.Services;
-using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Services;
+using VirtoCommerce.XCart.Data.Commands.BaseCommands;
 
 namespace VirtoCommerce.XCart.Data.Commands
 {
-    public class ChangeWishlistCommandHandler : CartCommandHandler<ChangeWishlistCommand>
+    public class ChangeWishlistCommandHandler : ScopedWishlistCommandHandlerBase<ChangeWishlistCommand>
     {
-        private readonly IMemberResolver _memberResolver;
-
-        public ChangeWishlistCommandHandler(ICartAggregateRepository cartAggrRepository, IMemberResolver memberResolver)
-            : base(cartAggrRepository)
+        public ChangeWishlistCommandHandler(ICartAggregateRepository cartAggregateRepository)
+            : base(cartAggregateRepository)
         {
-            _memberResolver = memberResolver;
         }
 
         public override async Task<CartAggregate> Handle(ChangeWishlistCommand request, CancellationToken cancellationToken)
@@ -36,25 +30,9 @@ namespace VirtoCommerce.XCart.Data.Commands
                 cartAggregate.Cart.Description = request.Description;
             }
 
-            await ChangeScope(request, cartAggregate);
+            await UpdateScopeAsync(cartAggregate, request);
 
             return await SaveCartAsync(cartAggregate);
-        }
-
-        protected virtual async Task ChangeScope(ChangeWishlistCommand request, CartAggregate cartAggregate)
-        {
-            if (request.Scope?.EqualsInvariant(ModuleConstants.OrganizationScope) == true)
-            {
-                cartAggregate.Cart.OrganizationId = request.WishlistUserContext.CurrentOrganizationId;
-            }
-            else if (request.Scope?.EqualsInvariant(ModuleConstants.PrivateScope) == true)
-            {
-                cartAggregate.Cart.OrganizationId = null;
-                cartAggregate.Cart.CustomerId = request.WishlistUserContext.CurrentUserId;
-
-                var contact = request.WishlistUserContext.CurrentContact ?? await _memberResolver.ResolveMemberByIdAsync(request.UserId) as Contact;
-                cartAggregate.Cart.CustomerName = contact?.Name;
-            }
         }
     }
 }
