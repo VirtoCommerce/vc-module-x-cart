@@ -14,12 +14,12 @@ using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Infrastructure.Authorization;
 using VirtoCommerce.Xapi.Core.Services;
-using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Authorization;
 using VirtoCommerce.XCart.Core.Commands;
@@ -28,9 +28,9 @@ using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
 using VirtoCommerce.XCart.Core.Schemas;
-using VirtoCommerce.XCart.Data.Extensions;
 using VirtoCommerce.XPurchase.Schemas;
 using static VirtoCommerce.Xapi.Core.ModuleConstants;
+using static VirtoCommerce.XCart.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Schemas
 {
@@ -44,7 +44,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
         private readonly IUserManagerCore _userManagerCore;
         private readonly IMemberResolver _memberResolver;
 
-        public const string CommandName = "command";
         public const string CartPrefix = "Cart";
 
         public PurchaseSchema(
@@ -96,7 +95,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var addItemField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                            .Name("addItem")
-                                           .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddItemType>>(), CommandName)
+                                           .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddItemType>>(), SchemaConstants.CommandName)
                                            //PT-5394: Write the unit-tests for successfully mapping input variable to the command
                                            .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                            {
@@ -119,7 +118,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             schema.Mutation.AddField(FieldBuilder
                 .Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                 .Name("addGiftItems")
-                .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddGiftItemsType>>(), CommandName)
+                .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddGiftItemsType>>(), SchemaConstants.CommandName)
                 .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                 {
                     var cartCommand = context.GetCartCommand<AddGiftItemsCommand>();
@@ -138,7 +137,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             schema.Mutation.AddField(FieldBuilder
                 .Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                 .Name("rejectGiftItems")
-                .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRejectGiftItemsType>>(), CommandName)
+                .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRejectGiftItemsType>>(), SchemaConstants.CommandName)
                 .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                 {
                     var cartCommand = context.GetCartCommand<RejectGiftCartItemsCommand>();
@@ -172,7 +171,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var clearCartField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                              .Name("clearCart")
-                                             .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputClearCartType>>(), CommandName)
+                                             .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputClearCartType>>(), SchemaConstants.CommandName)
                                              .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                              {
                                                  var cartCommand = context.GetCartCommand<ClearCartCommand>();
@@ -209,7 +208,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var changeCommentField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                  .Name("changeComment")
-                                                 .Argument(GraphTypeExtenstionHelper.GetActualType<InputChangeCommentType>(), CommandName)
+                                                 .Argument(GraphTypeExtenstionHelper.GetActualType<InputChangeCommentType>(), SchemaConstants.CommandName)
                                                  .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                  {
                                                      var cartCommand = context.GetCartCommand<ChangeCommentCommand>();
@@ -248,7 +247,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var changeCartItemPriceField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                        .Name("changeCartItemPrice")
-                                                       .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputChangeCartItemPriceType>>(), CommandName)
+                                                       .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputChangeCartItemPriceType>>(), SchemaConstants.CommandName)
                                                        .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                        {
                                                            var cartCommand = context.GetCartCommand<ChangeCartItemPriceCommand>();
@@ -286,7 +285,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var changeCartItemQuantityField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                           .Name("changeCartItemQuantity")
-                                                          .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputChangeCartItemQuantityType>>(), CommandName)
+                                                          .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputChangeCartItemQuantityType>>(), SchemaConstants.CommandName)
                                                           .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                           {
                                                               var cartCommand = context.GetCartCommand<ChangeCartItemQuantityCommand>();
@@ -324,7 +323,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var changeCartItemCommentField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                           .Name("changeCartItemComment")
-                                                          .Argument(GraphTypeExtenstionHelper.GetActualType<InputChangeCartItemCommentType>(), CommandName)
+                                                          .Argument(GraphTypeExtenstionHelper.GetActualType<InputChangeCartItemCommentType>(), SchemaConstants.CommandName)
                                                           .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                           {
                                                               var cartCommand = context.GetCartCommand<ChangeCartItemCommentCommand>();
@@ -364,7 +363,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var changeCartItemSelectedField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                           .Name("changeCartItemSelected")
-                                                          .Argument(GraphTypeExtenstionHelper.GetActualType<InputChangeCartItemSelectedType>(), CommandName)
+                                                          .Argument(GraphTypeExtenstionHelper.GetActualType<InputChangeCartItemSelectedType>(), SchemaConstants.CommandName)
                                                           .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                           {
                                                               var cartCommand = context.GetCartCommand<ChangeCartItemSelectedCommand>();
@@ -381,7 +380,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             var selectCartItems = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                               .Name("selectCartItems")
-                                              .Argument(GraphTypeExtenstionHelper.GetActualType<InputChangeCartItemsSelectedType>(), CommandName)
+                                              .Argument(GraphTypeExtenstionHelper.GetActualType<InputChangeCartItemsSelectedType>(), SchemaConstants.CommandName)
                                               .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                               {
                                                   var cartCommand = context.GetCartCommand<ChangeCartItemsSelectedCommand>();
@@ -399,7 +398,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             var unSelectCartItems = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                 .Name("unSelectCartItems")
-                                                .Argument(GraphTypeExtenstionHelper.GetActualType<InputChangeCartItemsSelectedType>(), CommandName)
+                                                .Argument(GraphTypeExtenstionHelper.GetActualType<InputChangeCartItemsSelectedType>(), SchemaConstants.CommandName)
                                                 .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                 {
                                                     var cartCommand = context.GetCartCommand<ChangeCartItemsSelectedCommand>();
@@ -416,7 +415,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             var selectAllCartItems = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                  .Name("selectAllCartItems")
-                                                 .Argument(GraphTypeExtenstionHelper.GetActualType<InputChangeAllCartItemsSelectedType>(), CommandName)
+                                                 .Argument(GraphTypeExtenstionHelper.GetActualType<InputChangeAllCartItemsSelectedType>(), SchemaConstants.CommandName)
                                                  .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                  {
                                                      var cartCommand = context.GetCartCommand<ChangeAllCartItemsSelectedCommand>();
@@ -434,7 +433,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             var unSelectAllCartItems = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                    .Name("unSelectAllCartItems")
-                                                   .Argument(GraphTypeExtenstionHelper.GetActualType<InputChangeAllCartItemsSelectedType>(), CommandName)
+                                                   .Argument(GraphTypeExtenstionHelper.GetActualType<InputChangeAllCartItemsSelectedType>(), SchemaConstants.CommandName)
                                                    .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                    {
                                                        var cartCommand = context.GetCartCommand<ChangeAllCartItemsSelectedCommand>();
@@ -470,7 +469,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var removeCartItemField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                   .Name("removeCartItem")
-                                                  .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveItemType>>(), CommandName)
+                                                  .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveItemType>>(), SchemaConstants.CommandName)
                                                   .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                   {
                                                       var cartCommand = context.GetCartCommand<RemoveCartItemCommand>();
@@ -490,7 +489,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             var removeCartItemsField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                   .Name("removeCartItems")
-                                                  .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveItemsType>>(), CommandName)
+                                                  .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveItemsType>>(), SchemaConstants.CommandName)
                                                   .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                   {
                                                       var cartCommand = context.GetCartCommand<RemoveCartItemsCommand>();
@@ -527,7 +526,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var addCouponField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                              .Name("addCoupon")
-                                             .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddCouponType>>(), CommandName)
+                                             .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddCouponType>>(), SchemaConstants.CommandName)
                                              .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                              {
                                                  var cartCommand = context.GetCartCommand<AddCouponCommand>();
@@ -564,7 +563,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var removeCouponField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                 .Name("removeCoupon")
-                                                .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveCouponType>>(), CommandName)
+                                                .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveCouponType>>(), SchemaConstants.CommandName)
                                                 .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                 {
                                                     var cartCommand = context.GetCartCommand<RemoveCouponCommand>();
@@ -601,7 +600,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var removeShipmentField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                   .Name("removeShipment")
-                                                  .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveShipmentType>>(), CommandName)
+                                                  .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveShipmentType>>(), SchemaConstants.CommandName)
                                                   .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                   {
                                                       var cartCommand = context.GetCartCommand<RemoveShipmentCommand>();
@@ -677,7 +676,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var addOrUpdateCartShipmentField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                            .Name("addOrUpdateCartShipment")
-                                                           .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddOrUpdateCartShipmentType>>(), CommandName)
+                                                           .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddOrUpdateCartShipmentType>>(), SchemaConstants.CommandName)
                                                            .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                            {
                                                                var cartCommand = context.GetCartCommand<AddOrUpdateCartShipmentCommand>();
@@ -746,7 +745,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var addOrUpdateCartPaymentField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                           .Name("addOrUpdateCartPayment")
-                                                          .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddOrUpdateCartPaymentType>>(), CommandName)
+                                                          .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddOrUpdateCartPaymentType>>(), SchemaConstants.CommandName)
                                                            .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                            {
                                                                var cartCommand = context.GetCartCommand<AddOrUpdateCartPaymentCommand>();
@@ -785,14 +784,14 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var validateCouponMutationField = FieldBuilder.Create<CartAggregate, bool>(typeof(BooleanGraphType))
                                                   .Name("validateCoupon")
-                                                  .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputValidateCouponType>>(), CommandName)
+                                                  .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputValidateCouponType>>(), SchemaConstants.CommandName)
                                                   .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                   {
-                                                      var command = context.GetArgument<ValidateCouponCommand>(CommandName);
+                                                      var cartCommand = context.GetCartCommand<ValidateCouponCommand>();
 
-                                                      await CheckAuthByCartParamsAsync(context, command.StoreId, command.CartType, command.CartName, command.UserId, command.CurrencyCode, command.CultureName);
+                                                      await CheckAuthByCartParamsAsync(context, cartCommand);
 
-                                                      return await _mediator.Send(command);
+                                                      return await _mediator.Send(cartCommand);
                                                   })
                                                   .DeprecationReason("Use 'validateCoupon' query instead.")
                                                   .FieldType;
@@ -818,7 +817,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                     query.CartId = context.GetArgumentOrValue<string>("cartId");
                     query.Coupon = context.GetArgumentOrValue<string>("coupon");
 
-                    await CheckAuthByCartParamsAsync(context, query.StoreId, query.CartType, query.CartName, query.UserId, query.CurrencyCode, query.CultureName);
+                    await CheckAuthByCartParamsAsync(context, query);
 
                     return await _mediator.Send(query);
                 })
@@ -844,7 +843,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var margeCartField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                              .Name("mergeCart")
-                                             .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputMergeCartType>>(), CommandName)
+                                             .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputMergeCartType>>(), SchemaConstants.CommandName)
                                              .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                              {
                                                  var cartCommand = context.GetCartCommand<MergeCartCommand>();
@@ -875,10 +874,10 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var removeCartField = FieldBuilder.Create<CartAggregate, bool>(typeof(BooleanGraphType))
                                               .Name("removeCart")
-                                              .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveCartType>>(), CommandName)
+                                              .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveCartType>>(), SchemaConstants.CommandName)
                                               .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                               {
-                                                  var command = context.GetArgument(GenericTypeHelper.GetActualType<RemoveCartCommand>(), CommandName) as RemoveCartCommand;
+                                                  var command = context.GetArgument(GenericTypeHelper.GetActualType<RemoveCartCommand>(), SchemaConstants.CommandName) as RemoveCartCommand;
 
                                                   await CheckAuthAsyncByCartId(context, command.CartId);
 
@@ -901,7 +900,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var clearShipmentsField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                   .Name("clearShipments")
-                                                  .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputClearShipmentsType>>(), CommandName)
+                                                  .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputClearShipmentsType>>(), SchemaConstants.CommandName)
                                                   .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                   {
                                                       var cartCommand = context.GetCartCommand<ClearShipmentsCommand>();
@@ -933,7 +932,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var clearPaymentsField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                  .Name("clearPayments")
-                                                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputClearPaymentsType>>(), CommandName)
+                                                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputClearPaymentsType>>(), SchemaConstants.CommandName)
                                                  .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                   {
                                                       var cartCommand = context.GetCartCommand<ClearPaymentsCommand>();
@@ -973,7 +972,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var addOrUpdateCartAddress = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                  .Name("addOrUpdateCartAddress")
-                                                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddOrUpdateCartAddressType>>(), CommandName)
+                                                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddOrUpdateCartAddressType>>(), SchemaConstants.CommandName)
                                                  .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                   {
                                                       var cartCommand = context.GetCartCommand<AddOrUpdateCartAddressCommand>();
@@ -1006,7 +1005,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var removeCartAddressField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                               .Name("removeCartAddress")
-                                              .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveCartAddressType>>(), CommandName)
+                                              .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveCartAddressType>>(), SchemaConstants.CommandName)
                                               .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                               {
                                                   var cartCommand = context.GetCartCommand<RemoveCartAddressCommand>();
@@ -1051,7 +1050,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var addItemsCartField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                  .Name("addItemsCart")
-                                                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddItemsType>>(), CommandName)
+                                                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddItemsType>>(), SchemaConstants.CommandName)
                                                  .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                  {
                                                      var cartCommand = context.GetCartCommand<AddCartItemsCommand>();
@@ -1093,21 +1092,21 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var addItemsBulkCartField = FieldBuilder.Create<BulkCartResult, BulkCartResult>(GraphTypeExtenstionHelper.GetActualType<BulkCartType>())
                                                  .Name("addBulkItemsCart")
-                                                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddBulkItemsType>>(), CommandName)
+                                                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddBulkItemsType>>(), SchemaConstants.CommandName)
                                                  .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                  {
-                                                     var command = context.GetArgument<AddCartItemsBulkCommand>(CommandName);
+                                                     var cartCommand = context.GetCartCommand<AddCartItemsBulkCommand>();
 
-                                                     if (!string.IsNullOrEmpty(command.CartId))
+                                                     if (!string.IsNullOrEmpty(cartCommand.CartId))
                                                      {
-                                                         await CheckAuthAsyncByCartId(context, command.CartId);
+                                                         await CheckAuthAsyncByCartId(context, cartCommand.CartId);
                                                      }
                                                      else
                                                      {
-                                                         await CheckAuthByCartParamsAsync(context, command.StoreId, command.CartType, command.CartName, command.UserId, command.CurrencyCode, command.CultureName);
+                                                         await CheckAuthByCartParamsAsync(context, cartCommand);
                                                      }
 
-                                                     var result = await _mediator.Send(command);
+                                                     var result = await _mediator.Send(cartCommand);
 
                                                      context.SetExpandedObjectGraph(result.Cart);
 
@@ -1138,7 +1137,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var addCartAddressField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                  .Name("addCartAddress")
-                                                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddOrUpdateCartAddressType>>(), CommandName)
+                                                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddOrUpdateCartAddressType>>(), SchemaConstants.CommandName)
                                                  .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                  {
                                                      var cartCommand = context.GetCartCommand<AddCartAddressCommand>();
@@ -1155,7 +1154,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             var updateCartDynamicPropertiesField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                      .Name("updateCartDynamicProperties")
-                                                     .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputUpdateCartDynamicPropertiesType>>(), CommandName)
+                                                     .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputUpdateCartDynamicPropertiesType>>(), SchemaConstants.CommandName)
                                                      .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                      {
                                                          var cartCommand = context.GetCartCommand<UpdateCartDynamicPropertiesCommand>();
@@ -1172,7 +1171,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             var updateCartItemDynamicPropertiesField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                         .Name("updateCartItemDynamicProperties")
-                                                        .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputUpdateCartItemDynamicPropertiesType>>(), CommandName)
+                                                        .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputUpdateCartItemDynamicPropertiesType>>(), SchemaConstants.CommandName)
                                                         .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                         {
                                                             var cartCommand = context.GetCartCommand<UpdateCartItemDynamicPropertiesCommand>();
@@ -1189,7 +1188,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             var updateCartPaymentDynamicPropertiesField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                             .Name("updateCartPaymentDynamicProperties")
-                                                            .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputUpdateCartPaymentDynamicPropertiesType>>(), CommandName)
+                                                            .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputUpdateCartPaymentDynamicPropertiesType>>(), SchemaConstants.CommandName)
                                                             .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                             {
                                                                 var cartCommand = context.GetCartCommand<UpdateCartPaymentDynamicPropertiesCommand>();
@@ -1206,7 +1205,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             var updateCartShipmentDynamicPropertiesField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                                                .Name("updateCartShipmentDynamicProperties")
-                                                               .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputUpdateCartShipmentDynamicPropertiesType>>(), CommandName)
+                                                               .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputUpdateCartShipmentDynamicPropertiesType>>(), SchemaConstants.CommandName)
                                                                .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                                                {
                                                                    var cartCommand = context.GetCartCommand<UpdateCartShipmentDynamicPropertiesCommand>();
@@ -1223,7 +1222,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             var changePurchaseOrderNumberField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                      .Name("changePurchaseOrderNumber")
-                                     .Argument(GraphTypeExtenstionHelper.GetActualType<InputChangePurchaseOrderNumber>(), CommandName)
+                                     .Argument(GraphTypeExtenstionHelper.GetActualType<InputChangePurchaseOrderNumber>(), SchemaConstants.CommandName)
                                      .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                      {
                                          var cartCommand = context.GetCartCommand<ChangePurchaseOrderNumberCommand>();
@@ -1258,7 +1257,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             /// </example>
             var refreshCartField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                            .Name("refreshCart")
-                                           .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<RefreshCartType>>(), CommandName)
+                                           .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<RefreshCartType>>(), SchemaConstants.CommandName)
                                            //PT-5394: Write the unit-tests for successfully mapping input variable to the command
                                            .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                            {
@@ -1333,11 +1332,11 @@ namespace VirtoCommerce.XCart.Data.Schemas
             // Add list
             var addListField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<WishlistType>())
                                                  .Name("createWishlist")
-                                                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputCreateWishlistType>>(), CommandName)
+                                                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputCreateWishlistType>>(), SchemaConstants.CommandName)
                                                   .ResolveAsync(async context =>
                                                   {
                                                       var commandType = GenericTypeHelper.GetActualType<CreateWishlistCommand>();
-                                                      var command = (CreateWishlistCommand)context.GetArgument(commandType, CommandName);
+                                                      var command = (CreateWishlistCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
                                                       await AuthorizeByListIdAsync(context, command, command.Scope);
                                                       var cartAggregate = await _mediator.Send(command);
                                                       context.SetExpandedObjectGraph(cartAggregate);
@@ -1350,16 +1349,16 @@ namespace VirtoCommerce.XCart.Data.Schemas
             // Clone list
             var cloneListField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<WishlistType>())
                                                 .Name("cloneWishlist")
-                                                .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputCloneWishlistType>>(), CommandName)
+                                                .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputCloneWishlistType>>(), SchemaConstants.CommandName)
                                                 .ResolveAsync(async context =>
                                                 {
                                                     var commandType = GenericTypeHelper.GetActualType<CloneWishlistCommand>();
-                                                    var command = (CloneWishlistCommand)context.GetArgument(commandType, CommandName);
+                                                    var command = (CloneWishlistCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
 
                                                     await AuthorizeByListIdAsync(context, command, command.Scope);
-                                                    var result = await _mediator.Send(command);
-                                                    context.SetExpandedObjectGraph(result);
-                                                    return result;
+                                                    var cartAggregate = await _mediator.Send(command);
+                                                    context.SetExpandedObjectGraph(cartAggregate);
+                                                    return cartAggregate;
                                                 })
                                                 .FieldType;
 
@@ -1368,11 +1367,11 @@ namespace VirtoCommerce.XCart.Data.Schemas
             // Change list
             var changeListField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<WishlistType>())
                                                  .Name("changeWishlist")
-                                                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputChangeWishlistType>>(), CommandName)
+                                                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputChangeWishlistType>>(), SchemaConstants.CommandName)
                                                  .ResolveAsync(async context =>
                                                  {
                                                      var commandType = GenericTypeHelper.GetActualType<ChangeWishlistCommand>();
-                                                     var command = (ChangeWishlistCommand)context.GetArgument(commandType, CommandName);
+                                                     var command = (ChangeWishlistCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
 
                                                      await AuthorizeByListIdAsync(context, command, command.Scope);
                                                      var cartAggregate = await _mediator.Send(command);
@@ -1386,11 +1385,11 @@ namespace VirtoCommerce.XCart.Data.Schemas
             // Rename list
             var renameListField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<WishlistType>())
                                      .Name("renameWishlist")
-                                     .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRenameWishlistType>>(), CommandName)
+                                     .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRenameWishlistType>>(), SchemaConstants.CommandName)
                                      .ResolveAsync(async context =>
                                      {
                                          var commandType = GenericTypeHelper.GetActualType<RenameWishlistCommand>();
-                                         var command = (RenameWishlistCommand)context.GetArgument(commandType, CommandName);
+                                         var command = (RenameWishlistCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
                                          await AuthorizeByListIdAsync(context, command);
                                          var cartAggregate = await _mediator.Send(command);
                                          context.SetExpandedObjectGraph(cartAggregate);
@@ -1404,11 +1403,11 @@ namespace VirtoCommerce.XCart.Data.Schemas
             // Remove list
             var removeListField = FieldBuilder.Create<CartAggregate, bool>(typeof(BooleanGraphType))
                          .Name("removeWishlist")
-                         .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveWishlistType>>(), CommandName)
+                         .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveWishlistType>>(), SchemaConstants.CommandName)
                          .ResolveAsync(async context =>
                          {
                              var commandType = GenericTypeHelper.GetActualType<RemoveWishlistCommand>();
-                             var command = (RemoveWishlistCommand)context.GetArgument(commandType, CommandName);
+                             var command = (RemoveWishlistCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
                              await AuthorizeByListIdAsync(context, command);
                              await _mediator.Send(command);
                              return true;
@@ -1420,11 +1419,11 @@ namespace VirtoCommerce.XCart.Data.Schemas
             // Add product to list
             var addListItemField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<WishlistType>())
                          .Name("addWishlistItem")
-                         .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddWishlistItemType>>(), CommandName)
+                         .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddWishlistItemType>>(), SchemaConstants.CommandName)
                          .ResolveAsync(async context =>
                          {
                              var commandType = GenericTypeHelper.GetActualType<AddWishlistItemCommand>();
-                             var command = (AddWishlistItemCommand)context.GetArgument(commandType, CommandName);
+                             var command = (AddWishlistItemCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
                              var cartAggregate = await _mediator.Send(command);
                              context.UserContext["storeId"] = cartAggregate.Cart.StoreId;
                              await AuthorizeByListIdAsync(context, command);
@@ -1438,11 +1437,11 @@ namespace VirtoCommerce.XCart.Data.Schemas
             // Update wishlist item
             var updateListItemField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<WishlistType>())
                          .Name("updateWishListItems")
-                         .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputUpdateWishlistItemsType>>(), CommandName)
+                         .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputUpdateWishlistItemsType>>(), SchemaConstants.CommandName)
                          .ResolveAsync(async context =>
                          {
                              var commandType = GenericTypeHelper.GetActualType<UpdateWishlistItemsCommand>();
-                             var command = (UpdateWishlistItemsCommand)context.GetArgument(commandType, CommandName);
+                             var command = (UpdateWishlistItemsCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
                              var cartAggregate = await _mediator.Send(command);
                              context.UserContext["storeId"] = cartAggregate.Cart.StoreId;
                              await AuthorizeByListIdAsync(context, command);
@@ -1456,11 +1455,11 @@ namespace VirtoCommerce.XCart.Data.Schemas
             // Add product to wishlists
             var addWishlistBulkItemField = FieldBuilder.Create<BulkCartAggregateResult, BulkCartAggregateResult>(GraphTypeExtenstionHelper.GetActualType<BulkWishlistType>())
                 .Name("addWishlistBulkItem")
-                .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddWishlistBulkItemType>>(), CommandName)
+                .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddWishlistBulkItemType>>(), SchemaConstants.CommandName)
                 .ResolveAsync(async context =>
                 {
                     var commandType = GenericTypeHelper.GetActualType<AddWishlistBulkItemCommand>();
-                    var command = (AddWishlistBulkItemCommand)context.GetArgument(commandType, CommandName);
+                    var command = (AddWishlistBulkItemCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
                     await AuthorizeByListIdsAsync(context, command, command.ListIds);
                     var cartAggregateList = await _mediator.Send(command);
 
@@ -1477,14 +1476,14 @@ namespace VirtoCommerce.XCart.Data.Schemas
             // Add products to wishlist
             var addWishlistItemsField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<WishlistType>())
                                      .Name("addWishlistItems")
-                                     .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddWishlistItemsType>>(), CommandName)
+                                     .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddWishlistItemsType>>(), SchemaConstants.CommandName)
                                      .ResolveAsync(async context =>
                                      {
-                                         var command = context.GetArgument<AddWishlistItemsCommand>(CommandName);
+                                         var command = context.GetArgument<AddWishlistItemsCommand>(SchemaConstants.CommandName);
                                          await AuthorizeByListIdAsync(context, command);
-                                         var result = await _mediator.Send(command);
-                                         context.SetExpandedObjectGraph(result.Cart);
-                                         return result;
+                                         var cartAggregate = await _mediator.Send(command);
+                                         context.SetExpandedObjectGraph(cartAggregate.Cart);
+                                         return cartAggregate;
                                      })
                                      .FieldType;
 
@@ -1493,11 +1492,11 @@ namespace VirtoCommerce.XCart.Data.Schemas
             // Remove product from list
             var removeListItemField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<WishlistType>())
                          .Name("removeWishlistItem")
-                         .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveWishlistItemType>>(), CommandName)
+                         .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveWishlistItemType>>(), SchemaConstants.CommandName)
                          .ResolveAsync(async context =>
                          {
                              var commandType = GenericTypeHelper.GetActualType<RemoveWishlistItemCommand>();
-                             var command = (RemoveWishlistItemCommand)context.GetArgument(commandType, CommandName);
+                             var command = (RemoveWishlistItemCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
                              await AuthorizeByListIdAsync(context, command);
                              var cartAggregate = await _mediator.Send(command);
                              context.SetExpandedObjectGraph(cartAggregate);
@@ -1510,11 +1509,11 @@ namespace VirtoCommerce.XCart.Data.Schemas
             // Remove products from list
             var removeListItemsField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<WishlistType>())
                          .Name("removeWishlistItems")
-                         .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveWishlistItemsType>>(), CommandName)
+                         .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputRemoveWishlistItemsType>>(), SchemaConstants.CommandName)
                          .ResolveAsync(async context =>
                          {
                              var commandType = GenericTypeHelper.GetActualType<RemoveWishlistItemsCommand>();
-                             var command = (RemoveWishlistItemsCommand)context.GetArgument(commandType, CommandName);
+                             var command = (RemoveWishlistItemsCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
                              await AuthorizeByListIdAsync(context, command);
                              var cartAggregate = await _mediator.Send(command);
                              context.SetExpandedObjectGraph(cartAggregate);
@@ -1527,11 +1526,11 @@ namespace VirtoCommerce.XCart.Data.Schemas
             // Move product to another list
             var moveListItemField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<WishlistType>())
                      .Name("moveWishlistItem")
-                     .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputMoveWishlistItemType>>(), CommandName)
+                     .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputMoveWishlistItemType>>(), SchemaConstants.CommandName)
                      .ResolveAsync(async context =>
                      {
                          var commandType = GenericTypeHelper.GetActualType<MoveWishlistItemCommand>();
-                         var command = (MoveWishlistItemCommand)context.GetArgument(commandType, CommandName);
+                         var command = (MoveWishlistItemCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
                          await AuthorizeByListIdsAsync(context, command, [command.ListId, command.DestinationListId]);
                          var cartAggregate = await _mediator.Send(command);
                          context.SetExpandedObjectGraph(cartAggregate);
@@ -1577,28 +1576,29 @@ namespace VirtoCommerce.XCart.Data.Schemas
             }
             else
             {
-                await CheckAuthByCartParamsAsync(context, cartCommand.StoreId, cartCommand.CartType, cartCommand.CartName, cartCommand.UserId, cartCommand.CurrencyCode, cartCommand.CultureName);
+                await CheckAuthByCartParamsAsync(context, cartCommand);
             }
         }
 
-        private async Task CheckAuthByCartParamsAsync(IResolveFieldContext context, string storeId, string cartType, string cartName, string userId, string currencyCode, string cultureName)
+        private async Task CheckAuthByCartParamsAsync(IResolveFieldContext context, ICartRequest request)
         {
             var criteria = new ShoppingCartSearchCriteria
             {
-                StoreId = storeId,
-                CustomerId = userId ?? AnonymousUser.UserName,
-                Name = cartName,
-                Currency = currencyCode,
-                Type = cartType,
-                LanguageCode = cultureName,
+                StoreId = request.StoreId,
+                CustomerId = request.UserId ?? AnonymousUser.UserName,
+                OrganizationId = request.OrganizationId,
+                Name = request.CartName,
+                Currency = request.CurrencyCode,
+                Type = request.CartType,
+                LanguageCode = request.CultureName,
             };
 
             var cartSearchResult = await _shoppingCartSearchService.SearchAsync(criteria);
-            var cart = cartSearchResult.Results.FirstOrDefault(x => cartType != null || x.Type == null);
+            var cart = cartSearchResult.Results.FirstOrDefault(x => request.CartType != null || x.Type == null);
 
             if (cart == null)
             {
-                await AuthorizeAsync(context, userId);
+                await AuthorizeAsync(context, request.UserId);
             }
             else
             {
@@ -1627,6 +1627,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
         private async Task AuthorizeByListIdsAsync(IResolveFieldContext context, WishlistCommand command, IList<string> listIds)
         {
             var currentUserId = context.GetCurrentUserId();
+            var currentOrganizationId = context.GetCurrentOrganizationId();
             var contact = await _memberResolver.ResolveMemberByIdAsync(currentUserId) as Contact;
             var carts = await _cartService.GetAsync(listIds);
 
@@ -1635,6 +1636,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                 var wishlistUserContext = new WishlistUserContext
                 {
                     CurrentUserId = currentUserId,
+                    CurrentOrganizationId = currentOrganizationId,
                     CurrentContact = contact,
                     Cart = cart,
                 };
@@ -1647,6 +1649,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
         private async Task AuthorizeByListIdsAsync(IResolveFieldContext context, AddWishlistBulkItemCommand command, IList<string> listIds)
         {
             var currentUserId = context.GetCurrentUserId();
+            var currentOrganizationId = context.GetCurrentOrganizationId();
             var contact = await _memberResolver.ResolveMemberByIdAsync(currentUserId) as Contact;
             var carts = await _cartService.GetAsync(listIds);
 
@@ -1655,6 +1658,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                 var wishlistUserContext = new WishlistUserContext
                 {
                     CurrentUserId = currentUserId,
+                    CurrentOrganizationId = currentOrganizationId,
                     CurrentContact = contact,
                     Cart = cart,
                 };
@@ -1691,6 +1695,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             var wishlistUserContext = new WishlistUserContext
             {
                 CurrentUserId = currentUserId,
+                CurrentOrganizationId = context.GetCurrentOrganizationId(),
                 CurrentContact = await _memberResolver.ResolveMemberByIdAsync(currentUserId) as Contact,
                 Cart = cart,
                 UserId = userId,

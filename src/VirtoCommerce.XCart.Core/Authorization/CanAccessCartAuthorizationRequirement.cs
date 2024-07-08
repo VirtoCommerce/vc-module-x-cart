@@ -103,7 +103,7 @@ namespace VirtoCommerce.XCart.Core.Authorization
             {
                 if (context.Cart.OrganizationId != null)
                 {
-                    result = context.Cart.OrganizationId == context.CurrentContact?.Organizations?.FirstOrDefault();
+                    result = context.Cart.OrganizationId == context.CurrentOrganizationId;
                 }
                 else
                 {

@@ -39,7 +39,7 @@ namespace VirtoCommerce.XCart.Data.Queries
             }
             else
             {
-                return _cartAggregateRepository.GetCartAsync(request.CartName, request.StoreId, request.UserId, request.CultureName, request.CurrencyCode, request.CartType);
+                return _cartAggregateRepository.GetCartAsync(request);
             }
         }
     }

@@ -13,9 +13,6 @@ using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
-using VirtoCommerce.Xapi.Core.Models;
-using VirtoCommerce.Xapi.Core.Pipelines;
-using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.MarketingModule.Core.Services;
 using VirtoCommerce.PaymentModule.Core.Model;
@@ -26,6 +23,9 @@ using VirtoCommerce.ShippingModule.Core.Model;
 using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.TaxModule.Core.Model.Search;
 using VirtoCommerce.TaxModule.Core.Services;
+using VirtoCommerce.Xapi.Core.Models;
+using VirtoCommerce.Xapi.Core.Pipelines;
+using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
@@ -782,6 +782,8 @@ namespace VirtoCommerce.XCart.Core
         {
             EnsureCartExists();
 
+            await UpdateOrganizationName();
+
             var promotionEvalResult = await EvaluatePromotionsAsync();
             await this.ApplyRewardsAsync(promotionEvalResult.Rewards);
 
@@ -818,6 +820,21 @@ namespace VirtoCommerce.XCart.Core
                     var org = await _memberService.GetByIdAsync(cart.OrganizationId);
                     cart.OrganizationName = org.Name;
                 }
+            }
+
+            return this;
+        }
+
+        public virtual async Task<CartAggregate> UpdateOrganizationName()
+        {
+            if (string.IsNullOrEmpty(Cart.OrganizationId))
+            {
+                Cart.OrganizationName = null;
+            }
+            else if (string.IsNullOrEmpty(Cart.OrganizationName))
+            {
+                var organization = await _memberService.GetByIdAsync(Cart.OrganizationId);
+                Cart.OrganizationName = organization.Name;
             }
 
             return this;

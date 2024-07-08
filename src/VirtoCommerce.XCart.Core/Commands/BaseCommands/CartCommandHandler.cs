@@ -49,6 +49,7 @@ namespace VirtoCommerce.XCart.Core.Commands.BaseCommands
             cartSearchCriteria.Name = request.CartName;
             cartSearchCriteria.StoreId = request.StoreId;
             cartSearchCriteria.CustomerId = request.UserId;
+            cartSearchCriteria.OrganizationId = request.OrganizationId;
             cartSearchCriteria.Currency = request.CurrencyCode;
             cartSearchCriteria.Type = request.CartType;
 
@@ -62,6 +63,7 @@ namespace VirtoCommerce.XCart.Core.Commands.BaseCommands
             var cart = AbstractTypeFactory<ShoppingCart>.TryCreateInstance();
 
             cart.CustomerId = request.UserId;
+            cart.OrganizationId = request.OrganizationId;
             cart.Name = request.CartName ?? "default";
             cart.StoreId = request.StoreId;
             cart.LanguageCode = request.CultureName;

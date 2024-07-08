@@ -4,7 +4,7 @@ using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.SearchModule.Core.Services;
-using VirtoCommerce.XCart.Core;
+using static VirtoCommerce.XCart.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Services
 {
@@ -73,7 +73,6 @@ namespace VirtoCommerce.XCart.Data.Services
 
         public CartSearchCriteriaBuilder WithOrganizationId(string organizationId)
         {
-            _searchCriteria.CustomerOrOrganization = true;
             _searchCriteria.OrganizationId = organizationId ?? _searchCriteria.OrganizationId;
             return this;
         }
@@ -84,16 +83,22 @@ namespace VirtoCommerce.XCart.Data.Services
             return this;
         }
 
+        /// <summary>
+        /// Scope should be used only for wishlists
+        /// </summary>
         public CartSearchCriteriaBuilder WithScope(string scope)
         {
-            if (string.IsNullOrEmpty(scope))
+            _searchCriteria.CustomerOrOrganization = true;
+
+            if (scope.EqualsIgnoreCase(OrganizationScope))
             {
-                return this;
+                _searchCriteria.CustomerId = null;
+            }
+            else if (scope.EqualsIgnoreCase(PrivateScope))
+            {
+                _searchCriteria.OrganizationId = null;
             }
 
-            _searchCriteria.CustomerOrOrganization = false;
-            _searchCriteria.CustomerId = scope.EqualsInvariant(ModuleConstants.OrganizationScope) ? null : _searchCriteria.CustomerId;
-            _searchCriteria.NoOrganization = scope.EqualsInvariant(ModuleConstants.PrivateScope);
             return this;
         }
 

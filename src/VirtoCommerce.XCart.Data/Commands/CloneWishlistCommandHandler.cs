@@ -41,9 +41,7 @@ public class CloneWishlistCommandHandler : CartCommandHandler<CloneWishlistComma
 
         if (request.Scope?.EqualsInvariant(ModuleConstants.OrganizationScope) == true)
         {
-            var organizationId = contact?.Organizations?.FirstOrDefault();
-
-            cloneCartAggregate.Cart.OrganizationId = organizationId;
+            cloneCartAggregate.Cart.OrganizationId = request.OrganizationId;
         }
 
         var cart = request.WishlistUserContext.Cart

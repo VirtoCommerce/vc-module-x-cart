@@ -33,7 +33,7 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         protected virtual Task<CartAggregate> GetCartAggregateFromCommandAsync(ValidateCouponCommand request)
         {
-            return CartAggrRepository.GetCartAsync(request.CartName, request.StoreId, request.UserId, request.CultureName, request.CurrencyCode, request.CartType);
+            return CartAggrRepository.GetCartAsync(request);
         }
     }
 }

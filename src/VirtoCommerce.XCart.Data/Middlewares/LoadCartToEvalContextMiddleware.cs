@@ -4,11 +4,11 @@ using AutoMapper;
 using PipelineNet.Middleware;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.CoreModule.Core.Common;
-using VirtoCommerce.Xapi.Core.Pipelines;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.TaxModule.Core.Model;
+using VirtoCommerce.Xapi.Core.Pipelines;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 
@@ -79,6 +79,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             cartSearchCriteria.Name = "default";
             cartSearchCriteria.StoreId = context.StoreId;
             cartSearchCriteria.CustomerId = context.CustomerId;
+            cartSearchCriteria.OrganizationId = context.OrganizaitonId;
             cartSearchCriteria.Currency = context.Currency;
 
             return cartSearchCriteria;
@@ -91,6 +92,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             cartSearchCriteria.Name = "default";
             cartSearchCriteria.StoreId = context.StoreId;
             cartSearchCriteria.CustomerId = context.CustomerId;
+            cartSearchCriteria.OrganizationId = context.OrganizationId;
             cartSearchCriteria.Currency = context.Currency;
 
             return cartSearchCriteria;
@@ -103,6 +105,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             cartSearchCriteria.Name = "default";
             cartSearchCriteria.StoreId = context.StoreId;
             cartSearchCriteria.CustomerId = context.CustomerId;
+            cartSearchCriteria.OrganizationId = context.OrganizationId;
             cartSearchCriteria.Currency = context.Currency;
 
             return cartSearchCriteria;

@@ -7,13 +7,5 @@ namespace VirtoCommerce.XCart.Core.Commands
     /// </summary>
     public class RefreshCartCommand : CartCommand
     {
-        public RefreshCartCommand()
-        {
-        }
-
-        public RefreshCartCommand(string storeId, string cartType, string cartName, string userId, string currencyCode, string cultureName)
-            : base(storeId, cartType, cartName, userId, currencyCode, cultureName)
-        {
-        }
     }
 }

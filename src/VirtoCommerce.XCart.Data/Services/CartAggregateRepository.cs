@@ -8,9 +8,9 @@ using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Services;
-using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.StoreModule.Core.Services;
+using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
@@ -56,12 +56,12 @@ namespace VirtoCommerce.XCart.Data.Services
             await _shoppingCartService.SaveChangesAsync(new List<ShoppingCart> { cartAggregate.Cart });
         }
 
-        public async Task<CartAggregate> GetCartByIdAsync(string cartId, string language = null)
+        public async Task<CartAggregate> GetCartByIdAsync(string cartId, string cultureName = null)
         {
-            return await GetCartByIdAsync(cartId, null, language);
+            return await GetCartByIdAsync(cartId, null, cultureName);
         }
 
-        public async Task<CartAggregate> GetCartByIdAsync(string cartId, IList<string> productsIncludeFields, string language = null)
+        public async Task<CartAggregate> GetCartByIdAsync(string cartId, IList<string> productsIncludeFields, string cultureName = null)
         {
             if (CartAggregateBuilder.IsBuilding(out var cartAggregate))
             {
@@ -71,22 +71,30 @@ namespace VirtoCommerce.XCart.Data.Services
             var cart = await _shoppingCartService.GetByIdAsync(cartId);
             if (cart != null)
             {
-                return await InnerGetCartAggregateFromCartAsync(cart, language ?? Language.InvariantLanguage.CultureName, productsIncludeFields);
+                return await InnerGetCartAggregateFromCartAsync(cart, cultureName ?? Language.InvariantLanguage.CultureName, productsIncludeFields);
             }
             return null;
         }
 
-        public Task<CartAggregate> GetCartForShoppingCartAsync(ShoppingCart cart, string language = null)
+        public Task<CartAggregate> GetCartForShoppingCartAsync(ShoppingCart cart, string cultureName = null)
         {
             if (CartAggregateBuilder.IsBuilding(out var cartAggregate))
             {
                 return Task.FromResult(cartAggregate);
             }
 
-            return InnerGetCartAggregateFromCartAsync(cart, language ?? Language.InvariantLanguage.CultureName);
+            return InnerGetCartAggregateFromCartAsync(cart, cultureName ?? Language.InvariantLanguage.CultureName);
         }
 
-        public async Task<CartAggregate> GetCartAsync(string cartName, string storeId, string userId, string language, string currencyCode, string type = null, string responseGroup = null)
+        public Task<CartAggregate> GetCartAsync(ICartRequest cartRequest, string responseGroup = null)
+        {
+#pragma warning disable VC0008 // Type or member is obsolete
+            return GetCartAsync(cartRequest.CartName, cartRequest.StoreId, cartRequest.UserId, cartRequest.OrganizationId, cartRequest.CultureName, cartRequest.CurrencyCode, cartRequest.CartType, responseGroup);
+#pragma warning restore VC0008 // Type or member is obsolete
+        }
+
+        [Obsolete("Use GetCartAsync(ICartRequest cartRequest, string responseGroup)", DiagnosticId = "VC0008", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
+        public async Task<CartAggregate> GetCartAsync(string cartName, string storeId, string userId, string organizationId, string cultureName, string currencyCode, string type = null, string responseGroup = null)
         {
             if (CartAggregateBuilder.IsBuilding(out var cartAggregate))
             {
@@ -98,6 +106,7 @@ namespace VirtoCommerce.XCart.Data.Services
                 StoreId = storeId,
                 // IMPORTANT! Need to specify customerId, otherwise any user cart could be returned while we expect anonymous in this case.
                 CustomerId = userId ?? AnonymousUser.UserName,
+                OrganizationId = organizationId,
                 Name = cartName,
                 Currency = currencyCode,
                 Type = type,
@@ -110,7 +119,7 @@ namespace VirtoCommerce.XCart.Data.Services
             var cart = cartSearchResult.Results.FirstOrDefault(x => type != null || x.Type == null);
             if (cart != null)
             {
-                return await InnerGetCartAggregateFromCartAsync(cart.Clone() as ShoppingCart, language);
+                return await InnerGetCartAggregateFromCartAsync(cart.Clone() as ShoppingCart, cultureName);
             }
 
             return null;
@@ -197,9 +206,6 @@ namespace VirtoCommerce.XCart.Data.Services
             using (CartAggregateBuilder.Build(aggregate))
             {
                 aggregate.GrabCart(cart, store, member, currency);
-
-                // Update Cart's Organization Id and Name from member.
-                await aggregate.UpdateOrganization(cart, member);
 
                 //Load cart products explicitly if no validation is requested
                 aggregate.ProductsIncludeFields = productsIncludeFields;

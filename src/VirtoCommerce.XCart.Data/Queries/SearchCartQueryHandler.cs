@@ -3,9 +3,9 @@ using System.Threading.Tasks;
 using AutoMapper;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
-using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.SearchModule.Core.Services;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
 using VirtoCommerce.XCart.Core.Services;
@@ -50,6 +50,7 @@ namespace VirtoCommerce.XCart.Data.Queries
                                      .WithType(request.CartType)
                                      .WithLanguage(request.CultureName)
                                      .WithCustomerId(request.UserId)
+                                     .WithOrganizationId(request.OrganizationId)
                                      .WithPaging(request.Skip, request.Take)
                                      .WithSorting(request.Sort)
                                      .Build();

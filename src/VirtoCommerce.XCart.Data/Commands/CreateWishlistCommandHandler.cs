@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using VirtoCommerce.CustomerModule.Core.Model;
@@ -34,9 +33,7 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             if (request.Scope?.EqualsInvariant(ModuleConstants.OrganizationScope) == true)
             {
-                var organizationId = contact?.Organizations?.FirstOrDefault();
-
-                cartAggregate.Cart.OrganizationId = organizationId;
+                cartAggregate.Cart.OrganizationId = request.OrganizationId;
             }
 
             return await SaveCartAsync(cartAggregate);

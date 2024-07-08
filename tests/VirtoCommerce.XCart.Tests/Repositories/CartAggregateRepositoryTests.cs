@@ -15,6 +15,7 @@ using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
+using VirtoCommerce.XCart.Core.Queries;
 using VirtoCommerce.XCart.Data.Services;
 using VirtoCommerce.XCart.Tests.Helpers;
 using Xunit;
@@ -90,14 +91,19 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                     Results = new List<ShoppingCart>()
                 });
 
+            var request = new ValidateCouponQuery
+            {
+                StoreId = It.IsAny<string>(),
+                CartType = It.IsAny<string>(),
+                CartName = It.IsAny<string>(),
+                UserId = It.IsAny<string>(),
+                OrganizationId = It.IsAny<string>(),
+                CurrencyCode = It.IsAny<string>(),
+                CultureName = It.IsAny<string>(),
+            };
+
             // Act
-            var result = await repository.GetCartAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>());
+            var result = await repository.GetCartAsync(request, It.IsAny<string>());
 
             // Assert
             result.Should().BeNull();

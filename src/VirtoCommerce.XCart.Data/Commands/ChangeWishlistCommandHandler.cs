@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using VirtoCommerce.CustomerModule.Core.Model;
@@ -44,16 +43,16 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         protected virtual async Task ChangeScope(ChangeWishlistCommand request, CartAggregate cartAggregate)
         {
-            var contact = request.WishlistUserContext.CurrentContact ?? await _memberResolver.ResolveMemberByIdAsync(request.UserId) as Contact;
-
             if (request.Scope?.EqualsInvariant(ModuleConstants.OrganizationScope) == true)
             {
-                cartAggregate.Cart.OrganizationId = contact?.Organizations?.FirstOrDefault();
+                cartAggregate.Cart.OrganizationId = request.WishlistUserContext.CurrentOrganizationId;
             }
             else if (request.Scope?.EqualsInvariant(ModuleConstants.PrivateScope) == true)
             {
                 cartAggregate.Cart.OrganizationId = null;
                 cartAggregate.Cart.CustomerId = request.WishlistUserContext.CurrentUserId;
+
+                var contact = request.WishlistUserContext.CurrentContact ?? await _memberResolver.ResolveMemberByIdAsync(request.UserId) as Contact;
                 cartAggregate.Cart.CustomerName = contact?.Name;
             }
         }
