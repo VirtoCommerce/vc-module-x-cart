@@ -86,15 +86,7 @@ namespace VirtoCommerce.XCart.Data.Services
             return InnerGetCartAggregateFromCartAsync(cart, cultureName ?? Language.InvariantLanguage.CultureName);
         }
 
-        public Task<CartAggregate> GetCartAsync(ICartRequest cartRequest, string responseGroup = null)
-        {
-#pragma warning disable VC0008 // Type or member is obsolete
-            return GetCartAsync(cartRequest.CartName, cartRequest.StoreId, cartRequest.UserId, cartRequest.OrganizationId, cartRequest.CultureName, cartRequest.CurrencyCode, cartRequest.CartType, responseGroup);
-#pragma warning restore VC0008 // Type or member is obsolete
-        }
-
-        [Obsolete("Use GetCartAsync(ICartRequest cartRequest, string responseGroup)", DiagnosticId = "VC0008", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
-        public async Task<CartAggregate> GetCartAsync(string cartName, string storeId, string userId, string organizationId, string cultureName, string currencyCode, string type = null, string responseGroup = null)
+        public async Task<CartAggregate> GetCartAsync(ICartRequest cartRequest, string responseGroup = null)
         {
             if (CartAggregateBuilder.IsBuilding(out var cartAggregate))
             {
@@ -103,23 +95,23 @@ namespace VirtoCommerce.XCart.Data.Services
 
             var criteria = new ShoppingCartSearchCriteria
             {
-                StoreId = storeId,
+                StoreId = cartRequest.StoreId,
                 // IMPORTANT! Need to specify customerId, otherwise any user cart could be returned while we expect anonymous in this case.
-                CustomerId = userId ?? AnonymousUser.UserName,
-                OrganizationId = organizationId,
-                Name = cartName,
-                Currency = currencyCode,
-                Type = type,
+                CustomerId = cartRequest.UserId ?? AnonymousUser.UserName,
+                OrganizationId = cartRequest.OrganizationId,
+                Name = cartRequest.CartName,
+                Currency = cartRequest.CurrencyCode,
+                Type = cartRequest.CartType,
                 ResponseGroup = EnumUtility.SafeParseFlags(responseGroup, CartResponseGroup.Full).ToString()
             };
 
             var cartSearchResult = await _shoppingCartSearchService.SearchAsync(criteria);
             //The null value for the Type parameter should be interpreted as a valuable parameter, and we must return a cart object with Type property that has null exactly set.
             //otherwise, for the case where the system contains carts with different Types, the resulting cart may be a random result.
-            var cart = cartSearchResult.Results.FirstOrDefault(x => type != null || x.Type == null);
+            var cart = cartSearchResult.Results.FirstOrDefault(x => cartRequest.CartType != null || x.Type == null);
             if (cart != null)
             {
-                return await InnerGetCartAggregateFromCartAsync(cart.Clone() as ShoppingCart, cultureName);
+                return await InnerGetCartAggregateFromCartAsync(cart.Clone() as ShoppingCart, cartRequest.CultureName);
             }
 
             return null;
