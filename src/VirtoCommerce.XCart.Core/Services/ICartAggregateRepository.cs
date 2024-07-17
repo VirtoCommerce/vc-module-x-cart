@@ -20,6 +20,8 @@ namespace VirtoCommerce.XCart.Core.Services
 
         Task<CartAggregate> GetCartByIdAsync(string cartId, IList<string> productsIncludeFields, string cultureName = null);
 
+        Task<CartAggregate> GetCartByIdAsync(string cartId, string responseGroup, IList<string> productsIncludeFields, string cultureName = null);
+
         Task<CartAggregate> GetCartForShoppingCartAsync(ShoppingCart cart, string cultureName = null);
 
         Task<SearchCartResponse> SearchCartAsync(ShoppingCartSearchCriteria criteria);

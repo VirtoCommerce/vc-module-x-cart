@@ -36,8 +36,6 @@ namespace VirtoCommerce.XCart.Data.Queries
         {
             var searchCriteria = GetSearchCriteria(request);
 
-            searchCriteria.ResponseGroup = EnumUtility.SafeParseFlags(_cartResponseGroupParser.GetResponseGroup(request.IncludeFields), CartResponseGroup.Full).ToString();
-
             return _cartAggregateRepository.SearchCartAsync(searchCriteria);
         }
 
@@ -51,6 +49,7 @@ namespace VirtoCommerce.XCart.Data.Queries
                                      .WithLanguage(request.CultureName)
                                      .WithCustomerId(request.UserId)
                                      .WithOrganizationId(request.OrganizationId)
+                                     .WithResponseGroup(EnumUtility.SafeParseFlags(_cartResponseGroupParser.GetResponseGroup(request.IncludeFields), CartResponseGroup.Full))
                                      .WithPaging(request.Skip, request.Take)
                                      .WithSorting(request.Sort)
                                      .Build();

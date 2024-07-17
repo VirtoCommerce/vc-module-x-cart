@@ -7,6 +7,7 @@ using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Queries;
 using VirtoCommerce.XCart.Core.Services;
+using VirtoCommerce.XCart.Data.Extensions;
 
 namespace VirtoCommerce.XCart.Data.Queries
 {
@@ -23,6 +24,11 @@ namespace VirtoCommerce.XCart.Data.Queries
 
         public virtual Task<CartAggregate> Handle(GetCartQuery request, CancellationToken cancellationToken)
         {
+            if (!string.IsNullOrEmpty(request.CartId))
+            {
+                return _cartAggregateRepository.GetCartByIdAsync(request.CartId, GetResponseGroup(request), request.IncludeFields.ItemsToProductIncludeField(), request.CultureName);
+            }
+
             var cartSearchCriteria = GetCartSearchCriteria(request);
 
             return _cartAggregateRepository.GetCartAsync(cartSearchCriteria, request.CultureName);
@@ -44,9 +50,14 @@ namespace VirtoCommerce.XCart.Data.Queries
             cartSearchCriteria.Name = request.CartName;
             cartSearchCriteria.Currency = request.CurrencyCode;
             cartSearchCriteria.Type = request.CartType;
-            cartSearchCriteria.ResponseGroup = EnumUtility.SafeParseFlags(_cartResponseGroupParser.GetResponseGroup(request.IncludeFields), CartResponseGroup.Full).ToString();
+            cartSearchCriteria.ResponseGroup = GetResponseGroup(request);
 
             return cartSearchCriteria;
+        }
+
+        private string GetResponseGroup(GetCartQuery request)
+        {
+            return EnumUtility.SafeParseFlags(_cartResponseGroupParser.GetResponseGroup(request.IncludeFields), CartResponseGroup.Full).ToString();
         }
     }
 }

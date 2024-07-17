@@ -51,7 +51,11 @@ namespace VirtoCommerce.XCart.Data.Queries
 
             var cartAuthorizationRequirement = new CanAccessCartAuthorizationRequirement();
 
-            if (response == null)
+            if (response is not null)
+            {
+                await Authorize(context, response.Cart, cartAuthorizationRequirement);
+            }
+            else if (string.IsNullOrEmpty(request.CartId))
             {
                 await Authorize(context, request.UserId, cartAuthorizationRequirement);
 
@@ -59,10 +63,6 @@ namespace VirtoCommerce.XCart.Data.Queries
                 createCartCommand.CopyFrom(request);
 
                 response = await _mediator.Send(createCartCommand);
-            }
-            else
-            {
-                await Authorize(context, response.Cart, cartAuthorizationRequirement);
             }
 
             return response;
