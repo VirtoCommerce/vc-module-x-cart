@@ -8,13 +8,13 @@ using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.XCart.Core;
-using VirtoCommerce.XCart.Core.Authorization;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
 using VirtoCommerce.XCart.Data.Middlewares;
 using VirtoCommerce.XCart.Data.Services;
 using VirtoCommerce.XCatalog.Core.Models;
+using VirtoCommerce.XCart.Data.Authorization;
 
 namespace VirtoCommerce.XCart.Data.Extensions
 {

@@ -13,7 +13,7 @@ using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
 
-namespace VirtoCommerce.XCart.Core.Authorization
+namespace VirtoCommerce.XCart.Data.Authorization
 {
     public class CanAccessCartAuthorizationRequirement : PermissionAuthorizationRequirement
     {

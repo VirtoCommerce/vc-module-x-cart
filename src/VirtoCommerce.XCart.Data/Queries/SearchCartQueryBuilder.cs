@@ -7,10 +7,10 @@ using VirtoCommerce.Xapi.Core.BaseQueries;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.XCart.Core;
-using VirtoCommerce.XCart.Core.Authorization;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
 using VirtoCommerce.XCart.Core.Schemas;
+using VirtoCommerce.XCart.Data.Authorization;
 
 namespace VirtoCommerce.XCart.Data.Queries
 {
