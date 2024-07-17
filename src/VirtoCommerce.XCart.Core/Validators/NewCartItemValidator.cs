@@ -155,13 +155,13 @@ namespace VirtoCommerce.XCart.Core.Validators
             else if (ValidationExtensions.IsBelowMinQuantity(newCartItem.Quantity, minQuantity))
             {
                 // PRODUCT_MIN_QTY
-                context.AddFailure(CartErrorDescriber.ProductMinQuantityError(nameof(CatalogProduct), cartProduct.Product.Id, newCartItem.Quantity, minQuantity.Value));
+                context.AddFailure(CartErrorDescriber.ProductMinQuantityError(nameof(CatalogProduct), cartProduct.Product.Id, newCartItem.Quantity, minQuantity ?? 0));
                 return false;
             }
             else if (ValidationExtensions.IsAboveMaxQuantity(newCartItem.Quantity, maxQuantity))
             {
                 // PRODUCT_MAX_QTY
-                context.AddFailure(CartErrorDescriber.ProductMaxQuantityError(nameof(CatalogProduct), cartProduct.Product.Id, newCartItem.Quantity, maxQuantity.Value));
+                context.AddFailure(CartErrorDescriber.ProductMaxQuantityError(nameof(CatalogProduct), cartProduct.Product.Id, newCartItem.Quantity, maxQuantity ?? 0));
                 return false;
             }
             else
@@ -183,7 +183,7 @@ namespace VirtoCommerce.XCart.Core.Validators
             if (!AbstractTypeFactory<ProductIsAvailableSpecification>.TryCreateInstance().IsSatisfiedBy(cartProduct, newCartItem.Quantity))
             {
                 // PRODUCT_FFC_QTY
-                context.AddFailure(CartErrorDescriber.ProductAvailableQuantityError(nameof(CatalogProduct), cartProduct?.Product?.Id, newCartItem.Quantity, cartProduct.AvailableQuantity));
+                context.AddFailure(CartErrorDescriber.ProductAvailableQuantityError(nameof(CatalogProduct), cartProduct?.Product?.Id, newCartItem.Quantity, cartProduct?.AvailableQuantity ?? 0));
                 return false;
             }
 

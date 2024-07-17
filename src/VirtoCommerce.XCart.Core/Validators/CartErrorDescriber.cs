@@ -43,10 +43,12 @@ namespace VirtoCommerce.XCart.Core.Validators
 
         public static CartValidationError ProductQtyChangedError(IEntity entity, long availQty)
         {
-            var result = new CartValidationError(entity, "The product available qty is changed", "PRODUCT_QTY_CHANGED");
-            result.FormattedMessagePlaceholderValues = new Dictionary<string, object>
+            var result = new CartValidationError(entity, "The product available qty is changed", "PRODUCT_QTY_CHANGED")
             {
-                ["availQty"] = availQty
+                FormattedMessagePlaceholderValues = new Dictionary<string, object>
+                {
+                    ["availQty"] = availQty
+                }
             };
             return result;
         }

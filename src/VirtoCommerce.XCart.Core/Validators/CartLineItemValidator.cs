@@ -78,7 +78,7 @@ namespace VirtoCommerce.XCart.Core.Validators
             }
             else if (IsProductNotAvailable(cartProduct, lineItem.Quantity))
             {
-                context.AddFailure(CartErrorDescriber.ProductQtyChangedError(lineItem, cartProduct.AvailableQuantity));
+                context.AddFailure(CartErrorDescriber.ProductQtyChangedError(lineItem, cartProduct?.AvailableQuantity ?? 0));
             }
         }
 
