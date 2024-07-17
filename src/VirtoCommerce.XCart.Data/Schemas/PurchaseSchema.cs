@@ -1267,7 +1267,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                 .Argument<StringGraphType>("cultureName", "Culture Name")
                 .Argument<StringGraphType>("scope", "List scope")
                 .Argument<StringGraphType>("sort", "The sort expression")
-                .PageSize(20);
+                .PageSize(Connections.DefaultPageSize);
 
             listConnectionBuilder.ResolveAsync(async context => await ResolveListConnectionAsync(_mediator, context));
             schema.Query.AddField(listConnectionBuilder.FieldType);
@@ -1495,7 +1495,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             var query = context.GetCartQuery<SearchWishlistQuery>();
             query.Scope = context.GetArgument<string>("scope");
             query.Skip = skip;
-            query.Take = first ?? context.PageSize ?? 10;
+            query.Take = first ?? context.PageSize ?? Connections.DefaultPageSize;
             query.Sort = context.GetArgument<string>("sort");
             query.IncludeFields = context.SubFields.Values.GetAllNodesPaths(context).ToArray();
 
