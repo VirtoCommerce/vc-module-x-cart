@@ -763,41 +763,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             schema.Mutation.AddField(addOrUpdateCartPaymentField);
 
-            /// <example>
-            /// This is an example JSON request for a mutation
-            /// {
-            ///   "query": "mutation ($command:InputValidateCouponType!){ validateCoupon(command: $command) }",
-            ///   "variables": {
-            ///      "command": {
-            ///          "storeId": "Electronics",
-            ///          "cartName": "default",
-            ///          "userId": "b57d06db-1638-4d37-9734-fd01a9bc59aa",
-            ///          "language": "en-US",
-            ///          "currency": "USD",
-            ///          "cartType": "cart",
-            ///          "coupon": {
-            ///             "code":"verynicecodeforvalidation"
-            ///         }
-            ///      }
-            ///   }
-            /// }
-            /// </example>
-            var validateCouponMutationField = FieldBuilder.Create<CartAggregate, bool>(typeof(BooleanGraphType))
-                                                  .Name("validateCoupon")
-                                                  .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputValidateCouponType>>(), SchemaConstants.CommandName)
-                                                  .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
-                                                  {
-                                                      var cartCommand = context.GetCartCommand<ValidateCouponCommand>();
-
-                                                      await CheckAuthByCartParamsAsync(context, cartCommand);
-
-                                                      return await _mediator.Send(cartCommand);
-                                                  })
-                                                  .DeprecationReason("Use 'validateCoupon' query instead.")
-                                                  .FieldType;
-
-            schema.Mutation.AddField(validateCouponMutationField);
-
             var validateCouponQueryField = new FieldType
             {
                 Name = "validateCoupon",
