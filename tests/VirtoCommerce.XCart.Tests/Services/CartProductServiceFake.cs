@@ -4,9 +4,9 @@ using AutoMapper;
 using MediatR;
 using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Services;
-using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.InventoryModule.Core.Services;
 using VirtoCommerce.PricingModule.Core.Services;
+using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.XCart.Data.Services;
 
 namespace VirtoCommerce.XCart.Tests.Services

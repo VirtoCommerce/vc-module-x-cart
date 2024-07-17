@@ -17,7 +17,6 @@ namespace VirtoCommerce.XCart.Tests.Services
                 _paymentMethodsSearchServiceMock.Object,
                 _shippingMethodsSearchServiceMock.Object,
                 _taxProviderSearchServiceMock.Object,
-                _cartProductServiceMock.Object,
                 _mapperMock.Object,
                 _genericPipelineLauncherMock.Object);
         }

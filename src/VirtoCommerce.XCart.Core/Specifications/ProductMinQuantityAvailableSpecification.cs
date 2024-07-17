@@ -2,7 +2,7 @@ using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Specifications
 {
-    public class ProductMinQunatityAvailableSpecification
+    public class ProductMinQuantityAvailableSpecification
     {
         public virtual bool IsSatisfiedBy(CartProduct product, int? minQuantity)
         {

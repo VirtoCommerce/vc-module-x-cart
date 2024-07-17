@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using VirtoCommerce.CartModule.Core.Model;
-using VirtoCommerce.Xapi.Core.Pipelines;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.PaymentModule.Core.Model.Search;
@@ -16,6 +15,7 @@ using VirtoCommerce.ShippingModule.Core.Services;
 using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.TaxModule.Core.Model.Search;
 using VirtoCommerce.TaxModule.Core.Services;
+using VirtoCommerce.Xapi.Core.Pipelines;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
@@ -39,7 +39,6 @@ namespace VirtoCommerce.XCart.Data.Services
             IPaymentMethodsSearchService paymentMethodsSearchService,
             IShippingMethodsSearchService shippingMethodsSearchService,
             ITaxProviderSearchService taxProviderSearchService,
-            ICartProductService cartProductService,
             IMapper mapper,
             IGenericPipelineLauncher pipeline)
         {
@@ -50,21 +49,21 @@ namespace VirtoCommerce.XCart.Data.Services
             _pipeline = pipeline;
         }
 
-        public async Task<IEnumerable<ShippingRate>> GetAvailableShippingRatesAsync(CartAggregate cartAggr)
+        public async Task<IEnumerable<ShippingRate>> GetAvailableShippingRatesAsync(CartAggregate cartAggregate)
         {
-            if (cartAggr == null)
+            if (cartAggregate == null)
             {
                 return Enumerable.Empty<ShippingRate>();
             }
 
             //Request available shipping rates
-            var shippingEvaluationContext = new ShippingEvaluationContext(cartAggr.Cart);
+            var shippingEvaluationContext = new ShippingEvaluationContext(cartAggregate.Cart);
 
             var criteria = new ShippingMethodsSearchCriteria
             {
                 IsActive = true,
                 Take = _takeOnSearch,
-                StoreId = cartAggr.Store?.Id
+                StoreId = cartAggregate.Store?.Id
             };
 
             var activeAvailableShippingMethods = (await _shippingMethodsSearchService.SearchAsync(criteria)).Results;
@@ -83,21 +82,21 @@ namespace VirtoCommerce.XCart.Data.Services
             var evalContext = AbstractTypeFactory<PromotionEvaluationContext>.TryCreateInstance();
             var evalContextCartMap = new PromotionEvaluationContextCartMap
             {
-                CartAggregate = cartAggr,
+                CartAggregate = cartAggregate,
                 PromotionEvaluationContext = evalContext
             };
             await _pipeline.Execute(evalContextCartMap);
 
-            var promoEvalResult = await cartAggr.EvaluatePromotionsAsync(evalContextCartMap.PromotionEvaluationContext);
+            var promoEvalResult = await cartAggregate.EvaluatePromotionsAsync(evalContextCartMap.PromotionEvaluationContext);
             foreach (var shippingRate in availableShippingRates)
             {
                 shippingRate.ApplyRewards(promoEvalResult.Rewards);
             }
 
-            var taxProvider = await GetActiveTaxProviderAsync(cartAggr);
+            var taxProvider = await GetActiveTaxProviderAsync(cartAggregate);
             if (taxProvider != null)
             {
-                var taxEvalContext = _mapper.Map<TaxEvaluationContext>(cartAggr);
+                var taxEvalContext = _mapper.Map<TaxEvaluationContext>(cartAggregate);
                 taxEvalContext.Lines.Clear();
                 taxEvalContext.Lines.AddRange(availableShippingRates.SelectMany(x => _mapper.Map<IEnumerable<TaxLine>>(x)));
 
@@ -112,9 +111,9 @@ namespace VirtoCommerce.XCart.Data.Services
             return availableShippingRates;
         }
 
-        public async Task<IEnumerable<PaymentMethod>> GetAvailablePaymentMethodsAsync(CartAggregate cartAggr)
+        public async Task<IEnumerable<PaymentMethod>> GetAvailablePaymentMethodsAsync(CartAggregate cartAggregate)
         {
-            if (cartAggr == null)
+            if (cartAggregate == null)
             {
                 return Enumerable.Empty<PaymentMethod>();
             }
@@ -123,7 +122,7 @@ namespace VirtoCommerce.XCart.Data.Services
             {
                 IsActive = true,
                 Take = _takeOnSearch,
-                StoreId = cartAggr.Store?.Id,
+                StoreId = cartAggregate.Store?.Id,
             };
 
             var result = await _paymentMethodsSearchService.SearchAsync(criteria);
@@ -135,12 +134,12 @@ namespace VirtoCommerce.XCart.Data.Services
             var evalContext = AbstractTypeFactory<PromotionEvaluationContext>.TryCreateInstance();
             var evalContextCartMap = new PromotionEvaluationContextCartMap
             {
-                CartAggregate = cartAggr,
+                CartAggregate = cartAggregate,
                 PromotionEvaluationContext = evalContext
             };
             await _pipeline.Execute(evalContextCartMap);
 
-            var promoResult = await cartAggr.EvaluatePromotionsAsync(evalContextCartMap.PromotionEvaluationContext);
+            var promoResult = await cartAggregate.EvaluatePromotionsAsync(evalContextCartMap.PromotionEvaluationContext);
 
             foreach (var paymentMethod in result.Results)
             {
@@ -148,10 +147,10 @@ namespace VirtoCommerce.XCart.Data.Services
             }
 
             //Evaluate taxes for available payments
-            var taxProvider = await GetActiveTaxProviderAsync(cartAggr);
+            var taxProvider = await GetActiveTaxProviderAsync(cartAggregate);
             if (taxProvider != null)
             {
-                var taxEvalContext = _mapper.Map<TaxEvaluationContext>(cartAggr);
+                var taxEvalContext = _mapper.Map<TaxEvaluationContext>(cartAggregate);
                 taxEvalContext.Lines.Clear();
                 taxEvalContext.Lines.AddRange(result.Results.SelectMany(x => _mapper.Map<IEnumerable<TaxLine>>(x)));
 
@@ -166,18 +165,18 @@ namespace VirtoCommerce.XCart.Data.Services
             return result.Results;
         }
 
-        public async Task<IEnumerable<GiftItem>> GetAvailableGiftsAsync(CartAggregate cartAggr)
+        public async Task<IEnumerable<GiftItem>> GetAvailableGiftsAsync(CartAggregate cartAggregate)
         {
-            var promotionEvalResult = await cartAggr.EvaluatePromotionsAsync();
+            var promotionEvalResult = await cartAggregate.EvaluatePromotionsAsync();
 
-            return await cartAggr.GetAvailableGiftsAsync(promotionEvalResult.Rewards);
+            return await cartAggregate.GetAvailableGiftsAsync(promotionEvalResult.Rewards);
         }
 
         protected async Task<TaxProvider> GetActiveTaxProviderAsync(string storeId)
         {
             var storeTaxProviders = await _taxProviderSearchService.SearchAsync(new TaxProviderSearchCriteria
             {
-                StoreIds = new[] { storeId }
+                StoreIds = [storeId]
             });
 
             return storeTaxProviders?.Results.FirstOrDefault(x => x.IsActive);

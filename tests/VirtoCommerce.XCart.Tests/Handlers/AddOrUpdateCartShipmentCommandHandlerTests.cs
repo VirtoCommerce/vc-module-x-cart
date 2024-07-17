@@ -21,7 +21,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
         [Fact]
         public async Task Handle_RequestWithShipment_AllShipmentFieldsAreMapped()
         {
-            // Arragne
+            // Arrange
             var shipment = _fixture.Create<ExpCartShipment>();
 
             var cartAggregate = GetValidCartAggregate();

@@ -9,8 +9,8 @@ namespace VirtoCommerce.XCart.Data.Commands
 {
     public class ChangePurchaseOrderNumberCommandHandler : CartCommandHandler<ChangePurchaseOrderNumberCommand>
     {
-        public ChangePurchaseOrderNumberCommandHandler(ICartAggregateRepository cartRepository)
-            : base(cartRepository)
+        public ChangePurchaseOrderNumberCommandHandler(ICartAggregateRepository cartAggregateRepository)
+            : base(cartAggregateRepository)
         {
         }
 

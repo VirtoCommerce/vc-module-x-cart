@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Models;
-using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.XCart.Core.Models
 {
@@ -34,85 +34,22 @@ namespace VirtoCommerce.XCart.Core.Models
                 shipment = AbstractTypeFactory<Shipment>.TryCreateInstance();
             }
 
-            if (Id?.IsSpecified == true)
-            {
-                shipment.Id = Id.Value;
-            }
-
-            if (FulfillmentCenterId?.IsSpecified == true)
-            {
-                shipment.FulfillmentCenterId = FulfillmentCenterId.Value;
-            }
-
-            if (Length?.IsSpecified == true)
-            {
-                shipment.Length = Length.Value;
-            }
-
-            if (Height?.IsSpecified == true)
-            {
-                shipment.Height = Height.Value;
-            }
-
-            if (MeasureUnit?.IsSpecified == true)
-            {
-                shipment.MeasureUnit = MeasureUnit.Value;
-            }
-
-            if (ShipmentMethodOption?.IsSpecified == true)
-            {
-                shipment.ShipmentMethodOption = ShipmentMethodOption.Value;
-            }
-
-            if (ShipmentMethodCode?.IsSpecified == true)
-            {
-                shipment.ShipmentMethodCode = ShipmentMethodCode.Value;
-            }
-
-            if (VolumetricWeight?.IsSpecified == true)
-            {
-                shipment.VolumetricWeight = VolumetricWeight.Value;
-            }
-
-            if (Weight?.IsSpecified == true)
-            {
-                shipment.Weight = Weight.Value;
-            }
-
-            if (WeightUnit?.IsSpecified == true)
-            {
-                shipment.WeightUnit = WeightUnit.Value;
-            }
-
-            if (Width?.IsSpecified == true)
-            {
-                shipment.Width = Width.Value;
-            }
-
-            if (Currency?.IsSpecified == true)
-            {
-                shipment.Currency = Currency.Value;
-            }
-
-            if (Price?.IsSpecified == true)
-            {
-                shipment.Price = Price.Value;
-            }
-
-            if (Comment?.IsSpecified == true)
-            {
-                shipment.Comment = Comment.Value;
-            }
-
-            if (VendorId?.IsSpecified == true)
-            {
-                shipment.VendorId = VendorId.Value;
-            }
-
-            if (DeliveryAddress?.IsSpecified == true)
-            {
-                shipment.DeliveryAddress = DeliveryAddress.Value?.MapTo(shipment.DeliveryAddress);
-            }
+            Optional.SetValue(Id, x => shipment.Id = x);
+            Optional.SetValue(FulfillmentCenterId, x => shipment.FulfillmentCenterId = x);
+            Optional.SetValue(Length, x => shipment.Length = x);
+            Optional.SetValue(Height, x => shipment.Height = x);
+            Optional.SetValue(MeasureUnit, x => shipment.MeasureUnit = x);
+            Optional.SetValue(ShipmentMethodOption, x => shipment.ShipmentMethodOption = x);
+            Optional.SetValue(ShipmentMethodCode, x => shipment.ShipmentMethodCode = x);
+            Optional.SetValue(VolumetricWeight, x => shipment.VolumetricWeight = x);
+            Optional.SetValue(Weight, x => shipment.Weight = x);
+            Optional.SetValue(WeightUnit, x => shipment.WeightUnit = x);
+            Optional.SetValue(Width, x => shipment.Width = x);
+            Optional.SetValue(Currency, x => shipment.Currency = x);
+            Optional.SetValue(Price, x => shipment.Price = x);
+            Optional.SetValue(Comment, x => shipment.Comment = x);
+            Optional.SetValue(VendorId, x => shipment.VendorId = x);
+            Optional.SetValue(DeliveryAddress, x => shipment.DeliveryAddress = x?.MapTo(shipment.DeliveryAddress));
 
             return shipment;
         }

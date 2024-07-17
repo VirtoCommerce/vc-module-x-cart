@@ -61,5 +61,4 @@ namespace VirtoCommerce.XCart.Data.Queries
             await base.Authorize(context, resource, requirement);
         }
     }
-
 }

@@ -1,6 +1,6 @@
 using VirtoCommerce.CoreModule.Core.Common;
-using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 using Address = VirtoCommerce.CartModule.Core.Model.Address;
 
 namespace VirtoCommerce.XCart.Core.Models
@@ -35,105 +35,26 @@ namespace VirtoCommerce.XCart.Core.Models
                 address = AbstractTypeFactory<Address>.TryCreateInstance();
             }
 
-            if (Key?.IsSpecified == true)
-            {
-                address.Key = Key.Value;
-            }
-
-            if (City?.IsSpecified == true)
-            {
-                address.City = City.Value;
-            }
-
-            if (CountryCode?.IsSpecified == true)
-            {
-                address.CountryCode = CountryCode.Value;
-            }
-
-            if (CountryName?.IsSpecified == true)
-            {
-                address.CountryName = CountryName.Value;
-            }
-
-            if (Email?.IsSpecified == true)
-            {
-                address.Email = Email.Value;
-            }
-
-            if (FirstName?.IsSpecified == true)
-            {
-                address.FirstName = FirstName.Value;
-            }
-
-            if (LastName?.IsSpecified == true)
-            {
-                address.LastName = LastName.Value;
-            }
-
-            if (Line1?.IsSpecified == true)
-            {
-                address.Line1 = Line1.Value;
-            }
-
-            if (Line2?.IsSpecified == true)
-            {
-                address.Line2 = Line2.Value;
-            }
-
-            if (MiddleName?.IsSpecified == true)
-            {
-                address.MiddleName = MiddleName.Value;
-            }
-
-            if (Name?.IsSpecified == true)
-            {
-                address.Name = Name.Value;
-            }
-
-            if (Organization?.IsSpecified == true)
-            {
-                address.Organization = Organization.Value;
-            }
-
-            if (Phone?.IsSpecified == true)
-            {
-                address.Phone = Phone.Value;
-            }
-
-            if (PostalCode?.IsSpecified == true)
-            {
-                address.PostalCode = PostalCode.Value;
-            }
-
-            if (RegionId?.IsSpecified == true)
-            {
-                address.RegionId = RegionId.Value;
-            }
-
-            if (RegionName?.IsSpecified == true)
-            {
-                address.RegionName = RegionName.Value;
-            }
-
-            if (Zip?.IsSpecified == true)
-            {
-                address.Zip = Zip.Value;
-            }
-
-            if (OuterId?.IsSpecified == true)
-            {
-                address.OuterId = OuterId.Value;
-            }
-
-            if (Description?.IsSpecified == true)
-            {
-                address.Description = Description.Value;
-            }
-
-            if (AddressType?.IsSpecified == true)
-            {
-                address.AddressType = (AddressType)AddressType.Value;
-            }
+            Optional.SetValue(Key, x => address.Key = x);
+            Optional.SetValue(City, x => address.City = x);
+            Optional.SetValue(CountryCode, x => address.CountryCode = x);
+            Optional.SetValue(CountryName, x => address.CountryName = x);
+            Optional.SetValue(Email, x => address.Email = x);
+            Optional.SetValue(FirstName, x => address.FirstName = x);
+            Optional.SetValue(LastName, x => address.LastName = x);
+            Optional.SetValue(Line1, x => address.Line1 = x);
+            Optional.SetValue(Line2, x => address.Line2 = x);
+            Optional.SetValue(MiddleName, x => address.MiddleName = x);
+            Optional.SetValue(Name, x => address.Name = x);
+            Optional.SetValue(Organization, x => address.Organization = x);
+            Optional.SetValue(Phone, x => address.Phone = x);
+            Optional.SetValue(PostalCode, x => address.PostalCode = x);
+            Optional.SetValue(RegionId, x => address.RegionId = x);
+            Optional.SetValue(RegionName, x => address.RegionName = x);
+            Optional.SetValue(Zip, x => address.Zip = x);
+            Optional.SetValue(OuterId, x => address.OuterId = x);
+            Optional.SetValue(Description, x => address.Description = x);
+            Optional.SetValue(AddressType, x => address.AddressType = (AddressType)x);
 
             return address;
         }

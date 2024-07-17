@@ -70,7 +70,7 @@ namespace VirtoCommerce.XCart.Core.Validators
         {
             var minQuantity = cartProduct.GetMinQuantity();
 
-            if (IsProductMinQunatityNotAvailable(cartProduct, minQuantity))
+            if (IsProductMinQuantityNotAvailable(cartProduct, minQuantity))
             {
                 // PRODUCT_MIN_QTY_NOT_AVAILABLE
                 context.AddFailure(CartErrorDescriber.ProductMinQuantityNotAvailableError(cartProduct.Product, minQuantity ?? 0));
@@ -202,9 +202,9 @@ namespace VirtoCommerce.XCart.Core.Validators
             return true;
         }
 
-        protected virtual bool IsProductMinQunatityNotAvailable(CartProduct cartProduct, int? minQuantity)
+        protected virtual bool IsProductMinQuantityNotAvailable(CartProduct cartProduct, int? minQuantity)
         {
-            return !AbstractTypeFactory<ProductMinQunatityAvailableSpecification>.TryCreateInstance().IsSatisfiedBy(cartProduct, minQuantity);
+            return !AbstractTypeFactory<ProductMinQuantityAvailableSpecification>.TryCreateInstance().IsSatisfiedBy(cartProduct, minQuantity);
         }
     }
 }

@@ -13,10 +13,10 @@ using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.Xapi.Core.Services;
+using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCatalog.Core.Models;
 using VirtoCommerce.XCatalog.Core.Queries;
 using VirtoCommerce.XCatalog.Core.Schemas;
-using VirtoCommerce.XCart.Core.Extensions;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
@@ -68,7 +68,6 @@ namespace VirtoCommerce.XCart.Core.Schemas
             };
             AddField(productField);
 
-            //Field<MoneyType>("paymentPlan", resolve: context => context.Source.PaymentPlan);
             Field<NonNullGraphType<IntGraphType>>("inStockQuantity",
                 "In stock quantity",
                 resolve: context => context.GetCart().CartProducts[context.Source.ProductId]?.AvailableQuantity ?? 0);

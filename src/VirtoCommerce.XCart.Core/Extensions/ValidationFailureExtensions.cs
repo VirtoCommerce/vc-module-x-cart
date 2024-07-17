@@ -11,14 +11,9 @@ namespace VirtoCommerce.XCart.Core.Extensions
     {
         public static IEnumerable<CartValidationError> GetEntityCartErrors(this IEnumerable<ValidationFailure> errors, IEntity entity)
         {
-            if (errors == null)
-            {
-                throw new ArgumentNullException(nameof(errors));
-            }
-            if (entity == null)
-            {
-                throw new ArgumentNullException(nameof(entity));
-            }
+            ArgumentNullException.ThrowIfNull(errors);
+            ArgumentNullException.ThrowIfNull(entity);
+
             return errors.OfType<CartValidationError>().Where(x => x.ObjectType.EqualsInvariant(entity.GetType().Name) && x.ObjectId == entity.Id);
         }
     }

@@ -77,10 +77,7 @@ namespace VirtoCommerce.XCart.Core.Extensions
                     continue;
                 }
 
-                if (lineItem.Discounts == null)
-                {
-                    lineItem.Discounts = new List<Discount>();
-                }
+                lineItem.Discounts ??= new List<Discount>();
                 lineItem.Discounts.Add(discount);
                 lineItem.DiscountAmount += discount.DiscountAmount;
             }
@@ -111,10 +108,7 @@ namespace VirtoCommerce.XCart.Core.Extensions
                 {
                     continue;
                 }
-                if (shipment.Discounts == null)
-                {
-                    shipment.Discounts = new List<Discount>();
-                }
+                shipment.Discounts ??= new List<Discount>();
                 shipment.Discounts.Add(discount);
                 shipment.DiscountAmount += discount.DiscountAmount;
             }
@@ -145,10 +139,7 @@ namespace VirtoCommerce.XCart.Core.Extensions
                 {
                     continue;
                 }
-                if (payment.Discounts == null)
-                {
-                    payment.Discounts = new List<Discount>();
-                }
+                payment.Discounts ??= new List<Discount>();
                 payment.Discounts.Add(discount);
                 payment.DiscountAmount += discount.DiscountAmount;
             }

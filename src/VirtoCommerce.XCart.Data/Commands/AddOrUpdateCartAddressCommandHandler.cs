@@ -10,8 +10,8 @@ namespace VirtoCommerce.XCart.Data.Commands
 {
     public class AddOrUpdateCartAddressCommandHandler : CartCommandHandler<AddOrUpdateCartAddressCommand>
     {
-        public AddOrUpdateCartAddressCommandHandler(ICartAggregateRepository cartRepository)
-            : base(cartRepository)
+        public AddOrUpdateCartAddressCommandHandler(ICartAggregateRepository cartAggregateRepository)
+            : base(cartAggregateRepository)
         {
         }
 

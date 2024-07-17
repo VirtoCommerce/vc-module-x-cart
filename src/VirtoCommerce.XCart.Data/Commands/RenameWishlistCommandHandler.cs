@@ -9,8 +9,8 @@ namespace VirtoCommerce.XCart.Data.Commands
 {
     public class RenameWishlistCommandHandler : CartCommandHandler<RenameWishlistCommand>
     {
-        public RenameWishlistCommandHandler(ICartAggregateRepository cartAggrRepository)
-            : base(cartAggrRepository)
+        public RenameWishlistCommandHandler(ICartAggregateRepository cartAggregateRepository)
+            : base(cartAggregateRepository)
         {
         }
 

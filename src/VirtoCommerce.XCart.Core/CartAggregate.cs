@@ -159,10 +159,7 @@ namespace VirtoCommerce.XCart.Core
         {
             EnsureCartExists();
 
-            if (newCartItem == null)
-            {
-                throw new ArgumentNullException(nameof(newCartItem));
-            }
+            ArgumentNullException.ThrowIfNull(newCartItem);
 
             var validationResult = await AbstractTypeFactory<NewCartItemValidator>.TryCreateInstance().ValidateAsync(newCartItem, options => options.IncludeRuleSets(ValidationRuleSet));
             if (!validationResult.IsValid)
@@ -464,7 +461,7 @@ namespace VirtoCommerce.XCart.Core
             EnsureCartExists();
 
             var lineItems = Cart.Items.Where(x => lineItemIds.Contains(x.Id)).ToList();
-            if (lineItems.Any())
+            if (lineItems.Count != 0)
             {
                 lineItems.ForEach(x => Cart.Items.Remove(x));
             }
@@ -477,7 +474,7 @@ namespace VirtoCommerce.XCart.Core
             EnsureCartExists();
 
             var lineItems = Cart.Items.Where(x => x.ProductId == productId).ToList();
-            if (lineItems.Any())
+            if (lineItems.Count != 0)
             {
                 lineItems.ForEach(x => Cart.Items.Remove(x));
             }
@@ -699,18 +696,10 @@ namespace VirtoCommerce.XCart.Core
             }
         }
 
-        [Obsolete("Use a separate method with ruleSet parameter. One of or comma-divided combination of \"items\",\"shipments\",\"payments\"")]
-        public virtual Task<IList<ValidationFailure>> ValidateAsync(CartValidationContext validationContext)
-        {
-            return ValidateAsync(validationContext, "default,items,shipments,payments");
-        }
-
         public virtual async Task<IList<ValidationFailure>> ValidateAsync(CartValidationContext validationContext, string ruleSet)
         {
-            if (validationContext == null)
-            {
-                throw new ArgumentNullException(nameof(validationContext));
-            }
+            ArgumentNullException.ThrowIfNull(validationContext);
+
             validationContext.CartAggregate = this;
 
             EnsureCartExists();
@@ -930,10 +919,7 @@ namespace VirtoCommerce.XCart.Core
 
         protected virtual Task<CartAggregate> InnerChangeItemQuantityAsync(LineItem lineItem, int quantity, CartProduct product = null)
         {
-            if (lineItem == null)
-            {
-                throw new ArgumentNullException(nameof(lineItem));
-            }
+            ArgumentNullException.ThrowIfNull(lineItem);
 
             if (!lineItem.IsReadOnly && product != null)
             {
@@ -1006,7 +992,7 @@ namespace VirtoCommerce.XCart.Core
 
             var storeTaxProviders = await _taxProviderSearchService.SearchAsync(new TaxProviderSearchCriteria
             {
-                StoreIds = new[] { Cart.StoreId }
+                StoreIds = [Cart.StoreId]
             });
 
             return storeTaxProviders?.Results.FirstOrDefault(x => x.IsActive);

@@ -9,7 +9,6 @@ namespace VirtoCommerce.XCart.Core.Validators
         public CartPaymentValidator()
         {
             //To support the use case for partial payment update when user sets the address first.
-            //RuleFor(x => x.PaymentGatewayCode).NotNull().NotEmpty();
             RuleFor(x => x).Custom((paymentContext, context) =>
             {
                 var availPaymentMethods = paymentContext.AvailPaymentMethods;

@@ -9,7 +9,6 @@ namespace VirtoCommerce.XCart.Core.Validators
         public CartShipmentValidator()
         {
             //To support the use case for partial shipment update when user sets the address first.
-            //RuleFor(x => x.ShipmentMethodCode).NotNull().NotEmpty();
             RuleFor(x => x).Custom((shipmentContext, context) =>
             {
                 var availShippingRates = shipmentContext.AvailShippingRates;

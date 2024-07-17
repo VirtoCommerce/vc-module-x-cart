@@ -12,12 +12,12 @@ namespace VirtoCommerce.XCart.Data.Queries
 {
     public class GetCartQueryHandler : IQueryHandler<GetCartQuery, CartAggregate>, IQueryHandler<GetCartByIdQuery, CartAggregate>
     {
-        private readonly ICartAggregateRepository _cartAggrRepository;
+        private readonly ICartAggregateRepository _cartAggregateRepository;
         private readonly ICartResponseGroupParser _cartResponseGroupParser;
 
-        public GetCartQueryHandler(ICartAggregateRepository cartAggrRepository, ICartResponseGroupParser cartResponseGroupParser)
+        public GetCartQueryHandler(ICartAggregateRepository cartAggregateRepository, ICartResponseGroupParser cartResponseGroupParser)
         {
-            _cartAggrRepository = cartAggrRepository;
+            _cartAggregateRepository = cartAggregateRepository;
             _cartResponseGroupParser = cartResponseGroupParser;
         }
 
@@ -25,12 +25,12 @@ namespace VirtoCommerce.XCart.Data.Queries
         {
             var cartSearchCriteria = GetCartSearchCriteria(request);
 
-            return _cartAggrRepository.GetCartAsync(cartSearchCriteria, request.CultureName);
+            return _cartAggregateRepository.GetCartAsync(cartSearchCriteria, request.CultureName);
         }
 
         public virtual Task<CartAggregate> Handle(GetCartByIdQuery request, CancellationToken cancellationToken)
         {
-            return _cartAggrRepository.GetCartByIdAsync(request.CartId);
+            return _cartAggregateRepository.GetCartByIdAsync(request.CartId);
         }
 
 

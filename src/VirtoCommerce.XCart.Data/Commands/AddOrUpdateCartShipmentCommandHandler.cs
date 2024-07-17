@@ -13,8 +13,8 @@ namespace VirtoCommerce.XCart.Data.Commands
     {
         private readonly ICartAvailMethodsService _cartAvailMethodService;
 
-        public AddOrUpdateCartShipmentCommandHandler(ICartAggregateRepository cartRepository, ICartAvailMethodsService cartAvailMethodService)
-            : base(cartRepository)
+        public AddOrUpdateCartShipmentCommandHandler(ICartAggregateRepository cartAggregateRepository, ICartAvailMethodsService cartAvailMethodService)
+            : base(cartAggregateRepository)
         {
             _cartAvailMethodService = cartAvailMethodService;
         }

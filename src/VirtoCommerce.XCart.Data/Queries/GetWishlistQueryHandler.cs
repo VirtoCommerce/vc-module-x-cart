@@ -10,16 +10,16 @@ namespace VirtoCommerce.XCart.Data.Queries
 {
     public class GetWishlistQueryHandler : IQueryHandler<GetWishlistQuery, CartAggregate>
     {
-        private readonly ICartAggregateRepository _cartAggrRepository;
+        private readonly ICartAggregateRepository _cartAggregateRepository;
 
-        public GetWishlistQueryHandler(ICartAggregateRepository cartAggrRepository)
+        public GetWishlistQueryHandler(ICartAggregateRepository cartAggregateRepository)
         {
-            _cartAggrRepository = cartAggrRepository;
+            _cartAggregateRepository = cartAggregateRepository;
         }
 
         public Task<CartAggregate> Handle(GetWishlistQuery request, CancellationToken cancellationToken)
         {
-            return _cartAggrRepository.GetCartByIdAsync(request.ListId, request.IncludeFields.ItemsToProductIncludeField(), request.CultureName);
+            return _cartAggregateRepository.GetCartByIdAsync(request.ListId, request.IncludeFields.ItemsToProductIncludeField(), request.CultureName);
         }
     }
 }

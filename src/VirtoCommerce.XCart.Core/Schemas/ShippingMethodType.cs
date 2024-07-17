@@ -1,7 +1,7 @@
 using GraphQL.Types;
+using VirtoCommerce.ShippingModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Schemas;
-using VirtoCommerce.ShippingModule.Core.Model;
 using VirtoCommerce.XCart.Core.Extensions;
 
 namespace VirtoCommerce.XCart.Core.Schemas
@@ -39,12 +39,6 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<NonNullGraphType<MoneyType>>("discountAmountWithTax",
                 "Discount amount with tax",
                 resolve: context => context.Source.DiscountAmountWithTax.ToMoney(context.GetCart().Currency));
-            //PT-5449: Add fields to ShippingMethodType
-            //Field<MoneyType>("taxTotal", resolve: context => context.Source.TaxTotal);
-            //Field(x => x.TaxPercentRate, nullable: true).Description("Tax percent rate");
-            //Field(x => x.TaxType, nullable: true).Description("Tax type");
-            //Field<ListGraphType<TaxDetailType>>("taxDetails", resolve: context => context.Source.TaxDetails);
-            //Field<ListGraphType<DiscountType>>("discounts", resolve: context => context.Source.Discounts);
         }
     }
 }

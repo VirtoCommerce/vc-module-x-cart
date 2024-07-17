@@ -20,7 +20,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
         [Fact]
         public async Task Handle_RequestWithCartId_AddCartAddressAsyncCalled()
         {
-            // Arragne
+            // Arrange
             var cartAggregate = GetValidCartAggregate();
             cartAggregate.Cart.Addresses.Clear();
 
@@ -46,7 +46,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
         [Fact]
         public async Task Handle_RequestWithAddress_AllAddressFieldsAreMapped()
         {
-            // Arragne
+            // Arrange
             var addressType = AddressType.Billing;
             var address = GetAddress(addressType);
 

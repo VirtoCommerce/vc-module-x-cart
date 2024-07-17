@@ -3,11 +3,11 @@ using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Types;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.Xapi.Core.Services;
-using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
@@ -32,8 +32,6 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 "Has physical products",
                 resolve: context => AbstractTypeFactory<CartHasPhysicalProductsSpecification>.TryCreateInstance().IsSatisfiedBy(context.Source.Cart));
             Field(x => x.Cart.IsAnonymous, nullable: false).Description("Displays whether the shopping cart is anonymous");
-            //PT-5425: Add fields
-            //Field(x => x.Customer, nullable: true).Description("Shopping cart user");
             Field(x => x.Cart.CustomerId, nullable: false).Description("Shopping cart user ID");
             Field(x => x.Cart.CustomerName, nullable: true).Description("Shopping cart user name");
             Field(x => x.Cart.OrganizationId, nullable: true).Description("Shopping cart organization ID");
@@ -46,11 +44,6 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.Cart.VolumetricWeight, nullable: true).Description("Shopping cart volumetric weight value");
             Field(x => x.Cart.WeightUnit, nullable: true).Description("Shopping cart weight unit value");
             Field(x => x.Cart.Weight, nullable: true).Description("Shopping cart weight value");
-            //PT-5425: Add fields
-            //Field(x => x.MeasureUnit, nullable: true).Description("Shopping cart measurement unit value");
-            //Field(x => x.Height, nullable: true).Description("Shopping cart height");
-            //Field(x => x.Length, nullable: true).Description("Shopping cart length value");
-            //Field(x => x.Width, nullable: true).Description("Shopping cart width value");
 
             // Money
             Field<NonNullGraphType<MoneyType>>("total",
@@ -139,18 +132,9 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 {
                     var methods = await cartAvailMethods.GetAvailablePaymentMethodsAsync(context.Source);
                     //store the pair ShippingMethodType and cart aggregate in the user context for future usage in the ShippingMethodType fields resolvers
-                    if (methods != null)
-                    {
-                        methods.Apply(x => context.UserContext[x.Id] = context.Source);
-                    }
+                    methods?.Apply(x => context.UserContext[x.Id] = context.Source);
                     return methods;
                 });
-            //PT-5425: Add fields
-            //Field<ListGraphType<PaymentPlanType>>("paymentPlan", resolve: context => context.Source.PaymentPlan);
-
-            //PT-5425: Add fields Extended money
-            //Field<MoneyType>("extendedPriceTotal", resolve: context => context.Source.ExtendedPriceTotal);
-            //Field<MoneyType>("extendedPriceTotalWithTax", resolve: context => context.Source.ExtendedPriceTotalWithTax);
 
             // Handling totals
             Field<NonNullGraphType<MoneyType>>("handlingTotal",
@@ -207,8 +191,6 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<NonNullGraphType<IntGraphType>>("itemsQuantity",
                 "Quantity of items",
                 resolve: context => context.Source.LineItems.Sum(x => x.Quantity));
-            //PT-5425: Add fields
-            //Field<LineItemType>("recentlyAddedItem", resolve: context => context.Source.Cart.RecentlyAddedItem);
 
             // Coupons
             Field<NonNullGraphType<ListGraphType<NonNullGraphType<CouponType>>>>("coupons",
@@ -247,7 +229,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<NonNullGraphType<ListGraphType<NonNullGraphType<ValidationErrorType>>>>("warnings", "A set of temporary warnings for a cart user", resolve: context => context.Source.ValidationWarnings);
         }
 
-        private async Task EnsureThatCartValidatedAsync(CartAggregate cartAggr, ICartValidationContextFactory cartValidationContextFactory, string ruleSet)
+        private static async Task EnsureThatCartValidatedAsync(CartAggregate cartAggr, ICartValidationContextFactory cartValidationContextFactory, string ruleSet)
         {
             if (!cartAggr.IsValidated)
             {

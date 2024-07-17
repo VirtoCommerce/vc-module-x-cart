@@ -139,7 +139,7 @@ namespace VirtoCommerce.XCart.Core.Validators
 
         public static CartValidationError ProductAvailableQuantityError(IEntity entity, int qty, long availableQty)
         {
-            var result = new CartValidationError(entity, $"Changed quantiy is unavailable. Available quantity is {availableQty}.", "PRODUCT_FFC_QTY")
+            var result = new CartValidationError(entity, $"Changed quantity is unavailable. Available quantity is {availableQty}.", "PRODUCT_FFC_QTY")
             {
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
@@ -168,7 +168,7 @@ namespace VirtoCommerce.XCart.Core.Validators
 
         public static CartValidationError ProductMinQuantityError(IEntity entity, int qty, int minQty)
         {
-            var result = new CartValidationError(entity, $"Product quantity {qty} is less than minumum {minQty}", "PRODUCT_MIN_QTY")
+            var result = new CartValidationError(entity, $"Product quantity {qty} is less than minimum {minQty}", "PRODUCT_MIN_QTY")
             {
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
@@ -182,7 +182,7 @@ namespace VirtoCommerce.XCart.Core.Validators
 
         public static CartValidationError ProductMinQuantityError(string type, string id, int qty, int minQty)
         {
-            var result = new CartValidationError(type, id, $"Product {id} quantity {qty} is less than minumum {minQty}", "PRODUCT_MIN_QTY")
+            var result = new CartValidationError(type, id, $"Product {id} quantity {qty} is less than minimum {minQty}", "PRODUCT_MIN_QTY")
             {
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {

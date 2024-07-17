@@ -22,7 +22,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
         [Fact]
         public async Task Handle_RequestWithPayments_AllPaymentFieldsAreMapped()
         {
-            // Arragne
+            // Arrange
             var payment = _fixture.Create<ExpCartPayment>();
 
             var cartAggregate = GetValidCartAggregate();

@@ -6,7 +6,6 @@ using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.CoreModule.Core.Outlines;
 using VirtoCommerce.CoreModule.Core.Seo;
-using VirtoCommerce.Xapi.Core.Index;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
@@ -15,6 +14,7 @@ using VirtoCommerce.SearchModule.Core.Model;
 using VirtoCommerce.ShippingModule.Core.Model;
 using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.Tools;
+using VirtoCommerce.Xapi.Core.Index;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 
@@ -36,12 +36,6 @@ namespace VirtoCommerce.XCart.Data.Mapping
                 {
                     lineItem = AbstractTypeFactory<LineItem>.TryCreateInstance();
                 }
-                //PT-5453: Add mapping to CartMappingProfile
-                //lineItem.ValidationType
-                //lineItem.IsReadOnly = newCartItem.CartProduct.Product.IsReadOnly;
-                //lineItem.ShipmentMethodCode = newCartItem.CartProduct.Price.ShipmentMethodCode;
-                //lineItem.ThumbnailImageUrl = newCartItem.CartProduct.Product.ThumbnailImageUrl;
-                //lineItem.VolumetricWeight = newCartItem.CartProduct.Product.VolumetricWeight;
 
                 lineItem.CatalogId = cartProduct.Product.CatalogId;
                 lineItem.CategoryId = cartProduct.Product.CategoryId;
@@ -138,8 +132,6 @@ namespace VirtoCommerce.XCart.Data.Mapping
                 {
                     priceEvalContext.CustomerId = contact.Id;
 
-                    //priceEvalContext.GeoTimeZone = contact.TimeZome;
-
                     var address = contact.Addresses.FirstOrDefault(x => x.AddressType == CoreModule.Core.Common.AddressType.Shipping)
                                ?? contact.Addresses.FirstOrDefault(x => x.AddressType == CoreModule.Core.Common.AddressType.Billing);
 
@@ -156,14 +148,6 @@ namespace VirtoCommerce.XCart.Data.Mapping
                     }
                 }
 
-                //if (pricelists != null)
-                //{
-                //    result.PricelistIds = pricelists.Select(p => p.Id).ToList();
-                //}
-                //if (products != null)
-                //{
-                //    result.ProductIds = products.Select(p => p.Id).ToList();
-                //}
                 return priceEvalContext;
             });
 
@@ -174,10 +158,6 @@ namespace VirtoCommerce.XCart.Data.Mapping
                     {
                         productPromoEntry = AbstractTypeFactory<ProductPromoEntry>.TryCreateInstance();
                     }
-                    //PT-5453: Add mapping to CartMappingProfile
-                    // productPromoEntry.InStockQuantity = lineItem.InStockQuantity;
-                    // productPromoEntry.Outline = lineItem.Product.Outline;
-                    // productPromoEntry.Variations = null;
 
                     productPromoEntry.CatalogId = lineItem.CatalogId;
                     productPromoEntry.CategoryId = lineItem.CategoryId;
@@ -240,12 +220,10 @@ namespace VirtoCommerce.XCart.Data.Mapping
                 }
 
                 promoEvalcontext.IsEveryone = true;
-                //promoEvalcontext.IsFirstTimeBuyer = cartAggr.IsFirstBuyer;
 
                 return promoEvalcontext;
             });
 
-            //PT-5457: Need to think about extensibility for converters
             CreateMap<CartAggregate, TaxEvaluationContext>().ConvertUsing((cartAggr, taxEvalcontext, context) =>
             {
                 if (taxEvalcontext == null)
@@ -256,13 +234,11 @@ namespace VirtoCommerce.XCart.Data.Mapping
                 taxEvalcontext.Code = cartAggr.Cart.Name;
                 taxEvalcontext.Type = "Cart";
                 taxEvalcontext.CustomerId = cartAggr.Cart.CustomerId;
-                //map customer after PT-5425
 
                 foreach (var lineItem in cartAggr.SelectedLineItems)
                 {
                     taxEvalcontext.Lines.Add(new TaxLine()
                     {
-                        //PT-5339: Add Currency to tax line
                         Id = lineItem.Id,
                         Code = lineItem.Sku,
                         Name = lineItem.Name,
@@ -279,7 +255,6 @@ namespace VirtoCommerce.XCart.Data.Mapping
                 {
                     var totalTaxLine = new TaxLine
                     {
-                        //PT-5339: Add Currency to tax line
                         Id = shipment.Id,
                         Code = shipment.ShipmentMethodCode,
                         Name = shipment.ShipmentMethodOption,
@@ -300,7 +275,6 @@ namespace VirtoCommerce.XCart.Data.Mapping
                 {
                     var totalTaxLine = new TaxLine
                     {
-                        //PT-5339: Add Currency to tax line
                         Id = payment.Id,
                         Code = payment.PaymentGatewayCode,
                         Name = payment.PaymentGatewayCode,

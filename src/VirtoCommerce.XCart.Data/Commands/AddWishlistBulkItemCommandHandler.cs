@@ -12,9 +12,9 @@ namespace VirtoCommerce.XCart.Data.Commands
     {
         private readonly ICartAggregateRepository _cartAggregateRepository;
 
-        public AddWishlistBulkItemCommandHandler(ICartAggregateRepository cartAggrRepository)
+        public AddWishlistBulkItemCommandHandler(ICartAggregateRepository cartAggregateRepository)
         {
-            _cartAggregateRepository = cartAggrRepository;
+            _cartAggregateRepository = cartAggregateRepository;
         }
 
         public async Task<BulkCartAggregateResult> Handle(AddWishlistBulkItemCommand request, CancellationToken cancellationToken)

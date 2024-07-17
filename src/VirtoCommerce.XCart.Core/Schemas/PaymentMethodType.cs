@@ -1,7 +1,7 @@
 using GraphQL.Types;
+using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Schemas;
-using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.XCart.Core.Extensions;
 
 namespace VirtoCommerce.XCart.Core.Schemas
@@ -57,10 +57,6 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<NonNullGraphType<StringGraphType>>("paymentMethodGroupType",
                 "Value of payment group type",
                 resolve: context => context.Source.PaymentMethodGroupType.ToString());
-
-            //PT-5441: Extend the paymentmethod domain model
-            //Field<ListGraphType<DiscountType>>("discounts", resolve: context => context.Source.Discounts);
-            //Field<ListGraphType<SettingType>>("settings", resolve: context => context.Source.Settings);
         }
     }
 }

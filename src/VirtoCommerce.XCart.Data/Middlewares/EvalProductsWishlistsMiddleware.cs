@@ -19,10 +19,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
 
         public async Task Run(SearchProductResponse parameter, Func<SearchProductResponse, Task> next)
         {
-            if (parameter == null)
-            {
-                throw new ArgumentNullException(nameof(parameter));
-            }
+            ArgumentNullException.ThrowIfNull(parameter);
 
             var query = parameter.Query;
             if (query == null)
@@ -34,7 +31,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             var responseGroup = EnumUtility.SafeParse(query.GetResponseGroup(), ExpProductResponseGroup.None);
             // If products availabilities requested
             if (responseGroup.HasFlag(ExpProductResponseGroup.LoadWishlists) &&
-                productIds.Any())
+                productIds.Length != 0)
             {
                 var wishlistsByProducts = await _wishlistService.FindWishlistsByProductsAsync(query.UserId, query.OrganizationId, query.StoreId, productIds);
 

@@ -35,7 +35,7 @@ namespace VirtoCommerce.XCart.Core.Validators
                     // PRODUCT_FFC_QTY
                     context.AddFailure(CartErrorDescriber.ProductAvailableQuantityError(lineItem, lineItem.Quantity, 0));
                 }
-                else if (IsProductMinQunatityNotAvailable(cartProduct, minQuantity))
+                else if (IsProductMinQuantityNotAvailable(cartProduct, minQuantity))
                 {
                     // PRODUCT_MIN_QTY_NOT_AVAILABLE
                     context.AddFailure(CartErrorDescriber.ProductMinQuantityNotAvailableError(lineItem, minQuantity ?? 0));
@@ -97,9 +97,9 @@ namespace VirtoCommerce.XCart.Core.Validators
             return !AbstractTypeFactory<ProductIsInStockSpecification>.TryCreateInstance().IsSatisfiedBy(cartProduct);
         }
 
-        protected virtual bool IsProductMinQunatityNotAvailable(CartProduct cartProduct, int? minQuantity)
+        protected virtual bool IsProductMinQuantityNotAvailable(CartProduct cartProduct, int? minQuantity)
         {
-            return !AbstractTypeFactory<ProductMinQunatityAvailableSpecification>.TryCreateInstance().IsSatisfiedBy(cartProduct, minQuantity);
+            return !AbstractTypeFactory<ProductMinQuantityAvailableSpecification>.TryCreateInstance().IsSatisfiedBy(cartProduct, minQuantity);
         }
 
         protected virtual bool IsOutsideMinMaxQuantity(int quantity, int minQuantity, int maxQuantity)

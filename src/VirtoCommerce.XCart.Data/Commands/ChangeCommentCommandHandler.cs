@@ -9,8 +9,8 @@ namespace VirtoCommerce.XCart.Data.Commands
 {
     public class ChangeCommentCommandHandler : CartCommandHandler<ChangeCommentCommand>
     {
-        public ChangeCommentCommandHandler(ICartAggregateRepository cartRepository)
-            : base(cartRepository)
+        public ChangeCommentCommandHandler(ICartAggregateRepository cartAggregateRepository)
+            : base(cartAggregateRepository)
         {
         }
 

@@ -9,8 +9,8 @@ namespace VirtoCommerce.XCart.Data.Commands
 {
     public class MergeCartCommandHandler : CartCommandHandler<MergeCartCommand>
     {
-        public MergeCartCommandHandler(ICartAggregateRepository cartRepository)
-            : base(cartRepository)
+        public MergeCartCommandHandler(ICartAggregateRepository cartAggregateRepository)
+            : base(cartAggregateRepository)
         {
         }
 

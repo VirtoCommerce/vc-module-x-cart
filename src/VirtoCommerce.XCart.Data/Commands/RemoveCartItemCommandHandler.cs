@@ -9,8 +9,8 @@ namespace VirtoCommerce.XCart.Data.Commands
 {
     public class RemoveCartItemCommandHandler : CartCommandHandler<RemoveCartItemCommand>
     {
-        public RemoveCartItemCommandHandler(ICartAggregateRepository cartRepository)
-            : base(cartRepository)
+        public RemoveCartItemCommandHandler(ICartAggregateRepository cartAggregateRepository)
+            : base(cartAggregateRepository)
         {
         }
 

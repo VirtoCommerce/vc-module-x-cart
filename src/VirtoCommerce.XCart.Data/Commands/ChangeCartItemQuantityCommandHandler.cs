@@ -13,8 +13,8 @@ namespace VirtoCommerce.XCart.Data.Commands
     {
         private readonly ICartProductService _cartProductService;
 
-        public ChangeCartItemQuantityCommandHandler(ICartAggregateRepository cartRepository, ICartProductService cartProductService)
-            : base(cartRepository)
+        public ChangeCartItemQuantityCommandHandler(ICartAggregateRepository cartAggregateRepository, ICartProductService cartProductService)
+            : base(cartAggregateRepository)
         {
             _cartProductService = cartProductService;
         }

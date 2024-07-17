@@ -16,8 +16,7 @@ namespace VirtoCommerce.XCart.Core.Specifications
         /// <exception cref="ArgumentNullException"></exception>
         public virtual bool IsSatisfiedBy(CartProduct product)
         {
-            if (product == null)
-                throw new ArgumentNullException(nameof(product));
+            ArgumentNullException.ThrowIfNull(product);
 
             return product.Product.IsActive.GetValueOrDefault(false) &&
                 product.Product.IsBuyable.GetValueOrDefault(false) &&

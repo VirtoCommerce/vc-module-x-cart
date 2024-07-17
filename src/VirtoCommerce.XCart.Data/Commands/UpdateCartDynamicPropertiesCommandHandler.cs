@@ -9,8 +9,8 @@ namespace VirtoCommerce.XCart.Data.Commands
 {
     public class UpdateCartDynamicPropertiesCommandHandler : CartCommandHandler<UpdateCartDynamicPropertiesCommand>
     {
-        public UpdateCartDynamicPropertiesCommandHandler(ICartAggregateRepository cartRepository)
-            : base(cartRepository)
+        public UpdateCartDynamicPropertiesCommandHandler(ICartAggregateRepository cartAggregateRepository)
+            : base(cartAggregateRepository)
         {
         }
 

@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Platform.Core.Modularity;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Data.Extensions;
 
 namespace VirtoCommerce.XCart.Web;

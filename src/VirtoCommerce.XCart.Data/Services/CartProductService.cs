@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -6,16 +5,16 @@ using AutoMapper;
 using MediatR;
 using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Services;
-using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.InventoryModule.Core.Model.Search;
 using VirtoCommerce.InventoryModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.PricingModule.Core.Services;
-using VirtoCommerce.XCatalog.Core.Queries;
+using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
+using VirtoCommerce.XCatalog.Core.Queries;
 
 namespace VirtoCommerce.XCart.Data.Services
 {
@@ -80,7 +79,7 @@ namespace VirtoCommerce.XCart.Data.Services
             var cartProducts = await GetCartProductsAsync(ids, aggregate.Store.Id, aggregate.Cart.Currency, aggregate.Cart.CustomerId, aggregate.ProductsIncludeFields ?? IncludeFields);
 
             var productsToLoadDependencies = cartProducts.Where(x => x.LoadDependencies).ToList();
-            if (productsToLoadDependencies.Any())
+            if (productsToLoadDependencies.Count != 0)
             {
                 await Task.WhenAll(LoadDependencies(aggregate, productsToLoadDependencies));
             }
@@ -111,28 +110,6 @@ namespace VirtoCommerce.XCart.Data.Services
                 CurrencyCode = currencyCode,
                 ObjectIds = ids,
                 IncludeFields = includeFields,
-                EvaluatePromotions = false, // Promotions will be applied on the line item level
-            };
-
-            var response = await _mediator.Send(productsQuery);
-            var result = response.Products.Select(x => new CartProduct(x)).ToList();
-            return result;
-        }
-
-        /// <summary>
-        /// Map all <see cref="CatalogProduct"/> to <see cref="CartProduct"/>
-        /// </summary>
-        /// <returns>List of <see cref="CartProduct"/>s</returns>
-        [Obsolete("Not being called. Use `GetCartProductsAsync` with `includeFields` argument.", DiagnosticId = "VC0008", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
-        protected virtual async Task<List<CartProduct>> GetCartProductsAsync(IList<string> ids, string storeId, string currencyCode, string userId)
-        {
-            var productsQuery = new LoadProductsQuery
-            {
-                UserId = userId,
-                StoreId = storeId,
-                CurrencyCode = currencyCode,
-                ObjectIds = ids,
-                IncludeFields = IncludeFields,
                 EvaluatePromotions = false, // Promotions will be applied on the line item level
             };
 

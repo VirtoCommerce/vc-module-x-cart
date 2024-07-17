@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Models;
-using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.XCart.Core.Models
 {
@@ -29,55 +29,16 @@ namespace VirtoCommerce.XCart.Core.Models
                 payment = AbstractTypeFactory<Payment>.TryCreateInstance();
             }
 
-            if (Id?.IsSpecified == true)
-            {
-                payment.Id = Id.Value;
-            }
-
-            if (OuterId?.IsSpecified == true)
-            {
-                payment.OuterId = OuterId.Value;
-            }
-
-            if (PaymentGatewayCode?.IsSpecified == true)
-            {
-                payment.PaymentGatewayCode = PaymentGatewayCode.Value;
-            }
-
-            if (Currency?.IsSpecified == true)
-            {
-                payment.Currency = Currency.Value;
-            }
-
-            if (Price?.IsSpecified == true)
-            {
-                payment.Price = Price.Value;
-            }
-
-            if (Amount?.IsSpecified == true)
-            {
-                payment.Amount = Amount.Value;
-            }
-
-            if (Purpose?.IsSpecified == true)
-            {
-                payment.Purpose = Purpose.Value;
-            }
-
-            if (Comment?.IsSpecified == true)
-            {
-                payment.Comment = Comment.Value;
-            }
-
-            if (VendorId?.IsSpecified == true)
-            {
-                payment.VendorId = VendorId.Value;
-            }
-
-            if (BillingAddress?.IsSpecified == true)
-            {
-                payment.BillingAddress = BillingAddress.Value?.MapTo(payment.BillingAddress);
-            }
+            Optional.SetValue(Id, x => payment.Id = x);
+            Optional.SetValue(OuterId, x => payment.OuterId = x);
+            Optional.SetValue(PaymentGatewayCode, x => payment.PaymentGatewayCode = x);
+            Optional.SetValue(Currency, x => payment.Currency = x);
+            Optional.SetValue(Price, x => payment.Price = x);
+            Optional.SetValue(Amount, x => payment.Amount = x);
+            Optional.SetValue(Purpose, x => payment.Purpose = x);
+            Optional.SetValue(Comment, x => payment.Comment = x);
+            Optional.SetValue(VendorId, x => payment.VendorId = x);
+            Optional.SetValue(BillingAddress, x => payment.BillingAddress = x?.MapTo(payment.BillingAddress));
 
             return payment;
         }

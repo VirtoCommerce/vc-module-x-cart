@@ -12,8 +12,8 @@ namespace VirtoCommerce.XCart.Data.Commands
     /// </summary>
     public class RefreshCartCommandHandler : CartCommandHandler<RefreshCartCommand>
     {
-        public RefreshCartCommandHandler(ICartAggregateRepository cartRepository)
-            : base(cartRepository)
+        public RefreshCartCommandHandler(ICartAggregateRepository cartAggregateRepository)
+            : base(cartAggregateRepository)
         {
         }
 

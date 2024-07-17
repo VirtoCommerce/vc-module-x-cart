@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.CartModule.Core.Services;
-using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
@@ -49,7 +48,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
         public PurchaseSchema(
             IMediator mediator,
             IAuthorizationService authorizationService,
-            ICurrencyService currencyService,
             IShoppingCartService cartService,
             IShoppingCartSearchService shoppingCartSearchService,
             IDistributedLockService distributedLockService,
@@ -96,14 +94,12 @@ namespace VirtoCommerce.XCart.Data.Schemas
             var addItemField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
                                            .Name("addItem")
                                            .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputAddItemType>>(), SchemaConstants.CommandName)
-                                           //PT-5394: Write the unit-tests for successfully mapping input variable to the command
                                            .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                            {
                                                var cartCommand = context.GetCartCommand<AddCartItemCommand>();
 
                                                await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                               //PT-5327: Need to refactor later to prevent ugly code duplication
                                                //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -178,7 +174,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                  await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                 //PT-5327: Need to refactor later to prevent ugly code duplication
                                                  //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                  var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -215,7 +210,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                      await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                     //PT-5327: Need to refactor later to prevent ugly code duplication
                                                      //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                      var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -254,7 +248,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                            await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                           //PT-5327: Need to refactor later to prevent ugly code duplication
                                                            //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                            var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -292,7 +285,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                               await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                              //PT-5327: Need to refactor later to prevent ugly code duplication
                                                               //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                               var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -330,7 +322,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                               await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                              //PT-5327: Need to refactor later to prevent ugly code duplication
                                                               //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                               var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -476,7 +467,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                       await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                      //PT-5327: Need to refactor later to prevent ugly code duplication
                                                       //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                       var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -496,7 +486,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                       await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                      //PT-5327: Need to refactor later to prevent ugly code duplication
                                                       //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                       var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -533,7 +522,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                  await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                 //PT-5327: Need to refactor later to prevent ugly code duplication
                                                  //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                  var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -570,7 +558,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                     await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                    //PT-5327: Need to refactor later to prevent ugly code duplication
                                                     //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                     var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -607,7 +594,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                       await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                      //PT-5327: Need to refactor later to prevent ugly code duplication
                                                       //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                       var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -683,7 +669,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                                await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                               //PT-5327: Need to refactor later to prevent ugly code duplication
                                                                //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                                var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -752,7 +737,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                                await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                               //PT-5327: Need to refactor later to prevent ugly code duplication
                                                                //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                                var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -815,7 +799,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                  await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                 //PT-5327: Need to refactor later to prevent ugly code duplication
                                                  //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                  var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -872,7 +855,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                       await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                      //PT-5327: Need to refactor later to prevent ugly code duplication
                                                       //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                       var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -904,7 +886,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                       await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                      //PT-5327: Need to refactor later to prevent ugly code duplication
                                                       //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                       var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -944,7 +925,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                       await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                      //PT-5327: Need to refactor later to prevent ugly code duplication
                                                       //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                       var cartAggregate = await _mediator.Send(cartCommand);
 
@@ -1230,7 +1210,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                               //PT-5327: Need to refactor later to prevent ugly code duplication
                                                //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                var cartAggregate = await _mediator.Send(cartCommand);
 

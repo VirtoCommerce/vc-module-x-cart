@@ -9,8 +9,8 @@ namespace VirtoCommerce.XCart.Data.Commands
 {
     public class RejectGiftCartItemsCommandHandler : CartCommandHandler<RejectGiftCartItemsCommand>
     {
-        public RejectGiftCartItemsCommandHandler(ICartAggregateRepository cartRepository)
-            : base(cartRepository)
+        public RejectGiftCartItemsCommandHandler(ICartAggregateRepository cartAggregateRepository)
+            : base(cartAggregateRepository)
         {
         }
 

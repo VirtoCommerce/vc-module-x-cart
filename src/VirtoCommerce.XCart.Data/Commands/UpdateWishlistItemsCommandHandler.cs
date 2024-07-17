@@ -13,8 +13,8 @@ namespace VirtoCommerce.XCart.Data.Commands
     {
         private readonly ICartProductService _cartProductService;
 
-        public UpdateWishlistItemsCommandHandler(ICartAggregateRepository cartAggrRepository, ICartProductService cartProductService)
-            : base(cartAggrRepository)
+        public UpdateWishlistItemsCommandHandler(ICartAggregateRepository cartAggregateRepository, ICartProductService cartProductService)
+            : base(cartAggregateRepository)
         {
             _cartProductService = cartProductService;
         }
@@ -23,7 +23,7 @@ namespace VirtoCommerce.XCart.Data.Commands
         {
             var cartAggregate = await CartRepository.GetCartByIdAsync(request.ListId);
 
-            cartAggregate.ValidationRuleSet = new string[] { "default" };
+            cartAggregate.ValidationRuleSet = ["default"];
 
             foreach (var item in request.Items)
             {

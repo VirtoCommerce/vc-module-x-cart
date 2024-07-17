@@ -12,8 +12,8 @@ namespace VirtoCommerce.XCart.Data.Commands
 {
     public class MoveWishListItemCommandHandler : CartCommandHandler<MoveWishlistItemCommand>
     {
-        public MoveWishListItemCommandHandler(ICartAggregateRepository cartAggrRepository)
-            : base(cartAggrRepository)
+        public MoveWishListItemCommandHandler(ICartAggregateRepository cartAggregateRepository)
+            : base(cartAggregateRepository)
         {
         }
 

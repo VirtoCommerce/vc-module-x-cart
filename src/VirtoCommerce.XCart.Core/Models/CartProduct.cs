@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Currency;
-using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.InventoryModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.StoreModule.Core.Model;
+using VirtoCommerce.Xapi.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Models
 {
@@ -112,14 +112,8 @@ namespace VirtoCommerce.XCart.Core.Models
 
         public virtual void ApplyInventories(IEnumerable<InventoryInfo> inventories, Store store)
         {
-            if (inventories == null)
-            {
-                throw new ArgumentNullException(nameof(inventories));
-            }
-            if (store == null)
-            {
-                throw new ArgumentNullException(nameof(store));
-            }
+            ArgumentNullException.ThrowIfNull(inventories);
+            ArgumentNullException.ThrowIfNull(store);
 
             var availFullfilmentCentersIds = (store.AdditionalFulfillmentCenterIds ?? Array.Empty<string>()).Concat(new[] { store.MainFulfillmentCenterId });
 

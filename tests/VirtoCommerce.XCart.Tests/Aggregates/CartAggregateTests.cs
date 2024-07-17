@@ -321,7 +321,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         }
 
         [Fact]
-        public async Task AddCouponAsync_CouponFound_ShouldContaintOnlyOneCouponWIthSameCode()
+        public async Task AddCouponAsync_CouponFound_ShouldContainOnlyOneCouponWithSameCode()
         {
             // Arrange
             var cartAggregate = GetValidCartAggregate();

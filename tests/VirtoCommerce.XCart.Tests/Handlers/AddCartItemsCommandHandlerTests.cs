@@ -17,7 +17,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
         [Fact]
         public async Task Handle_RequestWithCartId_AddItemsAsyncCalled()
         {
-            // Arragne
+            // Arrange
             var cartAggregateRepositoryMock = new Mock<ICartAggregateRepository>();
             var cartAggregateMock = new Mock<CartAggregate>(MockBehavior.Loose, null, null, null, null, null, null, null, null);
             cartAggregateRepositoryMock.Setup(x => x.GetCartByIdAsync(It.IsAny<string>(), It.IsAny<string>())).ReturnsAsync(cartAggregateMock.Object);

@@ -8,9 +8,9 @@ namespace VirtoCommerce.XCart.Data.Commands
 {
     public class RemoveCartCommandHandler : IRequestHandler<RemoveCartCommand, bool>
     {
-        public RemoveCartCommandHandler(ICartAggregateRepository cartAggrRepository)
+        public RemoveCartCommandHandler(ICartAggregateRepository cartAggregateRepository)
         {
-            CartAggrRepository = cartAggrRepository;
+            CartAggrRepository = cartAggregateRepository;
         }
 
         private ICartAggregateRepository CartAggrRepository { get; set; }
