@@ -8,8 +8,8 @@ namespace VirtoCommerce.XCart.Core.Services
 {
     public interface ICartAvailMethodsService
     {
-        Task<IEnumerable<PaymentMethod>> GetAvailablePaymentMethodsAsync(CartAggregate cartAggr);
-        Task<IEnumerable<ShippingRate>> GetAvailableShippingRatesAsync(CartAggregate cartAggr);
-        Task<IEnumerable<GiftItem>> GetAvailableGiftsAsync(CartAggregate cartAggr);
+        Task<IEnumerable<PaymentMethod>> GetAvailablePaymentMethodsAsync(CartAggregate cartAggregate);
+        Task<IEnumerable<ShippingRate>> GetAvailableShippingRatesAsync(CartAggregate cartAggregate);
+        Task<IEnumerable<GiftItem>> GetAvailableGiftsAsync(CartAggregate cartAggregate);
     }
 }

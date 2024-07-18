@@ -561,8 +561,6 @@ namespace VirtoCommerce.XCart.Core
                 var shippingMethod = availRates.First(sm => shipment.ShipmentMethodCode.EqualsInvariant(sm.ShippingMethod.Code) && shipment.ShipmentMethodOption.EqualsInvariant(sm.OptionName));
                 shipment.Price = shippingMethod.Rate;
                 shipment.DiscountAmount = shippingMethod.DiscountAmount;
-                //PT-5421: use new model for resolve taxable logic for ShippingRate/ShippingMethod
-                //shipment.TaxType = shippingMethod.TaxType;
             }
             return this;
         }
