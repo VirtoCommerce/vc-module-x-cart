@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "XCart:create": "Create XCart related data",
+    "XCart:read": "View XCart related data",
+    "XCart:update": "Update XCart related data",
+    "XCart:delete": "Delete XCart related data"
+  }
+}
