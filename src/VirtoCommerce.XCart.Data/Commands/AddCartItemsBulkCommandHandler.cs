@@ -30,10 +30,26 @@ namespace VirtoCommerce.XCart.Data.Commands
         {
             var result = new BulkCartResult();
             var cartItemsToAdd = new List<NewCartItem>();
+            var requestedItems = request.CartItems.ToList();
 
-            // find missing skus
+            // find products by skus
             var products = await FindProductsBySkuAsync(request);
-            foreach (var item in request.CartItems)
+
+            // check for duplicates
+            var duplicates = GetDuplicatesBySku(products);
+            if (duplicates.Count > 0)
+            {
+                foreach (var duplicate in duplicates)
+                {
+                    var error = CartErrorDescriber.ProductDuplicateError(nameof(CatalogProduct), duplicate.Key, duplicate.Value);
+                    result.Errors.Add(error);
+                }
+
+                // remove duplicates from requested items
+                requestedItems = requestedItems.Where(x => !duplicates.ContainsKey(x.ProductSku)).ToList();
+            }
+
+            foreach (var item in requestedItems)
             {
                 var product = products.FirstOrDefault(x => x.Code == item.ProductSku);
                 if (product != null)
@@ -69,19 +85,51 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         protected virtual async Task<IList<CatalogProduct>> FindProductsBySkuAsync(AddCartItemsBulkCommand request)
         {
+            var result = new List<CatalogProduct>();
+
             var productSkus = request.CartItems.Select(x => x.ProductSku).ToList();
 
-            //find products
-            var productSearchRequest = new ProductSearchCriteria
+            int totalCount;
+
+            var searchCriteria = new ProductSearchCriteria
             {
-                Take = productSkus.Count,
                 Skus = productSkus,
                 SearchInVariations = true,
                 ResponseGroup = ItemResponseGroup.ItemInfo.ToString(),
             };
 
-            var searchProductResult = await _productSearchService.SearchAsync(productSearchRequest);
-            return searchProductResult.Results;
+            do
+            {
+                var searchResult = await _productSearchService.SearchAsync(searchCriteria);
+                result.AddRange(searchResult.Results);
+
+                totalCount = searchResult.TotalCount;
+                searchCriteria.Skip += searchCriteria.Take;
+            }
+            while (searchCriteria.Skip < totalCount);
+
+            return result;
+        }
+
+        protected virtual IDictionary<string, List<string>> GetDuplicatesBySku(IList<CatalogProduct> catalogProducts)
+        {
+            var productIdsBySku = new Dictionary<string, List<string>>();
+
+            foreach (var product in catalogProducts)
+            {
+                if (productIdsBySku.TryGetValue(product.Code, out var value))
+                {
+                    value.Add(product.Id);
+                }
+                else
+                {
+                    productIdsBySku.Add(product.Code, [product.Id]);
+                }
+            }
+
+            return productIdsBySku
+                .Where(x => x.Value.Count > 1)
+                .ToDictionary(x => x.Key, x => x.Value);
         }
     }
 }
