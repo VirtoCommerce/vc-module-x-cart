@@ -23,7 +23,7 @@ You can find more information about [X-Cart Schema, Queries and Mutations by fol
 * Home: https://virtocommerce.com
 * Documantation: https://docs.virtocommerce.org
 * Community: https://www.virtocommerce.org
-* [Download Latest Release](https://github.com/VirtoCommerce/vc-module-x-api/releases)
+* [Download Latest Release](https://github.com/VirtoCommerce/vc-module-x-cart/releases)
 
 ## License
 Copyright (c) Virto Solutions LTD.  All rights reserved.
