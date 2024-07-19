@@ -16,8 +16,8 @@
     <dependency id="VirtoCommerce.Shipping" version="3.800.0" />
   </dependencies>
 
-  <title>VirtoCommerce XCart module</title>
-  <description>VirtoCommerce XCart module</description>
+  <title>Cart Experience API</title>
+  <description>Dedicated to cart-related functionalities, ensuring efficient handling of shopping cart and checkout operations.</description>
 
   <authors>
     <author>Eugeny Tatarincev</author>
