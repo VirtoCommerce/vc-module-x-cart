@@ -808,32 +808,16 @@ namespace VirtoCommerce.XCart.Core
             return Task.FromResult(this);
         }
 
-        public virtual async Task<CartAggregate> UpdateOrganization(ShoppingCart cart, Member member)
-        {
-            if (member is Contact contact && cart.Type != ModuleConstants.ListTypeName)
-            {
-                cart.OrganizationId = contact.Organizations?.FirstOrDefault();
-
-                if (!string.IsNullOrEmpty(cart.OrganizationId))
-                {
-                    var org = await _memberService.GetByIdAsync(cart.OrganizationId);
-                    cart.OrganizationName = org.Name;
-                }
-            }
-
-            return this;
-        }
-
         public virtual async Task<CartAggregate> UpdateOrganizationName()
         {
             if (string.IsNullOrEmpty(Cart.OrganizationId))
             {
                 Cart.OrganizationName = null;
             }
-            else if (string.IsNullOrEmpty(Cart.OrganizationName))
+            else
             {
-                var organization = await _memberService.GetByIdAsync(Cart.OrganizationId);
-                Cart.OrganizationName = organization.Name;
+                var organization = await _memberService.GetByIdAsync(Cart.OrganizationId, "Default");
+                Cart.OrganizationName = organization?.Name;
             }
 
             return this;
