@@ -816,7 +816,7 @@ namespace VirtoCommerce.XCart.Core
             }
             else
             {
-                var organization = await _memberService.GetByIdAsync(Cart.OrganizationId, "Default");
+                var organization = await _memberService.GetByIdAsync(Cart.OrganizationId, MemberResponseGroup.Default.ToString());
                 Cart.OrganizationName = organization?.Name;
             }
 
