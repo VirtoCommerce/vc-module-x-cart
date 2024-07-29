@@ -3,6 +3,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using AutoFixture;
 using FluentAssertions;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
@@ -10,6 +13,7 @@ using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
@@ -29,6 +33,7 @@ namespace VirtoCommerce.XCart.Tests.Repositories
         private readonly Mock<ICurrencyService> _currencyService;
         private readonly Mock<IStoreService> _storeService;
         private readonly Mock<IMemberResolver> _memberResolver;
+        private readonly PlatformMemoryCache _platformMemoryCache;
 
         private readonly CartAggregateRepository repository;
 
@@ -40,6 +45,11 @@ namespace VirtoCommerce.XCart.Tests.Repositories
             _storeService = new Mock<IStoreService>();
             _memberResolver = new Mock<IMemberResolver>();
 
+            _platformMemoryCache = new PlatformMemoryCache(
+                new MemoryCache(Options.Create(new MemoryCacheOptions())),
+                Options.Create(new CachingOptions()),
+                new Mock<ILogger<PlatformMemoryCache>>().Object);
+
             repository = new CartAggregateRepository(
                 () => _fixture.Create<CartAggregate>(),
                 _shoppingCartSearchService.Object,
@@ -47,6 +57,7 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                 _currencyService.Object,
                 _memberResolver.Object,
                 _storeService.Object,
+                null,
                 null
                 );
         }
@@ -152,7 +163,8 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                  _currencyService.Object,
                  _memberResolver.Object,
                  _storeService.Object,
-                 _cartProductServiceMock.Object
+                 _cartProductServiceMock.Object,
+                 _platformMemoryCache
                  );
 
             var storeId = "Store";
@@ -201,7 +213,8 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                  _currencyService.Object,
                  _memberResolver.Object,
                  _storeService.Object,
-                 _cartProductServiceMock.Object);
+                 _cartProductServiceMock.Object,
+                 _platformMemoryCache);
 
             var storeId = "Store";
             var store = _fixture.Create<Store>();
