@@ -295,6 +295,26 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             schema.Mutation.AddField(changeCartItemQuantityField);
 
+
+            var changeCartItemsQuantityField = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
+                                                          .Name("changeCartItemsQuantity")
+                                                          .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputChangeCartItemsQuantityType>>(), SchemaConstants.CommandName)
+                                                          .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
+                                                          {
+                                                              var cartCommand = context.GetCartCommand<ChangeCartItemsQuantityCommand>();
+
+                                                              await CheckAuthByCartCommandAsync(context, cartCommand);
+
+                                                              //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
+                                                              var cartAggregate = await _mediator.Send(cartCommand);
+
+                                                              //store cart aggregate in the user context for future usage in the graph types resolvers
+                                                              context.SetExpandedObjectGraph(cartAggregate);
+                                                              return cartAggregate;
+                                                          }).FieldType;
+
+            schema.Mutation.AddField(changeCartItemsQuantityField);
+
             /// <example>
             /// This is an example JSON request for a mutation
             /// {
