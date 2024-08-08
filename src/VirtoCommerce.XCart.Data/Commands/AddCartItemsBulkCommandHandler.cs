@@ -78,6 +78,9 @@ namespace VirtoCommerce.XCart.Data.Commands
                 .OfType<CartValidationError>()
                 .Where(x => x.ObjectType == nameof(CatalogProduct));
 
+            // update validation errors with product skus
+            UpdateValidationErrors(lineItemErrors, products);
+
             result.Errors.AddRange(lineItemErrors);
 
             return result;
@@ -130,6 +133,18 @@ namespace VirtoCommerce.XCart.Data.Commands
             return productIdsBySku
                 .Where(x => x.Value.Count > 1)
                 .ToDictionary(x => x.Key, x => x.Value);
+        }
+
+        protected virtual void UpdateValidationErrors(IEnumerable<CartValidationError> lineItemErrors, IList<CatalogProduct> products)
+        {
+            foreach (var error in lineItemErrors)
+            {
+                var product = products.FirstOrDefault(x => x.Id == error.ObjectId);
+                if (product != null)
+                {
+                    error.ObjectId = product.Code;
+                }
+            }
         }
     }
 }
