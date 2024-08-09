@@ -4,9 +4,9 @@
   <version>3.803.0</version>
   <version-tag></version-tag>
 
-  <platformVersion>3.848.0-alpha.12968-vcst-1431</platformVersion>
+  <platformVersion>3.848.0</platformVersion>
   <dependencies>
-    <dependency id="VirtoCommerce.Xapi" version="3.802.0-alpha.32-vcst-1431" />
+    <dependency id="VirtoCommerce.Xapi" version="3.802.0" />
     <dependency id="VirtoCommerce.XCatalog" version="3.800.0" />
     <dependency id="VirtoCommerce.Cart" version="3.810.0" />
     <dependency id="VirtoCommerce.Inventory" version="3.800.0" />
