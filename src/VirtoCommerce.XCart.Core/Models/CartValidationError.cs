@@ -30,7 +30,17 @@ namespace VirtoCommerce.XCart.Core.Models
         public string ObjectId { get; set; }
         public List<ErrorParameter> ErrorParameters =>
             FormattedMessagePlaceholderValues
-                ?.Select(kvp => new ErrorParameter { Key = kvp.Key, Value = kvp.Value.ToString() })
+                ?.Select(kvp =>
+                {
+                    if (kvp.Value is List<string> values)
+                    {
+                        return new ErrorParameter { Key = kvp.Key, Value = string.Join(',', values) };
+                    }
+                    else
+                    {
+                        return new ErrorParameter { Key = kvp.Key, Value = kvp.Value.ToString() };
+                    }
+                })
                 .ToList();
     }
 }

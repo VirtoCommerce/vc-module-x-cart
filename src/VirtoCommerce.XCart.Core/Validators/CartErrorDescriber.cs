@@ -267,5 +267,19 @@ namespace VirtoCommerce.XCart.Core.Validators
 
             return result;
         }
+
+        public static CartValidationError ProductDuplicateError(string type, string sku, List<string> ids)
+        {
+            var result = new CartValidationError(type, sku, $"Duplicate product {sku}", "PRODUCT_DUPLICATE_SKU")
+            {
+                FormattedMessagePlaceholderValues = new Dictionary<string, object>
+                {
+                    ["sku"] = sku,
+                    ["productIds"] = ids
+                }
+            };
+
+            return result;
+        }
     }
 }
