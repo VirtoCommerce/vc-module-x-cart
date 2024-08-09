@@ -1663,7 +1663,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
         private async Task AuthorizeAsync(IResolveFieldContext context, object resource)
         {
-            await _userManagerCore.CheckUserState(context.GetCurrentUserId(), allowAnonymous: true);
+            await _userManagerCore.CheckCurrentUserState(context, allowAnonymous: true);
             var authorizationResult = await _authorizationService.AuthorizeAsync(context.GetCurrentPrincipal(), resource, new CanAccessCartAuthorizationRequirement());
 
             if (!authorizationResult.Succeeded)
