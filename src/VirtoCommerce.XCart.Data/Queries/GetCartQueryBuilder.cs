@@ -76,7 +76,7 @@ namespace VirtoCommerce.XCart.Data.Queries
 
         protected override async Task Authorize(IResolveFieldContext context, object resource, IAuthorizationRequirement requirement)
         {
-            await _userManagerCore.CheckUserState(context.GetCurrentUserId(), allowAnonymous: true);
+            await _userManagerCore.CheckCurrentUserState(context, allowAnonymous: true);
 
             await base.Authorize(context, resource, requirement);
         }
