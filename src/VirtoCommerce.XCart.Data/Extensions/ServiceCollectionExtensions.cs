@@ -58,6 +58,8 @@ namespace VirtoCommerce.XCart.Data.Extensions
                 builder.AddMiddleware(typeof(MapPromoEvalContextMiddleware));
             });
 
+            services.AddPipeline<ShipmentContextCartMap>();
+
             return services;
         }
     }
