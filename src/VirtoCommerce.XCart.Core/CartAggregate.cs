@@ -562,6 +562,15 @@ namespace VirtoCommerce.XCart.Core
                 shipment.Price = shippingMethod.Rate;
                 shipment.DiscountAmount = shippingMethod.DiscountAmount;
             }
+
+            // pass shipment to the middleware pipeline
+            var shipmentContext = new ShipmentContextCartMap
+            {
+                CartAggregate = this,
+                Shipment = shipment,
+            };
+            await _pipeline.Execute(shipmentContext);
+
             return this;
         }
 
