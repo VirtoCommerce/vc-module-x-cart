@@ -234,6 +234,7 @@ namespace VirtoCommerce.XCart.Data.Mapping
                 taxEvalcontext.Code = cartAggr.Cart.Name;
                 taxEvalcontext.Type = "Cart";
                 taxEvalcontext.CustomerId = cartAggr.Cart.CustomerId;
+                taxEvalcontext.Currency = cartAggr.Cart.Currency;
 
                 foreach (var lineItem in cartAggr.SelectedLineItems)
                 {
