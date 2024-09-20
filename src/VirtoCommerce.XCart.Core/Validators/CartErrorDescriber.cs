@@ -268,6 +268,20 @@ namespace VirtoCommerce.XCart.Core.Validators
             return result;
         }
 
+        public static CartValidationError ProductPackSizeError(IEntity entity, int qty, int packSize)
+        {
+            var result = new CartValidationError(entity, $" Order in packs of {packSize}", "PRODUCT_PACK_SIZE_LIMIT")
+            {
+                FormattedMessagePlaceholderValues = new Dictionary<string, object>
+                {
+                    ["qty"] = qty,
+                    ["packSize"] = packSize
+                }
+            };
+
+            return result;
+        }
+
         public static CartValidationError ProductDuplicateError(string type, string sku, List<string> ids)
         {
             var result = new CartValidationError(type, sku, $"Duplicate product {sku}", "PRODUCT_DUPLICATE_SKU")

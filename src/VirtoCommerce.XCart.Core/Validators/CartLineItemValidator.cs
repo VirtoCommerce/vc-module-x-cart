@@ -51,8 +51,14 @@ namespace VirtoCommerce.XCart.Core.Validators
         {
             var minQuantity = cartProduct?.GetMinQuantity();
             var maxQuantity = cartProduct?.GetMaxQuantity();
+            var packSize = cartProduct?.Product.PackSize ?? 1;
 
-            if (minQuantity.HasValue && maxQuantity.HasValue)
+            if (IsPackSizeLimit(cartProduct, lineItem.Quantity))
+            {
+                // PRODUCT_PACK_SIZE_LIMIT
+                context.AddFailure(CartErrorDescriber.ProductPackSizeError(lineItem, lineItem.Quantity, packSize));
+            }
+            else if (minQuantity.HasValue && maxQuantity.HasValue)
             {
                 if (IsOutsideMinMaxQuantity(lineItem.Quantity, minQuantity.Value, maxQuantity.Value))
                 {
@@ -80,6 +86,11 @@ namespace VirtoCommerce.XCart.Core.Validators
             {
                 context.AddFailure(CartErrorDescriber.ProductQtyChangedError(lineItem, cartProduct?.AvailableQuantity ?? 0));
             }
+        }
+
+        protected virtual bool IsPackSizeLimit(CartProduct cartProduct, int quantity)
+        {
+            return !AbstractTypeFactory<PackSizeLimitSpecification>.TryCreateInstance().IsSatisfiedBy(cartProduct, quantity);
         }
 
         protected virtual bool IsProductNotBuyable(CartProduct cartProduct)
