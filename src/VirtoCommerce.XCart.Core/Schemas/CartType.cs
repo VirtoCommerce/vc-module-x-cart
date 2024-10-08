@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using FluentValidation.Results;
 using GraphQL;
 using GraphQL.Types;
 using VirtoCommerce.CartModule.Core.Model;
@@ -209,7 +211,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 resolve: async context =>
                 {
                     var ruleSet = context.GetArgumentOrValue<string>("ruleSet");
-                    await EnsureThatCartValidatedAsync(context.Source, cartValidationContextFactory, ruleSet);
+                    await GetCartValidationErrors(context.Source, cartValidationContextFactory, ruleSet);
                     return context.Source.IsValid;
                 },
                 deprecationReason: "Deprecated, because of useless (no need to know validation state without details). Use validationErrors field."
@@ -220,8 +222,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 resolve: async context =>
                 {
                     var ruleSet = context.GetArgumentOrValue<string>("ruleSet");
-                    await EnsureThatCartValidatedAsync(context.Source, cartValidationContextFactory, ruleSet);
-                    return context.Source.ValidationErrors.OfType<CartValidationError>();
+                    var errors = await GetCartValidationErrors(context.Source, cartValidationContextFactory, ruleSet);
+                    return errors.AddRange(context.Source.ValidationErrors).OfType<CartValidationError>().ToList();
                 });
 
             Field(x => x.Cart.Type, nullable: true).Description("Shopping cart type");
@@ -229,15 +231,12 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<NonNullGraphType<ListGraphType<NonNullGraphType<ValidationErrorType>>>>("warnings", "A set of temporary warnings for a cart user", resolve: context => context.Source.ValidationWarnings);
         }
 
-        private static async Task EnsureThatCartValidatedAsync(CartAggregate cartAggr, ICartValidationContextFactory cartValidationContextFactory, string ruleSet)
+        private static async Task<IList<ValidationFailure>> GetCartValidationErrors(CartAggregate cartAggr, ICartValidationContextFactory cartValidationContextFactory, string ruleSet)
         {
-            if (!cartAggr.IsValidated)
-            {
-                var context = await cartValidationContextFactory.CreateValidationContextAsync(cartAggr);
-                //We execute a cart validation only once and by demand, in order to do not introduce  performance issues with fetching data from external services
-                //like shipping and tax rates etc.
-                await cartAggr.ValidateAsync(context, ruleSet);
-            }
+            var context = await cartValidationContextFactory.CreateValidationContextAsync(cartAggr);
+            //We execute a cart validation only once and by demand, in order to do not introduce  performance issues with fetching data from external services
+            //like shipping and tax rates etc.
+            return await cartAggr.ValidateAsync(context, ruleSet);
         }
     }
 }

@@ -724,10 +724,6 @@ namespace VirtoCommerce.XCart.Core
             EnsureCartExists();
             var rules = ruleSet?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var result = await AbstractTypeFactory<CartValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
-            if (!result.IsValid)
-            {
-                ValidationErrors.AddRange(result.Errors);
-            }
             IsValidated = true;
             return result.Errors;
         }
