@@ -3,11 +3,9 @@ using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Types;
 using VirtoCommerce.CartModule.Core.Model;
-using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
-using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.XCart.Core.Extensions;
@@ -23,8 +21,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
         public CartType(
             ICartAvailMethodsService cartAvailMethods,
             IDynamicPropertyResolverService dynamicPropertyResolverService,
-            ICartValidationContextFactory cartValidationContextFactory,
-            IDistributedLockService distributedLockService
+            ICartValidationContextFactory cartValidationContextFactory
             )
         {
             Field(x => x.Cart.Id, nullable: false).Description("Shopping cart ID");
@@ -213,17 +210,9 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 QueryArgumentPresets.GetArgumentsForCartValidator(),
             resolve: async context =>
                 {
-                    var key = CacheKey.With("Cart",
-                        context.Source.Cart.Id,
-                        context.Source.Cart.LanguageCode,
-                        context.Source.ResponseGroup);
-
-                    return await distributedLockService.ExecuteAsync(key, async () =>
-                    {
-                        var ruleSet = context.GetArgumentOrValue<string>("ruleSet");
-                        await EnsureThatCartValidatedAsync(context.Source, cartValidationContextFactory, ruleSet);
-                        return context.Source.ValidationErrors.OfType<CartValidationError>();
-                    });
+                    var ruleSet = context.GetArgumentOrValue<string>("ruleSet");
+                    await EnsureThatCartValidatedAsync(context.Source, cartValidationContextFactory, ruleSet);
+                    return context.Source.ValidationErrors.OfType<CartValidationError>();
                 });
 
             Field(x => x.Cart.Type, nullable: true).Description("Shopping cart type");
