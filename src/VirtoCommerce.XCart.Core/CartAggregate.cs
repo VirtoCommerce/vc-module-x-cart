@@ -114,13 +114,14 @@ namespace VirtoCommerce.XCart.Core
         /// </summary>
         public string[] ValidationRuleSet { get; set; } = { "default", "strict" };
 
-        public bool IsValid => !ValidationErrors.Any();
-        public IList<ValidationFailure> ValidationErrors
+        public bool IsValid => !GetValidationErrors().Any();
+
+        [Obsolete]
+        public IList<ValidationFailure> ValidationErrors { get; protected set; } = new List<ValidationFailure>();
+
+        public IList<ValidationFailure> GetValidationErrors()
         {
-            get
-            {
-                return CartValidationErrors.AddRange(OperationValidationErrors).ToList();
-            }
+            return CartValidationErrors.AddRange(OperationValidationErrors).ToList();
         }
 
         public IList<ValidationFailure> OperationValidationErrors { get; protected set; } = new List<ValidationFailure>();

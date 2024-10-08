@@ -212,7 +212,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 {
                     var ruleSet = context.GetArgumentOrValue<string>("ruleSet");
                     await EnsureThatCartValidatedAsync(context.Source, cartValidationContextFactory, ruleSet);
-                    return context.Source.ValidationErrors.OfType<CartValidationError>();
+                    return context.Source.GetValidationErrors().OfType<CartValidationError>();
                 });
 
             Field(x => x.Cart.Type, nullable: true).Description("Shopping cart type");

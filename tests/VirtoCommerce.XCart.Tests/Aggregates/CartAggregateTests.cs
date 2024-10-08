@@ -101,9 +101,9 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var aggregateAfterAddItem = await aggregate.AddItemAsync(newCartItem);
 
             // Assert
-            aggregateAfterAddItem.ValidationErrors.Should().NotBeEmpty();
-            aggregateAfterAddItem.ValidationErrors.Should().Contain(x => x.ErrorCode == "GreaterThanValidator");
-            aggregateAfterAddItem.ValidationErrors.Should().Contain(x => x.ErrorCode == "NotNullValidator");
+            aggregateAfterAddItem.GetValidationErrors().Should().NotBeEmpty();
+            aggregateAfterAddItem.GetValidationErrors().Should().Contain(x => x.ErrorCode == "GreaterThanValidator");
+            aggregateAfterAddItem.GetValidationErrors().Should().Contain(x => x.ErrorCode == "NotNullValidator");
         }
 
         #endregion AddItemAsync
@@ -223,8 +223,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Assert
-            cartAggregateAfterChangeItemQty.ValidationErrors.Should().NotBeEmpty();
-            cartAggregateAfterChangeItemQty.ValidationErrors.Should().Contain(x => x.ErrorCode == "LINE_ITEM_NOT_FOUND");
+            cartAggregateAfterChangeItemQty.GetValidationErrors().Should().NotBeEmpty();
+            cartAggregateAfterChangeItemQty.GetValidationErrors().Should().Contain(x => x.ErrorCode == "LINE_ITEM_NOT_FOUND");
         }
 
         #endregion ChangeItemQuantityAsync
