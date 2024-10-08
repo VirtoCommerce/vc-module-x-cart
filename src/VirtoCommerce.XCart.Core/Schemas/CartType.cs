@@ -1,13 +1,13 @@
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using FluentValidation.Results;
 using GraphQL;
 using GraphQL.Types;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.XCart.Core.Extensions;
@@ -23,7 +23,9 @@ namespace VirtoCommerce.XCart.Core.Schemas
         public CartType(
             ICartAvailMethodsService cartAvailMethods,
             IDynamicPropertyResolverService dynamicPropertyResolverService,
-            ICartValidationContextFactory cartValidationContextFactory)
+            ICartValidationContextFactory cartValidationContextFactory,
+            IDistributedLockService distributedLockService
+            )
         {
             Field(x => x.Cart.Id, nullable: false).Description("Shopping cart ID");
             Field(x => x.Cart.Name, nullable: false).Description("Shopping cart name");
@@ -206,24 +208,22 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 QueryArgumentPresets.GetArgumentForDynamicProperties(),
                 context => dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source.Cart, context.GetArgumentOrValue<string>("cultureName")));
 
-            FieldAsync<NonNullGraphType<BooleanGraphType>>("isValid", "Shows whether the cart is valid",
-                QueryArgumentPresets.GetArgumentsForCartValidator(),
-                resolve: async context =>
-                {
-                    var ruleSet = context.GetArgumentOrValue<string>("ruleSet");
-                    await GetCartValidationErrors(context.Source, cartValidationContextFactory, ruleSet);
-                    return context.Source.IsValid;
-                },
-                deprecationReason: "Deprecated, because of useless (no need to know validation state without details). Use validationErrors field."
-            );
-
+            // Validation
             FieldAsync<NonNullGraphType<ListGraphType<NonNullGraphType<ValidationErrorType>>>>("validationErrors", "A set of errors in case the cart is invalid",
                 QueryArgumentPresets.GetArgumentsForCartValidator(),
-                resolve: async context =>
+            resolve: async context =>
                 {
-                    var ruleSet = context.GetArgumentOrValue<string>("ruleSet");
-                    var errors = await GetCartValidationErrors(context.Source, cartValidationContextFactory, ruleSet);
-                    return errors.AddRange(context.Source.ValidationErrors).OfType<CartValidationError>().ToList();
+                    var key = CacheKey.With("Cart",
+                        context.Source.Cart.Id,
+                        context.Source.Cart.LanguageCode,
+                        context.Source.ResponseGroup);
+
+                    return await distributedLockService.ExecuteAsync(key, async () =>
+                    {
+                        var ruleSet = context.GetArgumentOrValue<string>("ruleSet");
+                        await EnsureThatCartValidatedAsync(context.Source, cartValidationContextFactory, ruleSet);
+                        return context.Source.ValidationErrors.OfType<CartValidationError>();
+                    });
                 });
 
             Field(x => x.Cart.Type, nullable: true).Description("Shopping cart type");
@@ -231,12 +231,15 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<NonNullGraphType<ListGraphType<NonNullGraphType<ValidationErrorType>>>>("warnings", "A set of temporary warnings for a cart user", resolve: context => context.Source.ValidationWarnings);
         }
 
-        private static async Task<IList<ValidationFailure>> GetCartValidationErrors(CartAggregate cartAggr, ICartValidationContextFactory cartValidationContextFactory, string ruleSet)
+        private static async Task EnsureThatCartValidatedAsync(CartAggregate cartAggr, ICartValidationContextFactory cartValidationContextFactory, string ruleSet)
         {
-            var context = await cartValidationContextFactory.CreateValidationContextAsync(cartAggr);
-            //We execute a cart validation only once and by demand, in order to do not introduce  performance issues with fetching data from external services
-            //like shipping and tax rates etc.
-            return await cartAggr.ValidateAsync(context, ruleSet);
+            if (!cartAggr.IsValidated)
+            {
+                var context = await cartValidationContextFactory.CreateValidationContextAsync(cartAggr);
+                //We execute a cart validation only once and by demand, in order to do not introduce  performance issues with fetching data from external services
+                //like shipping and tax rates etc.
+                await cartAggr.ValidateAsync(context, ruleSet);
+            }
         }
     }
 }

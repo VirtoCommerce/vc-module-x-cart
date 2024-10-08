@@ -197,7 +197,7 @@ namespace VirtoCommerce.XCart.Data.Services
         {
             if (string.IsNullOrEmpty(cart.Id))
             {
-                return await InnerGetCartAggregateFromCartNoCacheAsync(cart, language, productsIncludeFields);
+                return await InnerGetCartAggregateFromCartNoCacheAsync(cart, language, productsIncludeFields, responseGroup);
             }
 
             var cacheKey = CacheKey.With(GetType(),
@@ -210,13 +210,13 @@ namespace VirtoCommerce.XCart.Data.Services
             var result = await _platformMemoryCache.GetOrCreateExclusiveAsync(cacheKey, async cacheOptions =>
             {
                 cacheOptions.AddExpirationToken(GenericCachingRegion<CartAggregate>.CreateChangeTokenForKey(cart.Id));
-                return await InnerGetCartAggregateFromCartNoCacheAsync(cart, language, productsIncludeFields);
+                return await InnerGetCartAggregateFromCartNoCacheAsync(cart, language, productsIncludeFields, responseGroup);
             });
 
             return result;
         }
 
-        private async Task<CartAggregate> InnerGetCartAggregateFromCartNoCacheAsync(ShoppingCart cart, string language, IList<string> productsIncludeFields)
+        private async Task<CartAggregate> InnerGetCartAggregateFromCartNoCacheAsync(ShoppingCart cart, string language, IList<string> productsIncludeFields, string responseGroup)
         {
             ArgumentNullException.ThrowIfNull(cart);
 
@@ -257,6 +257,7 @@ namespace VirtoCommerce.XCart.Data.Services
 
                 //Load cart products explicitly if no validation is requested
                 aggregate.ProductsIncludeFields = productsIncludeFields;
+                aggregate.ResponseGroup = responseGroup;
                 var cartProducts = await _cartProductsService.GetCartProductsByIdsAsync(aggregate, aggregate.Cart.Items.Select(x => x.ProductId).ToArray());
                 //Populate aggregate.CartProducts with the  products data for all cart  line items
                 foreach (var cartProduct in cartProducts)

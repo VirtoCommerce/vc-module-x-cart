@@ -129,6 +129,7 @@ namespace VirtoCommerce.XCart.Core
         }
 
         public IList<string> ProductsIncludeFields { get; set; }
+        public string ResponseGroup { get; set; }
 
         public bool IsSelectedForCheckout => Store.Settings?.GetValue<bool>(XapiSetting.IsSelectedForCheckout) ?? true;
 
@@ -724,6 +725,10 @@ namespace VirtoCommerce.XCart.Core
             EnsureCartExists();
             var rules = ruleSet?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var result = await AbstractTypeFactory<CartValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
+            if (!result.IsValid)
+            {
+                ValidationErrors.AddRange(result.Errors);
+            }
             IsValidated = true;
             return result.Errors;
         }
