@@ -116,7 +116,7 @@ namespace VirtoCommerce.XCart.Core
 
         public bool IsValid => !GetValidationErrors().Any();
 
-        [Obsolete]
+        [Obsolete("Use OperationValidationErrors and CartValidationErrors", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         public IList<ValidationFailure> ValidationErrors { get; protected set; } = new List<ValidationFailure>();
 
         public IList<ValidationFailure> GetValidationErrors()
