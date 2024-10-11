@@ -116,13 +116,8 @@ namespace VirtoCommerce.XCart.Core
 
         public bool IsValid => !GetValidationErrors().Any();
 
-        [Obsolete("Use OperationValidationErrors and CartValidationErrors", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
+        [Obsolete("Use GetValidationErrors().", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         public IList<ValidationFailure> ValidationErrors { get; protected set; } = new List<ValidationFailure>();
-
-        public IList<ValidationFailure> GetValidationErrors()
-        {
-            return CartValidationErrors.AddRange(OperationValidationErrors).ToList();
-        }
 
         public IList<ValidationFailure> OperationValidationErrors { get; protected set; } = new List<ValidationFailure>();
         public IList<ValidationFailure> CartValidationErrors { get; protected set; } = new List<ValidationFailure>();
@@ -143,6 +138,11 @@ namespace VirtoCommerce.XCart.Core
         public string ResponseGroup { get; set; }
 
         public bool IsSelectedForCheckout => Store.Settings?.GetValue<bool>(XapiSetting.IsSelectedForCheckout) ?? true;
+
+        public virtual IList<ValidationFailure> GetValidationErrors()
+        {
+            return CartValidationErrors.AddRange(OperationValidationErrors).ToList();
+        }
 
         public virtual CartAggregate GrabCart(ShoppingCart cart, Store store, Member member, Currency currency)
         {
