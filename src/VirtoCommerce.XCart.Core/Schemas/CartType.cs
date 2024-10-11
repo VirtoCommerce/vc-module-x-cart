@@ -21,8 +21,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
         public CartType(
             ICartAvailMethodsService cartAvailMethods,
             IDynamicPropertyResolverService dynamicPropertyResolverService,
-            ICartValidationContextFactory cartValidationContextFactory
-            )
+            ICartValidationContextFactory cartValidationContextFactory)
         {
             Field(x => x.Cart.Id, nullable: false).Description("Shopping cart ID");
             Field(x => x.Cart.Name, nullable: false).Description("Shopping cart name");
