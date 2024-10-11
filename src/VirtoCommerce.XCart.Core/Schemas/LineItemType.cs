@@ -77,10 +77,10 @@ namespace VirtoCommerce.XCart.Core.Schemas
 
             Field<NonNullGraphType<BooleanGraphType>>("IsValid",
                 "Shows whether this is valid",
-                resolve: context => !context.GetCart().ValidationErrors.GetEntityCartErrors(context.Source).Any());
+                resolve: context => !context.GetCart().GetValidationErrors().GetEntityCartErrors(context.Source).Any());
             Field<NonNullGraphType<ListGraphType<NonNullGraphType<ValidationErrorType>>>>("validationErrors",
                 "Validation errors",
-                resolve: context => context.GetCart().ValidationErrors.GetEntityCartErrors(context.Source));
+                resolve: context => context.GetCart().GetValidationErrors().GetEntityCartErrors(context.Source));
 
             Field(x => x.CatalogId, nullable: false).Description("Catalog ID value");
             Field(x => x.CategoryId, nullable: true).Description("Category ID value");

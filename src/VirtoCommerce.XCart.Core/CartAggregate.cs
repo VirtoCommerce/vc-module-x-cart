@@ -114,8 +114,14 @@ namespace VirtoCommerce.XCart.Core
         /// </summary>
         public string[] ValidationRuleSet { get; set; } = { "default", "strict" };
 
-        public bool IsValid => !ValidationErrors.Any();
+        public bool IsValid => !GetValidationErrors().Any();
+
+        [Obsolete("Use GetValidationErrors().", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         public IList<ValidationFailure> ValidationErrors { get; protected set; } = new List<ValidationFailure>();
+
+        public IList<ValidationFailure> OperationValidationErrors { get; protected set; } = new List<ValidationFailure>();
+        public IList<ValidationFailure> CartValidationErrors { get; protected set; } = new List<ValidationFailure>();
+
         public bool IsValidated { get; private set; }
 
         public IList<ValidationFailure> ValidationWarnings { get; protected set; } = new List<ValidationFailure>();
@@ -129,8 +135,14 @@ namespace VirtoCommerce.XCart.Core
         }
 
         public IList<string> ProductsIncludeFields { get; set; }
+        public string ResponseGroup { get; set; }
 
         public bool IsSelectedForCheckout => Store.Settings?.GetValue<bool>(XapiSetting.IsSelectedForCheckout) ?? true;
+
+        public virtual IList<ValidationFailure> GetValidationErrors()
+        {
+            return CartValidationErrors.AddRange(OperationValidationErrors).ToList();
+        }
 
         public virtual CartAggregate GrabCart(ShoppingCart cart, Store store, Member member, Currency currency)
         {
@@ -164,7 +176,7 @@ namespace VirtoCommerce.XCart.Core
             var validationResult = await AbstractTypeFactory<NewCartItemValidator>.TryCreateInstance().ValidateAsync(newCartItem, options => options.IncludeRuleSets(ValidationRuleSet));
             if (!validationResult.IsValid)
             {
-                ValidationErrors.AddRange(validationResult.Errors);
+                OperationValidationErrors.AddRange(validationResult.Errors);
             }
             else if (newCartItem.CartProduct != null)
             {
@@ -228,7 +240,7 @@ namespace VirtoCommerce.XCart.Core
                 else
                 {
                     var error = CartErrorDescriber.ProductUnavailableError(nameof(CatalogProduct), item.ProductId);
-                    ValidationErrors.Add(error);
+                    OperationValidationErrors.Add(error);
                 }
             }
 
@@ -399,7 +411,7 @@ namespace VirtoCommerce.XCart.Core
             var validationResult = await AbstractTypeFactory<ItemQtyAdjustmentValidator>.TryCreateInstance().ValidateAsync(qtyAdjustment, options => options.IncludeRuleSets(ValidationRuleSet));
             if (!validationResult.IsValid)
             {
-                ValidationErrors.AddRange(validationResult.Errors);
+                OperationValidationErrors.AddRange(validationResult.Errors);
             }
 
             var lineItem = Cart.Items.FirstOrDefault(i => i.Id == qtyAdjustment.LineItemId);
@@ -726,7 +738,7 @@ namespace VirtoCommerce.XCart.Core
             var result = await AbstractTypeFactory<CartValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
             if (!result.IsValid)
             {
-                ValidationErrors.AddRange(result.Errors);
+                CartValidationErrors = result.Errors;
             }
             IsValidated = true;
             return result.Errors;

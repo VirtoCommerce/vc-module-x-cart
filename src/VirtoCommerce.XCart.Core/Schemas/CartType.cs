@@ -204,24 +204,14 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 QueryArgumentPresets.GetArgumentForDynamicProperties(),
                 context => dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source.Cart, context.GetArgumentOrValue<string>("cultureName")));
 
-            FieldAsync<NonNullGraphType<BooleanGraphType>>("isValid", "Shows whether the cart is valid",
-                QueryArgumentPresets.GetArgumentsForCartValidator(),
-                resolve: async context =>
-                {
-                    var ruleSet = context.GetArgumentOrValue<string>("ruleSet");
-                    await EnsureThatCartValidatedAsync(context.Source, cartValidationContextFactory, ruleSet);
-                    return context.Source.IsValid;
-                },
-                deprecationReason: "Deprecated, because of useless (no need to know validation state without details). Use validationErrors field."
-            );
-
+            // Validation
             FieldAsync<NonNullGraphType<ListGraphType<NonNullGraphType<ValidationErrorType>>>>("validationErrors", "A set of errors in case the cart is invalid",
                 QueryArgumentPresets.GetArgumentsForCartValidator(),
-                resolve: async context =>
+            resolve: async context =>
                 {
                     var ruleSet = context.GetArgumentOrValue<string>("ruleSet");
                     await EnsureThatCartValidatedAsync(context.Source, cartValidationContextFactory, ruleSet);
-                    return context.Source.ValidationErrors.OfType<CartValidationError>();
+                    return context.Source.GetValidationErrors().OfType<CartValidationError>();
                 });
 
             Field(x => x.Cart.Type, nullable: true).Description("Shopping cart type");
