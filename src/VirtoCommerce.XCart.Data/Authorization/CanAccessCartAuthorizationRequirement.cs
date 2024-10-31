@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -40,7 +39,7 @@ namespace VirtoCommerce.XCart.Data.Authorization
                 switch (context.Resource)
                 {
                     case string userId when context.User.Identity.IsAuthenticated:
-                        result = userId == GetUserId(context);
+                        result = userId == GetCurrentUserId(context);
                         break;
                     case string userId when !context.User.Identity.IsAuthenticated:
                         using (var userManager = _userManagerFactory())
@@ -50,17 +49,17 @@ namespace VirtoCommerce.XCart.Data.Authorization
                         }
                         break;
                     case ShoppingCart cart when context.User.Identity.IsAuthenticated:
-                        result = cart.CustomerId == GetUserId(context);
+                        result = cart.CustomerId == GetCurrentUserId(context);
                         break;
                     case ShoppingCart cart when !context.User.Identity.IsAuthenticated:
                         result = cart.IsAnonymous;
                         break;
                     case IEnumerable<ShoppingCart> carts:
-                        var user = GetUserId(context);
+                        var user = GetCurrentUserId(context);
                         result = carts.All(x => x.CustomerId == user);
                         break;
                     case SearchCartQuery searchQuery:
-                        var currentUserId = GetUserId(context);
+                        var currentUserId = GetCurrentUserId(context);
                         if (searchQuery.UserId != null)
                         {
                             result = searchQuery.UserId == currentUserId;
@@ -90,10 +89,9 @@ namespace VirtoCommerce.XCart.Data.Authorization
             }
         }
 
-        private static string GetUserId(AuthorizationHandlerContext context)
+        private static string GetCurrentUserId(AuthorizationHandlerContext context)
         {
-            //PT-5375 use ClaimTypes instead of "name"
-            return context.User.FindFirstValue("name");
+            return context.User.GetUserId();
         }
 
         private static bool CheckWishlistUserContext(WishlistUserContext context)
