@@ -4,7 +4,14 @@ using VirtoCommerce.Xapi.Core.Infrastructure;
 
 namespace VirtoCommerce.XCart.Core.Commands;
 
-public class CreateConfiguredLineItemCommand : ICommand<ConfiguredLineItemAggregate>
+public interface IHasConfigurationSections
+{
+    string ConfigurableProductId { get; set; }
+
+    IList<ConfigurationSection> ConfigurationSections { get; set; }
+}
+
+public class CreateConfiguredLineItemCommand : ICommand<ConfiguredLineItemAggregate>, IHasConfigurationSections
 {
     public string StoreId { get; set; }
 

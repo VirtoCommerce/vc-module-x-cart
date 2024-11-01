@@ -1,5 +1,6 @@
 using GraphQL.Types;
 using VirtoCommerce.Xapi.Core.Schemas;
+using VirtoCommerce.XCart.Core.Commands;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
@@ -17,6 +18,10 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 "Comment");
 
             Field<ListGraphType<InputDynamicPropertyValueType>>("dynamicProperties");
+
+            // Configurable product support
+            Field<StringGraphType>("configurableProductId", "Configurable product ID");
+            Field<ListGraphType<ConfigurationSectionInput>>("configurationSections");
         }
     }
 }

@@ -4,7 +4,7 @@ using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 
 namespace VirtoCommerce.XCart.Core.Commands
 {
-    public class AddCartItemCommand : CartCommand
+    public class AddCartItemCommand : CartCommand, IHasConfigurationSections
     {
         public string ProductId { get; set; }
         public int Quantity { get; set; }
@@ -23,5 +23,9 @@ namespace VirtoCommerce.XCart.Core.Commands
         /// Dynamic properties
         /// </summary>
         public IList<DynamicPropertyValue> DynamicProperties { get; set; }
+
+        // configurable product support
+        public string ConfigurableProductId { get; set; }
+        public IList<ConfigurationSection> ConfigurationSections { get; set; }
     }
 }
