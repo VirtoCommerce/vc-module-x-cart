@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
-using VirtoCommerce.XCart.Core.Models;
+using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.XCart.Core.Services;
 
 namespace VirtoCommerce.XCart.Data.Services
@@ -9,26 +9,15 @@ namespace VirtoCommerce.XCart.Data.Services
     {
         public virtual string GetResponseGroup(IList<string> includeFields)
         {
-            var result = CartAggregateResponseGroup.None;
-            if (includeFields.Any(x => x.Contains("shipments")))
+            var result = CartResponseGroup.Full;
+
+            // Disable recalculation of totals, XAPI will do it on its own
+            result &= ~CartResponseGroup.RecalculateTotals;
+
+            if (!includeFields.Any(x => x.Contains("dynamicProperties")))
             {
-                result |= CartAggregateResponseGroup.WithShipments;
-            }
-            if (includeFields.Any(x => x.Contains("payments")))
-            {
-                result |= CartAggregateResponseGroup.WithPayments;
-            }
-            if (includeFields.Any(x => x.Contains("items")))
-            {
-                result |= CartAggregateResponseGroup.WithLineItems;
-            }
-            if (includeFields.Any(x => x.Contains("dynamicProperties")))
-            {
-                result |= CartAggregateResponseGroup.WithDynamicProperties;
-            }
-            if (includeFields.Any(x => x.Contains("validationErrors")))
-            {
-                result |= CartAggregateResponseGroup.Validate;
+                // Disable load of dynamic properties if not requested
+                result &= ~CartResponseGroup.WithDynamicProperties;
             }
 
             return result.ToString();
