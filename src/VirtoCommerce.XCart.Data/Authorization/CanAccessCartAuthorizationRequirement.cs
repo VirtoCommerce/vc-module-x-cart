@@ -39,7 +39,7 @@ namespace VirtoCommerce.XCart.Data.Authorization
                 switch (context.Resource)
                 {
                     case string userId when context.User.Identity.IsAuthenticated:
-                        result = userId == GetCurrentUserId(context);
+                        result = userId == GetUserId(context);
                         break;
                     case string userId when !context.User.Identity.IsAuthenticated:
                         using (var userManager = _userManagerFactory())
@@ -49,17 +49,17 @@ namespace VirtoCommerce.XCart.Data.Authorization
                         }
                         break;
                     case ShoppingCart cart when context.User.Identity.IsAuthenticated:
-                        result = cart.CustomerId == GetCurrentUserId(context);
+                        result = cart.CustomerId == GetUserId(context);
                         break;
                     case ShoppingCart cart when !context.User.Identity.IsAuthenticated:
                         result = cart.IsAnonymous;
                         break;
                     case IEnumerable<ShoppingCart> carts:
-                        var user = GetCurrentUserId(context);
+                        var user = GetUserId(context);
                         result = carts.All(x => x.CustomerId == user);
                         break;
                     case SearchCartQuery searchQuery:
-                        var currentUserId = GetCurrentUserId(context);
+                        var currentUserId = GetUserId(context);
                         if (searchQuery.UserId != null)
                         {
                             result = searchQuery.UserId == currentUserId;
@@ -89,7 +89,7 @@ namespace VirtoCommerce.XCart.Data.Authorization
             }
         }
 
-        private static string GetCurrentUserId(AuthorizationHandlerContext context)
+        private static string GetUserId(AuthorizationHandlerContext context)
         {
             return context.User.GetUserId();
         }
