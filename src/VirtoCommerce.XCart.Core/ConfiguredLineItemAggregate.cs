@@ -15,15 +15,6 @@ namespace VirtoCommerce.XCart.Core
 {
     public class ConfiguredLineItemAggregate : CartAggregate
     {
-        private readonly IMarketingPromoEvaluator _marketingEvaluator;
-        private readonly IShoppingCartTotalsCalculator _cartTotalsCalculator;
-        private readonly ITaxProviderSearchService _taxProviderSearchService;
-        private readonly ICartProductService _cartProductService;
-        private readonly IDynamicPropertyUpdaterService _dynamicPropertyUpdaterService;
-        private readonly IMemberService _memberService;
-        private readonly IMapper _mapper;
-        private readonly IGenericPipelineLauncher _pipeline;
-
         public ConfiguredLineItemAggregate(
             IMarketingPromoEvaluator marketingEvaluator,
             IShoppingCartTotalsCalculator cartTotalsCalculator,
@@ -35,14 +26,6 @@ namespace VirtoCommerce.XCart.Core
             IGenericPipelineLauncher pipeline)
             : base(marketingEvaluator, cartTotalsCalculator, taxProviderSearchService, cartProductService, dynamicPropertyUpdaterService, mapper, memberService, pipeline)
         {
-            _cartTotalsCalculator = cartTotalsCalculator;
-            _marketingEvaluator = marketingEvaluator;
-            _taxProviderSearchService = taxProviderSearchService;
-            _cartProductService = cartProductService;
-            _dynamicPropertyUpdaterService = dynamicPropertyUpdaterService;
-            _mapper = mapper;
-            _memberService = memberService;
-            _pipeline = pipeline;
         }
 
         public CartProduct ConfigurableProduct { get; set; }
