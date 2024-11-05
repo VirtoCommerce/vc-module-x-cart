@@ -176,6 +176,21 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 })
             };
             AddField(vendorField);
+
+            ExtendableField<ListGraphType<ConfigurationItemType>>(
+                "configurationItems",
+                "Configuration items for configurable product",
+                resolve: context => context.Source.ConfigurationItems);
+
+        }
+    }
+
+    public class ConfigurationItemType : ExtendableGraphType<ConfigurationItem>
+    {
+        public ConfigurationItemType()
+        {
+            Field(x => x.Id, nullable: false).Description("Configuration item ID");
+            Field(x => x.Name, nullable: true).Description("Configuration item name");
         }
     }
 }

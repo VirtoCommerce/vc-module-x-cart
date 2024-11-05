@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -14,6 +15,8 @@ using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
+using VirtoCommerce.XCart.Core.Models;
+using VirtoCommerce.XCart.Core.Services;
 
 namespace VirtoCommerce.XCart.Data.Commands;
 
@@ -23,17 +26,20 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
     private readonly ICurrencyService _currencyService;
     private readonly IMemberResolver _memberResolver;
     private readonly IStoreService _storeService;
+    private readonly ICartProductService _cartProductService;
 
     public CreateConfiguredLineItemHandler(
         Func<ConfiguredLineItemAggregate> configurableLineItemAggregateFactory,
        ICurrencyService currencyService,
        IMemberResolver memberResolver,
-       IStoreService storeService)
+       IStoreService storeService,
+       ICartProductService cartProductService)
     {
         _configurableLineItemAggregateFactory = configurableLineItemAggregateFactory;
         _currencyService = currencyService;
         _memberResolver = memberResolver;
         _storeService = storeService;
+        _cartProductService = cartProductService;
     }
 
     public async Task<ConfiguredLineItemAggregate> Handle(CreateConfiguredLineItemCommand request, CancellationToken cancellationToken)
@@ -65,7 +71,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
         if (store == null)
         {
-            throw new OperationCanceledException($"store with id {cart.StoreId} not found");
+            throw new OperationCanceledException($"Store with id {cart.StoreId} not found");
         }
 
         if (string.IsNullOrEmpty(cart.Currency))
@@ -78,10 +84,27 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
         var member = await _memberResolver.ResolveMemberByIdAsync(cart.CustomerId);
 
         var aggregate = _configurableLineItemAggregateFactory();
-
         aggregate.GrabCart(cart, store, member, currency);
 
-        await aggregate.InitializeAsync(request);
+        var product = (await _cartProductService.GetCartProductsByIdsAsync(aggregate, new[] { request.ConfigurableProductId })).FirstOrDefault();
+        if (product == null)
+        {
+            throw new OperationCanceledException($"Product with id {request.ConfigurableProductId} not found");
+        }
+        aggregate.ConfigurableProduct = product;
+
+        // create line items by configuration sections
+        aggregate.ValidationRuleSet = ["default"];
+        var lineItems = request.ConfigurationSections
+            .Where(x => x.Value != null)
+            .Select(section => new NewCartItem(section.Value.ProductId, section.Value.Quantity))
+            .ToList();
+
+        await aggregate.AddItemsAsync(lineItems);
+
+        await aggregate.RecalculateAsync();
+
+        var prod = aggregate.GetConfiguredLineItem();
 
         return aggregate;
     }

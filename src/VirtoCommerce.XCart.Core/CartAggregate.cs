@@ -167,6 +167,32 @@ namespace VirtoCommerce.XCart.Core
             return Task.FromResult(this);
         }
 
+        public virtual async Task<CartAggregate> AddConfiguredItemAsync(NewCartItem newCartItem, LineItem newConfiguredItem)
+        {
+            EnsureCartExists();
+
+            ArgumentNullException.ThrowIfNull(newCartItem);
+            ArgumentNullException.ThrowIfNull(newConfiguredItem);
+
+            if (newCartItem.CartProduct != null)
+            {
+                newConfiguredItem.SelectedForCheckout = IsSelectedForCheckout;
+                newConfiguredItem.Quantity = newCartItem.Quantity;
+
+                if (!string.IsNullOrEmpty(newCartItem.Comment))
+                {
+                    newConfiguredItem.Note = newCartItem.Comment;
+                }
+
+                CartProducts[newCartItem.CartProduct.Id] = newCartItem.CartProduct;
+                await SetItemFulfillmentCenterAsync(newConfiguredItem, newCartItem.CartProduct);
+                await UpdateVendor(newConfiguredItem, newCartItem.CartProduct);
+                await InnerAddLineItemAsync(newConfiguredItem, newCartItem.CartProduct, newCartItem.DynamicProperties);
+            }
+
+            return this;
+        }
+
         public virtual async Task<CartAggregate> AddItemAsync(NewCartItem newCartItem)
         {
             EnsureCartExists();

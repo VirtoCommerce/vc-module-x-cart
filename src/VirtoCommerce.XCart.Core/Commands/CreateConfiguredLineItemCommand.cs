@@ -6,9 +6,7 @@ namespace VirtoCommerce.XCart.Core.Commands;
 
 public interface IHasConfigurationSections
 {
-    string ConfigurableProductId { get; set; }
-
-    IList<ConfigurationSection> ConfigurationSections { get; set; }
+    IList<ProductConfigurationSection> ConfigurationSections { get; set; }
 }
 
 public class CreateConfiguredLineItemCommand : ICommand<ConfiguredLineItemAggregate>, IHasConfigurationSections
@@ -25,10 +23,10 @@ public class CreateConfiguredLineItemCommand : ICommand<ConfiguredLineItemAggreg
 
     public string ConfigurableProductId { get; set; }
 
-    public IList<ConfigurationSection> ConfigurationSections { get; set; } = [];
+    public IList<ProductConfigurationSection> ConfigurationSections { get; set; } = [];
 }
 
-public class ConfigurationSection
+public class ProductConfigurationSection
 {
     public string SectionId { get; set; }
 
@@ -55,7 +53,7 @@ public class InputCreateConfiguredLineItemCommand : InputObjectGraphType<CreateC
     }
 }
 
-public class ConfigurationSectionInput : InputObjectGraphType<ConfigurationSection>
+public class ConfigurationSectionInput : InputObjectGraphType<ProductConfigurationSection>
 {
     public ConfigurationSectionInput()
     {

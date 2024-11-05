@@ -24,8 +24,9 @@ namespace VirtoCommerce.XCart.Core.Commands
         /// </summary>
         public IList<DynamicPropertyValue> DynamicProperties { get; set; }
 
-        // configurable product support
-        public string ConfigurableProductId { get; set; }
-        public IList<ConfigurationSection> ConfigurationSections { get; set; }
+        /// <summary>
+        /// Configurable product sections
+        /// </summary>
+        public IList<ProductConfigurationSection> ConfigurationSections { get; set; }
     }
 }
