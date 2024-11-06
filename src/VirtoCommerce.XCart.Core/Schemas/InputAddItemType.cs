@@ -20,7 +20,6 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<ListGraphType<InputDynamicPropertyValueType>>("dynamicProperties");
 
             // Configurable product support
-            Field<StringGraphType>("configurableProductId", "Configurable product ID");
             Field<ListGraphType<ConfigurationSectionInput>>("configurationSections");
         }
     }
