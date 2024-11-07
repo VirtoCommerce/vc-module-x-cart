@@ -116,10 +116,10 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.FulfillmentCenterName, nullable: true).Description("Line item fulfillment center name value");
             Field<NonNullGraphType<ListGraphType<NonNullGraphType<DiscountType>>>>("discounts",
                 "Discounts",
-                resolve: context => context.Source.Discounts);
+                resolve: context => context.Source.Discounts ?? []);
             Field<NonNullGraphType<ListGraphType<NonNullGraphType<TaxDetailType>>>>("taxDetails",
                 "Tax details",
-                resolve: context => context.Source.TaxDetails);
+                resolve: context => context.Source.TaxDetails ?? []);
             Field<NonNullGraphType<MoneyType>>("discountAmount",
                 "Discount amount",
                 resolve: context => context.Source.DiscountAmount.ToMoney(context.GetCart().Currency));
