@@ -167,6 +167,12 @@ namespace VirtoCommerce.XCart.Core
             return Task.FromResult(this);
         }
 
+        /// <summary>
+        /// Always add a new line item for a configurable product.
+        /// </summary>
+        /// <param name="newCartItem"></param>
+        /// <param name="newConfiguredItem"></param>
+        /// <returns></returns>
         public virtual async Task<CartAggregate> AddConfiguredItemAsync(NewCartItem newCartItem, LineItem newConfiguredItem)
         {
             EnsureCartExists();
@@ -176,18 +182,21 @@ namespace VirtoCommerce.XCart.Core
 
             if (newCartItem.CartProduct != null)
             {
+                CartProducts[newCartItem.CartProduct.Id] = newCartItem.CartProduct;
+
+                newConfiguredItem.Id = null;
                 newConfiguredItem.SelectedForCheckout = IsSelectedForCheckout;
                 newConfiguredItem.Quantity = newCartItem.Quantity;
+                newConfiguredItem.Note = newCartItem.Comment;
 
-                if (!string.IsNullOrEmpty(newCartItem.Comment))
+                Cart.Items.Add(newConfiguredItem);
+
+                if (newCartItem.DynamicProperties != null)
                 {
-                    newConfiguredItem.Note = newCartItem.Comment;
+                    await UpdateCartItemDynamicProperties(newConfiguredItem, newCartItem.DynamicProperties);
                 }
-
-                CartProducts[newCartItem.CartProduct.Id] = newCartItem.CartProduct;
                 await SetItemFulfillmentCenterAsync(newConfiguredItem, newCartItem.CartProduct);
                 await UpdateVendor(newConfiguredItem, newCartItem.CartProduct);
-                await InnerAddLineItemAsync(newConfiguredItem, newCartItem.CartProduct, newCartItem.DynamicProperties);
             }
 
             return this;
@@ -980,11 +989,14 @@ namespace VirtoCommerce.XCart.Core
 
             if (!lineItem.IsReadOnly && product != null)
             {
-                var tierPrice = product.Price.GetTierPrice(quantity);
-                if (CheckPricePolicy(tierPrice))
+                var tierPrice = product.Price?.GetTierPrice(quantity) ?? null;
+                if (tierPrice != null)
                 {
-                    lineItem.SalePrice = tierPrice.ActualPrice.Amount;
-                    lineItem.ListPrice = tierPrice.Price.Amount;
+                    if (CheckPricePolicy(tierPrice))
+                    {
+                        lineItem.SalePrice = tierPrice.ActualPrice.Amount;
+                        lineItem.ListPrice = tierPrice.Price.Amount;
+                    }
                 }
             }
             if (quantity > 0)
