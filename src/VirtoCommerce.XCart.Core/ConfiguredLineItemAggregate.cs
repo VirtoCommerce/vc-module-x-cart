@@ -1,7 +1,10 @@
+using System.Collections.Generic;
 using System.Linq;
 using AutoMapper;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Services;
+using VirtoCommerce.CoreModule.Core.Common;
+using VirtoCommerce.CoreModule.Core.Tax;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.MarketingModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
@@ -32,7 +35,7 @@ namespace VirtoCommerce.XCart.Core
 
         public LineItem GetConfiguredLineItem()
         {
-            var lineItem = AbstractTypeFactory<LineItem>.TryCreateInstance();
+            var lineItem = new LineItem();
 
             lineItem.IsConfigured = true;
 
@@ -60,8 +63,11 @@ namespace VirtoCommerce.XCart.Core
             lineItem.DiscountAmount = Cart.Items.Sum(x => x.DiscountAmount);
 
             lineItem.TaxPercentRate = Cart.TaxPercentRate;
-            lineItem.TaxDetails = Cart.Items.SelectMany(x => x.TaxDetails).ToList();
-            lineItem.Discounts = Cart.Items.SelectMany(x => x.Discounts).ToList();
+            lineItem.TaxDetails = new List<TaxDetail>();
+            lineItem.Discounts = new List<Discount>();
+            //lineItem.TaxDetails = Cart.Items.SelectMany(x => x.TaxDetails).ToList();
+            //lineItem.Discounts = Cart.Items.SelectMany(x => x.Discounts).ToList();
+
 
             // create subitems
             lineItem.ConfigurationItems = Cart.Items
