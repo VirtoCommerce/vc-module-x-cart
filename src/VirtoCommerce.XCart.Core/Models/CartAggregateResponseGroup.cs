@@ -2,6 +2,7 @@ using System;
 
 namespace VirtoCommerce.XCart.Core.Models
 {
+    [Obsolete("Use CartResponseGroup", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/platform/user-guide/versions/virto3-products-versions/")]
     [Flags]
     public enum CartAggregateResponseGroup
     {
