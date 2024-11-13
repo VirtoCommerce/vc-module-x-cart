@@ -104,8 +104,6 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
         await aggregate.RecalculateAsync();
 
-        var prod = aggregate.GetConfiguredLineItem();
-
         return aggregate;
     }
 }
