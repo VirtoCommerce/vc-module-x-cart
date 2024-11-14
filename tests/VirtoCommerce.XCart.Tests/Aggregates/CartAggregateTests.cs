@@ -820,7 +820,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var result = await cartAggregate.RecalculateAsync();
 
             // Assert
-            _shoppingCartTotalsCalculatorMock.Verify(x => x.CalculateTotals(It.Is<ShoppingCart>(x => x == cartAggregate.Cart)), Times.Once);
+            _shoppingCartTotalsCalculatorMock.Verify(x => x.CalculateTotals(It.Is<ShoppingCart>(x => x == cartAggregate.Cart)), Times.Exactly(2));
         }
 
         #endregion RecalculateAsync
