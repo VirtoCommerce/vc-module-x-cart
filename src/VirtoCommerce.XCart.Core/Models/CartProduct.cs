@@ -7,6 +7,7 @@ using VirtoCommerce.InventoryModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Models;
+using VirtoCommerce.XCatalog.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Models
 {
@@ -18,11 +19,11 @@ namespace VirtoCommerce.XCart.Core.Models
             Id = product.Id;
         }
 
-        public CartProduct(XCatalog.Core.Models.ExpProduct expProduct)
+        public CartProduct(ExpProduct expProduct)
         {
-            //TODO: rework this 
-            Product = expProduct.IndexedProduct;
             Id = expProduct.Id;
+            ExpProduct = expProduct;
+            Product = expProduct.IndexedProduct;
             AllPrices = expProduct.AllPrices;
             AllInventories = expProduct.AllInventories;
             Inventory = expProduct.Inventory;
@@ -31,6 +32,8 @@ namespace VirtoCommerce.XCart.Core.Models
         }
 
         public bool LoadDependencies { get; set; } = true;
+
+        public ExpProduct ExpProduct { get; private set; }
 
         public CatalogProduct Product { get; private set; }
 

@@ -177,7 +177,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             };
             AddField(vendorField);
 
-            ExtendableField<ListGraphType<ConfigurationItemType>>(
+            ExtendableField<ListGraphType<CartConfigurationItemType>>(
                 "configurationItems",
                 "Configuration items for configurable product",
                 resolve: context => context.Source.ConfigurationItems);
@@ -185,9 +185,9 @@ namespace VirtoCommerce.XCart.Core.Schemas
         }
     }
 
-    public class ConfigurationItemType : ExtendableGraphType<ConfigurationItem>
+    public class CartConfigurationItemType : ExtendableGraphType<ConfigurationItem>
     {
-        public ConfigurationItemType()
+        public CartConfigurationItemType()
         {
             Field(x => x.Id, nullable: false).Description("Configuration item ID");
             Field(x => x.Name, nullable: true).Description("Configuration item name");

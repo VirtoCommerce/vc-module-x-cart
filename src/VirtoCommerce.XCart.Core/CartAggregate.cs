@@ -168,7 +168,7 @@ namespace VirtoCommerce.XCart.Core
         }
 
         /// <summary>
-        /// Always add a new line item for a configurable product.
+        /// Always add a new line item for a configured item.
         /// </summary>
         /// <param name="newCartItem"></param>
         /// <param name="newConfiguredItem"></param>
@@ -195,6 +195,7 @@ namespace VirtoCommerce.XCart.Core
                 {
                     await UpdateCartItemDynamicProperties(newConfiguredItem, newCartItem.DynamicProperties);
                 }
+
                 await SetItemFulfillmentCenterAsync(newConfiguredItem, newCartItem.CartProduct);
                 await UpdateVendor(newConfiguredItem, newCartItem.CartProduct);
             }

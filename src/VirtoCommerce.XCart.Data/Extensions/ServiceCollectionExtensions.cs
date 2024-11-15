@@ -32,8 +32,10 @@ namespace VirtoCommerce.XCart.Data.Extensions
             services.AddSingleton<ICartResponseGroupParser, CartResponseGroupParser>();
             services.AddTransient<CartAggregate>();
             services.AddTransient<Func<CartAggregate>>(provider => () => provider.CreateScope().ServiceProvider.GetRequiredService<CartAggregate>());
-            services.AddTransient<ConfiguredLineItemAggregate>();
-            services.AddTransient<Func<ConfiguredLineItemAggregate>>(provider => () => provider.CreateScope().ServiceProvider.GetRequiredService<ConfiguredLineItemAggregate>());
+
+            services.AddTransient<ICartProductService2, CartProductService>();
+            services.AddTransient<ConfiguredLineItemContainer>();
+            services.AddTransient<Func<ConfiguredLineItemContainer>>(provider => () => provider.CreateScope().ServiceProvider.GetRequiredService<ConfiguredLineItemContainer>());
 
             services.AddPipeline<SearchProductResponse>(builder =>
             {

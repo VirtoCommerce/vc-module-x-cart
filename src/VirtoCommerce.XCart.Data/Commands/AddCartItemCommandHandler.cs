@@ -36,7 +36,6 @@ namespace VirtoCommerce.XCart.Data.Commands
                 DynamicProperties = request.DynamicProperties,
                 Price = request.Price,
                 CartProduct = product,
-                ConfigurationSections = request.ConfigurationSections,
             };
 
             if (product.Product.IsConfigurable)
@@ -53,8 +52,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                 };
 
                 var mediatorResult = await _mediator.Send(createConfigurableProductCommand);
-                var lineItem = mediatorResult.GetConfiguredLineItem();
-                await cartAggregate.AddConfiguredItemAsync(newItem, lineItem);
+                await cartAggregate.AddConfiguredItemAsync(newItem, mediatorResult.Item);
             }
             else
             {
