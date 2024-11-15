@@ -141,7 +141,7 @@ namespace VirtoCommerce.XCart.Core
 
         public virtual IList<ValidationFailure> GetValidationErrors()
         {
-            return CartValidationErrors.AddRange(OperationValidationErrors).ToList();
+            return CartValidationErrors.Concat(OperationValidationErrors).ToList();
         }
 
         public virtual CartAggregate GrabCart(ShoppingCart cart, Store store, Member member, Currency currency)
@@ -839,6 +839,8 @@ namespace VirtoCommerce.XCart.Core
             EnsureCartExists();
 
             await UpdateOrganizationName();
+
+            _cartTotalsCalculator.CalculateTotals(Cart);
 
             var promotionEvalResult = await EvaluatePromotionsAsync();
             await this.ApplyRewardsAsync(promotionEvalResult.Rewards);

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -92,8 +91,7 @@ namespace VirtoCommerce.XCart.Data.Authorization
 
         private static string GetUserId(AuthorizationHandlerContext context)
         {
-            //PT-5375 use ClaimTypes instead of "name"
-            return context.User.FindFirstValue("name");
+            return context.User.GetUserId();
         }
 
         private static bool CheckWishlistUserContext(WishlistUserContext context)
