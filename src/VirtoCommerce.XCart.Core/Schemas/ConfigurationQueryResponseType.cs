@@ -18,7 +18,7 @@ public class ConfigurationSectionType : ExtendableGraphType<ExpProductConfigurat
 {
     public ConfigurationSectionType()
     {
-        Field(x => x.Id, nullable: true).Description("Configuration section id");
+        Field(x => x.Id, nullable: false).Description("Configuration section id");
         Field(x => x.Name, nullable: true).Description("Configuration section name");
         Field(x => x.Type, nullable: true).Description("Configuration section type");
         Field(x => x.Description, nullable: true).Description("Configuration section description");
