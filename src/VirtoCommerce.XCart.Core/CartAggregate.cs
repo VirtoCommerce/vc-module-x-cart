@@ -806,6 +806,8 @@ namespace VirtoCommerce.XCart.Core
 
             await UpdateOrganizationName();
 
+            _cartTotalsCalculator.CalculateTotals(Cart);
+
             var promotionEvalResult = await EvaluatePromotionsAsync();
             await this.ApplyRewardsAsync(promotionEvalResult.Rewards);
 
