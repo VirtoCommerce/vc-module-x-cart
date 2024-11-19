@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using AutoMapper;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Model;
@@ -32,22 +31,23 @@ namespace VirtoCommerce.XCart.Core
         public CartProduct ConfigurableProduct { get; set; }
         public IList<LineItem> Items { get; set; } = new List<LineItem>();
 
-        private readonly IMapper _mapper;
-
-        public ConfiguredLineItemContainer(IMapper mapper)
+        public LineItem AddItem(CartProduct cartProduct, int quantity)
         {
-            _mapper = mapper;
-        }
-
-        public LineItem CreateItem(CartProduct cartProduct, int quantity)
-        {
-            var lineItem = _mapper.Map<LineItem>(cartProduct);
+            var lineItem = AbstractTypeFactory<LineItem>.TryCreateInstance();
+            lineItem.ProductId = cartProduct.Id;
+            lineItem.Name = cartProduct.Product.Name;
+            lineItem.Sku = cartProduct.Product.Code;
+            lineItem.ImageUrl = cartProduct.Product.ImgSrc;
+            lineItem.CatalogId = cartProduct.Product.CatalogId;
+            lineItem.CategoryId = cartProduct.Product.CategoryId;
 
             lineItem.Quantity = quantity;
 
             // calculate prices and only static rewards
             if (cartProduct.Price != null)
             {
+                lineItem.Currency = cartProduct.Price.Currency.Code;
+
                 var tierPrice = cartProduct.Price.GetTierPrice(quantity);
                 if (tierPrice.Price.Amount > 0)
                 {
@@ -59,6 +59,8 @@ namespace VirtoCommerce.XCart.Core
                 lineItem.PlacedPrice = lineItem.ListPrice - lineItem.DiscountAmount;
                 lineItem.ExtendedPrice = lineItem.PlacedPrice * lineItem.Quantity;
             }
+
+            Items.Add(lineItem);
 
             return lineItem;
         }
@@ -89,21 +91,6 @@ namespace VirtoCommerce.XCart.Core
             lineItem.FulfillmentCenterName = ConfigurableProduct.Inventory?.FulfillmentCenterName;
             lineItem.VendorId = ConfigurableProduct.Product.Vendor;
 
-            // prices
-            lineItem.Currency = Currency.Code;
-
-            if (ConfigurableProduct.Price == null)
-            {
-                ConfigurableProduct.Price = new Xapi.Core.Models.ProductPrice(Currency);
-            }
-
-            lineItem.ListPrice = Items.Sum(x => x.ListPrice) + ConfigurableProduct.Price.ListPrice.Amount;
-            lineItem.SalePrice = Items.Sum(x => x.SalePrice) + ConfigurableProduct.Price.SalePrice.Amount;
-
-            lineItem.DiscountAmount = Math.Max(0, lineItem.ListPrice - lineItem.SalePrice);
-            lineItem.PlacedPrice = lineItem.ListPrice - lineItem.DiscountAmount;
-            lineItem.ExtendedPrice = lineItem.PlacedPrice * lineItem.Quantity;
-
             // create sub items
             lineItem.ConfigurationItems = Items
                 .Select(x =>
@@ -122,7 +109,24 @@ namespace VirtoCommerce.XCart.Core
                 })
                 .ToList();
 
+            // prices
+            lineItem.Currency = Currency.Code;
+
+            UpdatePrice(lineItem);
+
             return lineItem;
+        }
+
+        public void UpdatePrice(LineItem lineItem)
+        {
+            var configurableProductPrice = ConfigurableProduct.Price ?? new Xapi.Core.Models.ProductPrice(Currency);
+
+            lineItem.ListPrice = Items.Sum(x => x.ListPrice) + configurableProductPrice.ListPrice.Amount;
+            lineItem.SalePrice = Items.Sum(x => x.SalePrice) + configurableProductPrice.SalePrice.Amount;
+
+            lineItem.DiscountAmount = Math.Max(0, lineItem.ListPrice - lineItem.SalePrice);
+            lineItem.PlacedPrice = lineItem.ListPrice - lineItem.DiscountAmount;
+            lineItem.ExtendedPrice = lineItem.PlacedPrice * lineItem.Quantity;
         }
 
         public object Clone()

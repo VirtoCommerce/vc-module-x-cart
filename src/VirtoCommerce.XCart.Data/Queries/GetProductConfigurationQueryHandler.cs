@@ -18,25 +18,19 @@ namespace VirtoCommerce.XCatalog.Data.Queries;
 
 public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfigurationQuery, ProductConfigurationQueryResponse>
 {
-    private readonly Func<ConfiguredLineItemContainer> _configurableLineItemAggregateFactory;
     private readonly IConfigurableProductService _configurableProductService;
     private readonly ICurrencyService _currencyService;
     private readonly IMemberResolver _memberResolver;
     private readonly IStoreService _storeService;
     private readonly ICartProductService2 _cartProductService;
-    //private readonly IMediator _mediator;
-
-    private const string _productsFieldName = $"{nameof(ProductConfigurationQueryResponse.ConfigurationSections)}.{nameof(ExpProductConfigurationSection.Options)}";
 
     public GetProductConfigurationQueryHandler(
-        Func<ConfiguredLineItemContainer> configurableLineItemContainerFactory,
         IConfigurableProductService configurableProductService,
         ICurrencyService currencyService,
         IMemberResolver memberResolver,
         IStoreService storeService,
         ICartProductService2 cartProductService)
     {
-        _configurableLineItemAggregateFactory = configurableLineItemContainerFactory;
         _configurableProductService = configurableProductService;
         _currencyService = currencyService;
         _memberResolver = memberResolver;
@@ -72,7 +66,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
             {
                 if (productByIds.TryGetValue(option.ProductId, out var cartProduct))
                 {
-                    var item = containter.CreateItem(cartProduct, option.Quantity);
+                    var item = containter.AddItem(cartProduct, option.Quantity);
                     item.Id = option.Id;
 
                     var expConfigurationLineItem = new ExpConfigurationLineItem
@@ -90,7 +84,6 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         return result;
     }
 
-    // todo: move to the separate service
     private async Task<ConfiguredLineItemContainer> CreateContainer(GetProductConfigurationQuery request)
     {
         var storeLoadTask = _storeService.GetByIdAsync(request.StoreId);
@@ -111,7 +104,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
 
         var member = await _memberResolver.ResolveMemberByIdAsync(request.UserId);
 
-        var container = _configurableLineItemAggregateFactory();
+        var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
 
         container.Store = store;
         container.Member = member;

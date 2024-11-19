@@ -16,20 +16,17 @@ namespace VirtoCommerce.XCart.Data.Commands;
 
 public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredLineItemCommand, ExpConfigurationLineItem>
 {
-    private readonly Func<ConfiguredLineItemContainer> _configurableLineItemAggregateFactory;
     private readonly ICurrencyService _currencyService;
     private readonly IMemberResolver _memberResolver;
     private readonly IStoreService _storeService;
     private readonly ICartProductService2 _cartProductService;
 
     public CreateConfiguredLineItemHandler(
-       Func<ConfiguredLineItemContainer> configurableLineItemContainerFactory,
        ICurrencyService currencyService,
        IMemberResolver memberResolver,
        IStoreService storeService,
        ICartProductService2 cartProductService)
     {
-        _configurableLineItemAggregateFactory = configurableLineItemContainerFactory;
         _currencyService = currencyService;
         _memberResolver = memberResolver;
         _storeService = storeService;
@@ -65,8 +62,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
                 throw new OperationCanceledException($"Product with id {productOption.ProductId} not found");
             }
 
-            var item = container.CreateItem(selectedProduct, productOption.Quantity);
-            container.Items.Add(item);
+            _ = container.AddItem(selectedProduct, productOption.Quantity);
         }
 
         var configuredItem = container.CreateConfiguredLineItem();
@@ -78,7 +74,6 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
         };
     }
 
-    // todo: move to the separate service
     private async Task<ConfiguredLineItemContainer> CreateContainer(CreateConfiguredLineItemCommand request)
     {
         var storeLoadTask = _storeService.GetByIdAsync(request.StoreId);
@@ -99,7 +94,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
         var member = await _memberResolver.ResolveMemberByIdAsync(request.UserId);
 
-        var container = _configurableLineItemAggregateFactory();
+        var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
 
         container.Store = store;
         container.Member = member;

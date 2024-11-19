@@ -290,13 +290,56 @@ namespace VirtoCommerce.XCart.Data.Services
                         aggregate.ValidationWarnings.AddRange(result.Errors);
                     }
 
-                    // update price
-                    aggregate.SetLineItemTierPrice(cartProduct.Price, lineItem.Quantity, lineItem);
+                    // update price for non-configured line items immediately 
+                    if (!lineItem.IsConfigured)
+                    {
+                        aggregate.SetLineItemTierPrice(cartProduct.Price, lineItem.Quantity, lineItem);
+                    }
                 }
+
+                await UpdateConfiguredLineItemPrice(aggregate);
 
                 await aggregate.RecalculateAsync();
 
                 return aggregate;
+            }
+        }
+
+        private async Task UpdateConfiguredLineItemPrice(CartAggregate aggregate)
+        {
+            var configurationLineItems = aggregate.LineItems.Where(x => x.IsConfigured).ToArray();
+
+            var configProductsIds = configurationLineItems
+                .SelectMany(x => x.ConfigurationItems.Select(x => x.ProductId))
+                .Distinct()
+                .ToArray();
+
+            if (configProductsIds.Length == 0)
+            {
+                return;
+            }
+
+            var configProducts = await _cartProductsService.GetCartProductsByIdsAsync(aggregate, configProductsIds.ToArray());
+
+            foreach (var configurationLineItem in configurationLineItems)
+            {
+                var contaner = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
+
+                if (aggregate.CartProducts.TryGetValue(configurationLineItem.ProductId, out var configurableProduct))
+                {
+                    contaner.ConfigurableProduct = configurableProduct;
+                }
+
+                foreach (var configurationItem in configurationLineItem.ConfigurationItems)
+                {
+                    var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
+                    if (product != null)
+                    {
+                        contaner.AddItem(product, configurationItem.Quantity);
+                    }
+                }
+
+                contaner.UpdatePrice(configurationLineItem);
             }
         }
     }
