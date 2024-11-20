@@ -121,8 +121,8 @@ namespace VirtoCommerce.XCart.Core
         {
             var configurableProductPrice = ConfigurableProduct.Price ?? new Xapi.Core.Models.ProductPrice(Currency);
 
-            lineItem.ListPrice = Items.Sum(x => x.ListPrice) + configurableProductPrice.ListPrice.Amount;
-            lineItem.SalePrice = Items.Sum(x => x.SalePrice) + configurableProductPrice.SalePrice.Amount;
+            lineItem.ListPrice = Items.Sum(x => x.ListPrice * x.Quantity) + configurableProductPrice.ListPrice.Amount;
+            lineItem.SalePrice = Items.Sum(x => x.SalePrice * x.Quantity) + configurableProductPrice.SalePrice.Amount;
 
             lineItem.DiscountAmount = Math.Max(0, lineItem.ListPrice - lineItem.SalePrice);
             lineItem.PlacedPrice = lineItem.ListPrice - lineItem.DiscountAmount;
