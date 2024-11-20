@@ -310,6 +310,7 @@ namespace VirtoCommerce.XCart.Data.Services
             var configurationLineItems = aggregate.LineItems.Where(x => x.IsConfigured).ToArray();
 
             var configProductsIds = configurationLineItems
+                .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
                 .SelectMany(x => x.ConfigurationItems.Select(x => x.ProductId))
                 .Distinct()
                 .ToArray();
@@ -330,7 +331,7 @@ namespace VirtoCommerce.XCart.Data.Services
                     contaner.ConfigurableProduct = configurableProduct;
                 }
 
-                foreach (var configurationItem in configurationLineItem.ConfigurationItems)
+                foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
                 {
                     var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
                     if (product != null)

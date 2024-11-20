@@ -180,7 +180,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             ExtendableField<ListGraphType<CartConfigurationItemType>>(
                 "configurationItems",
                 "Configuration items for configurable product",
-                resolve: context => context.Source.ConfigurationItems);
+                resolve: context => context.Source.ConfigurationItems ?? []);
 
         }
     }
