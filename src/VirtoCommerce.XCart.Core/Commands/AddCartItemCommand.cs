@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
+using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Commands
 {

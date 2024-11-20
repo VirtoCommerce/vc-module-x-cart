@@ -1,13 +1,7 @@
-using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using VirtoCommerce.CatalogModule.Core.Services;
-using VirtoCommerce.CoreModule.Core.Currency;
-using VirtoCommerce.CustomerModule.Core.Services;
-using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.StoreModule.Core.Services;
-using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
@@ -19,22 +13,16 @@ namespace VirtoCommerce.XCatalog.Data.Queries;
 public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfigurationQuery, ProductConfigurationQueryResponse>
 {
     private readonly IConfigurableProductService _configurableProductService;
-    private readonly ICurrencyService _currencyService;
-    private readonly IMemberResolver _memberResolver;
-    private readonly IStoreService _storeService;
+    private readonly IConfiguredLineItemContainerService _configuredLineItemContainerService;
     private readonly ICartProductService2 _cartProductService;
 
     public GetProductConfigurationQueryHandler(
         IConfigurableProductService configurableProductService,
-        ICurrencyService currencyService,
-        IMemberResolver memberResolver,
-        IStoreService storeService,
+        IConfiguredLineItemContainerService configuredLineItemContainerService,
         ICartProductService2 cartProductService)
     {
         _configurableProductService = configurableProductService;
-        _currencyService = currencyService;
-        _memberResolver = memberResolver;
-        _storeService = storeService;
+        _configuredLineItemContainerService = configuredLineItemContainerService;
         _cartProductService = cartProductService;
     }
 
@@ -42,7 +30,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
     {
         var configuration = await _configurableProductService.GetProductConfigurationAsync(request.ConfigurableProductId);
 
-        var containter = await CreateContainer(request);
+        var containter = await _configuredLineItemContainerService.CreateContainerAsync(request);
 
         var allProductIds = configuration.ConfigurationSections.SelectMany(x => x.Options.Select(x => x.ProductId)).Distinct().ToArray();
         var cartProducts = await _cartProductService.GetCartProductsByIdsAsync(containter, allProductIds, loadPrice: true, loadInventory: true);
@@ -73,7 +61,9 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
                     {
                         Item = item,
                         Currency = containter.Currency,
-                        Product = cartProduct.ExpProduct,
+                        CultureName = containter.CultureName,
+                        UserId = containter.UserId,
+                        StoreId = containter.Store.Id,
                     };
 
                     configurationSection.Options.Add(expConfigurationLineItem);
@@ -82,37 +72,5 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         }
 
         return result;
-    }
-
-    private async Task<ConfiguredLineItemContainer> CreateContainer(GetProductConfigurationQuery request)
-    {
-        var storeLoadTask = _storeService.GetByIdAsync(request.StoreId);
-        var allCurrenciesLoadTask = _currencyService.GetAllCurrenciesAsync();
-        await Task.WhenAll(storeLoadTask, allCurrenciesLoadTask);
-
-        var store = storeLoadTask.Result;
-        var allCurrencies = allCurrenciesLoadTask.Result;
-
-        if (store == null)
-        {
-            throw new OperationCanceledException($"Store with id {request.StoreId} not found");
-        }
-
-        var language = !string.IsNullOrEmpty(request.CultureName) ? request.CultureName : store.DefaultLanguage;
-        var currencyCode = !string.IsNullOrEmpty(request.CurrencyCode) ? request.CurrencyCode : store.DefaultCurrency;
-        var currency = allCurrencies.GetCurrencyForLanguage(currencyCode, language);
-
-        var member = await _memberResolver.ResolveMemberByIdAsync(request.UserId);
-
-        var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
-
-        container.Store = store;
-        container.Member = member;
-        container.Currency = currency;
-        container.CultureName = language;
-        container.UserId = request.UserId;
-        container.OrganizationId = request.OrganizationId;
-
-        return container;
     }
 }

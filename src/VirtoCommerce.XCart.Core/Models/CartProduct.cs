@@ -22,7 +22,6 @@ namespace VirtoCommerce.XCart.Core.Models
         public CartProduct(ExpProduct expProduct)
         {
             Id = expProduct.Id;
-            ExpProduct = expProduct;
             Product = expProduct.IndexedProduct;
             AllPrices = expProduct.AllPrices;
             AllInventories = expProduct.AllInventories;
@@ -32,8 +31,6 @@ namespace VirtoCommerce.XCart.Core.Models
         }
 
         public bool LoadDependencies { get; set; } = true;
-
-        public ExpProduct ExpProduct { get; private set; }
 
         public CatalogProduct Product { get; private set; }
 

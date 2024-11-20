@@ -990,16 +990,13 @@ namespace VirtoCommerce.XCart.Core
         {
             ArgumentNullException.ThrowIfNull(lineItem);
 
-            if (!lineItem.IsReadOnly && product != null)
+            if (!lineItem.IsReadOnly && product?.Price != null)
             {
-                var tierPrice = product.Price?.GetTierPrice(quantity) ?? null;
-                if (tierPrice != null)
+                var tierPrice = product.Price.GetTierPrice(quantity);
+                if (CheckPricePolicy(tierPrice))
                 {
-                    if (CheckPricePolicy(tierPrice))
-                    {
-                        lineItem.SalePrice = tierPrice.ActualPrice.Amount;
-                        lineItem.ListPrice = tierPrice.Price.Amount;
-                    }
+                    lineItem.SalePrice = tierPrice.ActualPrice.Amount;
+                    lineItem.ListPrice = tierPrice.Price.Amount;
                 }
             }
             if (quantity > 0)

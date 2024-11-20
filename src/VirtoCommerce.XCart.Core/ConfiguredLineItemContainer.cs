@@ -7,17 +7,9 @@ using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.XCart.Core.Models;
-using VirtoCommerce.XCatalog.Core.Models;
 
 namespace VirtoCommerce.XCart.Core
 {
-    public class ExpConfigurationLineItem
-    {
-        public LineItem Item { get; set; }
-        public ExpProduct Product { get; set; }
-        public Currency Currency { get; set; }
-    }
-
     public class ConfiguredLineItemContainer : ICartProductContainer, ICloneable
     {
         public Currency Currency { get; set; }
@@ -65,7 +57,7 @@ namespace VirtoCommerce.XCart.Core
             return lineItem;
         }
 
-        public LineItem CreateConfiguredLineItem()
+        public ExpConfigurationLineItem CreateConfiguredLineItem()
         {
             var lineItem = AbstractTypeFactory<LineItem>.TryCreateInstance();
 
@@ -114,7 +106,14 @@ namespace VirtoCommerce.XCart.Core
 
             UpdatePrice(lineItem);
 
-            return lineItem;
+            return new ExpConfigurationLineItem
+            {
+                Item = lineItem,
+                Currency = Currency,
+                CultureName = CultureName,
+                UserId = UserId,
+                StoreId = Store.Id,
+            };
         }
 
         public void UpdatePrice(LineItem lineItem)
