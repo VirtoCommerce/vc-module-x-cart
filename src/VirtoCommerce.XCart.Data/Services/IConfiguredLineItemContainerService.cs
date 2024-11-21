@@ -53,7 +53,6 @@ public class ConfiguredLineItemContainerService : IConfiguredLineItemContainerSe
         container.Currency = currency;
         container.CultureName = language;
         container.UserId = request.UserId;
-        container.OrganizationId = request.OrganizationId;
 
         return container;
     }

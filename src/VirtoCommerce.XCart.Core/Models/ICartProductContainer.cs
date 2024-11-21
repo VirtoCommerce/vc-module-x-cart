@@ -7,11 +7,10 @@ namespace VirtoCommerce.XCart.Core.Models;
 
 public interface ICartProductContainer
 {
-    public Store Store { get; set; }
-    public string CultureName { get; set; }
-    public Currency Currency { get; set; }
-    public Member Member { get; set; }
-    public string UserId { get; set; }
-    string OrganizationId { get; set; }
-    public IList<string> ProductsIncludeFields { get; set; }
+    public Store Store { get; }
+    public string CultureName { get; }
+    public Currency Currency { get; }
+    public Member Member { get; }
+    public string UserId { get; }
+    public IList<string> ProductsIncludeFields { get; }
 }

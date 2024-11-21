@@ -17,7 +17,6 @@ namespace VirtoCommerce.XCart.Core
         public Member Member { get; set; }
         public string CultureName { get; set; }
         public string UserId { get; set; }
-        public string OrganizationId { get; set; }
         public IList<string> ProductsIncludeFields { get; set; }
 
         public CartProduct ConfigurableProduct { get; set; }
