@@ -12,11 +12,11 @@ namespace VirtoCommerce.XCart.Data.Commands;
 public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredLineItemCommand, ExpConfigurationLineItem>
 {
     private readonly IConfiguredLineItemContainerService _configuredLineItemContainerService;
-    private readonly ICartProductService2 _cartProductService;
+    private readonly ICartProductsLoaderService _cartProductService;
 
     public CreateConfiguredLineItemHandler(
        IConfiguredLineItemContainerService configuredLineItemContainerService,
-       ICartProductService2 cartProductService)
+       ICartProductsLoaderService cartProductService)
     {
         _configuredLineItemContainerService = configuredLineItemContainerService;
         _cartProductService = cartProductService;
@@ -26,7 +26,10 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
     {
         var container = await _configuredLineItemContainerService.CreateContainerAsync(request);
 
-        var product = (await _cartProductService.GetCartProductsByIdsAsync(container, new[] { request.ConfigurableProductId })).FirstOrDefault();
+        var productsRequest = container.GetCartProductsRequest();
+        productsRequest.ProductIds = new[] { request.ConfigurableProductId };
+
+        var product = (await _cartProductService.GetCartProductsByIdsAsync(productsRequest)).FirstOrDefault();
         if (product == null)
         {
             throw new OperationCanceledException($"Product with id {request.ConfigurableProductId} not found");
@@ -40,7 +43,9 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
             .Select(section => section.Value.ProductId)
             .ToList();
 
-        var products = await _cartProductService.GetCartProductsByIdsAsync(container, selectedProductIds, loadPrice: true, loadInventory: false);
+        productsRequest.ProductIds = selectedProductIds;
+        productsRequest.LoadInventory = false;
+        var products = await _cartProductService.GetCartProductsByIdsAsync(productsRequest);
 
         foreach (var section in request.ConfigurationSections)
         {

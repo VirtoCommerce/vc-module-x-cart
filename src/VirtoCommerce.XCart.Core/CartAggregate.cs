@@ -37,7 +37,7 @@ using XapiSetting = VirtoCommerce.Xapi.Core.ModuleConstants.Settings.General;
 namespace VirtoCommerce.XCart.Core
 {
     [DebuggerDisplay("CartId = {Cart.Id}")]
-    public class CartAggregate : Entity, IAggregateRoot, ICartProductContainer, ICloneable
+    public class CartAggregate : Entity, IAggregateRoot, ICloneable
     {
         private readonly IMarketingPromoEvaluator _marketingEvaluator;
         private readonly IShoppingCartTotalsCalculator _cartTotalsCalculator;
@@ -71,9 +71,6 @@ namespace VirtoCommerce.XCart.Core
         public Store Store { get; protected set; }
         public Currency Currency { get; protected set; }
         public Member Member { get; protected set; }
-
-        public string CultureName { get { return Cart.LanguageCode; } }
-        public string UserId { get { return Cart.CustomerId; } }
 
         public IEnumerable<CartCoupon> Coupons
         {

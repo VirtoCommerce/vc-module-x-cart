@@ -10,7 +10,7 @@ using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core
 {
-    public class ConfiguredLineItemContainer : ICartProductContainer, ICloneable
+    public class ConfiguredLineItemContainer : ICloneable
     {
         public Currency Currency { get; set; }
         public Store Store { get; set; }
@@ -125,6 +125,19 @@ namespace VirtoCommerce.XCart.Core
             lineItem.DiscountAmount = Math.Max(0, lineItem.ListPrice - lineItem.SalePrice);
             lineItem.PlacedPrice = lineItem.ListPrice - lineItem.DiscountAmount;
             lineItem.ExtendedPrice = lineItem.PlacedPrice * lineItem.Quantity;
+        }
+
+        public CartProductsRequest GetCartProductsRequest()
+        {
+            var request = AbstractTypeFactory<CartProductsRequest>.TryCreateInstance();
+
+            request.Store = Store;
+            request.Currency = Currency;
+            request.CultureName = CultureName;
+            request.Member = Member;
+            request.UserId = UserId;
+
+            return request;
         }
 
         public object Clone()

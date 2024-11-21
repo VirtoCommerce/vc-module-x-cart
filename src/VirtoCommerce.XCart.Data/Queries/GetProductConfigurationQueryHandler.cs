@@ -14,12 +14,12 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
 {
     private readonly IConfigurableProductService _configurableProductService;
     private readonly IConfiguredLineItemContainerService _configuredLineItemContainerService;
-    private readonly ICartProductService2 _cartProductService;
+    private readonly ICartProductsLoaderService _cartProductService;
 
     public GetProductConfigurationQueryHandler(
         IConfigurableProductService configurableProductService,
         IConfiguredLineItemContainerService configuredLineItemContainerService,
-        ICartProductService2 cartProductService)
+        ICartProductsLoaderService cartProductService)
     {
         _configurableProductService = configurableProductService;
         _configuredLineItemContainerService = configuredLineItemContainerService;
@@ -30,10 +30,13 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
     {
         var configuration = await _configurableProductService.GetProductConfigurationAsync(request.ConfigurableProductId);
 
-        var containter = await _configuredLineItemContainerService.CreateContainerAsync(request);
+        var container = await _configuredLineItemContainerService.CreateContainerAsync(request);
 
         var allProductIds = configuration.ConfigurationSections.SelectMany(x => x.Options.Select(x => x.ProductId)).Distinct().ToArray();
-        var cartProducts = await _cartProductService.GetCartProductsByIdsAsync(containter, allProductIds, loadPrice: true, loadInventory: true);
+
+        var productsRequest = container.GetCartProductsRequest();
+        productsRequest.ProductIds = allProductIds;
+        var cartProducts = await _cartProductService.GetCartProductsByIdsAsync(productsRequest);
 
         var productByIds = cartProducts.ToDictionary(x => x.Product.Id, x => x);
 
@@ -54,16 +57,16 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
             {
                 if (productByIds.TryGetValue(option.ProductId, out var cartProduct))
                 {
-                    var item = containter.AddItem(cartProduct, option.Quantity);
+                    var item = container.AddItem(cartProduct, option.Quantity);
                     item.Id = option.Id;
 
                     var expConfigurationLineItem = new ExpConfigurationLineItem
                     {
                         Item = item,
-                        Currency = containter.Currency,
-                        CultureName = containter.CultureName,
-                        UserId = containter.UserId,
-                        StoreId = containter.Store.Id,
+                        Currency = container.Currency,
+                        CultureName = container.CultureName,
+                        UserId = container.UserId,
+                        StoreId = container.Store.Id,
                     };
 
                     configurationSection.Options.Add(expConfigurationLineItem);

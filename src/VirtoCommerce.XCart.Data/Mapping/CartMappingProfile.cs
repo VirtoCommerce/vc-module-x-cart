@@ -151,7 +151,7 @@ namespace VirtoCommerce.XCart.Data.Mapping
                 return priceEvalContext;
             });
 
-            CreateMap<ICartProductContainer, PriceEvaluationContext>().ConvertUsing((cartAggr, priceEvalContext, context) =>
+            CreateMap<CartProductsRequest, PriceEvaluationContext>().ConvertUsing((cartAggr, priceEvalContext, context) =>
             {
                 priceEvalContext = AbstractTypeFactory<PriceEvaluationContext>.TryCreateInstance();
                 priceEvalContext.Language = cartAggr.CultureName;
