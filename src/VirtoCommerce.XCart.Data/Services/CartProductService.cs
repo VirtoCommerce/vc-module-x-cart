@@ -93,7 +93,7 @@ namespace VirtoCommerce.XCart.Data.Services
         /// <returns>List of <see cref="CartProduct"/>s</returns>
         public async Task<IList<CartProduct>> GetCartProductsByIdsAsync(CartProductsRequest request)
         {
-            if (request?.ProductIds?.IsNullOrEmpty() == true)
+            if (request is null || request.ProductIds.IsNullOrEmpty())
             {
                 return new List<CartProduct>();
             }
