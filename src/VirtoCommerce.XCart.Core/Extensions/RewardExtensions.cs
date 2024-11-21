@@ -66,9 +66,10 @@ namespace VirtoCommerce.XCart.Core.Extensions
                 {
                     Coupon = reward.Coupon,
                     Currency = currency,
+                    PromotionId = reward.PromotionId ?? reward.Promotion?.Id,
+                    Name = reward.Promotion?.Name,
                     Description = reward.Promotion?.Description,
                     DiscountAmount = reward.GetRewardAmount(lineItem.ListPrice - lineItem.DiscountAmount, lineItem.Quantity),
-                    PromotionId = reward.PromotionId ?? reward.Promotion?.Id,
                 };
 
                 // Pass invalid discounts
@@ -98,9 +99,10 @@ namespace VirtoCommerce.XCart.Core.Extensions
                 {
                     Coupon = reward.Coupon,
                     Currency = currency,
+                    PromotionId = reward.PromotionId ?? reward.Promotion?.Id,
+                    Name = reward.Promotion?.Name,
                     Description = reward.Promotion?.Description,
                     DiscountAmount = reward.GetRewardAmount(shipment.Price - shipment.DiscountAmount, 1),
-                    PromotionId = reward.PromotionId ?? reward.Promotion?.Id,
                 };
 
                 // Pass invalid discounts
@@ -129,9 +131,10 @@ namespace VirtoCommerce.XCart.Core.Extensions
                 {
                     Coupon = reward.Coupon,
                     Currency = currency,
+                    PromotionId = reward.PromotionId ?? reward.Promotion?.Id,
+                    Name = reward.Promotion?.Name,
                     Description = reward.Promotion?.Description,
                     DiscountAmount = reward.GetRewardAmount(payment.Price - payment.DiscountAmount, 1),
-                    PromotionId = reward.PromotionId ?? reward.Promotion?.Id,
                 };
 
                 // Pass invalid discounts
@@ -211,9 +214,10 @@ namespace VirtoCommerce.XCart.Core.Extensions
                 {
                     Coupon = reward.Coupon,
                     Currency = shoppingCart.Currency,
+                    PromotionId = reward.PromotionId ?? reward.Promotion?.Id,
+                    Name = reward.Promotion?.Name,
                     Description = reward.Promotion?.Description,
                     DiscountAmount = reward.GetRewardAmount(subTotalExcludeDiscount, 1),
-                    PromotionId = reward.PromotionId ?? reward.Promotion?.Id,
                 };
 
                 shoppingCart.Discounts ??= new List<Discount>();

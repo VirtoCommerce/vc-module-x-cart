@@ -386,6 +386,8 @@ namespace VirtoCommerce.XCart.Core
                     {
                         Coupon = availableGift.Coupon,
                         PromotionId = availableGift.Promotion.Id,
+                        Name = availableGift.Promotion.Name,
+                        Description = availableGift.Promotion.Description,
                         Currency = Cart.Currency,
                     });
                     giftItem.CatalogId ??= "";
