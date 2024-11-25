@@ -175,10 +175,10 @@ namespace VirtoCommerce.XCart.Core
         /// <returns></returns>
         public virtual async Task<CartAggregate> AddConfiguredItemAsync(NewCartItem newCartItem, LineItem newConfiguredItem)
         {
-            EnsureCartExists();
-
             ArgumentNullException.ThrowIfNull(newCartItem);
             ArgumentNullException.ThrowIfNull(newConfiguredItem);
+
+            EnsureCartExists();
 
             if (newCartItem.CartProduct != null)
             {
