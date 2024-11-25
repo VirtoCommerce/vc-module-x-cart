@@ -32,7 +32,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
 
         var container = await _configuredLineItemContainerService.CreateContainerAsync(request);
 
-        var allProductIds = configuration.ConfigurationSections.SelectMany(x => x.Options.Select(x => x.ProductId)).Distinct().ToArray();
+        var allProductIds = configuration.Sections.SelectMany(x => x.Options.Select(x => x.ProductId)).Distinct().ToArray();
 
         var productsRequest = container.GetCartProductsRequest();
         productsRequest.ProductIds = allProductIds;
@@ -41,7 +41,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         var productByIds = cartProducts.ToDictionary(x => x.Product.Id, x => x);
 
         var result = new ProductConfigurationQueryResponse();
-        foreach (var section in configuration.ConfigurationSections)
+        foreach (var section in configuration.Sections)
         {
             var configurationSection = new ExpProductConfigurationSection
             {
