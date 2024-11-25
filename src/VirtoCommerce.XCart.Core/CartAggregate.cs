@@ -167,6 +167,42 @@ namespace VirtoCommerce.XCart.Core
             return Task.FromResult(this);
         }
 
+        /// <summary>
+        /// Always add a new line item for a configured item.
+        /// </summary>
+        /// <param name="newCartItem"></param>
+        /// <param name="newConfiguredItem"></param>
+        /// <returns></returns>
+        public virtual async Task<CartAggregate> AddConfiguredItemAsync(NewCartItem newCartItem, LineItem newConfiguredItem)
+        {
+            ArgumentNullException.ThrowIfNull(newCartItem);
+            ArgumentNullException.ThrowIfNull(newConfiguredItem);
+
+            EnsureCartExists();
+
+            if (newCartItem.CartProduct != null)
+            {
+                CartProducts[newCartItem.CartProduct.Id] = newCartItem.CartProduct;
+
+                newConfiguredItem.Id = null;
+                newConfiguredItem.SelectedForCheckout = IsSelectedForCheckout;
+                newConfiguredItem.Quantity = newCartItem.Quantity;
+                newConfiguredItem.Note = newCartItem.Comment;
+
+                Cart.Items.Add(newConfiguredItem);
+
+                if (newCartItem.DynamicProperties != null)
+                {
+                    await UpdateCartItemDynamicProperties(newConfiguredItem, newCartItem.DynamicProperties);
+                }
+
+                await SetItemFulfillmentCenterAsync(newConfiguredItem, newCartItem.CartProduct);
+                await UpdateVendor(newConfiguredItem, newCartItem.CartProduct);
+            }
+
+            return this;
+        }
+
         public virtual async Task<CartAggregate> AddItemAsync(NewCartItem newCartItem)
         {
             EnsureCartExists();
@@ -956,7 +992,7 @@ namespace VirtoCommerce.XCart.Core
         {
             ArgumentNullException.ThrowIfNull(lineItem);
 
-            if (!lineItem.IsReadOnly && product != null)
+            if (!lineItem.IsReadOnly && product?.Price != null)
             {
                 var tierPrice = product.Price.GetTierPrice(quantity);
                 if (CheckPricePolicy(tierPrice))

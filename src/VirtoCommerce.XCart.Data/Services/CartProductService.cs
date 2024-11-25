@@ -18,7 +18,7 @@ using VirtoCommerce.XCatalog.Core.Queries;
 
 namespace VirtoCommerce.XCart.Data.Services
 {
-    public class CartProductService : ICartProductService
+    public class CartProductService : ICartProductService, ICartProductsLoaderService
     {
         private readonly IItemService _productService;
         private readonly IInventorySearchService _inventorySearchService;
@@ -87,6 +87,29 @@ namespace VirtoCommerce.XCart.Data.Services
         }
 
         /// <summary>
+        /// Load <see cref="CartProduct"/>s with all dependencies
+        /// </summary>
+        /// <param name="request">Request</param>
+        /// <returns>List of <see cref="CartProduct"/>s</returns>
+        public async Task<IList<CartProduct>> GetCartProductsByIdsAsync(CartProductsRequest request)
+        {
+            if (request is null || request.ProductIds.IsNullOrEmpty())
+            {
+                return new List<CartProduct>();
+            }
+
+            var cartProducts = await GetCartProductsAsync(request.ProductIds, request.Store.Id, request.Currency.Code, request.UserId, request.ProductsIncludeFields ?? IncludeFields);
+
+            var productsToLoadDependencies = cartProducts.Where(x => x.LoadDependencies).ToList();
+            if (productsToLoadDependencies.Count != 0)
+            {
+                await Task.WhenAll(LoadDependencies(request, productsToLoadDependencies));
+            }
+
+            return cartProducts;
+        }
+
+        /// <summary>
         /// Load <see cref="CatalogProduct"/>s
         /// </summary>
         /// <param name="ids">Product ids</param>
@@ -129,6 +152,29 @@ namespace VirtoCommerce.XCart.Data.Services
             ApplyInventoriesToCartProductAsync(aggregate, products),
             ApplyPricesToCartProductAsync(aggregate, products)
         };
+
+        /// <summary>
+        /// Load all properties for <see cref="CartProduct"/>s
+        /// </summary>
+        /// <param name="request">Request</param>
+        /// <param name="products">List of <see cref="CartProduct"/>s</param>
+        /// <returns>List of <see cref="Task"/>s</returns>
+        protected virtual List<Task> LoadDependencies(CartProductsRequest request, List<CartProduct> products)
+        {
+            var result = new List<Task>();
+
+            if (request.LoadInventory)
+            {
+                result.Add(ApplyInventoriesToCartProductAsync(request, products));
+            }
+
+            if (request.LoadPrice)
+            {
+                result.Add(ApplyPricesToCartProductAsync(request, products));
+            }
+
+            return result;
+        }
 
         /// <summary>
         /// Load inventories and apply them to <see cref="CartProduct"/>s
@@ -175,6 +221,50 @@ namespace VirtoCommerce.XCart.Data.Services
         }
 
         /// <summary>
+        /// Load inventories and apply them to <see cref="CartProduct"/>s
+        /// </summary>
+        /// <param name="request">Request</param>
+        /// <param name="products">List of <see cref="CartProduct"/>s</param>
+        protected virtual async Task ApplyInventoriesToCartProductAsync(CartProductsRequest request, List<CartProduct> products)
+        {
+            if (products.IsNullOrEmpty())
+            {
+                return;
+            }
+
+            var ids = products.Select(x => x.Id).ToArray();
+
+            var countResult = await _inventorySearchService.SearchInventoriesAsync(new InventorySearchCriteria
+            {
+                ProductIds = ids,
+                Skip = 0,
+                Take = DefaultPageSize
+            });
+
+            var allLoadInventories = countResult.Results.ToList();
+
+            if (countResult.TotalCount > DefaultPageSize)
+            {
+                for (var i = DefaultPageSize; i < countResult.TotalCount; i += DefaultPageSize)
+                {
+                    var loadInventoriesTask = await _inventorySearchService.SearchInventoriesAsync(new InventorySearchCriteria
+                    {
+                        ProductIds = ids,
+                        Skip = i,
+                        Take = DefaultPageSize
+                    });
+
+                    allLoadInventories.AddRange(loadInventoriesTask.Results);
+                }
+            }
+
+            foreach (var cartProduct in products)
+            {
+                cartProduct.ApplyInventories(allLoadInventories, request.Store);
+            }
+        }
+
+        /// <summary>
         /// Evaluate prices and apply them to <see cref="CartProduct"/>s
         /// </summary>
         /// <param name="aggregate">Cart aggregate</param>
@@ -201,6 +291,36 @@ namespace VirtoCommerce.XCart.Data.Services
             foreach (var cartProduct in products)
             {
                 cartProduct.ApplyPrices(evalPricesTask, aggregate.Currency);
+            }
+        }
+
+        /// <summary>
+        /// Evaluate prices and apply them to <see cref="CartProduct"/>s
+        /// </summary>
+        /// <param name="request">Request</param>
+        /// <param name="products">List of <see cref="CartProduct"/>s</param>
+        protected virtual async Task ApplyPricesToCartProductAsync(CartProductsRequest request, List<CartProduct> products)
+        {
+            if (request is null || products.IsNullOrEmpty())
+            {
+                return;
+            }
+
+            var pricesEvalContext = _mapper.Map<PriceEvaluationContext>(request);
+            pricesEvalContext.ProductIds = products.Select(x => x.Id).ToArray();
+
+            // There was a call to pipeline execution and stack overflow comes as a result of infinite cart getting,
+            // because the LoadCartToEvalContextMiddleware catches pipeline execution.
+            // Replaced to direct mapping.
+            _mapper.Map(request, pricesEvalContext);
+
+            await _loadUserToEvalContextService.SetShopperDataFromMember(pricesEvalContext, pricesEvalContext.CustomerId);
+
+            var evalPricesTask = await _pricingEvaluatorService.EvaluateProductPricesAsync(pricesEvalContext);
+
+            foreach (var cartProduct in products)
+            {
+                cartProduct.ApplyPrices(evalPricesTask, request.Currency);
             }
         }
     }
