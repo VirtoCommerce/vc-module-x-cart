@@ -38,7 +38,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                 CartProduct = product,
             };
 
-            if (product.Product.IsConfigurable)
+            if (product?.Product?.IsConfigurable == true)
             {
                 var createConfigurableProductCommand = new CreateConfiguredLineItemCommand
                 {
@@ -51,7 +51,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                     ConfigurationSections = request.ConfigurationSections,
                 };
 
-                var mediatorResult = await _mediator.Send(createConfigurableProductCommand);
+                var mediatorResult = await _mediator.Send(createConfigurableProductCommand, cancellationToken);
                 await cartAggregate.AddConfiguredItemAsync(newItem, mediatorResult.Item);
             }
             else

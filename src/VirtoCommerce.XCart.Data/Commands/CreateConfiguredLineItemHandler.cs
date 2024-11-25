@@ -47,9 +47,8 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
         productsRequest.LoadInventory = false;
         var products = await _cartProductService.GetCartProductsByIdsAsync(productsRequest);
 
-        foreach (var section in request.ConfigurationSections)
+        foreach (var productOption in request.ConfigurationSections.Select(x => x.Value))
         {
-            var productOption = section.Value;
             var selectedProduct = products.FirstOrDefault(x => x.Product.Id == productOption.ProductId);
             if (selectedProduct == null)
             {
