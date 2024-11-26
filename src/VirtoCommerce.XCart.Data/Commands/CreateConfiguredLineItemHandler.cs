@@ -59,7 +59,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
             _ = container.AddItem(selectedProduct, productOption.Quantity, section.SectionId);
         }
 
-        var configuredItem = container.CreateConfiguredLineItem();
+        var configuredItem = container.CreateConfiguredLineItem(request.Quantity);
 
         return configuredItem;
     }

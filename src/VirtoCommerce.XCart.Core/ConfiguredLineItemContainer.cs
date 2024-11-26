@@ -61,12 +61,12 @@ namespace VirtoCommerce.XCart.Core
             return lineItem;
         }
 
-        public ExpConfigurationLineItem CreateConfiguredLineItem()
+        public ExpConfigurationLineItem CreateConfiguredLineItem(int quantity)
         {
             var lineItem = AbstractTypeFactory<LineItem>.TryCreateInstance();
 
             lineItem.IsConfigured = true;
-            lineItem.Quantity = 1;
+            lineItem.Quantity = quantity;
 
             lineItem.Discounts = [];
             lineItem.TaxDetails = [];

@@ -203,6 +203,30 @@ namespace VirtoCommerce.XCart.Core
             return this;
         }
 
+        public virtual Task<CartAggregate> UpdateConfiguredItemAsync(string lineItemId, LineItem configuredItem)
+        {
+            ArgumentNullException.ThrowIfNull(lineItemId);
+            ArgumentNullException.ThrowIfNull(configuredItem);
+
+            EnsureCartExists();
+
+            var lineItem = Cart.Items.FirstOrDefault(x => x.Id == lineItemId && x.IsConfigured);
+
+            if (lineItem != null)
+            {
+                lineItem.Quantity = configuredItem.Quantity;
+                lineItem.ListPrice = configuredItem.ListPrice;
+                lineItem.SalePrice = configuredItem.SalePrice;
+                lineItem.DiscountAmount = configuredItem.DiscountAmount;
+                lineItem.PlacedPrice = configuredItem.PlacedPrice;
+                lineItem.ExtendedPrice = configuredItem.ExtendedPrice;
+
+                lineItem.ConfigurationItems = new List<ConfigurationItem>(configuredItem.ConfigurationItems);
+            }
+
+            return Task.FromResult(this);
+        }
+
         public virtual async Task<CartAggregate> AddItemAsync(NewCartItem newCartItem)
         {
             EnsureCartExists();
