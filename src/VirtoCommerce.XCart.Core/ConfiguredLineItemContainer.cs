@@ -21,7 +21,7 @@ namespace VirtoCommerce.XCart.Core
 
         public CartProduct ConfigurableProduct { get; set; }
 
-        private IList<SectionLineItem> _items { get; set; } = new List<SectionLineItem>();
+        private List<SectionLineItem> _items { get; set; } = [];
 
         public LineItem AddItem(CartProduct cartProduct, int quantity, string sectionId)
         {
@@ -151,7 +151,7 @@ namespace VirtoCommerce.XCart.Core
             return MemberwiseClone();
         }
 
-        private class SectionLineItem
+        private sealed class SectionLineItem
         {
             public string SectionId { get; set; }
             public LineItem Item { get; set; }
