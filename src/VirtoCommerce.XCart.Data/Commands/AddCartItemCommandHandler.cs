@@ -2,6 +2,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using VirtoCommerce.CatalogModule.Core.Model.Search;
+using VirtoCommerce.CatalogModule.Core.Search;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
@@ -14,15 +17,19 @@ namespace VirtoCommerce.XCart.Data.Commands
     {
         private readonly ICartProductService _cartProductService;
         private readonly IMediator _mediator;
+        private readonly IProductConfigurationSearchService _productConfigurationSearchService;
 
         public AddCartItemCommandHandler(
             ICartAggregateRepository cartAggregateRepository,
             ICartProductService cartProductService,
-            IMediator mediator)
+            IMediator mediator,
+            IProductConfigurationSearchService productConfigurationSearchService
+            )
             : base(cartAggregateRepository)
         {
             _cartProductService = cartProductService;
             _mediator = mediator;
+            _productConfigurationSearchService = productConfigurationSearchService;
         }
 
         public override async Task<CartAggregate> Handle(AddCartItemCommand request, CancellationToken cancellationToken)
@@ -38,7 +45,13 @@ namespace VirtoCommerce.XCart.Data.Commands
                 CartProduct = product,
             };
 
-            if (product?.Product?.IsConfigurable == true)
+            var configurations = await _productConfigurationSearchService.SearchNoCloneAsync(new ProductConfigurationSearchCriteria
+            {
+                ProductId = request.ProductId
+            });
+            var configuration = configurations.Results.FirstOrDefault();
+
+            if (configuration?.IsActive == true)
             {
                 var createConfigurableProductCommand = new CreateConfiguredLineItemCommand
                 {
