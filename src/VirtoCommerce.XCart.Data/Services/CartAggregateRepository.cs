@@ -305,43 +305,10 @@ namespace VirtoCommerce.XCart.Data.Services
             }
         }
 
-        private async Task UpdateConfiguredLineItemPrice(CartAggregate aggregate)
+        private static async Task UpdateConfiguredLineItemPrice(CartAggregate aggregate)
         {
             var configurationLineItems = aggregate.LineItems.Where(x => x.IsConfigured).ToArray();
-
-            var configProductsIds = configurationLineItems
-                .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
-                .SelectMany(x => x.ConfigurationItems.Select(x => x.ProductId))
-                .Distinct()
-                .ToArray();
-
-            if (configProductsIds.Length == 0)
-            {
-                return;
-            }
-
-            var configProducts = await _cartProductsService.GetCartProductsByIdsAsync(aggregate, configProductsIds.ToArray());
-
-            foreach (var configurationLineItem in configurationLineItems)
-            {
-                var contaner = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
-
-                if (aggregate.CartProducts.TryGetValue(configurationLineItem.ProductId, out var configurableProduct))
-                {
-                    contaner.ConfigurableProduct = configurableProduct;
-                }
-
-                foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
-                {
-                    var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
-                    if (product != null)
-                    {
-                        contaner.AddItem(product, configurationItem.Quantity, configurationItem.SectionId);
-                    }
-                }
-
-                contaner.UpdatePrice(configurationLineItem);
-            }
+            await aggregate.UpdateConfiguredLineItemPrice(configurationLineItems);
         }
     }
 }
