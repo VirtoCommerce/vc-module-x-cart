@@ -21,7 +21,7 @@ namespace VirtoCommerce.XCart.Core
 
         public CartProduct ConfigurableProduct { get; set; }
 
-        private List<SectionLineItem> _items { get; set; } = [];
+        private List<SectionLineItem> _items = [];
 
         public LineItem AddItem(CartProduct cartProduct, int quantity, string sectionId)
         {
