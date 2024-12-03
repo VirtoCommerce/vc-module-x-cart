@@ -1,7 +1,10 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using VirtoCommerce.CatalogModule.Core.Services;
+using VirtoCommerce.CatalogModule.Core.Model.Configuration;
+using VirtoCommerce.CatalogModule.Core.Model.Search;
+using VirtoCommerce.CatalogModule.Core.Search;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
@@ -12,23 +15,30 @@ namespace VirtoCommerce.XCatalog.Data.Queries;
 
 public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfigurationQuery, ProductConfigurationQueryResponse>
 {
-    private readonly IConfigurableProductService _configurableProductService;
+    private readonly IProductConfigurationSearchService _productConfigurationSearchService;
     private readonly IConfiguredLineItemContainerService _configuredLineItemContainerService;
     private readonly ICartProductsLoaderService _cartProductService;
 
     public GetProductConfigurationQueryHandler(
-        IConfigurableProductService configurableProductService,
+        IProductConfigurationSearchService productConfigurationSearchService,
         IConfiguredLineItemContainerService configuredLineItemContainerService,
         ICartProductsLoaderService cartProductService)
     {
-        _configurableProductService = configurableProductService;
+        _productConfigurationSearchService = productConfigurationSearchService;
         _configuredLineItemContainerService = configuredLineItemContainerService;
         _cartProductService = cartProductService;
     }
 
     public async Task<ProductConfigurationQueryResponse> Handle(GetProductConfigurationQuery request, CancellationToken cancellationToken)
     {
-        var configuration = await _configurableProductService.GetProductConfigurationAsync(request.ConfigurableProductId);
+        var result = new ProductConfigurationQueryResponse();
+
+        var configuration = await GetConfiguration(request);
+
+        if (configuration == null)
+        {
+            return result;
+        }
 
         var container = await _configuredLineItemContainerService.CreateContainerAsync(request);
 
@@ -40,7 +50,6 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
 
         var productByIds = cartProducts.ToDictionary(x => x.Product.Id, x => x);
 
-        var result = new ProductConfigurationQueryResponse();
         foreach (var section in configuration.Sections)
         {
             var configurationSection = new ExpProductConfigurationSection
@@ -49,7 +58,6 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
                 Name = section.Name,
                 IsRequired = section.IsRequired,
                 Description = section.Description,
-                Type = section.Type,
             };
             result.ConfigurationSections.Add(configurationSection);
 
@@ -75,5 +83,14 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         }
 
         return result;
+    }
+
+    private async Task<ProductConfiguration> GetConfiguration(GetProductConfigurationQuery request)
+    {
+        var criteria = AbstractTypeFactory<ProductConfigurationSearchCriteria>.TryCreateInstance();
+        criteria.ProductId = request.ConfigurableProductId;
+
+        var configurationsResult = await _productConfigurationSearchService.SearchNoCloneAsync(criteria);
+        return configurationsResult.Results.FirstOrDefault();
     }
 }
