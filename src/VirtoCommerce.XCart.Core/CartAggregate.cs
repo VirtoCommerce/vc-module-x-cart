@@ -223,7 +223,7 @@ namespace VirtoCommerce.XCart.Core
 
                 var lineItem = _mapper.Map<LineItem>(newCartItem.CartProduct);
 
-                lineItem.SelectedForCheckout = IsSelectedForCheckout;
+                lineItem.SelectedForCheckout = newCartItem.IsSelectedForCheckout ?? IsSelectedForCheckout;
                 lineItem.Quantity = newCartItem.Quantity;
 
                 if (newCartItem.Price != null)
@@ -270,6 +270,7 @@ namespace VirtoCommerce.XCart.Core
                         DynamicProperties = item.DynamicProperties,
                         Price = item.Price,
                         IsWishlist = item.IsWishlist,
+                        IsSelectedForCheckout = item.IsSelectedForCheckout,
                         CartProduct = product,
                     });
                 }

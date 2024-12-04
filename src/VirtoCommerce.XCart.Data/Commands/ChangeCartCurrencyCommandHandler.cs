@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
@@ -11,14 +12,9 @@ namespace VirtoCommerce.XCart.Data.Commands
 {
     public class ChangeCartCurrencyCommandHandler : CartCommandHandler<ChangeCartCurrencyCommand>
     {
-        private readonly ICartProductService _cartProductService;
-
-        public ChangeCartCurrencyCommandHandler(
-            ICartAggregateRepository cartAggregateRepository,
-            ICartProductService cartProductService)
+        public ChangeCartCurrencyCommandHandler(ICartAggregateRepository cartAggregateRepository)
             : base(cartAggregateRepository)
         {
-            _cartProductService = cartProductService;
         }
 
         public override async Task<CartAggregate> Handle(ChangeCartCurrencyCommand request, CancellationToken cancellationToken)
@@ -39,14 +35,20 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             var newCurrencyCartAggregate = await GetOrCreateCartFromCommandAsync(newCurrencyCartRequest);
 
-            // get items to convert          
-            var excludedProductsIds = newCurrencyCartAggregate.LineItems.Select(x => x.ProductId).ToArray();
+            // clear (old) cart items and add items from the currency cart
+            newCurrencyCartAggregate.Cart.Items.Clear();
 
             var newCartItems = currentCurrencyCartAggregate.LineItems
-                .Where(x => !excludedProductsIds.Contains(x.ProductId))
                 .Select(x => new NewCartItem(x.ProductId, x.Quantity)
                 {
                     Comment = x.Note,
+                    IsSelectedForCheckout = x.SelectedForCheckout,
+                    DynamicProperties = x.DynamicProperties.SelectMany(x => x.Values.Select(y => new DynamicPropertyValue()
+                    {
+                        Name = x.Name,
+                        Value = y.Value,
+                        Locale = y.Locale,
+                    })).ToArray(),
                 })
                 .ToArray();
 
