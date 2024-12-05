@@ -53,7 +53,7 @@ namespace VirtoCommerce.XCart.Data.Services
         {
             if (cartAggregate == null)
             {
-                return Enumerable.Empty<ShippingRate>();
+                return [];
             }
 
             //Request available shipping rates
@@ -75,7 +75,7 @@ namespace VirtoCommerce.XCart.Data.Services
 
             if (availableShippingRates.IsNullOrEmpty())
             {
-                return Enumerable.Empty<ShippingRate>();
+                return [];
             }
 
             //Evaluate promotions cart and apply rewards for available shipping methods
@@ -90,7 +90,7 @@ namespace VirtoCommerce.XCart.Data.Services
             var promoEvalResult = await cartAggregate.EvaluatePromotionsAsync(evalContextCartMap.PromotionEvaluationContext);
             foreach (var shippingRate in availableShippingRates)
             {
-                shippingRate.ApplyRewards(promoEvalResult.Rewards);
+                shippingRate.ApplyRewards(cartAggregate.Currency, promoEvalResult.Rewards);
             }
 
             var taxProvider = await GetActiveTaxProviderAsync(cartAggregate);
@@ -115,7 +115,7 @@ namespace VirtoCommerce.XCart.Data.Services
         {
             if (cartAggregate == null)
             {
-                return Enumerable.Empty<PaymentMethod>();
+                return [];
             }
 
             var criteria = new PaymentMethodsSearchCriteria
@@ -128,7 +128,7 @@ namespace VirtoCommerce.XCart.Data.Services
             var result = await _paymentMethodsSearchService.SearchAsync(criteria);
             if (result.Results.IsNullOrEmpty())
             {
-                return Enumerable.Empty<PaymentMethod>();
+                return [];
             }
 
             var evalContext = AbstractTypeFactory<PromotionEvaluationContext>.TryCreateInstance();
@@ -143,7 +143,7 @@ namespace VirtoCommerce.XCart.Data.Services
 
             foreach (var paymentMethod in result.Results)
             {
-                paymentMethod.ApplyRewards(promoResult.Rewards);
+                paymentMethod.ApplyRewards(cartAggregate.Currency, promoResult.Rewards);
             }
 
             //Evaluate taxes for available payments
