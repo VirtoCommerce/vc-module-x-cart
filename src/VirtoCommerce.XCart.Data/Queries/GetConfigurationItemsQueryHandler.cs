@@ -25,7 +25,7 @@ public class GetConfigurationItemsQueryHandler : IQueryHandler<GetConfigurationI
             ?? throw new OperationCanceledException($"Cart not found");
 
         var lineItem = cartAggregate.Cart.Items.FirstOrDefault(x => x.Id == request.LineItemId)
-            ?? throw new OperationCanceledException($"LineIten not found");
+            ?? throw new OperationCanceledException($"Line item not found");
 
         return new ConfigurationItemsResponse
         {
