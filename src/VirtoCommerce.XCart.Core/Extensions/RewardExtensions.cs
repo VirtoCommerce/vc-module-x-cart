@@ -172,7 +172,7 @@ namespace VirtoCommerce.XCart.Core.Extensions
             {
                 var availableGifts = (await aggregate.GetAvailableGiftsAsync(rewards)).ToList();
 
-                if (availableGifts.Any())
+                if (availableGifts.Count > 0)
                 {
                     var newGiftItemIds = availableGifts.Where(x => !x.HasLineItem).Select(x => x.Id).ToList();
                     await aggregate.AddGiftItemsAsync(newGiftItemIds, availableGifts); //add new items to cart
