@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Common;
+using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
@@ -13,19 +14,19 @@ namespace VirtoCommerce.XCart.Core.Extensions
 {
     public static class RewardExtensions
     {
-        public static void ApplyRewards(this PaymentMethod paymentMethod, ICollection<PromotionReward> rewards)
+        public static void ApplyRewards(this PaymentMethod paymentMethod, Currency currency, ICollection<PromotionReward> rewards)
             => paymentMethod.DiscountAmount = rewards
                 .Where(r => r.IsValid)
                 .OfType<PaymentReward>()
                 .Where(r => r.PaymentMethod.IsNullOrEmpty() || r.PaymentMethod.EqualsInvariant(paymentMethod.Code))
-                .Sum(reward => reward.GetRewardAmount(paymentMethod.Price - paymentMethod.DiscountAmount, 1));
+                .Sum(reward => reward.GetTotalAmount(paymentMethod.Price - paymentMethod.DiscountAmount, 1, currency));
 
-        public static void ApplyRewards(this ShippingRate shippingRate, ICollection<PromotionReward> rewards)
+        public static void ApplyRewards(this ShippingRate shippingRate, Currency currency, ICollection<PromotionReward> rewards)
             => shippingRate.DiscountAmount = rewards
                 .Where(r => r.IsValid)
                 .OfType<ShipmentReward>()
                 .Where(r => r.ShippingMethod.IsNullOrEmpty() || shippingRate.ShippingMethod != null && r.ShippingMethod.EqualsInvariant(shippingRate.ShippingMethod.Code))
-                .Sum(reward => reward.GetRewardAmount(shippingRate.Rate, 1));
+                .Sum(reward => reward.GetTotalAmount(shippingRate.Rate, 1, currency));
 
         public static void ApplyRewards(this CartAggregate aggregate, ICollection<PromotionReward> rewards)
         {
@@ -46,7 +47,7 @@ namespace VirtoCommerce.XCart.Core.Extensions
             ApplyCartRewardsInternal(aggregate, rewards);
         }
 
-        public static void ApplyRewards(this LineItem lineItem, string currency, IEnumerable<CatalogItemAmountReward> rewards)
+        public static void ApplyRewards(this LineItem lineItem, Currency currency, IEnumerable<CatalogItemAmountReward> rewards)
         {
             var lineItemRewards = rewards
                 .Where(r => r.IsValid)
@@ -54,6 +55,7 @@ namespace VirtoCommerce.XCart.Core.Extensions
 
             lineItem.Discounts?.Clear();
             lineItem.DiscountAmount = Math.Max(0, lineItem.ListPrice - lineItem.SalePrice);
+            lineItem.IsDiscountAmountRounded = true;
 
             if (lineItem.Quantity == 0)
             {
@@ -65,14 +67,14 @@ namespace VirtoCommerce.XCart.Core.Extensions
                 var discount = new Discount
                 {
                     Coupon = reward.Coupon,
-                    Currency = currency,
+                    Currency = currency.Code,
                     PromotionId = reward.PromotionId ?? reward.Promotion?.Id,
                     Name = reward.Promotion?.Name,
                     Description = reward.Promotion?.Description,
-                    DiscountAmount = reward.GetRewardAmount(lineItem.ListPrice - lineItem.DiscountAmount, lineItem.Quantity),
+                    DiscountAmount = reward.GetAmountPerItem(lineItem.ListPrice - lineItem.DiscountAmount, lineItem.Quantity, currency),
                 };
 
-                // Pass invalid discounts
+                // Skip invalid discounts
                 if (discount.DiscountAmount <= 0)
                 {
                     continue;
@@ -81,10 +83,11 @@ namespace VirtoCommerce.XCart.Core.Extensions
                 lineItem.Discounts ??= new List<Discount>();
                 lineItem.Discounts.Add(discount);
                 lineItem.DiscountAmount += discount.DiscountAmount;
+                lineItem.IsDiscountAmountRounded &= reward.RoundAmountPerItem;
             }
         }
 
-        public static void ApplyRewards(this Shipment shipment, string currency, IEnumerable<ShipmentReward> rewards)
+        public static void ApplyRewards(this Shipment shipment, Currency currency, IEnumerable<ShipmentReward> rewards)
         {
             var shipmentRewards = rewards
                 .Where(r => r.IsValid)
@@ -98,11 +101,11 @@ namespace VirtoCommerce.XCart.Core.Extensions
                 var discount = new Discount
                 {
                     Coupon = reward.Coupon,
-                    Currency = currency,
+                    Currency = currency.Code,
                     PromotionId = reward.PromotionId ?? reward.Promotion?.Id,
                     Name = reward.Promotion?.Name,
                     Description = reward.Promotion?.Description,
-                    DiscountAmount = reward.GetRewardAmount(shipment.Price - shipment.DiscountAmount, 1),
+                    DiscountAmount = reward.GetTotalAmount(shipment.Price - shipment.DiscountAmount, 1, currency),
                 };
 
                 // Pass invalid discounts
@@ -116,7 +119,7 @@ namespace VirtoCommerce.XCart.Core.Extensions
             }
         }
 
-        public static void ApplyRewards(this Payment payment, string currency, IEnumerable<PaymentReward> rewards)
+        public static void ApplyRewards(this Payment payment, Currency currency, IEnumerable<PaymentReward> rewards)
         {
             var paymentRewards = rewards
                 .Where(r => r.IsValid)
@@ -130,11 +133,11 @@ namespace VirtoCommerce.XCart.Core.Extensions
                 var discount = new Discount
                 {
                     Coupon = reward.Coupon,
-                    Currency = currency,
+                    Currency = currency.Code,
                     PromotionId = reward.PromotionId ?? reward.Promotion?.Id,
                     Name = reward.Promotion?.Name,
                     Description = reward.Promotion?.Description,
-                    DiscountAmount = reward.GetRewardAmount(payment.Price - payment.DiscountAmount, 1),
+                    DiscountAmount = reward.GetTotalAmount(payment.Price - payment.DiscountAmount, 1, currency),
                 };
 
                 // Pass invalid discounts
@@ -167,13 +170,12 @@ namespace VirtoCommerce.XCart.Core.Extensions
             // automatically add gift rewards to line items if the setting is enabled
             if (aggregate.IsSelectedForCheckout)
             {
-                var availableGifts = await aggregate.GetAvailableGiftsAsync(rewards);
+                var availableGifts = (await aggregate.GetAvailableGiftsAsync(rewards)).ToList();
 
                 if (availableGifts.Any())
                 {
-                    var newGiftItems = availableGifts.Where(x => !x.HasLineItem).ToList(); //get new items
-                    var newGiftItemIds = newGiftItems.Select(x => x.Id).ToList();
-                    await aggregate.AddGiftItemsAsync(newGiftItemIds, availableGifts.ToList()); //add new items to cart
+                    var newGiftItemIds = availableGifts.Where(x => !x.HasLineItem).Select(x => x.Id).ToList();
+                    await aggregate.AddGiftItemsAsync(newGiftItemIds, availableGifts); //add new items to cart
                 }
             }
 
@@ -184,22 +186,22 @@ namespace VirtoCommerce.XCart.Core.Extensions
         {
             var shoppingCart = aggregate.Cart;
 
-            var lineItemRewards = rewards.OfType<CatalogItemAmountReward>();
-            foreach (var lineItem in aggregate.LineItems ?? Enumerable.Empty<LineItem>())
+            var lineItemRewards = rewards.OfType<CatalogItemAmountReward>().ToList();
+            foreach (var lineItem in aggregate.LineItems ?? [])
             {
-                lineItem.ApplyRewards(shoppingCart.Currency, lineItemRewards);
+                lineItem.ApplyRewards(aggregate.Currency, lineItemRewards);
             }
 
-            var shipmentRewards = rewards.OfType<ShipmentReward>();
+            var shipmentRewards = rewards.OfType<ShipmentReward>().ToList();
             foreach (var shipment in shoppingCart.Shipments ?? Enumerable.Empty<Shipment>())
             {
-                shipment.ApplyRewards(shoppingCart.Currency, shipmentRewards);
+                shipment.ApplyRewards(aggregate.Currency, shipmentRewards);
             }
 
-            var paymentRewards = rewards.OfType<PaymentReward>();
+            var paymentRewards = rewards.OfType<PaymentReward>().ToList();
             foreach (var payment in shoppingCart.Payments ?? Enumerable.Empty<Payment>())
             {
-                payment.ApplyRewards(shoppingCart.Currency, paymentRewards);
+                payment.ApplyRewards(aggregate.Currency, paymentRewards);
             }
 
             var subTotalExcludeDiscount = shoppingCart.Items.Where(li => li.SelectedForCheckout).Sum(li => (li.ListPrice - li.DiscountAmount) * li.Quantity);
@@ -217,7 +219,7 @@ namespace VirtoCommerce.XCart.Core.Extensions
                     PromotionId = reward.PromotionId ?? reward.Promotion?.Id,
                     Name = reward.Promotion?.Name,
                     Description = reward.Promotion?.Description,
-                    DiscountAmount = reward.GetRewardAmount(subTotalExcludeDiscount, 1),
+                    DiscountAmount = reward.GetTotalAmount(subTotalExcludeDiscount, 1, aggregate.Currency),
                 };
 
                 shoppingCart.Discounts ??= new List<Discount>();
