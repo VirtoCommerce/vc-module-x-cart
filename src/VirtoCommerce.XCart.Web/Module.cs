@@ -1,11 +1,9 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Infrastructure;
-using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.XCart.Data;
 using VirtoCommerce.XCart.Data.Extensions;
 
@@ -24,8 +22,7 @@ public class Module : IModule, IHasConfiguration
 
     public void PostInitialize(IApplicationBuilder appBuilder)
     {
-        var playgroundOptions = appBuilder.ApplicationServices.GetService<IOptions<GraphQLPlaygroundOptions>>();
-        appBuilder.UseSchemaGraphQL<ScopedSchemaFactory<DataAssemblyMarker>>(playgroundOptions?.Value?.Enable ?? true, "cart");
+        appBuilder.UseScopedSchema<DataAssemblyMarker>("cart");
     }
 
     public void Uninstall()
