@@ -10,24 +10,24 @@ using VirtoCommerce.XCart.Core.Services;
 
 namespace VirtoCommerce.XCart.Data.Commands;
 
-public class ChangeCartConfiguredItemCommandHandler : CartCommandHandler<ChangeCartConfiguredItemCommand>
+public class ChangeCartConfiguredLineItemCommandHandler : CartCommandHandler<ChangeCartConfiguredLineItemCommand>
 {
     private readonly IMediator _mediator;
 
-    public ChangeCartConfiguredItemCommandHandler(ICartAggregateRepository cartAggregateRepository, IMediator mediator)
+    public ChangeCartConfiguredLineItemCommandHandler(ICartAggregateRepository cartAggregateRepository, IMediator mediator)
         : base(cartAggregateRepository)
     {
         _mediator = mediator;
     }
 
-    public override async Task<CartAggregate> Handle(ChangeCartConfiguredItemCommand request, CancellationToken cancellationToken)
+    public override async Task<CartAggregate> Handle(ChangeCartConfiguredLineItemCommand request, CancellationToken cancellationToken)
     {
         var cartAggregate = await GetOrCreateCartFromCommandAsync(request);
 
         var lineItem = GetConfiguredLineItem(request, cartAggregate);
         if (lineItem != null)
         {
-            var createConfigurableProductCommand = new CreateConfiguredLineItemCommand
+            var command = new CreateConfiguredLineItemCommand
             {
                 StoreId = request.StoreId,
                 UserId = request.UserId,
@@ -39,8 +39,8 @@ public class ChangeCartConfiguredItemCommandHandler : CartCommandHandler<ChangeC
                 Quantity = request.Quantity ?? lineItem.Quantity,
             };
 
-            var mediatorResult = await _mediator.Send(createConfigurableProductCommand, cancellationToken);
-            await cartAggregate.UpdateConfiguredItemAsync(lineItem.Id, mediatorResult.Item);
+            var mediatorResult = await _mediator.Send(command, cancellationToken);
+            await cartAggregate.UpdateConfiguredLineItemAsync(lineItem.Id, mediatorResult.Item);
 
             return await SaveCartAsync(cartAggregate);
         }
@@ -48,7 +48,7 @@ public class ChangeCartConfiguredItemCommandHandler : CartCommandHandler<ChangeC
         return cartAggregate;
     }
 
-    private static LineItem GetConfiguredLineItem(ChangeCartConfiguredItemCommand request, CartAggregate cartAggregate)
+    private static LineItem GetConfiguredLineItem(ChangeCartConfiguredLineItemCommand request, CartAggregate cartAggregate)
     {
         return cartAggregate.Cart.Items.FirstOrDefault(x => x.Id == request.LineItemId && x.IsConfigured);
     }

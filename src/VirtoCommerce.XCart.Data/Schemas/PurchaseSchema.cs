@@ -320,7 +320,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                               .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputChangeCartConfiguredItemType>>(), SchemaConstants.CommandName)
                                               .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                               {
-                                                  var cartCommand = context.GetCartCommand<ChangeCartConfiguredItemCommand>();
+                                                  var cartCommand = context.GetCartCommand<ChangeCartConfiguredLineItemCommand>();
 
                                                   await CheckAuthByCartCommandAsync(context, cartCommand);
 

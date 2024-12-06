@@ -1,4 +1,4 @@
-﻿using GraphQL.Types;
+using GraphQL.Types;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
@@ -8,7 +8,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
         {
             Field<NonNullGraphType<StringGraphType>>("lineItemId", "Line item Id");
             Field<IntGraphType>("quantity", "Quantity");
-            Field<ListGraphType<ConfigurationSectionInput>>("configurationSections");
+            Field<ListGraphType<ConfigurationSectionInput>>("configurationSections", "Configuration sections");
         }
     }
 }

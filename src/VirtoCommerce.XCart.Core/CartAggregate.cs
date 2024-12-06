@@ -1108,7 +1108,7 @@ namespace VirtoCommerce.XCart.Core
             }
         }
 
-        public virtual Task<CartAggregate> UpdateConfiguredItemAsync(string lineItemId, LineItem configuredItem)
+        public virtual Task<CartAggregate> UpdateConfiguredLineItemAsync(string lineItemId, LineItem configuredItem)
         {
             ArgumentNullException.ThrowIfNull(lineItemId);
             ArgumentNullException.ThrowIfNull(configuredItem);
@@ -1145,7 +1145,7 @@ namespace VirtoCommerce.XCart.Core
                 return this;
             }
 
-            var configProducts = await _cartProductService.GetCartProductsByIdsAsync(this, configProductsIds.ToArray());
+            var configProducts = await _cartProductService.GetCartProductsByIdsAsync(this, configProductsIds);
 
             foreach (var configurationLineItem in configuredItems)
             {
