@@ -6,6 +6,7 @@ using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Extensions;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Pipelines;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
@@ -23,6 +24,8 @@ namespace VirtoCommerce.XCart.Data.Extensions
         public static IServiceCollection AddXCart(this IServiceCollection services, IGraphQLBuilder graphQLBuilder)
         {
             graphQLBuilder.AddSchema(typeof(CoreAssemblyMarker), typeof(DataAssemblyMarker));
+
+            services.AddSingleton<ScopedSchemaFactory<DataAssemblyMarker>>();
 
             services.AddSingleton<IAuthorizationHandler, CanAccessCartAuthorizationHandler>();
             services.AddTransient<ICartAggregateRepository, CartAggregateRepository>();
