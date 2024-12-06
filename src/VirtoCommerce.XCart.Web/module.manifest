@@ -6,7 +6,7 @@
 
   <platformVersion>3.867.0</platformVersion>
   <dependencies>
-    <dependency id="VirtoCommerce.Cart" version="3.820.0" />
+    <dependency id="VirtoCommerce.Cart" version="3.822.0" />
     <dependency id="VirtoCommerce.Inventory" version="3.805.0" />
     <dependency id="VirtoCommerce.Marketing" version="3.812.0" />
     <dependency id="VirtoCommerce.Payment" version="3.804.0" />
