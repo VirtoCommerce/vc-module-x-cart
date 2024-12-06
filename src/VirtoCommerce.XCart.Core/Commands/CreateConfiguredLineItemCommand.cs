@@ -18,5 +18,7 @@ public class CreateConfiguredLineItemCommand : ICommand<ExpConfigurationLineItem
 
     public string ConfigurableProductId { get; set; }
 
+    public int Quantity { get; set; } = 1;
+
     public IList<ProductConfigurationSection> ConfigurationSections { get; set; } = [];
 }

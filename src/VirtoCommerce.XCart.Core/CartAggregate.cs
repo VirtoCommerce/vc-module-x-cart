@@ -457,9 +457,16 @@ namespace VirtoCommerce.XCart.Core
 
             if (lineItem != null)
             {
-                SetLineItemTierPrice(qtyAdjustment.CartProduct.Price, qtyAdjustment.NewQuantity, lineItem);
-
                 lineItem.Quantity = qtyAdjustment.NewQuantity;
+
+                if (lineItem.IsConfigured)
+                {
+                    await UpdateConfiguredLineItemPrice([lineItem]);
+                }
+                else
+                {
+                    SetLineItemTierPrice(qtyAdjustment.CartProduct.Price, qtyAdjustment.NewQuantity, lineItem);
+                }
             }
 
             return this;
@@ -1100,6 +1107,69 @@ namespace VirtoCommerce.XCart.Core
                 lineItem.SalePrice = tierPrice.ActualPrice.Amount;
                 lineItem.ListPrice = tierPrice.Price.Amount;
             }
+        }
+
+        public virtual Task<CartAggregate> UpdateConfiguredLineItemAsync(string lineItemId, LineItem configuredItem)
+        {
+            ArgumentNullException.ThrowIfNull(lineItemId);
+            ArgumentNullException.ThrowIfNull(configuredItem);
+
+            EnsureCartExists();
+
+            var lineItem = Cart.Items.FirstOrDefault(x => x.Id == lineItemId && x.IsConfigured);
+
+            if (lineItem != null)
+            {
+                lineItem.Quantity = configuredItem.Quantity;
+                lineItem.ListPrice = configuredItem.ListPrice;
+                lineItem.SalePrice = configuredItem.SalePrice;
+                lineItem.DiscountAmount = configuredItem.DiscountAmount;
+                lineItem.PlacedPrice = configuredItem.PlacedPrice;
+                lineItem.ExtendedPrice = configuredItem.ExtendedPrice;
+
+                lineItem.ConfigurationItems = new List<ConfigurationItem>(configuredItem.ConfigurationItems);
+            }
+
+            return Task.FromResult(this);
+        }
+
+        public virtual async Task<CartAggregate> UpdateConfiguredLineItemPrice(IList<LineItem> configuredItems)
+        {
+            var configProductsIds = configuredItems
+                            .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
+                            .SelectMany(x => x.ConfigurationItems.Select(x => x.ProductId))
+                            .Distinct()
+                            .ToArray();
+
+            if (configProductsIds.Length == 0)
+            {
+                return this;
+            }
+
+            var configProducts = await _cartProductService.GetCartProductsByIdsAsync(this, configProductsIds);
+
+            foreach (var configurationLineItem in configuredItems)
+            {
+                var contaner = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
+
+                if (CartProducts.TryGetValue(configurationLineItem.ProductId, out var configurableProduct))
+                {
+                    contaner.ConfigurableProduct = configurableProduct;
+                }
+
+                foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
+                {
+                    var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
+                    if (product != null)
+                    {
+                        contaner.AddItem(product, configurationItem.Quantity, configurationItem.SectionId);
+                    }
+                }
+
+                contaner.UpdatePrice(configurationLineItem);
+            }
+
+            return this;
         }
 
         #region ICloneable
