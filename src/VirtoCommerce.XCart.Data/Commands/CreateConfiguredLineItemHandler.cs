@@ -47,18 +47,19 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
         productsRequest.LoadInventory = false;
         var products = await _cartProductService.GetCartProductsByIdsAsync(productsRequest);
 
-        foreach (var productOption in request.ConfigurationSections.Select(x => x.Value))
+        foreach (var section in request.ConfigurationSections)
         {
+            var productOption = section.Value;
             var selectedProduct = products.FirstOrDefault(x => x.Product.Id == productOption.ProductId);
             if (selectedProduct == null)
             {
                 throw new OperationCanceledException($"Product with id {productOption.ProductId} not found");
             }
 
-            _ = container.AddItem(selectedProduct, productOption.Quantity);
+            _ = container.AddItem(selectedProduct, productOption.Quantity, section.SectionId);
         }
 
-        var configuredItem = container.CreateConfiguredLineItem();
+        var configuredItem = container.CreateConfiguredLineItem(request.Quantity);
 
         return configuredItem;
     }
