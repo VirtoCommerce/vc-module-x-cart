@@ -205,47 +205,56 @@ namespace VirtoCommerce.XCart.Core
 
         public virtual async Task<CartAggregate> AddItemAsync(NewCartItem newCartItem)
         {
-            EnsureCartExists();
-
             ArgumentNullException.ThrowIfNull(newCartItem);
+
+            EnsureCartExists();
 
             var validationResult = await AbstractTypeFactory<NewCartItemValidator>.TryCreateInstance().ValidateAsync(newCartItem, options => options.IncludeRuleSets(ValidationRuleSet));
             if (!validationResult.IsValid)
             {
                 OperationValidationErrors.AddRange(validationResult.Errors);
+
+                if (!newCartItem.IgnoreValidationErrors)
+                {
+                    return this;
+                }
             }
-            else if (newCartItem.CartProduct != null)
+
+            if (newCartItem.CartProduct == null)
             {
-                if (newCartItem.IsWishlist && newCartItem.CartProduct.Price == null)
-                {
-                    newCartItem.CartProduct.Price = new ProductPrice(Currency);
-                }
-
-                var lineItem = _mapper.Map<LineItem>(newCartItem.CartProduct);
-
-                lineItem.SelectedForCheckout = newCartItem.IsSelectedForCheckout ?? IsSelectedForCheckout;
-                lineItem.Quantity = newCartItem.Quantity;
-
-                if (newCartItem.Price != null)
-                {
-                    lineItem.ListPrice = newCartItem.Price.Value;
-                    lineItem.SalePrice = newCartItem.Price.Value;
-                }
-                else
-                {
-                    SetLineItemTierPrice(newCartItem.CartProduct.Price, newCartItem.Quantity, lineItem);
-                }
-
-                if (!string.IsNullOrEmpty(newCartItem.Comment))
-                {
-                    lineItem.Note = newCartItem.Comment;
-                }
-
-                CartProducts[newCartItem.CartProduct.Id] = newCartItem.CartProduct;
-                await SetItemFulfillmentCenterAsync(lineItem, newCartItem.CartProduct);
-                await UpdateVendor(lineItem, newCartItem.CartProduct);
-                await InnerAddLineItemAsync(lineItem, newCartItem.CartProduct, newCartItem.DynamicProperties);
+                return this;
             }
+
+            if (newCartItem.IsWishlist && newCartItem.CartProduct.Price == null)
+            {
+                newCartItem.CartProduct.Price = new ProductPrice(Currency);
+            }
+
+            var lineItem = _mapper.Map<LineItem>(newCartItem.CartProduct);
+
+            lineItem.Currency ??= Currency.Code;
+            lineItem.SelectedForCheckout = newCartItem.IsSelectedForCheckout ?? IsSelectedForCheckout;
+            lineItem.Quantity = newCartItem.Quantity;
+
+            if (newCartItem.Price != null)
+            {
+                lineItem.ListPrice = newCartItem.Price.Value;
+                lineItem.SalePrice = newCartItem.Price.Value;
+            }
+            else
+            {
+                SetLineItemTierPrice(newCartItem.CartProduct.Price, newCartItem.Quantity, lineItem);
+            }
+
+            if (!string.IsNullOrEmpty(newCartItem.Comment))
+            {
+                lineItem.Note = newCartItem.Comment;
+            }
+
+            CartProducts[newCartItem.CartProduct.Id] = newCartItem.CartProduct;
+            await SetItemFulfillmentCenterAsync(lineItem, newCartItem.CartProduct);
+            await UpdateVendor(lineItem, newCartItem.CartProduct);
+            await InnerAddLineItemAsync(lineItem, newCartItem.CartProduct, newCartItem.DynamicProperties);
 
             return this;
         }
@@ -272,6 +281,7 @@ namespace VirtoCommerce.XCart.Core
                         IsWishlist = item.IsWishlist,
                         IsSelectedForCheckout = item.IsSelectedForCheckout,
                         CartProduct = product,
+                        IgnoreValidationErrors = item.IgnoreValidationErrors,
                     });
                 }
                 else

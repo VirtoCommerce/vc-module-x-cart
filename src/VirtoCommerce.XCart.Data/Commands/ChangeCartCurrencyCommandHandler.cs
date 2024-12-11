@@ -41,6 +41,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             var newCartItems = currentCurrencyCartAggregate.LineItems
                 .Select(x => new NewCartItem(x.ProductId, x.Quantity)
                 {
+                    IgnoreValidationErrors = true,
                     Comment = x.Note,
                     IsSelectedForCheckout = x.SelectedForCheckout,
                     DynamicProperties = x.DynamicProperties.SelectMany(x => x.Values.Select(y => new DynamicPropertyValue()

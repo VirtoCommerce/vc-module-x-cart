@@ -35,5 +35,7 @@ namespace VirtoCommerce.XCart.Core.Models
         public bool IsWishlist { get; set; }
 
         public bool? IsSelectedForCheckout { get; set; }
+
+        public bool IgnoreValidationErrors { get; set; }
     }
 }
