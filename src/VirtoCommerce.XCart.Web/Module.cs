@@ -1,8 +1,11 @@
+using GraphQL.MicrosoftDI;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.Platform.Core.Modularity;
-using VirtoCommerce.Xapi.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Extensions;
+using VirtoCommerce.XCart.Core;
+using VirtoCommerce.XCart.Data;
 using VirtoCommerce.XCart.Data.Extensions;
 
 namespace VirtoCommerce.XCart.Web;
@@ -14,13 +17,17 @@ public class Module : IModule, IHasConfiguration
 
     public void Initialize(IServiceCollection serviceCollection)
     {
-        var graphQlBuilder = new CustomGraphQLBuilder(serviceCollection);
+        var graphQlBuilder = new GraphQLBuilder(serviceCollection, builder =>
+        {
+            builder.AddSchema(serviceCollection, typeof(CoreAssemblyMarker), typeof(DataAssemblyMarker));
+        });
+
         serviceCollection.AddXCart(graphQlBuilder);
     }
 
     public void PostInitialize(IApplicationBuilder appBuilder)
     {
-        // Nothing to do here
+        appBuilder.UseScopedSchema<DataAssemblyMarker>("cart");
     }
 
     public void Uninstall()

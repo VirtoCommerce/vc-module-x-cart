@@ -799,7 +799,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                     new QueryArgument<StringGraphType> { Name = "cartType", Description = "Cart type" },
                     new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "coupon", Description = "Cart promo coupon code" }),
                 Type = typeof(BooleanGraphType),
-                Resolver = new AsyncFieldResolver<object>(async context =>
+                Resolver = new FuncFieldResolver<object>(async context =>
                 {
                     var query = context.GetCartQuery<ValidateCouponQuery>();
                     query.CartId = context.GetArgumentOrValue<string>("cartId");
@@ -1291,7 +1291,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                         new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "listId", Description = "List Id" },
                         new QueryArgument<StringGraphType> { Name = "cultureName", Description = "Culture name (\"en-Us\")" }),
                 Type = GraphTypeExtenstionHelper.GetActualType<WishlistType>(),
-                Resolver = new AsyncFieldResolver<object>(async context =>
+                Resolver = new FuncFieldResolver<object>(async context =>
                 {
                     var getListQuery = AbstractTypeFactory<GetWishlistQuery>.TryCreateInstance();
                     getListQuery.ListId = context.GetArgument<string>("listId");
