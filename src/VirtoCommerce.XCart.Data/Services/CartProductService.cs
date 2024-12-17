@@ -91,14 +91,14 @@ namespace VirtoCommerce.XCart.Data.Services
         /// </summary>
         /// <param name="request">Request</param>
         /// <returns>List of <see cref="CartProduct"/>s</returns>
-        public async Task<IList<CartProduct>> GetCartProductsByIdsAsync(CartProductsRequest request)
+        public async Task<IList<CartProduct>> GetCartProductsAsync(CartProductsRequest request)
         {
             if (request is null || request.ProductIds.IsNullOrEmpty())
             {
                 return new List<CartProduct>();
             }
 
-            var cartProducts = await GetCartProductsAsync(request.ProductIds, request.Store.Id, request.Currency.Code, request.UserId, request.ProductsIncludeFields ?? IncludeFields);
+            var cartProducts = await LoadCartProductsAsync(request);
 
             var productsToLoadDependencies = cartProducts.Where(x => x.LoadDependencies).ToList();
             if (productsToLoadDependencies.Count != 0)
@@ -134,6 +134,23 @@ namespace VirtoCommerce.XCart.Data.Services
                 ObjectIds = ids,
                 IncludeFields = includeFields,
                 EvaluatePromotions = false, // Promotions will be applied on the line item level
+            };
+
+            var response = await _mediator.Send(productsQuery);
+            var result = response.Products.Select(x => new CartProduct(x)).ToList();
+            return result;
+        }
+
+        protected virtual async Task<List<CartProduct>> LoadCartProductsAsync(CartProductsRequest request)
+        {
+            var productsQuery = new LoadProductsQuery
+            {
+                UserId = request.UserId,
+                StoreId = request.Store.Id,
+                CurrencyCode = request.Currency.Code,
+                ObjectIds = request.ProductIds,
+                IncludeFields = request.ProductsIncludeFields ?? IncludeFields,
+                EvaluatePromotions = request.EvaluatePromotions,
             };
 
             var response = await _mediator.Send(productsQuery);

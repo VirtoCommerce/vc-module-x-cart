@@ -128,7 +128,7 @@ namespace VirtoCommerce.XCart.Core
             lineItem.ListPrice = _items.Select(x => x.Item).Sum(x => x.ListPrice * x.Quantity) + configurableProductPrice.ListPrice.Amount;
             lineItem.SalePrice = _items.Select(x => x.Item).Sum(x => x.SalePrice * x.Quantity) + configurableProductPrice.SalePrice.Amount;
 
-            lineItem.DiscountAmount = Math.Max(0, lineItem.ListPrice - lineItem.SalePrice);
+            lineItem.DiscountAmount = configurableProductPrice.DiscountAmount.Amount;
             lineItem.PlacedPrice = lineItem.ListPrice - lineItem.DiscountAmount;
             lineItem.ExtendedPrice = lineItem.PlacedPrice * lineItem.Quantity;
         }
