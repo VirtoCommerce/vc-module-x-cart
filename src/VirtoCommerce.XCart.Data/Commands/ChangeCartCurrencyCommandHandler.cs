@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,7 +21,8 @@ namespace VirtoCommerce.XCart.Data.Commands
         public override async Task<CartAggregate> Handle(ChangeCartCurrencyCommand request, CancellationToken cancellationToken)
         {
             // get (or create) both carts
-            var currentCurrencyCartAggregate = await GetOrCreateCartFromCommandAsync(request);
+            var currentCurrencyCartAggregate = await GetOrCreateCartFromCommandAsync(request)
+                ?? throw new OperationCanceledException("Cart not found");
 
             var newCurrencyCartRequest = new ChangeCartCurrencyCommand
             {
