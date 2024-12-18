@@ -1,8 +1,9 @@
 using GraphQL.Types;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
-    public class InputRemoveCartType : InputObjectGraphType
+    public class InputRemoveCartType : ExtendableInputGraphType
     {
         public InputRemoveCartType()
         {

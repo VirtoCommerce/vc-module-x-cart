@@ -1,8 +1,9 @@
 using GraphQL.Types;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.XPurchase.Schemas
 {
-    public class InputCreateWishlistType : InputObjectGraphType
+    public class InputCreateWishlistType : ExtendableInputGraphType
     {
         public InputCreateWishlistType()
         {

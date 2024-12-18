@@ -6,7 +6,7 @@ using VirtoCommerce.XCart.Core.Extensions;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
-    public class PaymentMethodType : ObjectGraphType<PaymentMethod>
+    public class PaymentMethodType : ExtendableGraphType<PaymentMethod>
     {
         public PaymentMethodType()
         {

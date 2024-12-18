@@ -1,9 +1,10 @@
 using GraphQL.Types;
+using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
-    public class ValidationErrorType : ObjectGraphType<CartValidationError>
+    public class ValidationErrorType : ExtendableGraphType<CartValidationError>
     {
         public ValidationErrorType()
         {

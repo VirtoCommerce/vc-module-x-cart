@@ -6,7 +6,7 @@ using VirtoCommerce.XCart.Core.Extensions;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
-    public class ShippingMethodType : ObjectGraphType<ShippingRate>
+    public class ShippingMethodType : ExtendableGraphType<ShippingRate>
     {
         public ShippingMethodType()
         {

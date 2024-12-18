@@ -1,8 +1,9 @@
 using GraphQL.Types;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
-    public class InputUpdateWishlistLineItemType : InputObjectGraphType
+    public class InputUpdateWishlistLineItemType : ExtendableInputGraphType
     {
         public InputUpdateWishlistLineItemType()
         {

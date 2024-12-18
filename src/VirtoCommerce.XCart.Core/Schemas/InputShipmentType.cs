@@ -4,7 +4,7 @@ using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
-    public class InputShipmentType : InputObjectGraphType<ExpCartShipment>
+    public class InputShipmentType : ExtendableInputGraphType<ExpCartShipment>
     {
         public InputShipmentType()
         {

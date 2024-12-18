@@ -1,9 +1,10 @@
 using GraphQL.Types;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
-    public class CartAddressType : ObjectGraphType<Address>
+    public class CartAddressType : ExtendableGraphType<Address>
     {
         public CartAddressType()
         {

@@ -4,7 +4,7 @@ using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
-    public class InputPaymentType : InputObjectGraphType<ExpCartPayment>
+    public class InputPaymentType : ExtendableInputGraphType<ExpCartPayment>
     {
         public InputPaymentType()
         {

@@ -6,7 +6,7 @@ using VirtoCommerce.XCart.Core.Extensions;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
-    public class TaxDetailType : ObjectGraphType<TaxDetail>
+    public class TaxDetailType : ExtendableGraphType<TaxDetail>
     {
         public TaxDetailType()
         {

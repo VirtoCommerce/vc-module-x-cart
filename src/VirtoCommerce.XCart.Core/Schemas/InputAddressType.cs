@@ -1,20 +1,21 @@
 using GraphQL.Types;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
-    public class InputAddressType : InputObjectGraphType<ExpCartAddress>
+    public class InputAddressType : ExtendableInputGraphType<ExpCartAddress>
     {
         public InputAddressType()
         {
-            Field<StringGraphType>("id", resolve: context => context.Source.Key, description: "ID");
+            Field(x => x.Id, nullable: true).Description("ID");
+            Field(x => x.Key, nullable: true).Description("ID");
             Field(x => x.City, nullable: true).Description("City");
             Field(x => x.CountryCode, nullable: true).Description("Country code");
             Field(x => x.CountryName, nullable: true).Description("Country");
             Field(x => x.Email, nullable: true).Description("Email");
             Field(x => x.FirstName, nullable: true).Description("First name");
-            Field(x => x.Key, nullable: true).Description("ID");
             Field(x => x.LastName, nullable: true).Description("Last name");
             Field(x => x.Line1, nullable: true).Description("Line1");
             Field(x => x.Line2, nullable: true).Description("Line2");
