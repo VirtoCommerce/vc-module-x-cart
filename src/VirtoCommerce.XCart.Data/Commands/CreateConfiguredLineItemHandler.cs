@@ -28,8 +28,9 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
         var productsRequest = container.GetCartProductsRequest();
         productsRequest.ProductIds = new[] { request.ConfigurableProductId };
+        productsRequest.EvaluatePromotions = request.EvaluatePromotions;
 
-        var product = (await _cartProductService.GetCartProductsByIdsAsync(productsRequest)).FirstOrDefault();
+        var product = (await _cartProductService.GetCartProductsAsync(productsRequest)).FirstOrDefault();
         if (product == null)
         {
             throw new OperationCanceledException($"Product with id {request.ConfigurableProductId} not found");
@@ -45,7 +46,9 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
         productsRequest.ProductIds = selectedProductIds;
         productsRequest.LoadInventory = false;
-        var products = await _cartProductService.GetCartProductsByIdsAsync(productsRequest);
+        productsRequest.EvaluatePromotions = false; // don't need to evaluate promotions for the selected products
+
+        var products = await _cartProductService.GetCartProductsAsync(productsRequest);
 
         foreach (var section in request.ConfigurationSections)
         {

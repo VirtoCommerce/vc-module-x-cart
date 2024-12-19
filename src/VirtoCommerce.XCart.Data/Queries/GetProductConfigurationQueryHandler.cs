@@ -46,7 +46,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
 
         var productsRequest = container.GetCartProductsRequest();
         productsRequest.ProductIds = allProductIds;
-        var cartProducts = await _cartProductService.GetCartProductsByIdsAsync(productsRequest);
+        var cartProducts = await _cartProductService.GetCartProductsAsync(productsRequest);
 
         var productByIds = cartProducts.ToDictionary(x => x.Product.Id, x => x);
 
