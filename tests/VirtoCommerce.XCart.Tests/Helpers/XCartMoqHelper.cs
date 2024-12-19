@@ -6,6 +6,7 @@ using Bogus;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Services;
+using VirtoCommerce.CartModule.Data.Services;
 using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
@@ -226,13 +227,11 @@ namespace VirtoCommerce.XCart.Tests.Helpers
             return newCartItem;
         }
 
-        protected CartAggregate GetValidCartAggregate()
+        protected CartAggregate GetValidCartAggregate(ShoppingCart cart = null, Currency currency = null)
         {
-            var cart = GetCart();
-
             var aggregate = new CartAggregate(
                 _marketingPromoEvaluatorMock.Object,
-                _shoppingCartTotalsCalculatorMock.Object,
+                GeTotalsCalculator(currency),
                 _taxProviderSearchServiceMock.Object,
                 _cartProductServiceMock.Object,
                 _dynamicPropertyUpdaterService.Object,
@@ -240,9 +239,31 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 _memberService.Object,
                 _genericPipelineLauncherMock.Object);
 
-            aggregate.GrabCart(cart, new Store(), GetMember(), GetCurrency());
+            aggregate.GrabCart(cart ?? GetCart(), new Store(), GetMember(), currency ?? GetCurrency());
 
             return aggregate;
+        }
+
+        private IShoppingCartTotalsCalculator GeTotalsCalculator(Currency currency)
+        {
+            IShoppingCartTotalsCalculator totalsCalculator;
+
+            if (currency != null)
+            {
+                var currencyServiceMock = new Mock<ICurrencyService>();
+
+                currencyServiceMock
+                    .Setup(x => x.GetAllCurrenciesAsync())
+                    .ReturnsAsync([currency]);
+
+                totalsCalculator = new DefaultShoppingCartTotalsCalculator(currencyServiceMock.Object);
+            }
+            else
+            {
+                totalsCalculator = _shoppingCartTotalsCalculatorMock.Object;
+            }
+
+            return totalsCalculator;
         }
     }
 }

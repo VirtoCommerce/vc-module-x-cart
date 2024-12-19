@@ -144,6 +144,15 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<NonNullGraphType<MoneyType>>("listPriceWithTax",
                 "List price with tax",
                 resolve: context => context.Source.ListPriceWithTax.ToMoney(context.GetCart().Currency));
+            Field<NonNullGraphType<MoneyType>>("listTotal",
+                "List total",
+                resolve: context => context.Source.ListTotal.ToMoney(context.GetCart().Currency));
+            Field<NonNullGraphType<MoneyType>>("listTotalWithTax",
+                "List total with tax",
+                resolve: context => context.Source.ListTotalWithTax.ToMoney(context.GetCart().Currency));
+            Field<NonNullGraphType<BooleanGraphType>>("showPlacedPrice",
+                "Indicates whether the PlacedPrice should be visible to the customer",
+                resolve: context => context.Source.IsDiscountAmountRounded);
             Field<NonNullGraphType<MoneyType>>("placedPrice",
                 "Placed price",
                 resolve: context => context.Source.PlacedPrice.ToMoney(context.GetCart().Currency));
