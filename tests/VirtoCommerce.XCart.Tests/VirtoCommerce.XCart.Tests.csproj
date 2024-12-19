@@ -12,7 +12,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="Moq" Version="4.20.72" />
-    <PackageReference Include="VirtoCommerce.CartModule.Data" Version="3.823.0-alpha.718-vcst-2305" />
+    <PackageReference Include="VirtoCommerce.CartModule.Data" Version="3.823.0" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
       <PrivateAssets>all</PrivateAssets>
