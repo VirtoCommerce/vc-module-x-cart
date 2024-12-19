@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
 using VirtoCommerce.CartModule.Core.Model;
-using VirtoCommerce.CatalogModule.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.XCart.Core;
@@ -18,20 +16,14 @@ namespace VirtoCommerce.XCart.Data.Commands
 {
     public class ChangeCartCurrencyCommandHandler : CartCommandHandler<ChangeCartCurrencyCommand>
     {
-        private readonly IProductConfigurationSearchService _productConfigurationSearchService;
         private readonly ICartProductService _cartProductService;
-        private readonly IMediator _mediator;
 
         public ChangeCartCurrencyCommandHandler(
             ICartAggregateRepository cartAggregateRepository,
-            IProductConfigurationSearchService productConfigurationSearchService,
-            ICartProductService cartProductService,
-            IMediator mediator)
+            ICartProductService cartProductService)
             : base(cartAggregateRepository)
         {
-            _productConfigurationSearchService = productConfigurationSearchService;
             _cartProductService = cartProductService;
-            _mediator = mediator;
         }
 
         public override async Task<CartAggregate> Handle(ChangeCartCurrencyCommand request, CancellationToken cancellationToken)
@@ -119,11 +111,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                 contaner.Currency = newCurrencyCartAggregate.Currency;
                 contaner.Store = newCurrencyCartAggregate.Store;
 
-                var configurableProduct = configProducts.FirstOrDefault(x => x.Product.Id == configurationLineItem.ProductId);
-                if (configurableProduct != null)
-                {
-                    contaner.ConfigurableProduct = configurableProduct;
-                }
+                contaner.ConfigurableProduct = configProducts.FirstOrDefault(x => x.Product.Id == configurationLineItem.ProductId);
 
                 foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
                 {
@@ -136,9 +124,9 @@ namespace VirtoCommerce.XCart.Data.Commands
 
                 var expItem = contaner.CreateConfiguredLineItem(configurationLineItem.Quantity);
 
-                await newCurrencyCartAggregate.AddConfiguredItemAsync(new NewCartItem(configurableProduct.Id, configurationLineItem.Quantity)
+                await newCurrencyCartAggregate.AddConfiguredItemAsync(new NewCartItem(configurationLineItem.ProductId, configurationLineItem.Quantity)
                 {
-                    CartProduct = configurableProduct,
+                    CartProduct = contaner.ConfigurableProduct,
                     IgnoreValidationErrors = true,
                     Comment = configurationLineItem.Note,
                     IsSelectedForCheckout = configurationLineItem.SelectedForCheckout,
