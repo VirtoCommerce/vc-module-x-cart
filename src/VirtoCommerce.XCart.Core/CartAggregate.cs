@@ -180,25 +180,27 @@ namespace VirtoCommerce.XCart.Core
 
             EnsureCartExists();
 
-            if (newCartItem.CartProduct != null)
+            if (newCartItem.CartProduct == null)
             {
-                CartProducts[newCartItem.CartProduct.Id] = newCartItem.CartProduct;
-
-                newConfiguredItem.Id = null;
-                newConfiguredItem.SelectedForCheckout = IsSelectedForCheckout;
-                newConfiguredItem.Quantity = newCartItem.Quantity;
-                newConfiguredItem.Note = newCartItem.Comment;
-
-                Cart.Items.Add(newConfiguredItem);
-
-                if (newCartItem.DynamicProperties != null)
-                {
-                    await UpdateCartItemDynamicProperties(newConfiguredItem, newCartItem.DynamicProperties);
-                }
-
-                await SetItemFulfillmentCenterAsync(newConfiguredItem, newCartItem.CartProduct);
-                await UpdateVendor(newConfiguredItem, newCartItem.CartProduct);
+                return this;
             }
+
+            CartProducts[newCartItem.CartProduct.Id] = newCartItem.CartProduct;
+
+            newConfiguredItem.Id = null;
+            newConfiguredItem.SelectedForCheckout = IsSelectedForCheckout;
+            newConfiguredItem.Quantity = newCartItem.Quantity;
+            newConfiguredItem.Note = newCartItem.Comment;
+
+            Cart.Items.Add(newConfiguredItem);
+
+            if (newCartItem.DynamicProperties != null)
+            {
+                await UpdateCartItemDynamicProperties(newConfiguredItem, newCartItem.DynamicProperties);
+            }
+
+            await SetItemFulfillmentCenterAsync(newConfiguredItem, newCartItem.CartProduct);
+            await UpdateVendor(newConfiguredItem, newCartItem.CartProduct);
 
             return this;
         }
@@ -1161,6 +1163,7 @@ namespace VirtoCommerce.XCart.Core
             foreach (var configurationLineItem in configuredItems)
             {
                 var contaner = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
+                contaner.Currency = Currency;
 
                 if (CartProducts.TryGetValue(configurationLineItem.ProductId, out var configurableProduct))
                 {
