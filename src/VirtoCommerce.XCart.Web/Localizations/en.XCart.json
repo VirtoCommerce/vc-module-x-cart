@@ -1,8 +1,8 @@
 {
   "permissions": {
-    "XCart:create": "Create XCart related data",
-    "XCart:read": "View XCart related data",
-    "XCart:update": "Update XCart related data",
-    "XCart:delete": "Delete XCart related data"
+    "XCart:create": "Create xCart related data",
+    "XCart:read": "View xCart related data",
+    "XCart:update": "Update xCart related data",
+    "XCart:delete": "Delete xCart related data"
   }
 }
