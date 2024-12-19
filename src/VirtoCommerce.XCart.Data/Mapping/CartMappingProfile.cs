@@ -151,6 +151,38 @@ namespace VirtoCommerce.XCart.Data.Mapping
                 return priceEvalContext;
             });
 
+            CreateMap<CartProductsRequest, PriceEvaluationContext>().ConvertUsing((cartAggr, priceEvalContext, context) =>
+            {
+                priceEvalContext = AbstractTypeFactory<PriceEvaluationContext>.TryCreateInstance();
+                priceEvalContext.Language = cartAggr.CultureName;
+                priceEvalContext.StoreId = cartAggr.Store.Id;
+                priceEvalContext.CatalogId = cartAggr.Store.Catalog;
+                priceEvalContext.Currency = cartAggr.Currency.Code;
+
+                var contact = cartAggr.Member;
+                if (contact != null)
+                {
+                    priceEvalContext.CustomerId = contact.Id;
+
+                    var address = contact.Addresses.FirstOrDefault(x => x.AddressType == CoreModule.Core.Common.AddressType.Shipping)
+                               ?? contact.Addresses.FirstOrDefault(x => x.AddressType == CoreModule.Core.Common.AddressType.Billing);
+
+                    if (address != null)
+                    {
+                        priceEvalContext.GeoCity = address.City;
+                        priceEvalContext.GeoCountry = address.CountryCode;
+                        priceEvalContext.GeoState = address.RegionName;
+                        priceEvalContext.GeoZipCode = address.PostalCode;
+                    }
+                    if (contact.Groups != null)
+                    {
+                        priceEvalContext.UserGroups = contact.Groups.ToArray();
+                    }
+                }
+
+                return priceEvalContext;
+            });
+
             CreateMap<LineItem, ProductPromoEntry>()
                 .ConvertUsing((lineItem, productPromoEntry, context) =>
                 {

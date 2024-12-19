@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
+using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Commands
 {
@@ -23,5 +24,10 @@ namespace VirtoCommerce.XCart.Core.Commands
         /// Dynamic properties
         /// </summary>
         public IList<DynamicPropertyValue> DynamicProperties { get; set; }
+
+        /// <summary>
+        /// Configurable product sections
+        /// </summary>
+        public IList<ProductConfigurationSection> ConfigurationSections { get; set; }
     }
 }

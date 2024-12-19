@@ -17,6 +17,9 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 "Comment");
 
             Field<ListGraphType<InputDynamicPropertyValueType>>("dynamicProperties");
+
+            // Configurable product support
+            Field<ListGraphType<ConfigurationSectionInput>>("configurationSections");
         }
     }
 }

@@ -290,14 +290,25 @@ namespace VirtoCommerce.XCart.Data.Services
                         aggregate.ValidationWarnings.AddRange(result.Errors);
                     }
 
-                    // update price
-                    aggregate.SetLineItemTierPrice(cartProduct.Price, lineItem.Quantity, lineItem);
+                    // update price for non-configured line items immediately 
+                    if (!lineItem.IsConfigured)
+                    {
+                        aggregate.SetLineItemTierPrice(cartProduct.Price, lineItem.Quantity, lineItem);
+                    }
                 }
+
+                await UpdateConfiguredLineItemPrice(aggregate);
 
                 await aggregate.RecalculateAsync();
 
                 return aggregate;
             }
+        }
+
+        private static async Task UpdateConfiguredLineItemPrice(CartAggregate aggregate)
+        {
+            var configurationLineItems = aggregate.LineItems.Where(x => x.IsConfigured).ToArray();
+            await aggregate.UpdateConfiguredLineItemPrice(configurationLineItems);
         }
     }
 }

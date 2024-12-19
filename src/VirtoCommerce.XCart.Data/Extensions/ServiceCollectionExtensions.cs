@@ -6,6 +6,7 @@ using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Extensions;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Pipelines;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
@@ -24,14 +25,18 @@ namespace VirtoCommerce.XCart.Data.Extensions
         {
             graphQLBuilder.AddSchema(typeof(CoreAssemblyMarker), typeof(DataAssemblyMarker));
 
+            services.AddSingleton<ScopedSchemaFactory<DataAssemblyMarker>>();
+
             services.AddSingleton<IAuthorizationHandler, CanAccessCartAuthorizationHandler>();
             services.AddTransient<ICartAggregateRepository, CartAggregateRepository>();
             services.AddTransient<ICartValidationContextFactory, CartValidationContextFactory>();
             services.AddTransient<ICartAvailMethodsService, CartAvailMethodsService>();
             services.AddTransient<ICartProductService, CartProductService>();
+            services.AddTransient<ICartProductsLoaderService, CartProductService>();
             services.AddSingleton<ICartResponseGroupParser, CartResponseGroupParser>();
             services.AddTransient<CartAggregate>();
             services.AddTransient<Func<CartAggregate>>(provider => () => provider.CreateScope().ServiceProvider.GetRequiredService<CartAggregate>());
+            services.AddTransient<IConfiguredLineItemContainerService, ConfiguredLineItemContainerService>();
 
             services.AddPipeline<SearchProductResponse>(builder =>
             {
