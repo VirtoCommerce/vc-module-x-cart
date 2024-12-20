@@ -11,6 +11,6 @@ namespace VirtoCommerce.XCart.Core.Services
         /// </summary>
         /// <param name="request">Request (cart data to use, product ids)</param>
         /// <returns>List of <see cref="CartProduct"/></returns>
-        Task<IList<CartProduct>> GetCartProductsByIdsAsync(CartProductsRequest request);
+        Task<IList<CartProduct>> GetCartProductsAsync(CartProductsRequest request);
     }
 }
