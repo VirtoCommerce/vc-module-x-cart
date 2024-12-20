@@ -23,6 +23,7 @@ public class CreateConfiguredLineItemBuilder : CommandBuilder<CreateConfiguredLi
     {
         request.UserId = context.GetCurrentUserId();
         request.OrganizationId = context.GetCurrentOrganizationId();
+        request.EvaluatePromotions = true;
 
         return base.BeforeMediatorSend(context, request);
     }
