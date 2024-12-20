@@ -33,5 +33,9 @@ namespace VirtoCommerce.XCart.Core.Models
         public IList<DynamicPropertyValue> DynamicProperties { get; set; }
 
         public bool IsWishlist { get; set; }
+
+        public bool? IsSelectedForCheckout { get; set; }
+
+        public bool IgnoreValidationErrors { get; set; }
     }
 }
