@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "XCart:create": "Criar dados relacionados ao xCart",
+    "XCart:read": "Visualizar dados relacionados ao xCart",
+    "XCart:update": "Atualizar dados relacionados ao xCart",
+    "XCart:delete": "Excluir dados relacionados ao xCart"
+  }
+}

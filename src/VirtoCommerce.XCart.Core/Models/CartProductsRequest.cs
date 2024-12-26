@@ -18,4 +18,5 @@ public class CartProductsRequest
 
     public bool LoadPrice { get; set; } = true;
     public bool LoadInventory { get; set; } = true;
+    public bool EvaluatePromotions { get; set; } = false;
 }
