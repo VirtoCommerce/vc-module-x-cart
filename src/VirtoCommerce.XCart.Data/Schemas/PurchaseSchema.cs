@@ -825,9 +825,8 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             schema.Mutation.AddField(margeCartField);
 
-            var changeCartCurrency = FieldBuilder.Create<CartAggregate, CartAggregate>(GraphTypeExtenstionHelper.GetActualType<CartType>())
-                                 .Name("changeCartCurrency")
-                                 .Argument(GraphTypeExtenstionHelper.GetActualComplexType<NonNullGraphType<InputChangeCartCurrencyType>>(), SchemaConstants.CommandName)
+            var changeCartCurrency = FieldBuilder<CartAggregate, CartAggregate>.Create("changeCartCurrency", GraphTypeExtensionHelper.GetActualType<CartType>())
+                                 .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputChangeCartCurrencyType>>(), SchemaConstants.CommandName)
                                  .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                  {
                                      var cartCommand = context.GetCartCommand<ChangeCartCurrencyCommand>();
