@@ -27,7 +27,8 @@ public class Module : IModule, IHasConfiguration
 
     public void PostInitialize(IApplicationBuilder appBuilder)
     {
-        appBuilder.UseScopedSchema<DataAssemblyMarker>("cart");
+        // disable scoped schema
+        //appBuilder.UseScopedSchema<DataAssemblyMarker>("cart");
     }
 
     public void Uninstall()

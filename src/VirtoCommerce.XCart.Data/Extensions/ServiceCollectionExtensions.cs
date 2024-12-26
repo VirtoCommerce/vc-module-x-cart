@@ -21,7 +21,7 @@ namespace VirtoCommerce.XCart.Data.Extensions
     {
         public static IServiceCollection AddXCart(this IServiceCollection services, IGraphQLBuilder graphQLBuilder)
         {
-            //graphQLBuilder.AddSchema(typeof(CoreAssemblyMarker), typeof(DataAssemblyMarker));
+            // disabled scoped schema
             //services.AddSingleton<ScopedSchemaFactory<DataAssemblyMarker>>();
 
             services.AddSingleton<IAuthorizationHandler, CanAccessCartAuthorizationHandler>();
