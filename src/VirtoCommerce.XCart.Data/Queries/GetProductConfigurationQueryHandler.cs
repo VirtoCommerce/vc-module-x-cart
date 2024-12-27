@@ -50,7 +50,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
 
         var productByIds = cartProducts.ToDictionary(x => x.Product.Id, x => x);
 
-        foreach (var section in configuration.Sections)
+        foreach (var section in configuration.Sections.OrderBy(x => x.DisplayOrder))
         {
             var configurationSection = new ExpProductConfigurationSection
             {
