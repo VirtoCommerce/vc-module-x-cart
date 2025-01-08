@@ -12,9 +12,9 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.Cart.StoreId, nullable: true).Description("Shopping cart store ID");
             Field(x => x.Cart.CustomerId, nullable: true).Description("Shopping cart user ID");
             Field(x => x.Cart.CustomerName, nullable: true).Description("Shopping cart user name");
-            Field<CurrencyType>("currency", "Currency", resolve: context => context.Source.Currency);
+            Field<CurrencyType>("currency").Description("Currency").Resolve(context => context.Source.Currency);
             ExtendableField<ListGraphType<LineItemType>>("items", "Items", resolve: context => context.Source.LineItems);
-            Field<IntGraphType>("itemsCount", "Item count", resolve: context => context.Source.Cart.LineItemsCount);
+            Field<IntGraphType>("itemsCount").Description("Item count").Resolve(context => context.Source.Cart.LineItemsCount);
             ExtendableField<WishlistScopeType>(nameof(CartAggregate.Scope), "Wishlist scope", resolve: context => context.Source.Scope);
             Field(x => x.Cart.Description, nullable: true).Description("Wishlist description");
             Field(x => x.Cart.ModifiedDate, nullable: true).Description("Wishlist modified date");

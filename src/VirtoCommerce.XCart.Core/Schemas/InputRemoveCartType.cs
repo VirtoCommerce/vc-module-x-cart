@@ -1,14 +1,13 @@
 using GraphQL.Types;
-using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
-    public class InputRemoveCartType : ExtendableInputGraphType
+    public class InputRemoveCartType : InputObjectGraphType
     {
         public InputRemoveCartType()
         {
-            Field<NonNullGraphType<StringGraphType>>("cartId", "Cart Id");
-            Field<NonNullGraphType<StringGraphType>>("userId", "User Id");
+            Field<NonNullGraphType<StringGraphType>>("cartId").Description("Cart Id");
+            Field<NonNullGraphType<StringGraphType>>("userId").Description("User Id");
         }
     }
 }

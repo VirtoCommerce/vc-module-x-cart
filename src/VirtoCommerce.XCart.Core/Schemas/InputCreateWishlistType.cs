@@ -1,19 +1,18 @@
 using GraphQL.Types;
-using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.XPurchase.Schemas
 {
-    public class InputCreateWishlistType : ExtendableInputGraphType
+    public class InputCreateWishlistType : InputObjectGraphType
     {
         public InputCreateWishlistType()
         {
-            Field<NonNullGraphType<StringGraphType>>("storeId", description: "Store ID");
-            Field<NonNullGraphType<StringGraphType>>("userId", description: "Owner ID");
-            Field<StringGraphType>("listName", description: "List name");
-            Field<StringGraphType>("cultureName", description: "Culture name");
-            Field<StringGraphType>("currencyCode", description: "Currency code");
-            Field<StringGraphType>("scope", description: "List scope (private or organization)");
-            Field<StringGraphType>("description", description: "List description");
+            Field<NonNullGraphType<StringGraphType>>("storeId").Description("Store ID");
+            Field<NonNullGraphType<StringGraphType>>("userId").Description("Owner ID");
+            Field<StringGraphType>("listName").Description("List name");
+            Field<StringGraphType>("cultureName").Description("Culture name");
+            Field<StringGraphType>("currencyCode").Description("Currency code");
+            Field<StringGraphType>("scope").Description("List scope (private or organization)");
+            Field<StringGraphType>("description").Description("List description");
         }
     }
 }

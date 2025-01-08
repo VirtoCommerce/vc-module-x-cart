@@ -8,8 +8,7 @@ public class ConfigurationQueryResponseType : ExtendableGraphType<ProductConfigu
 {
     public ConfigurationQueryResponseType()
     {
-        Field<ListGraphType<ConfigurationSectionType>>(
-            nameof(ProductConfigurationQueryResponse.ConfigurationSections),
-            resolve: context => context.Source.ConfigurationSections);
+        Field<ListGraphType<ConfigurationSectionType>>(nameof(ProductConfigurationQueryResponse.ConfigurationSections))
+            .Resolve(context => context.Source.ConfigurationSections);
     }
 }

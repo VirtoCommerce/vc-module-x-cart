@@ -6,8 +6,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputAddOrUpdateCartPaymentType()
         {
-            Field<NonNullGraphType<InputPaymentType>>("payment",
-                "Payment");
+            Field<NonNullGraphType<InputPaymentType>>("payment")
+                .Description("Payment");
         }
     }
 }

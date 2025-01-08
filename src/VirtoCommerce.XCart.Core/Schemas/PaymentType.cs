@@ -21,44 +21,44 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.OuterId, nullable: true).Description("Value of payment outer id");
             Field(x => x.PaymentGatewayCode, nullable: true).Description("Value of payment gateway code");
             Field(x => x.Purpose, nullable: true);
-            Field<NonNullGraphType<CurrencyType>>("currency",
-                "Currency",
-                resolve: context => context.GetCart().Currency);
-            Field<NonNullGraphType<MoneyType>>("amount",
-                "Amount",
-                resolve: context => context.Source.Amount.ToMoney(context.GetCart().Currency));
+            Field<NonNullGraphType<CurrencyType>>("currency")
+                .Description("Currency")
+                .Resolve(context => context.GetCart().Currency);
+            Field<NonNullGraphType<MoneyType>>("amount")
+                .Description("Amount")
+                .Resolve(context => context.Source.Amount.ToMoney(context.GetCart().Currency));
             ExtendableField<CartAddressType>("billingAddress",
                 "Billing address",
                 resolve: context => context.Source.BillingAddress);
-            Field<NonNullGraphType<MoneyType>>("price",
-                "Price",
-                resolve: context => context.Source.Price.ToMoney(context.GetCart().Currency));
-            Field<NonNullGraphType<MoneyType>>("priceWithTax",
-                "Price with tax",
-                resolve: context => context.Source.PriceWithTax.ToMoney(context.GetCart().Currency));
-            Field<NonNullGraphType<MoneyType>>("total",
-                "Total",
-                resolve: context => context.Source.Total.ToMoney(context.GetCart().Currency));
-            Field<NonNullGraphType<MoneyType>>("totalWithTax",
-                "Total with tax",
-                resolve: context => context.Source.TotalWithTax.ToMoney(context.GetCart().Currency));
-            Field<NonNullGraphType<MoneyType>>("discountAmount",
-                "Discount amount",
-                resolve: context => context.Source.DiscountAmount.ToMoney(context.GetCart().Currency));
-            Field<NonNullGraphType<MoneyType>>("discountAmountWithTax",
-                "Discount amount with tax",
-                resolve: context => context.Source.DiscountAmountWithTax.ToMoney(context.GetCart().Currency));
-            Field<NonNullGraphType<MoneyType>>("taxTotal",
-                "Tax total",
-                resolve: context => context.Source.TaxTotal.ToMoney(context.GetCart().Currency));
+            Field<NonNullGraphType<MoneyType>>("price")
+                .Description("Price")
+                .Resolve(context => context.Source.Price.ToMoney(context.GetCart().Currency));
+            Field<NonNullGraphType<MoneyType>>("priceWithTax")
+                .Description("Price with tax")
+                .Resolve(context => context.Source.PriceWithTax.ToMoney(context.GetCart().Currency));
+            Field<NonNullGraphType<MoneyType>>("total")
+                .Description("Total")
+                .Resolve(context => context.Source.Total.ToMoney(context.GetCart().Currency));
+            Field<NonNullGraphType<MoneyType>>("totalWithTax")
+                .Description("Total with tax")
+                .Resolve(context => context.Source.TotalWithTax.ToMoney(context.GetCart().Currency));
+            Field<NonNullGraphType<MoneyType>>("discountAmount")
+                .Description("Discount amount")
+                .Resolve(context => context.Source.DiscountAmount.ToMoney(context.GetCart().Currency));
+            Field<NonNullGraphType<MoneyType>>("discountAmountWithTax")
+                .Description("Discount amount with tax")
+                .Resolve(context => context.Source.DiscountAmountWithTax.ToMoney(context.GetCart().Currency));
+            Field<NonNullGraphType<MoneyType>>("taxTotal")
+                .Description("Tax total")
+                .Resolve(context => context.Source.TaxTotal.ToMoney(context.GetCart().Currency));
             Field(x => x.TaxPercentRate, nullable: false).Description("Tax percent rate");
             Field(x => x.TaxType, nullable: true).Description("Tax type");
-            Field<NonNullGraphType<ListGraphType<NonNullGraphType<TaxDetailType>>>>("taxDetails",
-                "Tax details",
-                resolve: context => context.Source.TaxDetails);
-            Field<NonNullGraphType<ListGraphType<DiscountType>>>("discounts",
-                "Discounts",
-                resolve: context => context.Source.Discounts);
+            Field<NonNullGraphType<ListGraphType<NonNullGraphType<TaxDetailType>>>>("taxDetails")
+                .Description("Tax details")
+                .Resolve(context => context.Source.TaxDetails);
+            Field<NonNullGraphType<ListGraphType<DiscountType>>>("discounts")
+                .Description("Discounts")
+                .Resolve(context => context.Source.Discounts);
             Field(x => x.Comment, nullable: true).Description("Text comment");
 
             var vendorField = new FieldType

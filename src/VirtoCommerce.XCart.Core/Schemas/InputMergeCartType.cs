@@ -6,8 +6,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputMergeCartType()
         {
-            Field<NonNullGraphType<StringGraphType>>("secondCartId", "Second cart Id");
-            Field<BooleanGraphType>("deleteAfterMerge", "Delete second cart after merge");
+            Field<NonNullGraphType<StringGraphType>>("secondCartId").Description("Second cart Id");
+            Field<BooleanGraphType>("deleteAfterMerge").Description("Delete second cart after merge");
         }
     }
 }

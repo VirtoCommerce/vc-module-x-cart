@@ -1,16 +1,15 @@
 using GraphQL.Types;
-using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
-    public class InputCartShipmentItemType : ExtendableInputGraphType
+    public class InputCartShipmentItemType : InputObjectGraphType
     {
         public InputCartShipmentItemType()
         {
-            Field<NonNullGraphType<IntGraphType>>("quantity",
-                "Quantity");
-            Field<NonNullGraphType<StringGraphType>>("lineItemId",
-                "Line item ID");
+            Field<NonNullGraphType<IntGraphType>>("quantity")
+                .Description("Quantity");
+            Field<NonNullGraphType<StringGraphType>>("lineItemId")
+                .Description("Line item ID");
         }
     }
 }

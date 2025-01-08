@@ -1,14 +1,13 @@
 using GraphQL.Types;
-using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
-    public class InputRemoveWishlistItemsType : ExtendableInputGraphType
+    public class InputRemoveWishlistItemsType : InputObjectGraphType
     {
         public InputRemoveWishlistItemsType()
         {
-            Field<NonNullGraphType<StringGraphType>>("listId", description: "List ID");
-            Field<NonNullGraphType<ListGraphType<NonNullGraphType<StringGraphType>>>>("lineItemIds", "Line item IDs to remove");
+            Field<NonNullGraphType<StringGraphType>>("listId").Description("List ID");
+            Field<NonNullGraphType<ListGraphType<NonNullGraphType<StringGraphType>>>>("lineItemIds").Description("Line item IDs to remove");
         }
     }
 }
