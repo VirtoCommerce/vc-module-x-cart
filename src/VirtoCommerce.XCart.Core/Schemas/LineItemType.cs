@@ -170,11 +170,11 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 .Description("Tax total")
                 .Resolve(context => context.Source.TaxTotal.ToMoney(context.GetCart().Currency));
 
-            ExtendableField<ListGraphType<DynamicPropertyValueType>>(
+            ExtendableFieldAsync<ListGraphType<DynamicPropertyValueType>>(
                 "dynamicProperties",
                 "Cart line item dynamic property values",
                 QueryArgumentPresets.GetArgumentForDynamicProperties(),
-                context => dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source, context.GetArgumentOrValue<string>("cultureName")));
+                async context => await dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source, context.GetArgumentOrValue<string>("cultureName")));
 
             var vendorField = new FieldType
             {
