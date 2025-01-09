@@ -6,8 +6,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputRenameWishlistType()
         {
-            Field<NonNullGraphType<StringGraphType>>("listId", description: "List ID");
-            Field<StringGraphType>("listName", description: "New List name");
+            Field<NonNullGraphType<StringGraphType>>("listId").Description("List ID");
+            Field<StringGraphType>("listName").Description("New List name");
         }
     }
 }

@@ -1,4 +1,5 @@
 using System.Linq;
+using GraphQL;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
 using GraphQL.Types;
@@ -32,7 +33,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             {
                 Name = "id",
                 Description = "Artificial ID for this value object",
-                Type = GraphTypeExtenstionHelper.GetActualType<NonNullGraphType<StringGraphType>>(),
+                Type = GraphTypeExtensionHelper.GetActualType<NonNullGraphType<StringGraphType>>(),
                 Resolver = new FuncFieldResolver<GiftItem, string>(context =>
                 {
                     // CacheKey as Id. CacheKey is determined by the values returned form GetEqualityComponents().
@@ -43,7 +44,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             AddField(new FieldType
             {
                 Name = "product",
-                Type = GraphTypeExtenstionHelper.GetActualType<ProductType>(),
+                Type = GraphTypeExtensionHelper.GetActualType<ProductType>(),
                 Resolver = new FuncFieldResolver<GiftItem, IDataLoaderResult<ExpProduct>>(context =>
                 {
                     if (context.Source.ProductId.IsNullOrEmpty())

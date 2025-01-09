@@ -6,7 +6,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputChangeCartItemsQuantityType()
         {
-            Field<NonNullGraphType<ListGraphType<InputCartItemQuantityType>>>("cartItems", "Cart items");
+            Field<NonNullGraphType<ListGraphType<InputCartItemQuantityType>>>("cartItems").Description("Cart items");
         }
     }
 }

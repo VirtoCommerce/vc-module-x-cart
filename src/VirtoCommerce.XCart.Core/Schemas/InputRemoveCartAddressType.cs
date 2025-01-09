@@ -6,8 +6,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputRemoveCartAddressType()
         {
-            Field<NonNullGraphType<StringGraphType>>("addressId",
-                "Address Id");
+            Field<NonNullGraphType<StringGraphType>>("addressId")
+                .Description("Address Id");
         }
     }
 }

@@ -6,9 +6,9 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputChangeCartConfiguredItemType()
         {
-            Field<NonNullGraphType<StringGraphType>>("lineItemId", "Line item Id");
-            Field<IntGraphType>("quantity", "Quantity");
-            Field<ListGraphType<ConfigurationSectionInput>>("configurationSections", "Configuration sections");
+            Field<NonNullGraphType<StringGraphType>>("lineItemId").Description("Line item Id");
+            Field<IntGraphType>("quantity").Description("Quantity");
+            Field<ListGraphType<ConfigurationSectionInput>>("configurationSections").Description("Configuration sections");
         }
     }
 }

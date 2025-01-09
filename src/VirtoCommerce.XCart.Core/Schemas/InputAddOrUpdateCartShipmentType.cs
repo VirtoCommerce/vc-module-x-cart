@@ -6,8 +6,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputAddOrUpdateCartShipmentType()
         {
-            Field<NonNullGraphType<InputShipmentType>>("shipment",
-                "Shipment");
+            Field<NonNullGraphType<InputShipmentType>>("shipment")
+                .Description("Shipment");
         }
     }
 }

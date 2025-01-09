@@ -6,10 +6,10 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputCartShipmentItemType()
         {
-            Field<NonNullGraphType<IntGraphType>>("quantity",
-                "Quantity");
-            Field<NonNullGraphType<StringGraphType>>("lineItemId",
-                "Line item ID");
+            Field<NonNullGraphType<IntGraphType>>("quantity")
+                .Description("Quantity");
+            Field<NonNullGraphType<StringGraphType>>("lineItemId")
+                .Description("Line item ID");
         }
     }
 }

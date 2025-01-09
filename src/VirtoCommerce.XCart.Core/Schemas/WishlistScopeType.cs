@@ -6,8 +6,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public WishlistScopeType()
         {
-            AddValue(ModuleConstants.PrivateScope, value: ModuleConstants.PrivateScope, description: "Private scope");
-            AddValue(ModuleConstants.OrganizationScope, value: ModuleConstants.OrganizationScope, description: "Organization scope");
+            Add(ModuleConstants.PrivateScope, value: ModuleConstants.PrivateScope, description: "Private scope");
+            Add(ModuleConstants.OrganizationScope, value: ModuleConstants.OrganizationScope, description: "Organization scope");
         }
     }
 }

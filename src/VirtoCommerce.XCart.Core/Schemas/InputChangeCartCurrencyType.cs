@@ -6,7 +6,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputChangeCartCurrencyType()
         {
-            Field<NonNullGraphType<StringGraphType>>("newCurrencyCode", "Second cart currency");
+            Field<NonNullGraphType<StringGraphType>>("newCurrencyCode").Description("Second cart currency");
         }
     }
 }

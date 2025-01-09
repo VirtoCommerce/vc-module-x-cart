@@ -19,8 +19,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.VendorId, nullable: true);
             Field(x => x.Comment, nullable: true).Description("Text comment");
 
-            Field<ListGraphType<InputDynamicPropertyValueType>>("dynamicProperties",
-                "Dynamic properties");
+            Field<ListGraphType<InputDynamicPropertyValueType>>("dynamicProperties")
+                .Description("Dynamic properties");
         }
     }
 }

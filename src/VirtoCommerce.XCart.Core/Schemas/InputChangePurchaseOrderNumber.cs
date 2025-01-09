@@ -6,7 +6,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputChangePurchaseOrderNumber()
         {
-            Field<StringGraphType>("purchaseOrderNumber", "Purchase Order Number");
+            Field<StringGraphType>("purchaseOrderNumber").Description("Purchase Order Number");
         }
     }
 }

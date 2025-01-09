@@ -6,8 +6,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputChangeCommentType()
         {
-            Field<StringGraphType>("comment",
-                "Comment");
+            Field<StringGraphType>("comment")
+                .Description("Comment");
         }
     }
 }

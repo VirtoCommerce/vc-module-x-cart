@@ -7,10 +7,10 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputUpdateCartItemDynamicPropertiesType()
         {
-            Field<NonNullGraphType<StringGraphType>>("lineItemId",
-                "Line item Id");
-            Field<NonNullGraphType<ListGraphType<InputDynamicPropertyValueType>>>("dynamicProperties",
-                "Dynamic properties");
+            Field<NonNullGraphType<StringGraphType>>("lineItemId")
+                .Description("Line item Id");
+            Field<NonNullGraphType<ListGraphType<InputDynamicPropertyValueType>>>("dynamicProperties")
+                .Description("Dynamic properties");
         }
     }
 }

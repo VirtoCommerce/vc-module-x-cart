@@ -6,8 +6,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputRemoveShipmentType()
         {
-            Field<StringGraphType>("shipmentId",
-                "Shipment Id");
+            Field<StringGraphType>("shipmentId")
+                .Description("Shipment Id");
         }
     }
 }

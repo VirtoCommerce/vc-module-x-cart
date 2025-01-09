@@ -6,7 +6,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputChangeCartItemsSelectedType()
         {
-            Field<ListGraphType<StringGraphType>>("lineItemIds", "List of line item Ids");
+            Field<ListGraphType<StringGraphType>>("lineItemIds").Description("List of line item Ids");
         }
     }
 }

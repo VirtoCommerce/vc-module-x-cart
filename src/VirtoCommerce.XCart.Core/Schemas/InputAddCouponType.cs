@@ -6,8 +6,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputAddCouponType()
         {
-            Field<NonNullGraphType<StringGraphType>>("couponCode",
-                "Coupon code");
+            Field<NonNullGraphType<StringGraphType>>("couponCode")
+                .Description("Coupon code");
         }
     }
 }

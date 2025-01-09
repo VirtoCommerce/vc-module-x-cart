@@ -6,8 +6,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputAddOrUpdateCartAddressType()
         {
-            Field<NonNullGraphType<InputAddressType>>("address",
-                "Address");
+            Field<NonNullGraphType<InputAddressType>>("address")
+                .Description("Address");
         }
     }
 }

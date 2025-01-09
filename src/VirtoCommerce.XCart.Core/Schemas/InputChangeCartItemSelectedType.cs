@@ -6,8 +6,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputChangeCartItemSelectedType()
         {
-            Field<NonNullGraphType<StringGraphType>>("lineItemId", "Line item Id");
-            Field<NonNullGraphType<BooleanGraphType>>("selectedForCheckout", "Is item selected for checkout");
+            Field<NonNullGraphType<StringGraphType>>("lineItemId").Description("Line item Id");
+            Field<NonNullGraphType<BooleanGraphType>>("selectedForCheckout").Description("Is item selected for checkout");
         }
     }
 }

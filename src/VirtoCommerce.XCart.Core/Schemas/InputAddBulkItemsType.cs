@@ -6,7 +6,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputAddBulkItemsType()
         {
-            Field<NonNullGraphType<ListGraphType<InputNewBulkItemType>>>("CartItems", "Bulk cart items");
+            Field<NonNullGraphType<ListGraphType<InputNewBulkItemType>>>("CartItems").Description("Bulk cart items");
         }
     }
 }

@@ -7,7 +7,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
         public InputAddWishlistItemsType()
         {
             Field<NonNullGraphType<StringGraphType>>("listId");
-            Field<NonNullGraphType<ListGraphType<NonNullGraphType<InputNewWishlistItemType>>>>("listItems", "List items");
+            Field<NonNullGraphType<ListGraphType<NonNullGraphType<InputNewWishlistItemType>>>>("listItems").Description("List items");
         }
     }
 }
