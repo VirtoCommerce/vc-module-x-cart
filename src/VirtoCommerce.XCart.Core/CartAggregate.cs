@@ -238,6 +238,11 @@ namespace VirtoCommerce.XCart.Core
             lineItem.SelectedForCheckout = newCartItem.IsSelectedForCheckout ?? IsSelectedForCheckout;
             lineItem.Quantity = newCartItem.Quantity;
 
+            if (newCartItem.CreatedDate != null)
+            {
+                lineItem.CreatedDate = newCartItem.CreatedDate.Value;
+            }
+
             if (newCartItem.Price != null)
             {
                 lineItem.ListPrice = newCartItem.Price.Value;
@@ -1056,6 +1061,8 @@ namespace VirtoCommerce.XCart.Core
             else
             {
                 newLineItem.Id = null;
+                newLineItem.CreatedDate = newLineItem.CreatedDate;
+
                 Cart.Items.Add(newLineItem);
             }
 
