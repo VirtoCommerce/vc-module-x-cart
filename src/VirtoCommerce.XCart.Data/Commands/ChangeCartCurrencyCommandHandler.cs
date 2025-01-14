@@ -66,6 +66,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                     .Select(x => new NewCartItem(x.ProductId, x.Quantity)
                     {
                         IgnoreValidationErrors = true,
+                        CreatedDate = x.CreatedDate,
                         Comment = x.Note,
                         IsSelectedForCheckout = x.SelectedForCheckout,
                         DynamicProperties = x.DynamicProperties.SelectMany(x => x.Values.Select(y => new DynamicPropertyValue()
@@ -128,6 +129,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                 {
                     CartProduct = contaner.ConfigurableProduct,
                     IgnoreValidationErrors = true,
+                    CreatedDate = configurationLineItem.CreatedDate,
                     Comment = configurationLineItem.Note,
                     IsSelectedForCheckout = configurationLineItem.SelectedForCheckout,
                     DynamicProperties = configurationLineItem.DynamicProperties.SelectMany(x => x.Values.Select(y => new DynamicPropertyValue()
