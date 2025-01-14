@@ -1061,8 +1061,6 @@ namespace VirtoCommerce.XCart.Core
             else
             {
                 newLineItem.Id = null;
-                newLineItem.CreatedDate = newLineItem.CreatedDate;
-
                 Cart.Items.Add(newLineItem);
             }
 
