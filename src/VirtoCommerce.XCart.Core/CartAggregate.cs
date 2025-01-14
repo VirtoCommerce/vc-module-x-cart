@@ -192,6 +192,11 @@ namespace VirtoCommerce.XCart.Core
             newConfiguredItem.Quantity = newCartItem.Quantity;
             newConfiguredItem.Note = newCartItem.Comment;
 
+            if (newCartItem.CreatedDate != null)
+            {
+                newConfiguredItem.CreatedDate = newCartItem.CreatedDate.Value;
+            }
+
             Cart.Items.Add(newConfiguredItem);
 
             if (newCartItem.DynamicProperties != null)
