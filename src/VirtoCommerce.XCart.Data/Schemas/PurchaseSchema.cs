@@ -1342,23 +1342,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             schema.Mutation.AddField(changeListField);
 
-            // Rename list
-            var renameListField = FieldBuilder<CartAggregate, CartAggregate>.Create("renameWishlist", GraphTypeExtensionHelper.GetActualType<WishlistType>())
-                                     .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputRenameWishlistType>>(), SchemaConstants.CommandName)
-                                     .ResolveAsync(async context =>
-                                     {
-                                         var commandType = GenericTypeHelper.GetActualType<RenameWishlistCommand>();
-                                         var command = (RenameWishlistCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
-                                         await AuthorizeByListIdAsync(context, command);
-                                         var cartAggregate = await _mediator.Send(command);
-                                         context.SetExpandedObjectGraph(cartAggregate);
-                                         return cartAggregate;
-                                     })
-                                     .DeprecationReason("Obsolete. Use 'changeWishlist' instead.")
-                                     .FieldType;
-
-            schema.Mutation.AddField(renameListField);
-
             // Remove list
             var removeListField = FieldBuilder<CartAggregate, bool>.Create("removeWishlist", typeof(BooleanGraphType))
                          .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputRemoveWishlistType>>(), SchemaConstants.CommandName)
