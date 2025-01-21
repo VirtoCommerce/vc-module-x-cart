@@ -4,5 +4,11 @@
     "XCart:read": "查看与 xCart 相关的数据",
     "XCart:update": "更新与 xCart 相关的数据",
     "XCart:delete": "删除与 xCart 相关的数据"
+  },
+  "settings": {
+    "XPurchase.IsSelectedForCheckout": {
+      "title": "默认“结账选择”状态 (xAPI)",
+      "description": "适用于新商品和礼品。此设置为商店级别"
+    }
   }
 }

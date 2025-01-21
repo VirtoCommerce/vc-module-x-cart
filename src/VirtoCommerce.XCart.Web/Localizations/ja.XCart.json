@@ -4,5 +4,11 @@
     "XCart:read": "xCart 関連データを表示",
     "XCart:update": "xCart 関連データを更新",
     "XCart:delete": "xCart 関連データを削除"
+  },
+  "settings": {
+    "XPurchase.IsSelectedForCheckout": {
+      "title": "デフォルトの「チェックアウト用に選択された」状態 (xAPI)",
+      "description": "新しいアイテムやギフトに適用されます。この設定はストアレベルです"
+    }
   }
 }

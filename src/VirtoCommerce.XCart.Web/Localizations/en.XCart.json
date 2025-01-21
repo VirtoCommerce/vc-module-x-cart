@@ -4,5 +4,11 @@
     "XCart:read": "View xCart related data",
     "XCart:update": "Update xCart related data",
     "XCart:delete": "Delete xCart related data"
+  },
+  "settings": {
+    "XPurchase.IsSelectedForCheckout": {
+      "title": "Default \"Selected for checkout\" state (xAPI)",
+      "description": "For new line items and gifts. This setting is store level"
+    }
   }
 }
