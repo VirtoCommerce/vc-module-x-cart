@@ -6,7 +6,7 @@ using VirtoCommerce.Xapi.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Models
 {
-    public sealed class ExpCartPayment
+    public class ExpCartPayment
     {
         public Optional<string> Id { get; set; }
         public Optional<string> OuterId { get; set; }
@@ -22,7 +22,7 @@ namespace VirtoCommerce.XCart.Core.Models
 
         public IList<DynamicPropertyValue> DynamicProperties { get; set; }
 
-        public Payment MapTo(Payment payment)
+        public virtual Payment MapTo(Payment payment)
         {
             if (payment == null)
             {

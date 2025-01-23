@@ -6,7 +6,7 @@ using VirtoCommerce.Xapi.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Models
 {
-    public sealed class ExpCartShipment
+    public class ExpCartShipment
     {
         public Optional<string> Id { get; set; }
         public Optional<string> FulfillmentCenterId { get; set; }
@@ -27,7 +27,7 @@ namespace VirtoCommerce.XCart.Core.Models
 
         public IList<DynamicPropertyValue> DynamicProperties { get; set; }
 
-        public Shipment MapTo(Shipment shipment)
+        public virtual Shipment MapTo(Shipment shipment)
         {
             if (shipment == null)
             {

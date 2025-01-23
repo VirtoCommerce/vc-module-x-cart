@@ -5,7 +5,7 @@ using Address = VirtoCommerce.CartModule.Core.Model.Address;
 
 namespace VirtoCommerce.XCart.Core.Models
 {
-    public sealed class ExpCartAddress
+    public class ExpCartAddress
     {
         public Optional<string> Key { get; set; }
         public Optional<string> City { get; set; }
@@ -28,7 +28,7 @@ namespace VirtoCommerce.XCart.Core.Models
         public Optional<string> Description { get; set; }
         public Optional<int> AddressType { get; set; }
 
-        public Address MapTo(Address address)
+        public virtual Address MapTo(Address address)
         {
             if (address == null)
             {
