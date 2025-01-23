@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using VirtoCommerce.Xapi.Core.Models;
 
@@ -37,5 +38,10 @@ namespace VirtoCommerce.XCart.Core.Models
         public bool? IsSelectedForCheckout { get; set; }
 
         public bool IgnoreValidationErrors { get; set; }
+
+        /// <summary>
+        /// LineItem created date override
+        /// </summary>
+        public DateTime? CreatedDate { get; set; }
     }
 }

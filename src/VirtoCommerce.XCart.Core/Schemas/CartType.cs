@@ -184,7 +184,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             // Items
             ExtendableField<NonNullGraphType<ListGraphType<NonNullGraphType<LineItemType>>>>("items",
                 "Items",
-                resolve: context => context.Source.LineItems);
+                resolve: context => context.Source.LineItems.OrderByDescending(x => x.CreatedDate));
 
             Field<NonNullGraphType<IntGraphType>>("itemsCount")
                 .Description("Item count")

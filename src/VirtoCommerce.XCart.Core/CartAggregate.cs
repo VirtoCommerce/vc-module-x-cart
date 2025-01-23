@@ -192,6 +192,8 @@ namespace VirtoCommerce.XCart.Core
             newConfiguredItem.Quantity = newCartItem.Quantity;
             newConfiguredItem.Note = newCartItem.Comment;
 
+            await UpdateCreatedDate(newConfiguredItem, newCartItem);
+
             Cart.Items.Add(newConfiguredItem);
 
             if (newCartItem.DynamicProperties != null)
@@ -237,6 +239,8 @@ namespace VirtoCommerce.XCart.Core
             lineItem.Currency ??= Currency.Code;
             lineItem.SelectedForCheckout = newCartItem.IsSelectedForCheckout ?? IsSelectedForCheckout;
             lineItem.Quantity = newCartItem.Quantity;
+
+            await UpdateCreatedDate(lineItem, newCartItem);
 
             if (newCartItem.Price != null)
             {
@@ -918,6 +922,16 @@ namespace VirtoCommerce.XCart.Core
             }
 
             return this;
+        }
+
+        public virtual Task<CartAggregate> UpdateCreatedDate(LineItem lineItem, NewCartItem newCartItem)
+        {
+            if (newCartItem.CreatedDate != null)
+            {
+                lineItem.CreatedDate = newCartItem.CreatedDate.Value;
+            }
+
+            return Task.FromResult(this);
         }
 
         public virtual async Task<CartAggregate> UpdateCartDynamicProperties(IList<DynamicPropertyValue> dynamicProperties)
