@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
@@ -29,5 +30,7 @@ namespace VirtoCommerce.XCart.Core.Commands
         /// Configurable product sections
         /// </summary>
         public IList<ProductConfigurationSection> ConfigurationSections { get; set; }
+
+        public DateTime? CreatedDate { get; set; }
     }
 }
