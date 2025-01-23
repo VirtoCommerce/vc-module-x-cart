@@ -43,6 +43,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                 DynamicProperties = request.DynamicProperties,
                 Price = request.Price,
                 CartProduct = product,
+                CreatedDate = request.CreatedDate,
             };
 
             var configurations = await _productConfigurationSearchService.SearchNoCloneAsync(new ProductConfigurationSearchCriteria
