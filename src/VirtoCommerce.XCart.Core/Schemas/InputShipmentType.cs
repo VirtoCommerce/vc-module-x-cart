@@ -19,15 +19,15 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.Weight, nullable: true).Description("Weight value");
             Field(x => x.WeightUnit, nullable: true).Description("Weight unit value");
             Field(x => x.Width, nullable: true).Description("Width value");
-            Field<InputAddressType>("deliveryAddress",
-                "Delivery address");
+            Field<InputAddressType>("deliveryAddress")
+                .Description("Delivery address");
             Field(x => x.Currency, nullable: true).Description("Currency value");
             Field(x => x.Price, nullable: true).Description("Price value");
             Field(x => x.VendorId, nullable: true).Description("Vendor ID");
             Field(x => x.Comment, nullable: true).Description("Text comment");
 
-            Field<ListGraphType<InputDynamicPropertyValueType>>("dynamicProperties",
-                "Dynamic properties");
+            Field<ListGraphType<InputDynamicPropertyValueType>>("dynamicProperties")
+                .Description("Dynamic properties");
         }
     }
 }

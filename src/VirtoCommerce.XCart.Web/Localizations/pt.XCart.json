@@ -4,5 +4,11 @@
     "XCart:read": "Visualizar dados relacionados ao xCart",
     "XCart:update": "Atualizar dados relacionados ao xCart",
     "XCart:delete": "Excluir dados relacionados ao xCart"
+  },
+  "settings": {
+    "XPurchase.IsSelectedForCheckout": {
+      "title": "Estado padrão \"Selecionado para pagamento\" (xAPI)",
+      "description": "Para novos itens e presentes. Esta configuração é a nível de loja"
+    }
   }
 }

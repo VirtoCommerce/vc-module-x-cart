@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using GraphQL;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
 using GraphQL.Types;
@@ -27,7 +28,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             var productField = new FieldType
             {
                 Name = "product",
-                Type = GraphTypeExtenstionHelper.GetActualType<ProductType>(),
+                Type = GraphTypeExtensionHelper.GetActualType<ProductType>(),
                 Resolver = new FuncFieldResolver<ExpConfigurationLineItem, IDataLoaderResult<ExpProduct>>(context =>
                 {
                     var includeFields = context.SubFields.Values.GetAllNodesPaths(context).ToArray();
@@ -62,25 +63,25 @@ namespace VirtoCommerce.XCart.Core.Schemas
             };
             AddField(productField);
 
-            Field<NonNullGraphType<CurrencyType>>("currency",
-                "Currency",
-                resolve: context => context.Source.Currency);
+            Field<NonNullGraphType<CurrencyType>>("currency")
+                .Description("Currency")
+                .Resolve(context => context.Source.Currency);
 
-            Field<NonNullGraphType<MoneyType>>("listPrice",
-                "List price",
-                resolve: context => context.Source.Item.ListPrice.ToMoney(context.Source.Currency));
+            Field<NonNullGraphType<MoneyType>>("listPrice")
+                .Description("List price")
+                .Resolve(context => context.Source.Item.ListPrice.ToMoney(context.Source.Currency));
 
-            Field<NonNullGraphType<MoneyType>>("extendedPrice",
-                "Extended price",
-                resolve: context => context.Source.Item.ExtendedPrice.ToMoney(context.Source.Currency));
+            Field<NonNullGraphType<MoneyType>>("extendedPrice")
+                .Description("Extended price")
+                .Resolve(context => context.Source.Item.ExtendedPrice.ToMoney(context.Source.Currency));
 
-            Field<NonNullGraphType<MoneyType>>("salePrice",
-                "Sale price",
-                resolve: context => context.Source.Item.SalePrice.ToMoney(context.Source.Currency));
+            Field<NonNullGraphType<MoneyType>>("salePrice")
+                .Description("Sale price")
+                .Resolve(context => context.Source.Item.SalePrice.ToMoney(context.Source.Currency));
 
-            Field<NonNullGraphType<MoneyType>>("discountAmount",
-                "Total discount amount",
-                resolve: context => context.Source.Item.DiscountAmount.ToMoney(context.Source.Currency));
+            Field<NonNullGraphType<MoneyType>>("discountAmount")
+                .Description("Total discount amount")
+                .Resolve(context => context.Source.Item.DiscountAmount.ToMoney(context.Source.Currency));
         }
     }
 }

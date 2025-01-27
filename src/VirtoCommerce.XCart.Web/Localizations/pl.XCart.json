@@ -4,5 +4,11 @@
     "XCart:read": "Wyświetlanie danych powiązanych z xCart",
     "XCart:update": "Aktualizowanie danych powiązanych z xCart",
     "XCart:delete": "Usuwanie danych powiązanych z xCart"
+  },
+  "settings": {
+    "XPurchase.IsSelectedForCheckout": {
+      "title": "Domyślny stan „Wybrano do kasy” (xAPI)",
+      "description": "Dotyczy nowych pozycji i prezentów. To ustawienie dotyczy poziomu sklepu"
+    }
   }
 }

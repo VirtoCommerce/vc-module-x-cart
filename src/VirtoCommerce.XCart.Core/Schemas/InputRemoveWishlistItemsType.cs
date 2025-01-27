@@ -6,8 +6,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputRemoveWishlistItemsType()
         {
-            Field<NonNullGraphType<StringGraphType>>("listId", description: "List ID");
-            Field<NonNullGraphType<ListGraphType<NonNullGraphType<StringGraphType>>>>("lineItemIds", "Line item IDs to remove");
+            Field<NonNullGraphType<StringGraphType>>("listId").Description("List ID");
+            Field<NonNullGraphType<ListGraphType<NonNullGraphType<StringGraphType>>>>("lineItemIds").Description("Line item IDs to remove");
         }
     }
 }

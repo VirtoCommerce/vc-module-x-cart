@@ -12,9 +12,9 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 "Cart",
                 resolve: context => context.Source.Cart);
 
-            Field<ListGraphType<ValidationErrorType>>("errors",
-                "A set of errors in case the Skus are invalid",
-                resolve: context => context.Source.Errors);
+            Field<ListGraphType<ValidationErrorType>>("errors")
+                .Description("A set of errors in case the SKUs are invalid")
+                .Resolve(context => context.Source.Errors);
         }
     }
 }

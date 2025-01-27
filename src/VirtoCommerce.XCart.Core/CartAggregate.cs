@@ -32,7 +32,7 @@ using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
 using Store = VirtoCommerce.StoreModule.Core.Model.Store;
 using StoreSetting = VirtoCommerce.StoreModule.Core.ModuleConstants.Settings.General;
-using XapiSetting = VirtoCommerce.Xapi.Core.ModuleConstants.Settings.General;
+using XCartiSetting = VirtoCommerce.XCart.Core.ModuleConstants.Settings.General;
 
 namespace VirtoCommerce.XCart.Core
 {
@@ -137,7 +137,7 @@ namespace VirtoCommerce.XCart.Core
         public IList<string> ProductsIncludeFields { get; set; }
         public string ResponseGroup { get; set; }
 
-        public bool IsSelectedForCheckout => Store.Settings?.GetValue<bool>(XapiSetting.IsSelectedForCheckout) ?? true;
+        public bool IsSelectedForCheckout => Store.Settings?.GetValue<bool>(XCartiSetting.IsSelectedForCheckout) ?? true;
 
         public virtual IList<ValidationFailure> GetValidationErrors()
         {
