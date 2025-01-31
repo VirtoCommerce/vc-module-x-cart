@@ -341,7 +341,7 @@ namespace VirtoCommerce.XCart.Core
                         result.Sku = product.Product.Code;
                         result.ImageUrl ??= product.Product.ImgSrc;
                         result.MeasureUnit ??= product.Product.MeasureUnit;
-                        result.Name ??= product.Product.Name;
+                        result.Name ??= product.GetName(Cart.LanguageCode);
                     }
 
                     var giftInCart = GiftItems.FirstOrDefault(x => x.EqualsReward(result));
