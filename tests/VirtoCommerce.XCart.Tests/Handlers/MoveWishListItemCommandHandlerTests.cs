@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture;
+using AutoMapper;
 using FluentAssertions;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
@@ -77,12 +79,12 @@ namespace VirtoCommerce.XCart.Tests.Handlers
                 .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), new[] { productId }))
                 .ReturnsAsync(new List<CartProduct> { new CartProduct(new CatalogProduct { Id = productId }) });
 
-            _mapperMock.Setup(m => m.Map<LineItem>(It.IsAny<object>())).Returns<object>((x) =>
-            {
-                return x is CartProduct cartProduct
-                    ? new LineItem { ProductId = cartProduct.Id }
-                    : null;
-            });
+            _mapperMock
+                .Setup(m => m.Map(It.IsAny<CartProduct>(), It.IsAny<Action<IMappingOperationOptions<object, LineItem>>>()))
+                .Returns<CartProduct, Action<IMappingOperationOptions<object, LineItem>>>((cartProduct, options) =>
+                {
+                    return new LineItem { ProductId = cartProduct.Id };
+                });
 
             var request = new MoveWishlistItemCommand(sourceListId, destinaitonListId, lineItem.Id);
             var handler = new MoveWishListItemCommandHandler(cartAggregateRepositoryMock.Object);

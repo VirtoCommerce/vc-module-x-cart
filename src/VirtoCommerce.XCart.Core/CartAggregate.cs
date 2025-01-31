@@ -234,7 +234,7 @@ namespace VirtoCommerce.XCart.Core
                 newCartItem.CartProduct.Price = new ProductPrice(Currency);
             }
 
-            var lineItem = _mapper.Map<LineItem>(newCartItem.CartProduct, opts => opts.Items.TryAdd("cultureName", Cart.LanguageCode));
+            var lineItem = _mapper.Map<LineItem>(newCartItem.CartProduct, options => options.Items.TryAdd("cultureName", Cart.LanguageCode));
 
             lineItem.Currency ??= Currency.Code;
             lineItem.SelectedForCheckout = newCartItem.IsSelectedForCheckout ?? IsSelectedForCheckout;
