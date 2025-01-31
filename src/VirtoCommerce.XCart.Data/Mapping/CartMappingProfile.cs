@@ -37,6 +37,13 @@ namespace VirtoCommerce.XCart.Data.Mapping
                     lineItem = AbstractTypeFactory<LineItem>.TryCreateInstance();
                 }
 
+                var cultureName = string.Empty;
+                if (context.Items.TryGetValue("cultureName", out var value))
+                {
+                    cultureName = value as string;
+                }
+                lineItem.Name = cartProduct.GetName(cultureName);
+
                 lineItem.CatalogId = cartProduct.Product.CatalogId;
                 lineItem.CategoryId = cartProduct.Product.CategoryId;
                 if (cartProduct.Price != null)
@@ -55,7 +62,6 @@ namespace VirtoCommerce.XCart.Data.Mapping
                 lineItem.ImageUrl = cartProduct.Product.ImgSrc;
                 lineItem.Length = cartProduct.Product.Length;
                 lineItem.MeasureUnit = cartProduct.Product.MeasureUnit;
-                lineItem.Name = cartProduct.Product.Name;
                 lineItem.ProductOuterId = cartProduct.Product.OuterId;
                 lineItem.ProductId = cartProduct.Product.Id;
                 lineItem.ProductType = cartProduct.Product.ProductType;

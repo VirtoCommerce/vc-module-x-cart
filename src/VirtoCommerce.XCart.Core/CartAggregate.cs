@@ -234,7 +234,7 @@ namespace VirtoCommerce.XCart.Core
                 newCartItem.CartProduct.Price = new ProductPrice(Currency);
             }
 
-            var lineItem = _mapper.Map<LineItem>(newCartItem.CartProduct);
+            var lineItem = _mapper.Map<LineItem>(newCartItem.CartProduct, options => options.Items.TryAdd("cultureName", Cart.LanguageCode));
 
             lineItem.Currency ??= Currency.Code;
             lineItem.SelectedForCheckout = newCartItem.IsSelectedForCheckout ?? IsSelectedForCheckout;
@@ -341,7 +341,7 @@ namespace VirtoCommerce.XCart.Core
                         result.Sku = product.Product.Code;
                         result.ImageUrl ??= product.Product.ImgSrc;
                         result.MeasureUnit ??= product.Product.MeasureUnit;
-                        result.Name ??= product.Product.Name;
+                        result.Name ??= product.GetName(Cart.LanguageCode);
                     }
 
                     var giftInCart = GiftItems.FirstOrDefault(x => x.EqualsReward(result));

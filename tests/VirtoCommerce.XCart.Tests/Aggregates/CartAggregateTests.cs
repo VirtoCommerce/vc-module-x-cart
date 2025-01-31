@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoFixture;
+using AutoMapper;
 using FluentAssertions;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
@@ -133,18 +134,15 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                     });
 
 
-            _mapperMock.Setup(m => m.Map<LineItem>(It.IsAny<object>())).Returns<object>((arg) =>
-            {
-                if (arg is CartProduct cartProduct)
+            _mapperMock
+                .Setup(m => m.Map(It.IsAny<CartProduct>(), It.IsAny<Action<IMappingOperationOptions<object, LineItem>>>()))
+                .Returns<CartProduct, Action<IMappingOperationOptions<object, LineItem>>>((cartProduct, options) =>
                 {
                     return new LineItem()
                     {
                         ProductId = cartProduct.Id
                     };
-                }
-
-                return null;
-            });
+                });
 
             var cartAggregate = GetValidCartAggregate();
             cartAggregate.ValidationRuleSet = new string[] { "default" };
@@ -828,29 +826,29 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         [
             //                                                                         Expected        Expected  Expected       Expected
             // MidpointRounding,             ListPrice, Quantity, RewardAmount, Round, DiscountAmount, SubTotal, DiscountTotal, Total
-            [MidpointRounding.AwayFromZero,  49.95m,    10,       10m,          false,   4.995m,        499.50m,   49.95m,       449.55m],
-            [MidpointRounding.ToZero,        49.95m,    10,       10m,          false,   4.995m,        499.50m,   49.95m,       449.55m],
-            [MidpointRounding.AwayFromZero,  49.95m,    10,       10m,           true,   5.000m,        499.50m,   50.00m,       449.50m],
-            [MidpointRounding.ToZero,        49.95m,    10,       10m,           true,   4.990m,        499.50m,   49.90m,       449.60m],
+            [MidpointRounding.AwayFromZero, 49.95m, 10, 10m, false, 4.995m, 499.50m, 49.95m, 449.55m],
+            [MidpointRounding.ToZero, 49.95m, 10, 10m, false, 4.995m, 499.50m, 49.95m, 449.55m],
+            [MidpointRounding.AwayFromZero, 49.95m, 10, 10m, true, 5.000m, 499.50m, 50.00m, 449.50m],
+            [MidpointRounding.ToZero, 49.95m, 10, 10m, true, 4.990m, 499.50m, 49.90m, 449.60m],
 
-            [MidpointRounding.AwayFromZero,   0.01m,    10,       10m,          false,   0.001m,          0.10m,    0.01m,         0.09m],
-            [MidpointRounding.ToZero,         0.01m,    10,       10m,          false,   0.001m,          0.10m,    0.01m,         0.09m],
-            [MidpointRounding.AwayFromZero,   0.01m,    10,       10m,           true,   0.000m,          0.10m,    0.00m,         0.10m],
-            [MidpointRounding.ToZero,         0.01m,    10,       10m,           true,   0.000m,          0.10m,    0.00m,         0.10m],
+            [MidpointRounding.AwayFromZero, 0.01m, 10, 10m, false, 0.001m, 0.10m, 0.01m, 0.09m],
+            [MidpointRounding.ToZero, 0.01m, 10, 10m, false, 0.001m, 0.10m, 0.01m, 0.09m],
+            [MidpointRounding.AwayFromZero, 0.01m, 10, 10m, true, 0.000m, 0.10m, 0.00m, 0.10m],
+            [MidpointRounding.ToZero, 0.01m, 10, 10m, true, 0.000m, 0.10m, 0.00m, 0.10m],
 
-            [MidpointRounding.AwayFromZero,   7.50m,     1,        3m,          false,   0.225m,          7.50m,    0.23m,         7.27m],
-            [MidpointRounding.ToZero,         7.50m,     1,        3m,          false,   0.225m,          7.50m,    0.22m,         7.28m],
-            [MidpointRounding.AwayFromZero,   7.50m,     1,        3m,           true,   0.230m,          7.50m,    0.23m,         7.27m],
-            [MidpointRounding.ToZero,         7.50m,     1,        3m,           true,   0.220m,          7.50m,    0.22m,         7.28m],
+            [MidpointRounding.AwayFromZero, 7.50m, 1, 3m, false, 0.225m, 7.50m, 0.23m, 7.27m],
+            [MidpointRounding.ToZero, 7.50m, 1, 3m, false, 0.225m, 7.50m, 0.22m, 7.28m],
+            [MidpointRounding.AwayFromZero, 7.50m, 1, 3m, true, 0.230m, 7.50m, 0.23m, 7.27m],
+            [MidpointRounding.ToZero, 7.50m, 1, 3m, true, 0.220m, 7.50m, 0.22m, 7.28m],
 
-            [MidpointRounding.AwayFromZero, 422.50m,     1,       45m,          false, 190.125m,        422.50m,  190.13m,       232.37m],
-            [MidpointRounding.ToZero,       422.50m,     1,       45m,          false, 190.125m,        422.50m,  190.12m,       232.38m],
-            [MidpointRounding.AwayFromZero, 422.50m,    10,       45m,          false, 190.125m,       4225.00m, 1901.25m,      2323.75m],
-            [MidpointRounding.ToZero,       422.50m,    10,       45m,          false, 190.125m,       4225.00m, 1901.25m,      2323.75m],
-            [MidpointRounding.AwayFromZero, 422.50m,     1,       45m,           true, 190.130m,        422.50m,  190.13m,       232.37m],
-            [MidpointRounding.ToZero,       422.50m,     1,       45m,           true, 190.120m,        422.50m,  190.12m,       232.38m],
-            [MidpointRounding.AwayFromZero, 422.50m,    10,       45m,           true, 190.130m,       4225.00m, 1901.30m,      2323.70m],
-            [MidpointRounding.ToZero,       422.50m,    10,       45m,           true, 190.120m,       4225.00m, 1901.20m,      2323.80m],
+            [MidpointRounding.AwayFromZero, 422.50m, 1, 45m, false, 190.125m, 422.50m, 190.13m, 232.37m],
+            [MidpointRounding.ToZero, 422.50m, 1, 45m, false, 190.125m, 422.50m, 190.12m, 232.38m],
+            [MidpointRounding.AwayFromZero, 422.50m, 10, 45m, false, 190.125m, 4225.00m, 1901.25m, 2323.75m],
+            [MidpointRounding.ToZero, 422.50m, 10, 45m, false, 190.125m, 4225.00m, 1901.25m, 2323.75m],
+            [MidpointRounding.AwayFromZero, 422.50m, 1, 45m, true, 190.130m, 422.50m, 190.13m, 232.37m],
+            [MidpointRounding.ToZero, 422.50m, 1, 45m, true, 190.120m, 422.50m, 190.12m, 232.38m],
+            [MidpointRounding.AwayFromZero, 422.50m, 10, 45m, true, 190.130m, 4225.00m, 1901.30m, 2323.70m],
+            [MidpointRounding.ToZero, 422.50m, 10, 45m, true, 190.120m, 4225.00m, 1901.20m, 2323.80m],
         ];
 
         [Theory]
