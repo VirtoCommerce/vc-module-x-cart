@@ -136,7 +136,7 @@ namespace VirtoCommerce.XCart.Core.Models
                 return Product.Name;
             }
 
-            var localizedName = Product.LocalizedName?.Get(cultureName);
+            var localizedName = Product.LocalizedName?.GetValue(cultureName);
             return !string.IsNullOrEmpty(localizedName) ? localizedName : Product.Name;
         }
 
