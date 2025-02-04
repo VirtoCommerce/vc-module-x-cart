@@ -73,7 +73,7 @@ namespace VirtoCommerce.XCart.Data.Services
         {
             if (aggregate is null || ids.IsNullOrEmpty())
             {
-                return new List<CartProduct>();
+                return [];
             }
 
             var cartProducts = await GetCartProductsAsync(ids, aggregate.Store.Id, aggregate.Cart.Currency, aggregate.Cart.CustomerId, aggregate.ProductsIncludeFields ?? IncludeFields);
@@ -83,6 +83,7 @@ namespace VirtoCommerce.XCart.Data.Services
             {
                 await Task.WhenAll(LoadDependencies(aggregate, productsToLoadDependencies));
             }
+
             return cartProducts;
         }
 
@@ -95,10 +96,10 @@ namespace VirtoCommerce.XCart.Data.Services
         {
             if (request is null || request.ProductIds.IsNullOrEmpty())
             {
-                return new List<CartProduct>();
+                return [];
             }
 
-            var cartProducts = await LoadCartProductsAsync(request);
+            var cartProducts = await GetCartProductsAsync(request.ProductIds, request.Store.Id, request.Currency.Code, request.UserId, request.ProductsIncludeFields ?? IncludeFields, request.EvaluatePromotions);
 
             var productsToLoadDependencies = cartProducts.Where(x => x.LoadDependencies).ToList();
             if (productsToLoadDependencies.Count != 0)
@@ -124,7 +125,7 @@ namespace VirtoCommerce.XCart.Data.Services
         /// Map all <see cref="CatalogProduct"/> to <see cref="CartProduct"/>
         /// </summary>
         /// <returns>List of <see cref="CartProduct"/>s</returns>
-        protected virtual async Task<List<CartProduct>> GetCartProductsAsync(IList<string> ids, string storeId, string currencyCode, string userId, IList<string> includeFields)
+        protected virtual async Task<List<CartProduct>> GetCartProductsAsync(IList<string> ids, string storeId, string currencyCode, string userId, IList<string> includeFields, bool evaluatePromotions = false)
         {
             var productsQuery = new LoadProductsQuery
             {
@@ -133,24 +134,7 @@ namespace VirtoCommerce.XCart.Data.Services
                 CurrencyCode = currencyCode,
                 ObjectIds = ids,
                 IncludeFields = includeFields,
-                EvaluatePromotions = false, // Promotions will be applied on the line item level
-            };
-
-            var response = await _mediator.Send(productsQuery);
-            var result = response.Products.Select(x => new CartProduct(x)).ToList();
-            return result;
-        }
-
-        protected virtual async Task<List<CartProduct>> LoadCartProductsAsync(CartProductsRequest request)
-        {
-            var productsQuery = new LoadProductsQuery
-            {
-                UserId = request.UserId,
-                StoreId = request.Store.Id,
-                CurrencyCode = request.Currency.Code,
-                ObjectIds = request.ProductIds,
-                IncludeFields = request.ProductsIncludeFields ?? IncludeFields,
-                EvaluatePromotions = request.EvaluatePromotions,
+                EvaluatePromotions = evaluatePromotions, // Promotions will be applied on the line item level
             };
 
             var response = await _mediator.Send(productsQuery);
