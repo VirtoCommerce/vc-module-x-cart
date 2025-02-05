@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Services;
@@ -27,21 +28,27 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
         var container = await _configuredLineItemContainerService.CreateContainerAsync(request);
 
         var productsRequest = container.GetCartProductsRequest();
-        productsRequest.ProductIds = new[] { request.ConfigurableProductId };
+        productsRequest.ProductIds = [request.ConfigurableProductId];
         productsRequest.EvaluatePromotions = request.EvaluatePromotions;
 
         var product = (await _cartProductService.GetCartProductsAsync(productsRequest)).FirstOrDefault();
-        if (product == null)
-        {
-            throw new OperationCanceledException($"Product with id {request.ConfigurableProductId} not found");
-        }
 
-        container.ConfigurableProduct = product;
+        container.ConfigurableProduct = product ?? throw new OperationCanceledException($"Product with id {request.ConfigurableProductId} not found");
+
+        foreach (var section in request.ConfigurationSections)
+        {
+#pragma warning disable CS0618 // Type or member is obsolete
+            if (section.Value != null && section.Option == null)
+            {
+                section.Option = section.Value;
+            }
+#pragma warning restore CS0618 // Type or member is obsolete
+        }
 
         // need to take productId and quantity from the configuration
         var selectedProductIds = request.ConfigurationSections
-            .Where(x => x.Value != null)
-            .Select(section => section.Value.ProductId)
+            .Where(x => x.Option != null)
+            .Select(section => section.Option.ProductId)
             .ToList();
 
         productsRequest.ProductIds = selectedProductIds;
@@ -52,14 +59,18 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
         foreach (var section in request.ConfigurationSections)
         {
-            var productOption = section.Value;
-            var selectedProduct = products.FirstOrDefault(x => x.Product.Id == productOption.ProductId);
-            if (selectedProduct == null)
+            if (section.Type == ConfigurationSectionType.Product && section.Option != null)
             {
-                throw new OperationCanceledException($"Product with id {productOption.ProductId} not found");
+                var productOption = section.Option;
+                var selectedProduct = products.FirstOrDefault(x => x.Product.Id == productOption.ProductId) ?? throw new OperationCanceledException($"Product with id {productOption.ProductId} not found");
+
+                container.AddItem(selectedProduct, productOption.Quantity, section.SectionId, section.Type);
             }
 
-            _ = container.AddItem(selectedProduct, productOption.Quantity, section.SectionId);
+            if (section.Type == ConfigurationSectionType.Text)
+            {
+                container.AddItem(section.CustomText, section.SectionId, section.Type);
+            }
         }
 
         var configuredItem = container.CreateConfiguredLineItem(request.Quantity);

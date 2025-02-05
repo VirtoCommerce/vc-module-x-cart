@@ -1,4 +1,5 @@
-using VirtoCommerce.CatalogModule.Core.Model.Configuration;
+using System;
+using VirtoCommerce.CartModule.Core.Model;
 
 namespace VirtoCommerce.XCart.Core.Models;
 
@@ -8,7 +9,10 @@ public class ProductConfigurationSection
 
     public string CustomText { get; set; }
 
-    public ProductConfigurationSectionType Type { get; set; }
+    public ConfigurationSectionType Type { get; set; }
 
+    [Obsolete("Use Option property instead")]
     public ConfigurableProductOption Value { get; set; }
+
+    public ConfigurableProductOption Option { get; set; }
 }

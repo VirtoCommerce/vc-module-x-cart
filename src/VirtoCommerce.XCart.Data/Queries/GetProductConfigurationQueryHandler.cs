@@ -68,7 +68,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
                 {
                     if (productByIds.TryGetValue(option.ProductId, out var cartProduct))
                     {
-                        var item = container.AddItem(cartProduct, option.Quantity, section.Id);
+                        var item = container.CreateLineItem(cartProduct, option.Quantity);
                         item.Id = option.Id;
 
                         var expConfigurationLineItem = new ExpConfigurationLineItem
