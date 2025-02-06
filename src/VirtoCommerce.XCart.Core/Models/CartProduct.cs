@@ -129,6 +129,17 @@ namespace VirtoCommerce.XCart.Core.Models
             }
         }
 
+        public virtual string GetName(string cultureName)
+        {
+            if (string.IsNullOrEmpty(cultureName))
+            {
+                return Product.Name;
+            }
+
+            var localizedName = Product.LocalizedName?.GetValue(cultureName);
+            return !string.IsNullOrEmpty(localizedName) ? localizedName : Product.Name;
+        }
+
         #region ICloneable
 
         public virtual object Clone()

@@ -27,7 +27,7 @@ namespace VirtoCommerce.XCart.Core
         {
             var lineItem = AbstractTypeFactory<LineItem>.TryCreateInstance();
             lineItem.ProductId = cartProduct.Id;
-            lineItem.Name = cartProduct.Product.Name;
+            lineItem.Name = cartProduct.GetName(CultureName);
             lineItem.Sku = cartProduct.Product.Code;
             lineItem.ImageUrl = cartProduct.Product.ImgSrc;
             lineItem.CatalogId = cartProduct.Product.CatalogId;
@@ -93,7 +93,7 @@ namespace VirtoCommerce.XCart.Core
             lineItem.CatalogId = ConfigurableProduct.Product.CatalogId;
             lineItem.CategoryId = ConfigurableProduct.Product.CategoryId;
 
-            lineItem.Name = ConfigurableProduct.Product.Name;
+            lineItem.Name = ConfigurableProduct.GetName(CultureName);
             lineItem.ImageUrl = ConfigurableProduct.Product.ImgSrc;
             lineItem.ProductOuterId = ConfigurableProduct.Product.OuterId;
             lineItem.ProductType = ConfigurableProduct.Product.ProductType;
