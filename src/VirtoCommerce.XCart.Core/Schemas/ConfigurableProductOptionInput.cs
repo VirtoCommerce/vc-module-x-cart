@@ -7,7 +7,9 @@ public class ConfigurableProductOptionInput : InputObjectGraphType<ConfigurableP
 {
     public ConfigurableProductOptionInput()
     {
-        Field<NonNullGraphType<StringGraphType>>("productId");
-        Field<NonNullGraphType<IntGraphType>>("quantity");
+        Field<NonNullGraphType<StringGraphType>>("productId")
+            .Description("Catalog item ID");
+        Field<NonNullGraphType<IntGraphType>>("quantity")
+            .Description("Quantity of product");
     }
 }

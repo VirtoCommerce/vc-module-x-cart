@@ -1163,7 +1163,7 @@ namespace VirtoCommerce.XCart.Core
         {
             var configProductsIds = configuredItems
                             .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
-                            .SelectMany(x => x.ConfigurationItems.Select(x => x.ProductId))
+                            .SelectMany(x => x.ConfigurationItems.Where(x => x.ProductId != null).Select(x => x.ProductId))
                             .Distinct()
                             .ToArray();
 
@@ -1189,7 +1189,7 @@ namespace VirtoCommerce.XCart.Core
                     var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
                     if (product != null)
                     {
-                        contaner.AddItem(product, configurationItem.Quantity, configurationItem.SectionId, configurationItem.Type);
+                        contaner.AddItem(product, configurationItem.Quantity, configurationItem.SectionId, configurationItem.SectionType);
                     }
                 }
 

@@ -1,3 +1,4 @@
+using GraphQL.Types;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Schemas;
 
@@ -11,7 +12,9 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.Name, nullable: true).Description("Configuration item name");
             Field(x => x.SectionId, nullable: true).Description("Configuration item section ID");
             Field(x => x.ProductId, nullable: true).Description("Configuration item product ID");
-            Field(x => x.Quantity, nullable: true).Description("Configuration item quantity");
+            Field(x => x.Quantity, nullable: true).Description("Configuration item product quantity");
+            Field(x => x.CustomText, nullable: true).Description("Custom text for 'Text' type configuration item section");
+            Field<NonNullGraphType<CartConfigurationSectionSchemaType>>("sectionType").Resolve(context => context.Source.SectionType).Description("Configuration item section type");
         }
     }
 }

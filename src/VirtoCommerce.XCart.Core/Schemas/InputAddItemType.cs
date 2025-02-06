@@ -19,7 +19,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<ListGraphType<InputDynamicPropertyValueType>>("dynamicProperties");
 
             // Configurable product support
-            Field<ListGraphType<ConfigurationSectionInput>>("configurationSections");
+            Field<ListGraphType<ConfigurationSectionInput>>("configurationSections").Description("Configurable product support. List of configurable product sections");
 
             Field<DateTimeGraphType>("createdDate").Description("Create date. Optional, to manually control line item position in the cart if required. ISO-8601 format, for example: 2025-01-23T11:46:11Z");
         }

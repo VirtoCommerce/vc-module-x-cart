@@ -7,29 +7,16 @@ public class ConfigurationSectionInput : InputObjectGraphType<ProductConfigurati
 {
     public ConfigurationSectionInput()
     {
-        Field<NonNullGraphType<StringGraphType>>("sectionId");
-        Field<StringGraphType>("customText");
-        Field<CartConfigurationSectionTypeType>("type");
-        Field<ConfigurableProductOptionInput>("value");
-        //filed.Directives.Add(new DeprecatedDirective("Use Option property instead"));
-        //filed.Directive = new DeprecatedDirective("Use Option property instead");
-        Field<ConfigurableProductOptionInput>("option");
+        Field<NonNullGraphType<StringGraphType>>("sectionId")
+            .Description("Configuration section ID");
+        Field<StringGraphType>("customText")
+            .Description("Custom text for 'Text' type section");
+        Field<NonNullGraphType<CartConfigurationSectionSchemaType>>("type")
+            .Description("Configuration section type");
+        Field<ConfigurableProductOptionInput>("value")
+            .Description("Deprecated! Use Option property instead")
+            .DeprecationReason("Use Option property instead");
+        Field<ConfigurableProductOptionInput>("option")
+            .Description("Configuration section option/product");
     }
-
-    // public override void Initialize(ISchema schema)
-    // {
-    //     base.Initialize(schema);
-    //
-    //     var direcive = new DeprecatedDirective
-    //     {
-    //         Description = "Use Option property instead of Value",
-    //         Arguments = new QueryArguments(new QueryArgument<StringGraphType>
-    //         {
-    //             Name = "value",
-    //             Description = "Use Option property instead",
-    //             DefaultValue = "No longer supported"
-    //         })
-    //     };
-    //     schema.Directives.Register(direcive);
-    // }
 }
