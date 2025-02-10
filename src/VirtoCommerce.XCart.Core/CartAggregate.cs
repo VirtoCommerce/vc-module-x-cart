@@ -1189,7 +1189,7 @@ namespace VirtoCommerce.XCart.Core
                     var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
                     if (product != null)
                     {
-                        contaner.AddItem(product, configurationItem.Quantity, configurationItem.SectionId, configurationItem.SectionType);
+                        contaner.AddItem(product, configurationItem.Quantity, configurationItem.SectionId, configurationItem.Type);
                     }
                 }
 

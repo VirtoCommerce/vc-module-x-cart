@@ -3,6 +3,6 @@ using VirtoCommerce.CartModule.Core.Model;
 
 namespace VirtoCommerce.XCart.Core.Schemas;
 
-public class CartConfigurationSectionSchemaType : EnumerationGraphType<CartConfigurationSectionType>
+public class CartConfigurationItemSchemaType : EnumerationGraphType<ConfigurationItemType>
 {
 }

@@ -11,7 +11,7 @@ public class ConfigurationSectionInput : InputObjectGraphType<ProductConfigurati
             .Description("Configuration section ID");
         Field<StringGraphType>("customText")
             .Description("Custom text for 'Text' type section");
-        Field<NonNullGraphType<CartConfigurationSectionSchemaType>>("type")
+        Field<NonNullGraphType<CartConfigurationItemSchemaType>>("type")
             .Description("Configuration section type");
         Field<ConfigurableProductOptionInput>("value")
             .Description("Deprecated! Use Option property instead")

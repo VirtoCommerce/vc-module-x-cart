@@ -9,7 +9,7 @@ public class ProductConfigurationSection
 
     public string CustomText { get; set; }
 
-    public CartConfigurationSectionType Type { get; set; }
+    public ConfigurationItemType Type { get; set; }
 
     [Obsolete("Use Option property instead")]
     public ConfigurableProductOption Value { get; set; }

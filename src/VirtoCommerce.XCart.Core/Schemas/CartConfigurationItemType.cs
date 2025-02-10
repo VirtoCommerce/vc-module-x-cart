@@ -14,7 +14,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.ProductId, nullable: true).Description("Configuration item product ID");
             Field(x => x.Quantity, nullable: true).Description("Configuration item product quantity");
             Field(x => x.CustomText, nullable: true).Description("Custom text for 'Text' type configuration item section");
-            Field<NonNullGraphType<CartConfigurationSectionSchemaType>>("sectionType").Resolve(context => context.Source.SectionType).Description("Configuration item section type");
+            Field<NonNullGraphType<CartConfigurationItemSchemaType>>("type").Resolve(context => context.Source.Type).Description("Configuration item type");
         }
     }
 }
