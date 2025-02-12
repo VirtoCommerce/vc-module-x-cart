@@ -55,25 +55,25 @@ namespace VirtoCommerce.XCart.Core
             return lineItem;
         }
 
-        public void AddItem(CartProduct cartProduct, int quantity, string sectionId, string type)
+        public void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId)
         {
             var lineItem = CreateLineItem(cartProduct, quantity);
 
             _items.Add(new SectionLineItem
             {
-                Item = lineItem,
                 SectionId = sectionId,
-                Type = type,
+                Type = CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeProduct,
+                Item = lineItem
             });
         }
 
-        public void AddItem(string customText, string sectionId, string type)
+        public void AddTextSectionLIneItem(string customText, string sectionId)
         {
             _items.Add(new SectionLineItem
             {
                 SectionId = sectionId,
-                Type = type,
-                CustomText = customText,
+                Type = CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeText,
+                CustomText = customText
             });
         }
 

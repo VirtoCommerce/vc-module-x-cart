@@ -7,16 +7,9 @@ public class ConfigurationSectionInput : InputObjectGraphType<ProductConfigurati
 {
     public ConfigurationSectionInput()
     {
-        Field<NonNullGraphType<StringGraphType>>("sectionId")
-            .Description("Configuration section ID");
-        Field<StringGraphType>("customText")
-            .Description("Custom text for 'Text' type section");
-        Field<NonNullGraphType<StringGraphType>>("type")
-            .Description("Configuration section type. Possible values: 'Product', 'Text', 'File'");
-        Field<ConfigurableProductOptionInput>("value")
-            .Description("Deprecated! Use Option property instead")
-            .DeprecationReason("Use Option property instead");
-        Field<ConfigurableProductOptionInput>("option")
-            .Description("Configuration section option/product");
+        Field<NonNullGraphType<StringGraphType>>("sectionId").Description("Configuration section ID");
+        Field<StringGraphType>("customText").Description("Custom text for 'Text' type section");
+        Field<NonNullGraphType<StringGraphType>>("type").Description("Configuration section type. Possible values: 'Product', 'Text', 'File'");
+        Field<ConfigurableProductOptionInput>("option").Description("Configuration section option/product");
     }
 }

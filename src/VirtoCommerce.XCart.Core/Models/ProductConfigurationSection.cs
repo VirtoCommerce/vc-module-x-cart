@@ -11,8 +11,5 @@ public class ProductConfigurationSection
 
     public string Type { get; set; }
 
-    [Obsolete("Use Option property instead")]
-    public ConfigurableProductOption Value { get; set; }
-
     public ConfigurableProductOption Option { get; set; }
 }

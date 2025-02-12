@@ -3,7 +3,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Services;
@@ -33,17 +32,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
         var product = (await _cartProductService.GetCartProductsAsync(productsRequest)).FirstOrDefault();
 
-        container.ConfigurableProduct = product ?? throw new OperationCanceledException($"Product with id {request.ConfigurableProductId} not found");
-
-        foreach (var section in request.ConfigurationSections)
-        {
-#pragma warning disable CS0618 // Type or member is obsolete
-            if (section.Value != null && section.Option == null)
-            {
-                section.Option = section.Value;
-            }
-#pragma warning restore CS0618 // Type or member is obsolete
-        }
+        container.ConfigurableProduct = product ?? throw new InvalidOperationException($"Product with id {request.ConfigurableProductId} not found");
 
         // need to take productId and quantity from the configuration
         var selectedProductIds = request.ConfigurationSections
@@ -62,14 +51,14 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
             if (section.Type == CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeProduct && section.Option != null)
             {
                 var productOption = section.Option;
-                var selectedProduct = products.FirstOrDefault(x => x.Product.Id == productOption.ProductId) ?? throw new OperationCanceledException($"Product with id {productOption.ProductId} not found");
+                var selectedProduct = products.FirstOrDefault(x => x.Product.Id == productOption.ProductId) ?? throw new InvalidOperationException($"Product with id {productOption.ProductId} not found");
 
-                container.AddItem(selectedProduct, productOption.Quantity, section.SectionId, section.Type);
+                container.AddProductSectionLineItem(selectedProduct, productOption.Quantity, section.SectionId);
             }
 
             if (section.Type == CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeText)
             {
-                container.AddItem(section.CustomText, section.SectionId, section.Type);
+                container.AddTextSectionLIneItem(section.CustomText, section.SectionId);
             }
         }
 

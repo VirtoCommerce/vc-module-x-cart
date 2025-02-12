@@ -7,14 +7,10 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputAddItemType()
         {
-            Field<NonNullGraphType<StringGraphType>>("productId")
-                .Description("Product ID");
-            Field<NonNullGraphType<IntGraphType>>("quantity")
-                .Description("Quantity");
-            Field<DecimalGraphType>("price")
-                .Description("Price");
-            Field<StringGraphType>("comment")
-                .Description("Comment");
+            Field<NonNullGraphType<StringGraphType>>("productId").Description("Product ID");
+            Field<NonNullGraphType<IntGraphType>>("quantity").Description("Quantity");
+            Field<DecimalGraphType>("price").Description("Price");
+            Field<StringGraphType>("comment").Description("Comment");
 
             Field<ListGraphType<InputDynamicPropertyValueType>>("dynamicProperties");
 
