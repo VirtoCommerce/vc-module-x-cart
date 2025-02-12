@@ -55,7 +55,7 @@ namespace VirtoCommerce.XCart.Core
             return lineItem;
         }
 
-        public void AddItem(CartProduct cartProduct, int quantity, string sectionId, ConfigurationItemType type)
+        public void AddItem(CartProduct cartProduct, int quantity, string sectionId, string type)
         {
             var lineItem = CreateLineItem(cartProduct, quantity);
 
@@ -67,7 +67,7 @@ namespace VirtoCommerce.XCart.Core
             });
         }
 
-        public void AddItem(string customText, string sectionId, ConfigurationItemType type)
+        public void AddItem(string customText, string sectionId, string type)
         {
             _items.Add(new SectionLineItem
             {
@@ -174,7 +174,7 @@ namespace VirtoCommerce.XCart.Core
             public string SectionId { get; set; }
             public LineItem Item { get; set; }
             public string CustomText { get; set; }
-            public ConfigurationItemType Type { get; set; }
+            public string Type { get; set; }
         }
     }
 }

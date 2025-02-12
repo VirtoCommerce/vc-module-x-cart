@@ -62,7 +62,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
             };
             result.ConfigurationSections.Add(configurationSection);
 
-            if (section.Type == ProductConfigurationSectionType.Product && !section.Options.IsNullOrEmpty())
+            if (section.Type == CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeProduct && !section.Options.IsNullOrEmpty())
             {
                 foreach (var option in section.Options)
                 {

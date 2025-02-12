@@ -12,7 +12,7 @@ public class ConfigurationSectionType : ExtendableGraphType<ExpProductConfigurat
         Field(x => x.Name, nullable: true).Description("Configuration section name");
         Field(x => x.Description, nullable: true).Description("Configuration section description");
         Field(x => x.IsRequired, nullable: false).Description("Is configuration section required");
-        Field<NonNullGraphType<ProductConfigurationSectionSchemaType>>("type").Resolve(context => context.Source.Type).Description("Configuration section type");
+        Field(x => x.Type, nullable: false).Description("Configuration section type. Possible values: 'Product', 'Text', 'File'");
 
         ExtendableField<ListGraphType<ConfigurationLineItemType>>(
             nameof(ExpProductConfigurationSection.Options),

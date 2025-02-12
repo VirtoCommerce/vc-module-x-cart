@@ -59,7 +59,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
         foreach (var section in request.ConfigurationSections)
         {
-            if (section.Type == ConfigurationItemType.Product && section.Option != null)
+            if (section.Type == CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeProduct && section.Option != null)
             {
                 var productOption = section.Option;
                 var selectedProduct = products.FirstOrDefault(x => x.Product.Id == productOption.ProductId) ?? throw new OperationCanceledException($"Product with id {productOption.ProductId} not found");
@@ -67,7 +67,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
                 container.AddItem(selectedProduct, productOption.Quantity, section.SectionId, section.Type);
             }
 
-            if (section.Type == ConfigurationItemType.Text)
+            if (section.Type == CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeText)
             {
                 container.AddItem(section.CustomText, section.SectionId, section.Type);
             }
