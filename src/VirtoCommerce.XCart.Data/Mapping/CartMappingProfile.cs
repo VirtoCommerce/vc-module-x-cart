@@ -24,7 +24,7 @@ namespace VirtoCommerce.XCart.Data.Mapping
     {
         public CartMappingProfile()
         {
-            CreateMap<CartModule.Core.Model.Address, TaxModule.Core.Model.Address>();
+            CreateMap<CartModule.Core.Model.Address, TaxModule.Core.Model.Address>().IncludeAllDerived();
 
             CreateMap<GiftReward, GiftItem>();
             CreateMap<GiftItem, LineItem>();
@@ -300,7 +300,8 @@ namespace VirtoCommerce.XCart.Data.Mapping
 
                     if (shipment.DeliveryAddress != null)
                     {
-                        taxEvalcontext.Address = context.Mapper.Map<TaxModule.Core.Model.Address>(shipment.DeliveryAddress);
+                        var taxAddress = AbstractTypeFactory<TaxModule.Core.Model.Address>.TryCreateInstance();
+                        taxEvalcontext.Address = context.Mapper.Map(shipment.DeliveryAddress, taxAddress);
                     }
                 }
 
