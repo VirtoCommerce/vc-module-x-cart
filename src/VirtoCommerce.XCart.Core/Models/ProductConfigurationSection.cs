@@ -7,9 +7,9 @@ public class ProductConfigurationSection
 {
     public string SectionId { get; set; }
 
-    public string CustomText { get; set; }
-
     public string Type { get; set; }
 
     public ConfigurableProductOption Option { get; set; }
+
+    public string CustomText { get; set; }
 }

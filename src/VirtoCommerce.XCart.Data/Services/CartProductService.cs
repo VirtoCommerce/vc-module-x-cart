@@ -99,7 +99,7 @@ namespace VirtoCommerce.XCart.Data.Services
                 return [];
             }
 
-            var cartProducts = await GetCartProductsAsync(request.ProductIds, request.Store.Id, request.Currency.Code, request.UserId, request.ProductsIncludeFields ?? IncludeFields, request.EvaluatePromotions);
+            var cartProducts = await LoadCartProductsAsync(request.ProductIds, request.Store.Id, request.Currency.Code, request.UserId, request.ProductsIncludeFields ?? IncludeFields, request.EvaluatePromotions);
 
             var productsToLoadDependencies = cartProducts.Where(x => x.LoadDependencies).ToList();
             if (productsToLoadDependencies.Count != 0)
@@ -125,7 +125,14 @@ namespace VirtoCommerce.XCart.Data.Services
         /// Map all <see cref="CatalogProduct"/> to <see cref="CartProduct"/>
         /// </summary>
         /// <returns>List of <see cref="CartProduct"/>s</returns>
-        protected virtual async Task<List<CartProduct>> GetCartProductsAsync(IList<string> ids, string storeId, string currencyCode, string userId, IList<string> includeFields, bool evaluatePromotions = false)
+        protected virtual async Task<List<CartProduct>> GetCartProductsAsync(IList<string> ids, string storeId, string currencyCode, string userId, IList<string> includeFields)
+        {
+            // EvaluatePromotions = false - Promotions will be applied on the line item level
+            var result = await LoadCartProductsAsync(ids, storeId, currencyCode, userId, includeFields, false);
+            return result;
+        }
+
+        protected virtual async Task<List<CartProduct>> LoadCartProductsAsync(IList<string> ids, string storeId, string currencyCode, string userId, IList<string> includeFields, bool evaluatePromotions)
         {
             var productsQuery = new LoadProductsQuery
             {
@@ -134,7 +141,7 @@ namespace VirtoCommerce.XCart.Data.Services
                 CurrencyCode = currencyCode,
                 ObjectIds = ids,
                 IncludeFields = includeFields,
-                EvaluatePromotions = evaluatePromotions, // Promotions will be applied on the line item level
+                EvaluatePromotions = evaluatePromotions,
             };
 
             var response = await _mediator.Send(productsQuery);
