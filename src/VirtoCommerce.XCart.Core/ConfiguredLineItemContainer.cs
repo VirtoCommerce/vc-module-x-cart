@@ -23,7 +23,7 @@ namespace VirtoCommerce.XCart.Core
 
         private readonly List<SectionLineItem> _items = [];
 
-        public LineItem AddItem(CartProduct cartProduct, int quantity, string sectionId)
+        public LineItem CreateLineItem(CartProduct cartProduct, int quantity)
         {
             var lineItem = AbstractTypeFactory<LineItem>.TryCreateInstance();
             lineItem.ProductId = cartProduct.Id;
@@ -52,13 +52,29 @@ namespace VirtoCommerce.XCart.Core
                 lineItem.ExtendedPrice = lineItem.PlacedPrice * lineItem.Quantity;
             }
 
+            return lineItem;
+        }
+
+        public void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId)
+        {
+            var lineItem = CreateLineItem(cartProduct, quantity);
+
             _items.Add(new SectionLineItem
             {
-                Item = lineItem,
                 SectionId = sectionId,
+                Type = CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeProduct,
+                Item = lineItem
             });
+        }
 
-            return lineItem;
+        public void AddTextSectionLIneItem(string customText, string sectionId)
+        {
+            _items.Add(new SectionLineItem
+            {
+                SectionId = sectionId,
+                Type = CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeText,
+                CustomText = customText
+            });
         }
 
         public ExpConfigurationLineItem CreateConfiguredLineItem(int quantity)
@@ -94,13 +110,15 @@ namespace VirtoCommerce.XCart.Core
                     var subItem = AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
 
                     subItem.SectionId = x.SectionId;
-                    subItem.ProductId = x.Item.ProductId;
-                    subItem.Name = x.Item.Name;
-                    subItem.Sku = x.Item.Sku;
-                    subItem.ImageUrl = x.Item.ImageUrl;
-                    subItem.Quantity = x.Item.Quantity;
-                    subItem.CatalogId = x.Item.CatalogId;
-                    subItem.CategoryId = x.Item.CategoryId;
+                    subItem.ProductId = x.Item?.ProductId;
+                    subItem.Name = x.Item?.Name;
+                    subItem.Sku = x.Item?.Sku;
+                    subItem.ImageUrl = x.Item?.ImageUrl;
+                    subItem.Quantity = x.Item?.Quantity ?? 1;
+                    subItem.CatalogId = x.Item?.CatalogId;
+                    subItem.CategoryId = x.Item?.CategoryId;
+                    subItem.Type = x.Type;
+                    subItem.CustomText = x.CustomText;
 
                     return subItem;
                 })
@@ -125,8 +143,8 @@ namespace VirtoCommerce.XCart.Core
         {
             var configurableProductPrice = ConfigurableProduct.Price ?? new Xapi.Core.Models.ProductPrice(Currency);
 
-            lineItem.ListPrice = _items.Select(x => x.Item).Sum(x => x.ListPrice * x.Quantity) + configurableProductPrice.ListPrice.Amount;
-            lineItem.SalePrice = _items.Select(x => x.Item).Sum(x => x.SalePrice * x.Quantity) + configurableProductPrice.SalePrice.Amount;
+            lineItem.ListPrice = _items.Where(x => x.Item != null).Select(x => x.Item).Sum(x => x.ListPrice * x.Quantity) + configurableProductPrice.ListPrice.Amount;
+            lineItem.SalePrice = _items.Where(x => x.Item != null).Select(x => x.Item).Sum(x => x.SalePrice * x.Quantity) + configurableProductPrice.SalePrice.Amount;
 
             lineItem.DiscountAmount = configurableProductPrice.DiscountAmount.Amount;
             lineItem.PlacedPrice = lineItem.ListPrice - lineItem.DiscountAmount;
@@ -155,6 +173,8 @@ namespace VirtoCommerce.XCart.Core
         {
             public string SectionId { get; set; }
             public LineItem Item { get; set; }
+            public string CustomText { get; set; }
+            public string Type { get; set; }
         }
     }
 }

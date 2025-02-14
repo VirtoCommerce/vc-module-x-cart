@@ -1,4 +1,4 @@
-﻿using GraphQL.Types;
+using GraphQL.Types;
 using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Schemas;
@@ -7,7 +7,7 @@ public class ConfigurableProductOptionInput : InputObjectGraphType<ConfigurableP
 {
     public ConfigurableProductOptionInput()
     {
-        Field<NonNullGraphType<StringGraphType>>("productId");
-        Field<NonNullGraphType<IntGraphType>>("quantity");
+        Field<NonNullGraphType<StringGraphType>>("productId").Description("Product ID");
+        Field<NonNullGraphType<IntGraphType>>("quantity").Description("Quantity of product");
     }
 }
