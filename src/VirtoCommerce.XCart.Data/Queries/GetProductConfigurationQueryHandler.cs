@@ -42,7 +42,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
 
         var container = await _configuredLineItemContainerService.CreateContainerAsync(request);
 
-        var allProductIds = configuration.Sections.SelectMany(x => x.Options.Select(x => x.ProductId)).Distinct().ToArray();
+        var allProductIds = configuration.Sections.SelectMany(x => x.Options?.Select(x => x.ProductId)).Distinct().ToArray();
 
         var productsRequest = container.GetCartProductsRequest();
         productsRequest.ProductIds = allProductIds;
@@ -58,26 +58,30 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
                 Name = section.Name,
                 IsRequired = section.IsRequired,
                 Description = section.Description,
+                Type = section.Type,
             };
             result.ConfigurationSections.Add(configurationSection);
 
-            foreach (var option in section.Options)
+            if (section.Type == CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeProduct && !section.Options.IsNullOrEmpty())
             {
-                if (productByIds.TryGetValue(option.ProductId, out var cartProduct))
+                foreach (var option in section.Options)
                 {
-                    var item = container.AddItem(cartProduct, option.Quantity, section.Id);
-                    item.Id = option.Id;
-
-                    var expConfigurationLineItem = new ExpConfigurationLineItem
+                    if (productByIds.TryGetValue(option.ProductId, out var cartProduct))
                     {
-                        Item = item,
-                        Currency = container.Currency,
-                        CultureName = container.CultureName,
-                        UserId = container.UserId,
-                        StoreId = container.Store.Id,
-                    };
+                        var item = container.CreateLineItem(cartProduct, option.Quantity);
+                        item.Id = option.Id;
 
-                    configurationSection.Options.Add(expConfigurationLineItem);
+                        var expConfigurationLineItem = new ExpConfigurationLineItem
+                        {
+                            Item = item,
+                            Currency = container.Currency,
+                            CultureName = container.CultureName,
+                            UserId = container.UserId,
+                            StoreId = container.Store.Id,
+                        };
+
+                        configurationSection.Options.Add(expConfigurationLineItem);
+                    }
                 }
             }
         }
