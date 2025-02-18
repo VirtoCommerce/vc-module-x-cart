@@ -35,7 +35,7 @@ namespace VirtoCommerce.XCart.Data.Commands
         public override async Task<CartAggregate> Handle(AddCartItemCommand request, CancellationToken cancellationToken)
         {
             var cartAggregate = await GetOrCreateCartFromCommandAsync(request);
-            var product = (await _cartProductService.GetCartProductsByIdsAsync(cartAggregate, new[] { request.ProductId })).FirstOrDefault();
+            var product = (await _cartProductService.GetCartProductsByIdsAsync(cartAggregate, [request.ProductId])).FirstOrDefault();
 
             var newItem = new NewCartItem(request.ProductId, request.Quantity)
             {
