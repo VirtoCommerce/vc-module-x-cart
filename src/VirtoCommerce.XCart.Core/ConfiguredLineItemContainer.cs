@@ -142,11 +142,11 @@ namespace VirtoCommerce.XCart.Core
         public void UpdatePrice(LineItem lineItem)
         {
             var configurableProductPrice = ConfigurableProduct.Price ?? new Xapi.Core.Models.ProductPrice(Currency);
-
-            lineItem.ListPrice = _items.Where(x => x.Item != null).Select(x => x.Item).Sum(x => x.ListPrice * x.Quantity) + configurableProductPrice.ListPrice.Amount;
-            lineItem.SalePrice = _items.Where(x => x.Item != null).Select(x => x.Item).Sum(x => x.SalePrice * x.Quantity) + configurableProductPrice.SalePrice.Amount;
-
-            lineItem.DiscountAmount = configurableProductPrice.DiscountAmount.Amount;
+            var items = _items.Where(x => x.Item != null).Select(x => x.Item).ToArray();
+            
+            lineItem.ListPrice = items.Sum(x => x.ListPrice * x.Quantity) + configurableProductPrice.ListPrice.Amount;
+            lineItem.SalePrice = items.Sum(x => x.SalePrice * x.Quantity) + configurableProductPrice.SalePrice.Amount;
+            lineItem.DiscountAmount = items.Sum(x => x.DiscountAmount) + configurableProductPrice.DiscountAmount.Amount;
             lineItem.PlacedPrice = lineItem.ListPrice - lineItem.DiscountAmount;
             lineItem.ExtendedPrice = lineItem.PlacedPrice * lineItem.Quantity;
         }
