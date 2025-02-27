@@ -13,7 +13,6 @@ using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
-using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Model;
@@ -50,11 +49,6 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                 new MemoryCache(Options.Create(new MemoryCacheOptions())),
                 Options.Create(new CachingOptions()),
                 new Mock<ILogger<PlatformMemoryCache>>().Object);
-
-            _fileUploadService = new Mock<IFileUploadService>();
-            _fileUploadService
-                .Setup(x => x.GetAsync(new List<string>(0), It.IsAny<string>(), It.IsAny<bool>()))
-                .ReturnsAsync(() => { return []; });
 
             repository = new CartAggregateRepository(
                 () => _fixture.Create<CartAggregate>(),

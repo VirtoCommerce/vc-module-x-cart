@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using AutoFixture;
 using AutoMapper;
 using Bogus;
+using FluentValidation;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Services;
@@ -50,8 +52,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         protected readonly Mock<IMapper> _mapperMock;
         protected readonly Mock<IMemberService> _memberService;
         protected readonly Mock<IGenericPipelineLauncher> _genericPipelineLauncherMock;
-        protected Mock<ConfigurationItemValidator> _configurationItemValidatorMock;
-        protected Mock<IFileUploadService> _fileUploadService;
+        protected readonly Mock<IValidator<LineItem>> _configurationItemValidatorMock;
+        protected readonly Mock<IFileUploadService> _fileUploadService;
 
         protected readonly Randomizer Rand = new Randomizer();
 
@@ -183,9 +185,9 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 .Setup(x => x.GetByIdAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(_fixture.Create<Organization>());
 
-            _configurationItemValidatorMock = new Mock<ConfigurationItemValidator>();
-            _configurationItemValidatorMock.Setup(x => x.Validate(It.IsAny<LineItem>()))
-                .Returns(new FluentValidation.Results.ValidationResult());
+            _configurationItemValidatorMock = new Mock<IValidator<LineItem>>();
+            _configurationItemValidatorMock.Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), CancellationToken.None))
+                .ReturnsAsync(new FluentValidation.Results.ValidationResult());
 
             _fileUploadService = new Mock<IFileUploadService>();
             _fileUploadService

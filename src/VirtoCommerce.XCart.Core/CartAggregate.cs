@@ -49,7 +49,7 @@ namespace VirtoCommerce.XCart.Core
         private readonly IMemberService _memberService;
         private readonly IMapper _mapper;
         private readonly IGenericPipelineLauncher _pipeline;
-        private readonly ConfigurationItemValidator _configurationItemValidator;
+        private readonly IValidator<LineItem> _configurationItemValidator;
         private readonly IFileUploadService _fileUploadService;
 
         public CartAggregate(
@@ -61,7 +61,7 @@ namespace VirtoCommerce.XCart.Core
             IMapper mapper,
             IMemberService memberService,
             IGenericPipelineLauncher pipeline,
-            ConfigurationItemValidator configurationItemValidator,
+            IValidator<LineItem> configurationItemValidator,
             IFileUploadService fileUploadService)
         {
             _cartTotalsCalculator = cartTotalsCalculator;
