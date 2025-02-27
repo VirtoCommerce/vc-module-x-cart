@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FluentValidation;
 using FluentValidation.Results;
+using StackExchange.Redis;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CatalogModule.Core.Model;
@@ -13,6 +14,7 @@ using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.MarketingModule.Core.Services;
 using VirtoCommerce.PaymentModule.Core.Model;
@@ -47,6 +49,8 @@ namespace VirtoCommerce.XCart.Core
         private readonly IMemberService _memberService;
         private readonly IMapper _mapper;
         private readonly IGenericPipelineLauncher _pipeline;
+        private readonly ConfigurationItemValidator _configurationItemValidator;
+        private readonly IFileUploadService _fileUploadService;
 
         public CartAggregate(
             IMarketingPromoEvaluator marketingEvaluator,
@@ -56,7 +60,9 @@ namespace VirtoCommerce.XCart.Core
             IDynamicPropertyUpdaterService dynamicPropertyUpdaterService,
             IMapper mapper,
             IMemberService memberService,
-            IGenericPipelineLauncher pipeline)
+            IGenericPipelineLauncher pipeline,
+            ConfigurationItemValidator configurationItemValidator,
+            IFileUploadService fileUploadService)
         {
             _cartTotalsCalculator = cartTotalsCalculator;
             _marketingEvaluator = marketingEvaluator;
@@ -66,6 +72,8 @@ namespace VirtoCommerce.XCart.Core
             _mapper = mapper;
             _memberService = memberService;
             _pipeline = pipeline;
+            _configurationItemValidator = configurationItemValidator;
+            _fileUploadService = fileUploadService;
         }
 
         public Store Store { get; protected set; }
@@ -177,6 +185,14 @@ namespace VirtoCommerce.XCart.Core
         {
             ArgumentNullException.ThrowIfNull(newCartItem);
             ArgumentNullException.ThrowIfNull(newConfiguredItem);
+
+            var validationResult = await _configurationItemValidator.ValidateAsync(newConfiguredItem);
+            if (!validationResult.IsValid)
+            {
+                OperationValidationErrors.AddRange(validationResult.Errors);
+
+                return this;
+            }
 
             EnsureCartExists();
 
@@ -582,9 +598,11 @@ namespace VirtoCommerce.XCart.Core
             return Task.FromResult(this);
         }
 
-        public virtual Task<CartAggregate> ClearAsync()
+        public virtual async Task<CartAggregate> ClearAsync()
         {
             EnsureCartExists();
+
+            await ClearConfigurationFiles(Cart.Items);
 
             Cart.Comment = string.Empty;
             Cart.PurchaseOrderNumber = string.Empty;
@@ -596,7 +614,7 @@ namespace VirtoCommerce.XCart.Core
             Cart.Items.Clear();
             Cart.DynamicProperties?.Clear();
 
-            return Task.FromResult(this);
+            return this;
         }
 
         public virtual Task<CartAggregate> ChangePurchaseOrderNumber(string purchaseOrderNumber)
@@ -1197,6 +1215,38 @@ namespace VirtoCommerce.XCart.Core
             }
 
             return this;
+        }
+
+        private async Task ClearConfigurationFiles(ICollection<LineItem> configuredItems)
+        {
+            var configuredFiles = configuredItems
+                .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
+                .SelectMany(x => x.ConfigurationItems
+                    .Where(y => y.Files != null)
+                    .SelectMany(y => y.Files));
+
+            var fileUrls = configuredFiles
+                .Where(x => !string.IsNullOrEmpty(x.Url))
+                .Select(x => x.Url)
+                .Distinct().ToArray();
+
+            var ids = fileUrls
+                .Select(FileExtensions.GetFileId)
+                .Where(x => !string.IsNullOrEmpty(x))
+                .ToList();
+
+            var files = await _fileUploadService.GetAsync(ids);
+
+            if (!files.IsNullOrEmpty())
+            {
+                foreach (var file in files)
+                {
+                    file.OwnerEntityId = null;
+                    file.OwnerEntityType = null;
+                }
+
+                await _fileUploadService.SaveChangesAsync(files);
+            }
         }
 
         #region ICloneable

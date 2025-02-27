@@ -295,5 +295,79 @@ namespace VirtoCommerce.XCart.Core.Validators
 
             return result;
         }
+
+        public static ValidationFailure FilesQuantityLimitError(IEntity entity, int limit)
+        {
+            var result = new CartValidationError(entity, $"You can add maximum {limit} files to the section.", "CONFIGURATION_SECTION_FILE_LIMIT")
+            {
+                FormattedMessagePlaceholderValues = new Dictionary<string, object>
+                {
+                    ["limit"] = limit,
+                }
+            };
+
+            return result;
+        }
+
+        public static CartValidationError ConfigurationSectionNotFound(IEntity entity, string sectionId)
+        {
+            var result = new CartValidationError(entity, $"Configuration section with ID {sectionId} not found", "CONFIGURATION_SECTION_NOT_FOUND");
+            return result;
+        }
+
+        public static CartValidationError CustomTextIsRequired(IEntity entity)
+        {
+            var result = new CartValidationError(entity, $"Configuration section requires to fill the CustomText field", "CONFIGURATION_SECTION_CUSTOMTEXT_REQUIRED");
+            return result;
+        }
+
+        public static CartValidationError AddingFileIsRequired(IEntity entity)
+        {
+            var result = new CartValidationError(entity, $"Configuration section requires to add at list one file", "CONFIGURATION_SECTION_FILES_REQUIRED");
+            return result;
+        }
+
+        public static CartValidationError SelectedProductIsRequired(IEntity entity)
+        {
+            var result = new CartValidationError(entity, $"Configuration section requires to select a product", "CONFIGURATION_SECTION_PRODUCT_REQUIRED");
+            return result;
+        }
+
+        public static CartValidationError ProductUnavailableForSectionError(string type, string id, string sectionId)
+        {
+            var result = new CartValidationError(type, id, $"Product with ID {id} does not belong to the section {sectionId}", "CONFIGURATION_SECTION_PRODUCT_UNAVAILABLE");
+            return result;
+        }
+
+        public static CartValidationError ConfigurationSectionUnknowType(IEntity entity, string type, string sectionId)
+        {
+            var result = new CartValidationError(entity, $"Unknown type {type} of section with ID {sectionId}", "CONFIGURATION_SECTION_UNKNOWN_TYPE");
+            return result;
+        }
+
+        public static CartValidationError MissingRequiredSections(IEntity entity, List<string> ids)
+        {
+            var result = new CartValidationError(entity, $"Required sections are missing", "CONFIGURATION_SECTION_REQUIRED")
+            {
+                FormattedMessagePlaceholderValues = new Dictionary<string, object>
+                {
+                    ["sectionIds"] = ids
+                }
+            };
+
+            return result;
+        }
+
+        public static CartValidationError ConfigurationForProductNotFound(IEntity entity, string productId)
+        {
+            var result = new CartValidationError(entity, $"Configuration for product with ID {productId} not found", "CONFIGURATION_NOT_FOUND");
+            return result;
+        }
+
+        public static CartValidationError ConfigurationSectionTypeMismatch(IEntity entity, string type, string sectionId)
+        {
+            var result = new CartValidationError(entity, $"Unknown type {type} of section with ID {sectionId}", "CONFIGURATION_SECTION_TYPE_MISMATCH");
+            return result;
+        }
     }
 }

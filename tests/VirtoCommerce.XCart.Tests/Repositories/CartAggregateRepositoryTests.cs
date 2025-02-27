@@ -13,6 +13,7 @@ using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Model;
@@ -58,8 +59,8 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                 _memberResolver.Object,
                 _storeService.Object,
                 null,
-                null
-                );
+                null,
+                _fileUploadService.Object);
         }
 
         [Fact]
@@ -164,8 +165,8 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                  _memberResolver.Object,
                  _storeService.Object,
                  _cartProductServiceMock.Object,
-                 _platformMemoryCache
-                 );
+                 _platformMemoryCache,
+                 _fileUploadService.Object);
 
             var storeId = "Store";
             var store = _fixture.Create<Store>();
@@ -214,7 +215,8 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                  _memberResolver.Object,
                  _storeService.Object,
                  _cartProductServiceMock.Object,
-                 _platformMemoryCache);
+                 _platformMemoryCache,
+                 _fileUploadService.Object);
 
             var storeId = "Store";
             var store = _fixture.Create<Store>();

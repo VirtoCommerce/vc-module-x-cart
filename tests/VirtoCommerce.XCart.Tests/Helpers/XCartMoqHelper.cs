@@ -12,6 +12,7 @@ using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.InventoryModule.Core.Model;
 using VirtoCommerce.MarketingModule.Core.Services;
 using VirtoCommerce.PaymentModule.Core.Model;
@@ -49,7 +50,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         protected readonly Mock<IMapper> _mapperMock;
         protected readonly Mock<IMemberService> _memberService;
         protected readonly Mock<IGenericPipelineLauncher> _genericPipelineLauncherMock;
-
+        protected readonly Mock<ConfigurationItemValidator> _configurationItemValidatorMock;
+        protected readonly Mock<IFileUploadService> _fileUploadService;
 
         protected readonly Randomizer Rand = new Randomizer();
 
@@ -180,6 +182,15 @@ namespace VirtoCommerce.XCart.Tests.Helpers
             _memberService
                 .Setup(x => x.GetByIdAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(_fixture.Create<Organization>());
+
+            _configurationItemValidatorMock = new Mock<ConfigurationItemValidator>();
+            _configurationItemValidatorMock.Setup(x => x.Validate(It.IsAny<LineItem>()))
+                .Returns(new FluentValidation.Results.ValidationResult());
+
+            _fileUploadService = new Mock<IFileUploadService>();
+            _fileUploadService
+                .Setup(x => x.GetAsync(new List<string>(0), It.IsAny<string>(), It.IsAny<bool>()))
+                .ReturnsAsync(() => { return []; });
         }
 
         protected ShoppingCart GetCart() => _fixture.Create<ShoppingCart>();
@@ -237,7 +248,9 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 _dynamicPropertyUpdaterService.Object,
                 _mapperMock.Object,
                 _memberService.Object,
-                _genericPipelineLauncherMock.Object);
+                _genericPipelineLauncherMock.Object,
+                _configurationItemValidatorMock.Object,
+                _fileUploadService.Object);
 
             aggregate.GrabCart(cart ?? GetCart(), new Store(), GetMember(), currency ?? GetCurrency());
 

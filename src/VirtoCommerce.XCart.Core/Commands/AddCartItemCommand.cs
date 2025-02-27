@@ -9,6 +9,7 @@ namespace VirtoCommerce.XCart.Core.Commands
     public class AddCartItemCommand : CartCommand
     {
         public string ProductId { get; set; }
+
         public int Quantity { get; set; }
 
         /// <summary>

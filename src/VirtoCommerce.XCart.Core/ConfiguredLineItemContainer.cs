@@ -77,6 +77,16 @@ namespace VirtoCommerce.XCart.Core
             });
         }
 
+        public void AddFiletSectionLIneItem(IList<ConfigurationItemFile> files, string sectionId)
+        {
+            _items.Add(new SectionLineItem
+            {
+                SectionId = sectionId,
+                Type = CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeFile,
+                Files = files
+            });
+        }
+
         public ExpConfigurationLineItem CreateConfiguredLineItem(int quantity)
         {
             var lineItem = AbstractTypeFactory<LineItem>.TryCreateInstance();
@@ -119,6 +129,7 @@ namespace VirtoCommerce.XCart.Core
                     subItem.CategoryId = x.Item?.CategoryId;
                     subItem.Type = x.Type;
                     subItem.CustomText = x.CustomText;
+                    subItem.Files = x.Files;
 
                     return subItem;
                 })
@@ -143,7 +154,7 @@ namespace VirtoCommerce.XCart.Core
         {
             var configurableProductPrice = ConfigurableProduct.Price ?? new Xapi.Core.Models.ProductPrice(Currency);
             var items = _items.Where(x => x.Item != null).Select(x => x.Item).ToArray();
-            
+
             lineItem.ListPrice = items.Sum(x => x.ListPrice * x.Quantity) + configurableProductPrice.ListPrice.Amount;
             lineItem.SalePrice = items.Sum(x => x.SalePrice * x.Quantity) + configurableProductPrice.SalePrice.Amount;
             lineItem.DiscountAmount = items.Sum(x => x.DiscountAmount) + configurableProductPrice.DiscountAmount.Amount;
@@ -175,6 +186,7 @@ namespace VirtoCommerce.XCart.Core
             public LineItem Item { get; set; }
             public string CustomText { get; set; }
             public string Type { get; set; }
+            public IList<ConfigurationItemFile> Files { get; set; } = [];
         }
     }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Policy;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using VirtoCommerce.CartModule.Core.Model;
@@ -9,12 +10,14 @@ using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.XCart.Core;
+using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
@@ -32,6 +35,7 @@ namespace VirtoCommerce.XCart.Data.Services
         private readonly ICurrencyService _currencyService;
         private readonly IMemberResolver _memberResolver;
         private readonly IStoreService _storeService;
+        private readonly IFileUploadService _fileUploadService;
 
         private readonly IPlatformMemoryCache _platformMemoryCache;
 
@@ -43,8 +47,8 @@ namespace VirtoCommerce.XCart.Data.Services
             IMemberResolver memberResolver,
             IStoreService storeService,
             ICartProductService cartProductsService,
-            IPlatformMemoryCache platformMemoryCache
-            )
+            IPlatformMemoryCache platformMemoryCache,
+            IFileUploadService fileUploadService)
         {
             _cartAggregateFactory = cartAggregateFactory;
             _shoppingCartSearchService = shoppingCartSearchService;
@@ -54,6 +58,7 @@ namespace VirtoCommerce.XCart.Data.Services
             _storeService = storeService;
             _cartProductsService = cartProductsService;
             _platformMemoryCache = platformMemoryCache;
+            _fileUploadService = fileUploadService;
         }
 
         public virtual async Task SaveAsync(CartAggregate cartAggregate)
@@ -61,7 +66,9 @@ namespace VirtoCommerce.XCart.Data.Services
             await cartAggregate.RecalculateAsync();
             cartAggregate.Cart.ModifiedDate = DateTime.UtcNow;
 
-            await _shoppingCartService.SaveChangesAsync(new List<ShoppingCart> { cartAggregate.Cart });
+            await _shoppingCartService.SaveChangesAsync([cartAggregate.Cart]);
+
+            await UpdateConfigurationFiles(cartAggregate.Cart);
 
             // Clear cache
             GenericCachingRegion<CartAggregate>.ExpireTokenForKey(cartAggregate.Id);
@@ -309,6 +316,38 @@ namespace VirtoCommerce.XCart.Data.Services
         {
             var configurationLineItems = aggregate.LineItems.Where(x => x.IsConfigured).ToArray();
             await aggregate.UpdateConfiguredLineItemPrice(configurationLineItems);
+        }
+
+        private async Task UpdateConfigurationFiles(ShoppingCart cart)
+        {
+            var configurationItems = cart.Items.Where(x => !x.ConfigurationItems.IsNullOrEmpty()).SelectMany(x => x.ConfigurationItems.Where(y => y.Files != null));
+            var fileUrls = configurationItems
+                .SelectMany(y => y.Files)
+                .Where(x => !string.IsNullOrEmpty(x.Url)).Select(x => x.Url)
+                .Distinct().ToArray();
+
+            var ids = fileUrls
+                .Select(FileExtensions.GetFileId)
+                .Where(x => !string.IsNullOrEmpty(x))
+                .ToList();
+
+            var files = await _fileUploadService.GetAsync(ids);
+
+            files = files
+                .Where(x => x.Scope == CatalogModule.Core.ModuleConstants.ConfigurationSectionFilesScope && string.IsNullOrEmpty(x.OwnerEntityId) && string.IsNullOrEmpty(x.OwnerEntityType))
+                .ToList();
+
+            if (!files.IsNullOrEmpty())
+            {
+                foreach (var file in files)
+                {
+                    var configurationItem = configurationItems.FirstOrDefault(x => x.Files.Any(y => y.Url == FileExtensions.GetFileUrl(file.Id)));
+                    file.OwnerEntityId = configurationItem?.Id;
+                    file.OwnerEntityType = nameof(ConfigurationItem);
+                }
+
+                await _fileUploadService.SaveChangesAsync(files);
+            }
         }
     }
 }
