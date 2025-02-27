@@ -9,6 +9,7 @@ using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Currency;
+using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
@@ -30,6 +31,15 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
         public CartAggregateTests()
         {
+            _configurationItemValidatorMock = new Mock<ConfigurationItemValidator>();
+            _configurationItemValidatorMock.Setup(x => x.Validate(It.IsAny<LineItem>()))
+                .Returns(new FluentValidation.Results.ValidationResult());
+
+            _fileUploadService = new Mock<IFileUploadService>();
+            _fileUploadService
+                .Setup(x => x.GetAsync(new List<string>(0), It.IsAny<string>(), It.IsAny<bool>()))
+                .ReturnsAsync(() => { return []; });
+
             aggregate = new CartAggregate(
                 _marketingPromoEvaluatorMock.Object,
                 _shoppingCartTotalsCalculatorMock.Object,

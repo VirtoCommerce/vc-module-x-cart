@@ -50,8 +50,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         protected readonly Mock<IMapper> _mapperMock;
         protected readonly Mock<IMemberService> _memberService;
         protected readonly Mock<IGenericPipelineLauncher> _genericPipelineLauncherMock;
-        protected readonly Mock<ConfigurationItemValidator> _configurationItemValidatorMock;
-        protected readonly Mock<IFileUploadService> _fileUploadService;
+        protected Mock<ConfigurationItemValidator> _configurationItemValidatorMock;
+        protected Mock<IFileUploadService> _fileUploadService;
 
         protected readonly Randomizer Rand = new Randomizer();
 

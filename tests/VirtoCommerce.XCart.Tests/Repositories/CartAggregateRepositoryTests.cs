@@ -51,6 +51,11 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                 Options.Create(new CachingOptions()),
                 new Mock<ILogger<PlatformMemoryCache>>().Object);
 
+            _fileUploadService = new Mock<IFileUploadService>();
+            _fileUploadService
+                .Setup(x => x.GetAsync(new List<string>(0), It.IsAny<string>(), It.IsAny<bool>()))
+                .ReturnsAsync(() => { return []; });
+
             repository = new CartAggregateRepository(
                 () => _fixture.Create<CartAggregate>(),
                 _shoppingCartSearchService.Object,
