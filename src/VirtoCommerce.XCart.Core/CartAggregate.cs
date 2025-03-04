@@ -1237,6 +1237,10 @@ namespace VirtoCommerce.XCart.Core
 
             var files = await _fileUploadService.GetAsync(ids);
 
+            files = files
+                .Where(x => x.Scope == CatalogModule.Core.ModuleConstants.ConfigurationSectionFilesScope && (!string.IsNullOrEmpty(x.OwnerEntityId) || !string.IsNullOrEmpty(x.OwnerEntityType)))
+                .ToList();
+
             if (!files.IsNullOrEmpty())
             {
                 foreach (var file in files)
