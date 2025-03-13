@@ -192,9 +192,6 @@ namespace VirtoCommerce.XCart.Tests.Helpers
             _fileUploadService
                 .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
                 .ReturnsAsync(() => []);
-            _fileUploadService
-                .Setup(x => x.GetByPublicUrlAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
-                .ReturnsAsync(() => []);
         }
 
         protected ShoppingCart GetCart() => _fixture.Create<ShoppingCart>();
