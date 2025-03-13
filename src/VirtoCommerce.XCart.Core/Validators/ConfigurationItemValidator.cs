@@ -9,10 +9,12 @@ using VirtoCommerce.CatalogModule.Core.Model.Search;
 using VirtoCommerce.CatalogModule.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Settings;
+using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
+using static VirtoCommerce.CatalogModule.Core.ModuleConstants.Settings.General;
 
 namespace VirtoCommerce.XCart.Core.Validators;
 
-public class ConfigurationItemValidator : AbstractValidator<LineItem>
+public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigurationItemValidator
 {
     private readonly ISettingsManager _settingsManager;
     private readonly IProductConfigurationSearchService _productConfigurationService;
@@ -35,15 +37,18 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>
             return;
         }
 
-        var requiredSectionIds = configuration.Sections.Where(x => x.IsRequired).Select(x => x.Id);
-        var missingRequiredSections = requiredSectionIds.Except(item.ConfigurationItems.Select(x => x.SectionId)).ToList();
+        var missingRequiredSectionIds = configuration.Sections
+            .Where(x => x.IsRequired)
+            .Select(x => x.Id)
+            .Except(item.ConfigurationItems.Select(x => x.SectionId))
+            .ToList();
 
-        if (missingRequiredSections.Count > 0)
+        if (missingRequiredSectionIds.Count > 0)
         {
-            context.AddFailure(CartErrorDescriber.MissingRequiredSections(item, missingRequiredSections));
+            context.AddFailure(CartErrorDescriber.MissingRequiredSections(item, missingRequiredSectionIds));
         }
 
-        var limitOfFiles = _settingsManager.GetValue<int>(CatalogModule.Core.ModuleConstants.Settings.General.ProductConfigurationMaximumFiles);
+        var limitOfFiles = await _settingsManager.GetValueAsync<int>(ProductConfigurationMaximumFiles);
         var sections = configuration.Sections.ToDictionary(x => x.Id);
 
         foreach (var configurationItem in item.ConfigurationItems)
@@ -60,17 +65,17 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>
 
             switch (configurationItem.Type)
             {
-                case CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeProduct:
+                case ConfigurationSectionTypeProduct:
                     ValidateSectionTypeProduct(configurationItem, section, context);
                     break;
-                case CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeFile:
+                case ConfigurationSectionTypeFile:
                     ValidateSectionTypeFile(configurationItem, section, context, limitOfFiles);
                     break;
-                case CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeText:
+                case ConfigurationSectionTypeText:
                     ValidateSectionTypeText(configurationItem, section, context);
                     break;
                 default:
-                    context.AddFailure(CartErrorDescriber.ConfigurationSectionUnknowType(configurationItem, configurationItem.Type, configurationItem.SectionId));
+                    context.AddFailure(CartErrorDescriber.ConfigurationSectionUnknownType(configurationItem, configurationItem.Type, configurationItem.SectionId));
                     break;
             }
         }
@@ -125,7 +130,7 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>
                 context.AddFailure(CartErrorDescriber.SelectedProductIsRequired(section));
             }
 
-            if (!section.Options.Any(x => x.ProductId == configurationItem.ProductId))
+            if (section.Options.All(x => x.ProductId != configurationItem.ProductId))
             {
                 context.AddFailure(CartErrorDescriber.ProductUnavailableForSectionError(nameof(CatalogProduct), configurationItem.ProductId, section.Id));
             }

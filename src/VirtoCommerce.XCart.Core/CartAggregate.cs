@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FluentValidation;
 using FluentValidation.Results;
-using StackExchange.Redis;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CatalogModule.Core.Model;
@@ -14,6 +13,7 @@ using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.FileExperienceApi.Core.Extensions;
 using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.MarketingModule.Core.Services;
@@ -32,9 +32,10 @@ using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
+using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
 using Store = VirtoCommerce.StoreModule.Core.Model.Store;
 using StoreSetting = VirtoCommerce.StoreModule.Core.ModuleConstants.Settings.General;
-using XCartiSetting = VirtoCommerce.XCart.Core.ModuleConstants.Settings.General;
+using XCartSetting = VirtoCommerce.XCart.Core.ModuleConstants.Settings.General;
 
 namespace VirtoCommerce.XCart.Core
 {
@@ -49,7 +50,7 @@ namespace VirtoCommerce.XCart.Core
         private readonly IMemberService _memberService;
         private readonly IMapper _mapper;
         private readonly IGenericPipelineLauncher _pipeline;
-        private readonly IValidator<LineItem> _configurationItemValidator;
+        private readonly IConfigurationItemValidator _configurationItemValidator;
         private readonly IFileUploadService _fileUploadService;
 
         public CartAggregate(
@@ -61,7 +62,7 @@ namespace VirtoCommerce.XCart.Core
             IMapper mapper,
             IMemberService memberService,
             IGenericPipelineLauncher pipeline,
-            IValidator<LineItem> configurationItemValidator,
+            IConfigurationItemValidator configurationItemValidator,
             IFileUploadService fileUploadService)
         {
             _cartTotalsCalculator = cartTotalsCalculator;
@@ -145,7 +146,7 @@ namespace VirtoCommerce.XCart.Core
         public IList<string> ProductsIncludeFields { get; set; }
         public string ResponseGroup { get; set; }
 
-        public bool IsSelectedForCheckout => Store.Settings?.GetValue<bool>(XCartiSetting.IsSelectedForCheckout) ?? true;
+        public bool IsSelectedForCheckout => Store.Settings?.GetValue<bool>(XCartSetting.IsSelectedForCheckout) ?? true;
 
         public virtual IList<ValidationFailure> GetValidationErrors()
         {
@@ -190,7 +191,6 @@ namespace VirtoCommerce.XCart.Core
             if (!validationResult.IsValid)
             {
                 OperationValidationErrors.AddRange(validationResult.Errors);
-
                 return this;
             }
 
@@ -1228,25 +1228,18 @@ namespace VirtoCommerce.XCart.Core
             var fileUrls = configuredFiles
                 .Where(x => !string.IsNullOrEmpty(x.Url))
                 .Select(x => x.Url)
-                .Distinct().ToArray();
+                .Distinct()
+                .ToArray();
 
-            var ids = fileUrls
-                .Select(FileExtensions.GetFileId)
-                .Where(x => !string.IsNullOrEmpty(x))
+            var files = (await _fileUploadService.GetByPublicUrlAsync(fileUrls))
+                .Where(x => x.Scope == ConfigurationSectionFilesScope && !x.OwnerIsEmpty())
                 .ToList();
 
-            var files = await _fileUploadService.GetAsync(ids);
-
-            files = files
-                .Where(x => x.Scope == CatalogModule.Core.ModuleConstants.ConfigurationSectionFilesScope && (!string.IsNullOrEmpty(x.OwnerEntityId) || !string.IsNullOrEmpty(x.OwnerEntityType)))
-                .ToList();
-
-            if (!files.IsNullOrEmpty())
+            if (files.Count > 0)
             {
                 foreach (var file in files)
                 {
-                    file.OwnerEntityId = null;
-                    file.OwnerEntityType = null;
+                    file.ClearOwner();
                 }
 
                 await _fileUploadService.SaveChangesAsync(files);

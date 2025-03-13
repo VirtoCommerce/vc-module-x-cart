@@ -7,6 +7,7 @@ using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.XCart.Core.Models;
+using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Core
 {
@@ -62,8 +63,8 @@ namespace VirtoCommerce.XCart.Core
             _items.Add(new SectionLineItem
             {
                 SectionId = sectionId,
-                Type = CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeProduct,
-                Item = lineItem
+                Type = ConfigurationSectionTypeProduct,
+                Item = lineItem,
             });
         }
 
@@ -72,18 +73,18 @@ namespace VirtoCommerce.XCart.Core
             _items.Add(new SectionLineItem
             {
                 SectionId = sectionId,
-                Type = CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeText,
-                CustomText = customText
+                Type = ConfigurationSectionTypeText,
+                CustomText = customText,
             });
         }
 
-        public void AddFiletSectionLIneItem(IList<ConfigurationItemFile> files, string sectionId)
+        public void AddFileSectionLineItem(IList<ConfigurationItemFile> files, string sectionId)
         {
             _items.Add(new SectionLineItem
             {
                 SectionId = sectionId,
-                Type = CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeFile,
-                Files = files
+                Type = ConfigurationSectionTypeFile,
+                Files = files,
             });
         }
 

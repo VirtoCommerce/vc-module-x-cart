@@ -9,7 +9,7 @@ namespace VirtoCommerce.XCart.Core.Validators
     {
         public static CartValidationError LineItemIsReadOnly(IEntity entity)
         {
-            var result = new CartValidationError(entity, $"Line item is read only", "LINE_ITEM_IS_READ_ONLY");
+            var result = new CartValidationError(entity, "Line item is read only", "LINE_ITEM_IS_READ_ONLY");
             return result;
         }
 
@@ -34,8 +34,8 @@ namespace VirtoCommerce.XCart.Core.Validators
                     ["old_price"] = oldPrice,
                     ["old_price_with_tax"] = oldPriceWithTax,
                     ["new_price"] = newPrice,
-                    ["new_price_with_tax"] = newPriceWithTax
-                }
+                    ["new_price_with_tax"] = newPriceWithTax,
+                },
             };
 
             return result;
@@ -47,8 +47,8 @@ namespace VirtoCommerce.XCart.Core.Validators
             {
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
-                    ["availQty"] = availQty
-                }
+                    ["availQty"] = availQty,
+                },
             };
             return result;
         }
@@ -60,8 +60,8 @@ namespace VirtoCommerce.XCart.Core.Validators
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
                     ["new_qty"] = newQty,
-                    ["availQty"] = availQty
-                }
+                    ["availQty"] = availQty,
+                },
             };
             return result;
         }
@@ -75,8 +75,8 @@ namespace VirtoCommerce.XCart.Core.Validators
                     ["old_price"] = oldPrice,
                     ["old_price_with_tax"] = oldPriceWithTax,
                     ["new_price"] = newPrice,
-                    ["new_price_with_tax"] = newPriceWithTax
-                }
+                    ["new_price_with_tax"] = newPriceWithTax,
+                },
             };
             return result;
         }
@@ -89,7 +89,7 @@ namespace VirtoCommerce.XCart.Core.Validators
 
         public static CartValidationError ShipmentMethodUnavailable(IEntity entity, string shipmentMethodCode, string shipmentMethodOption)
         {
-            var result = new CartValidationError(entity, $"The shipment method {shipmentMethodCode ?? "NULLShipmentMethodCode".ToUpper()} with {shipmentMethodOption ?? "NULLshipmentMethodOption".ToUpper()} unavailable", "SHIPMENT_METHOD_UNAVAILABLE");
+            var result = new CartValidationError(entity, $"The shipment method {shipmentMethodCode ?? "NULLShipmentMethodCode".ToUpper()} with {shipmentMethodOption ?? "NULLShipmentMethodOption".ToUpper()} unavailable", "SHIPMENT_METHOD_UNAVAILABLE");
             return result;
         }
 
@@ -130,8 +130,8 @@ namespace VirtoCommerce.XCart.Core.Validators
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
                     ["qty"] = qty,
-                    ["availableQty"] = availableQty
-                }
+                    ["availableQty"] = availableQty,
+                },
             };
 
             return result;
@@ -144,8 +144,8 @@ namespace VirtoCommerce.XCart.Core.Validators
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
                     ["qty"] = qty,
-                    ["availableQty"] = availableQty
-                }
+                    ["availableQty"] = availableQty,
+                },
             };
 
             return result;
@@ -159,8 +159,8 @@ namespace VirtoCommerce.XCart.Core.Validators
                 {
                     ["qty"] = qty,
                     ["minQty"] = minQty,
-                    ["maxQty"] = maxQty
-                }
+                    ["maxQty"] = maxQty,
+                },
             };
 
             return result;
@@ -173,8 +173,8 @@ namespace VirtoCommerce.XCart.Core.Validators
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
                     ["qty"] = qty,
-                    ["minQty"] = minQty
-                }
+                    ["minQty"] = minQty,
+                },
             };
 
             return result;
@@ -187,8 +187,8 @@ namespace VirtoCommerce.XCart.Core.Validators
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
                     ["qty"] = qty,
-                    ["minQty"] = minQty
-                }
+                    ["minQty"] = minQty,
+                },
             };
 
             return result;
@@ -201,8 +201,8 @@ namespace VirtoCommerce.XCart.Core.Validators
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
                     ["qty"] = qty,
-                    ["maxQty"] = maxQty
-                }
+                    ["maxQty"] = maxQty,
+                },
             };
 
             return result;
@@ -215,8 +215,8 @@ namespace VirtoCommerce.XCart.Core.Validators
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
                     ["qty"] = qty,
-                    ["maxQty"] = maxQty
-                }
+                    ["maxQty"] = maxQty,
+                },
             };
 
             return result;
@@ -224,7 +224,7 @@ namespace VirtoCommerce.XCart.Core.Validators
 
         public static CartValidationError AllLineItemsUnselected(IEntity entity)
         {
-            var result = new CartValidationError(entity, $"All line items unselected. Please select at least one line item.", "ALL_LINE_ITEMS_UNSELECTED");
+            var result = new CartValidationError(entity, "All line items unselected. Please select at least one line item.", "ALL_LINE_ITEMS_UNSELECTED");
             return result;
         }
 
@@ -235,7 +235,7 @@ namespace VirtoCommerce.XCart.Core.Validators
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
                     ["limit"] = limit,
-                }
+                },
             };
 
             return result;
@@ -247,8 +247,8 @@ namespace VirtoCommerce.XCart.Core.Validators
             {
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
-                    ["minQty"] = minQty
-                }
+                    ["minQty"] = minQty,
+                },
             };
 
             return result;
@@ -261,8 +261,8 @@ namespace VirtoCommerce.XCart.Core.Validators
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
                     ["qty"] = qty,
-                    ["minQty"] = minQty
-                }
+                    ["minQty"] = minQty,
+                },
             };
 
             return result;
@@ -275,8 +275,8 @@ namespace VirtoCommerce.XCart.Core.Validators
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
                     ["qty"] = qty,
-                    ["packSize"] = packSize
-                }
+                    ["packSize"] = packSize,
+                },
             };
 
             return result;
@@ -289,8 +289,8 @@ namespace VirtoCommerce.XCart.Core.Validators
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
                     ["sku"] = sku,
-                    ["productIds"] = ids
-                }
+                    ["productIds"] = ids,
+                },
             };
 
             return result;
@@ -303,7 +303,7 @@ namespace VirtoCommerce.XCart.Core.Validators
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
                     ["limit"] = limit,
-                }
+                },
             };
 
             return result;
@@ -317,19 +317,19 @@ namespace VirtoCommerce.XCart.Core.Validators
 
         public static CartValidationError CustomTextIsRequired(IEntity entity)
         {
-            var result = new CartValidationError(entity, $"Configuration section requires to fill the CustomText field", "CONFIGURATION_SECTION_CUSTOMTEXT_REQUIRED");
+            var result = new CartValidationError(entity, "Configuration section requires to fill the CustomText field", "CONFIGURATION_SECTION_CUSTOM_TEXT_REQUIRED");
             return result;
         }
 
         public static CartValidationError AddingFileIsRequired(IEntity entity)
         {
-            var result = new CartValidationError(entity, $"Configuration section requires to add at list one file", "CONFIGURATION_SECTION_FILES_REQUIRED");
+            var result = new CartValidationError(entity, "Configuration section requires to add at list one file", "CONFIGURATION_SECTION_FILES_REQUIRED");
             return result;
         }
 
         public static CartValidationError SelectedProductIsRequired(IEntity entity)
         {
-            var result = new CartValidationError(entity, $"Configuration section requires to select a product", "CONFIGURATION_SECTION_PRODUCT_REQUIRED");
+            var result = new CartValidationError(entity, "Configuration section requires to select a product", "CONFIGURATION_SECTION_PRODUCT_REQUIRED");
             return result;
         }
 
@@ -339,7 +339,7 @@ namespace VirtoCommerce.XCart.Core.Validators
             return result;
         }
 
-        public static CartValidationError ConfigurationSectionUnknowType(IEntity entity, string type, string sectionId)
+        public static CartValidationError ConfigurationSectionUnknownType(IEntity entity, string type, string sectionId)
         {
             var result = new CartValidationError(entity, $"Unknown type {type} of section with ID {sectionId}", "CONFIGURATION_SECTION_UNKNOWN_TYPE");
             return result;
@@ -347,12 +347,12 @@ namespace VirtoCommerce.XCart.Core.Validators
 
         public static CartValidationError MissingRequiredSections(IEntity entity, List<string> ids)
         {
-            var result = new CartValidationError(entity, $"Required sections are missing", "CONFIGURATION_SECTION_REQUIRED")
+            var result = new CartValidationError(entity, "Required sections are missing", "CONFIGURATION_SECTION_REQUIRED")
             {
                 FormattedMessagePlaceholderValues = new Dictionary<string, object>
                 {
-                    ["sectionIds"] = ids
-                }
+                    ["sectionIds"] = ids,
+                },
             };
 
             return result;

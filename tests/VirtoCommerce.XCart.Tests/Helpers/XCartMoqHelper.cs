@@ -4,7 +4,6 @@ using System.Threading;
 using AutoFixture;
 using AutoMapper;
 using Bogus;
-using FluentValidation;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Services;
@@ -52,7 +51,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         protected readonly Mock<IMapper> _mapperMock;
         protected readonly Mock<IMemberService> _memberService;
         protected readonly Mock<IGenericPipelineLauncher> _genericPipelineLauncherMock;
-        protected readonly Mock<IValidator<LineItem>> _configurationItemValidatorMock;
+        protected readonly Mock<IConfigurationItemValidator> _configurationItemValidatorMock;
         protected readonly Mock<IFileUploadService> _fileUploadService;
 
         protected readonly Randomizer Rand = new Randomizer();
@@ -185,14 +184,17 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 .Setup(x => x.GetByIdAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(_fixture.Create<Organization>());
 
-            _configurationItemValidatorMock = new Mock<IValidator<LineItem>>();
+            _configurationItemValidatorMock = new Mock<IConfigurationItemValidator>();
             _configurationItemValidatorMock.Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), CancellationToken.None))
                 .ReturnsAsync(new FluentValidation.Results.ValidationResult());
 
             _fileUploadService = new Mock<IFileUploadService>();
             _fileUploadService
-                .Setup(x => x.GetAsync(new List<string>(0), It.IsAny<string>(), It.IsAny<bool>()))
-                .ReturnsAsync(() => { return []; });
+                .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
+                .ReturnsAsync(() => []);
+            _fileUploadService
+                .Setup(x => x.GetByPublicUrlAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
+                .ReturnsAsync(() => []);
         }
 
         protected ShoppingCart GetCart() => _fixture.Create<ShoppingCart>();

@@ -5,21 +5,20 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.FileExperienceApi.Core.Extensions;
 using VirtoCommerce.FileExperienceApi.Core.Models;
 using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
+using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Commands;
 
 public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredLineItemCommand, ExpConfigurationLineItem>
 {
-    private readonly StringComparer _ignoreCase = StringComparer.OrdinalIgnoreCase;
-
     private readonly IConfiguredLineItemContainerService _configuredLineItemContainerService;
     private readonly ICartProductsLoaderService _cartProductService;
     private readonly IFileUploadService _fileUploadService;
@@ -60,7 +59,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
         foreach (var section in request.ConfigurationSections)
         {
-            if (section.Type == CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeProduct && section.Option != null)
+            if (section.Type == ConfigurationSectionTypeProduct && section.Option != null)
             {
                 var productOption = section.Option;
                 var selectedProduct = products.FirstOrDefault(x => x.Product.Id == productOption.ProductId) ?? throw new InvalidOperationException($"Product with id {productOption.ProductId} not found");
@@ -68,15 +67,15 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
                 container.AddProductSectionLineItem(selectedProduct, productOption.Quantity, section.SectionId);
             }
 
-            if (section.Type == CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeText)
+            if (section.Type == ConfigurationSectionTypeText)
             {
                 container.AddTextSectionLIneItem(section.CustomText, section.SectionId);
             }
 
-            if (section.Type == CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeFile)
+            if (section.Type == ConfigurationSectionTypeFile)
             {
-                var files = await AddFiles(section);
-                container.AddFiletSectionLIneItem(files, section.SectionId);
+                var files = await CreateFiles(section);
+                container.AddFileSectionLineItem(files, section.SectionId);
             }
         }
 
@@ -85,22 +84,15 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
         return configuredItem;
     }
 
-    protected virtual async Task<IList<ConfigurationItemFile>> AddFiles(ProductConfigurationSection request)
+    protected virtual async Task<IList<ConfigurationItemFile>> CreateFiles(ProductConfigurationSection section)
     {
-        var ids = request.FileUrls
-            .Select(FileExtensions.GetFileId)
-            .Where(x => !string.IsNullOrEmpty(x))
-            .ToList();
+        var filesByUrls = (await _fileUploadService.GetByPublicUrlAsync(section.FileUrls))
+            .Where(x => x.Scope == ConfigurationSectionFilesScope && x.OwnerIsEmpty())
+            .ToDictionary(x => x.PublicUrl, StringComparer.OrdinalIgnoreCase);
 
-        var files = await _fileUploadService.GetAsync(ids);
+        var configurationItemFiles = new List<ConfigurationItemFile>(section.FileUrls.Count);
 
-        var filesByUrls = files
-            .Where(x => x.Scope == CatalogModule.Core.ModuleConstants.ConfigurationSectionFilesScope && string.IsNullOrEmpty(x.OwnerEntityId) && string.IsNullOrEmpty(x.OwnerEntityType))
-            .ToDictionary(x => FileExtensions.GetFileUrl(x.Id), _ignoreCase);
-
-        var configurationItemFiles = new List<ConfigurationItemFile>(request.FileUrls.Count);
-
-        foreach (var url in request.FileUrls)
+        foreach (var url in section.FileUrls)
         {
             if (filesByUrls.TryGetValue(url, out var file))
             {
@@ -118,7 +110,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
         configurationItemFile.Name = file.Name;
         configurationItemFile.ContentType = file.ContentType;
         configurationItemFile.Size = file.Size;
-        configurationItemFile.Url = FileExtensions.GetFileUrl(file.Id);
+        configurationItemFile.Url = file.PublicUrl;
 
         return configurationItemFile;
     }

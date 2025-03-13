@@ -13,9 +13,12 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.SectionId, nullable: false).Description("Configuration item section ID");
             Field(x => x.ProductId, nullable: true).Description("Configuration item product ID");
             Field(x => x.Quantity, nullable: true).Description("Configuration item product quantity");
-            Field(x => x.CustomText, nullable: true).Description("Custom text for 'Text'-type configuration item section");
+            Field(x => x.CustomText, nullable: true).Description("Custom text for 'Text' configuration item section");
             Field(x => x.Type, nullable: false).Description("Configuration item type. Possible values: 'Product', 'Text', 'File'");
-            ExtendableField<ListGraphType<CartConfigurationItemFileType>>(nameof(ConfigurationItem.Files), resolve: context => context.Source.Files, description: "List of files for 'File'-type configuration item section");
+
+            ExtendableField<ListGraphType<CartConfigurationItemFileType>>(nameof(ConfigurationItem.Files),
+                resolve: context => context.Source.Files,
+                description: "List of files for 'File' configuration item section");
         }
     }
 }

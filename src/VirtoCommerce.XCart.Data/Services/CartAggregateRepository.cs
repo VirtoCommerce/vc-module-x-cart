@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Policy;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
 using VirtoCommerce.CartModule.Core.Model;
@@ -10,6 +9,7 @@ using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.FileExperienceApi.Core.Extensions;
 using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.Platform.Core.Caching;
@@ -17,10 +17,10 @@ using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.XCart.Core;
-using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
+using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
 using static VirtoCommerce.Xapi.Core.ModuleConstants;
 using CartAggregateBuilder = VirtoCommerce.Xapi.Core.Infrastructure.AsyncObjectBuilder<VirtoCommerce.XCart.Core.CartAggregate>;
 
@@ -320,30 +320,31 @@ namespace VirtoCommerce.XCart.Data.Services
 
         private async Task UpdateConfigurationFiles(ShoppingCart cart)
         {
-            var configurationItems = cart.Items.Where(x => !x.ConfigurationItems.IsNullOrEmpty()).SelectMany(x => x.ConfigurationItems.Where(y => y.Files != null));
+            var configurationItems = cart.Items
+                .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
+                .SelectMany(x => x.ConfigurationItems.Where(y => y.Files != null))
+                .ToList();
+
             var fileUrls = configurationItems
-                .SelectMany(y => y.Files)
-                .Where(x => !string.IsNullOrEmpty(x.Url)).Select(x => x.Url)
-                .Distinct().ToArray();
+                .SelectMany(x => x.Files)
+                .Where(x => !string.IsNullOrEmpty(x.Url))
+                .Select(x => x.Url)
+                .Distinct()
+                .ToArray();
 
-            var ids = fileUrls
-                .Select(FileExtensions.GetFileId)
-                .Where(x => !string.IsNullOrEmpty(x))
+            var files = (await _fileUploadService.GetByPublicUrlAsync(fileUrls))
+                .Where(x => x.Scope == ConfigurationSectionFilesScope && x.OwnerIsEmpty())
                 .ToList();
 
-            var files = await _fileUploadService.GetAsync(ids);
-
-            files = files
-                .Where(x => x.Scope == CatalogModule.Core.ModuleConstants.ConfigurationSectionFilesScope && string.IsNullOrEmpty(x.OwnerEntityId) && string.IsNullOrEmpty(x.OwnerEntityType))
-                .ToList();
-
-            if (!files.IsNullOrEmpty())
+            if (files.Count > 0)
             {
                 foreach (var file in files)
                 {
-                    var configurationItem = configurationItems.FirstOrDefault(x => x.Files.Any(y => y.Url == FileExtensions.GetFileUrl(file.Id)));
-                    file.OwnerEntityId = configurationItem?.Id;
-                    file.OwnerEntityType = nameof(ConfigurationItem);
+                    var configurationItem = configurationItems.FirstOrDefault(i => i.Files.Any(f => f.Url == file.PublicUrl));
+                    if (configurationItem != null)
+                    {
+                        file.SetOwner(configurationItem);
+                    }
                 }
 
                 await _fileUploadService.SaveChangesAsync(files);
