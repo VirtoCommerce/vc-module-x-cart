@@ -58,8 +58,7 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                 _memberResolver.Object,
                 _storeService.Object,
                 null,
-                null,
-                _fileUploadService.Object);
+                null);
         }
 
         [Fact]
@@ -164,8 +163,7 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                  _memberResolver.Object,
                  _storeService.Object,
                  _cartProductServiceMock.Object,
-                 _platformMemoryCache,
-                 _fileUploadService.Object);
+                 _platformMemoryCache);
 
             var storeId = "Store";
             var store = _fixture.Create<Store>();
@@ -214,8 +212,7 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                  _memberResolver.Object,
                  _storeService.Object,
                  _cartProductServiceMock.Object,
-                 _platformMemoryCache,
-                 _fileUploadService.Object);
+                 _platformMemoryCache);
 
             var storeId = "Store";
             var store = _fixture.Create<Store>();
