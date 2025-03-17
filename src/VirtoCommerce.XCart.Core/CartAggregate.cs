@@ -13,6 +13,8 @@ using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.FileExperienceApi.Core.Extensions;
+using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.MarketingModule.Core.Services;
 using VirtoCommerce.PaymentModule.Core.Model;
@@ -30,6 +32,7 @@ using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
+using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
 using Store = VirtoCommerce.StoreModule.Core.Model.Store;
 using StoreSetting = VirtoCommerce.StoreModule.Core.ModuleConstants.Settings.General;
 using XCartSetting = VirtoCommerce.XCart.Core.ModuleConstants.Settings.General;
@@ -48,6 +51,7 @@ namespace VirtoCommerce.XCart.Core
         private readonly IMapper _mapper;
         private readonly IGenericPipelineLauncher _pipeline;
         private readonly IConfigurationItemValidator _configurationItemValidator;
+        private readonly IFileUploadService _fileUploadService;
 
         public CartAggregate(
             IMarketingPromoEvaluator marketingEvaluator,
@@ -58,7 +62,8 @@ namespace VirtoCommerce.XCart.Core
             IMapper mapper,
             IMemberService memberService,
             IGenericPipelineLauncher pipeline,
-            IConfigurationItemValidator configurationItemValidator)
+            IConfigurationItemValidator configurationItemValidator,
+            IFileUploadService fileUploadService)
         {
             _cartTotalsCalculator = cartTotalsCalculator;
             _marketingEvaluator = marketingEvaluator;
@@ -69,6 +74,7 @@ namespace VirtoCommerce.XCart.Core
             _memberService = memberService;
             _pipeline = pipeline;
             _configurationItemValidator = configurationItemValidator;
+            _fileUploadService = fileUploadService;
         }
 
         public Store Store { get; protected set; }
@@ -592,9 +598,11 @@ namespace VirtoCommerce.XCart.Core
             return Task.FromResult(this);
         }
 
-        public virtual Task<CartAggregate> ClearAsync()
+        public virtual async Task<CartAggregate> ClearAsync()
         {
             EnsureCartExists();
+
+            await ClearConfigurationFiles(Cart.Items);
 
             Cart.Comment = string.Empty;
             Cart.PurchaseOrderNumber = string.Empty;
@@ -606,7 +614,7 @@ namespace VirtoCommerce.XCart.Core
             Cart.Items.Clear();
             Cart.DynamicProperties?.Clear();
 
-            return Task.FromResult(this);
+            return this;
         }
 
         public virtual Task<CartAggregate> ChangePurchaseOrderNumber(string purchaseOrderNumber)
@@ -1207,6 +1215,35 @@ namespace VirtoCommerce.XCart.Core
             }
 
             return this;
+        }
+
+        private async Task ClearConfigurationFiles(ICollection<LineItem> configuredItems)
+        {
+            var configuredFiles = configuredItems
+                .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
+                .SelectMany(x => x.ConfigurationItems
+                    .Where(y => y.Files != null)
+                    .SelectMany(y => y.Files));
+
+            var fileUrls = configuredFiles
+                .Where(x => !string.IsNullOrEmpty(x.Url))
+                .Select(x => x.Url)
+                .Distinct()
+                .ToArray();
+
+            var files = (await _fileUploadService.GetByPublicUrlAsync(fileUrls))
+                .Where(x => x.Scope == ConfigurationSectionFilesScope && !x.OwnerIsEmpty())
+                .ToList();
+
+            if (files.Count > 0)
+            {
+                foreach (var file in files)
+                {
+                    file.ClearOwner();
+                }
+
+                await _fileUploadService.SaveChangesAsync(files);
+            }
         }
 
         #region ICloneable

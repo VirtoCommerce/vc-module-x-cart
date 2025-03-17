@@ -9,6 +9,8 @@ using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.FileExperienceApi.Core.Extensions;
+using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
@@ -18,6 +20,7 @@ using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
+using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
 using static VirtoCommerce.Xapi.Core.ModuleConstants;
 using CartAggregateBuilder = VirtoCommerce.Xapi.Core.Infrastructure.AsyncObjectBuilder<VirtoCommerce.XCart.Core.CartAggregate>;
 
@@ -32,6 +35,7 @@ namespace VirtoCommerce.XCart.Data.Services
         private readonly ICurrencyService _currencyService;
         private readonly IMemberResolver _memberResolver;
         private readonly IStoreService _storeService;
+        private readonly IFileUploadService _fileUploadService;
 
         private readonly IPlatformMemoryCache _platformMemoryCache;
 
@@ -43,7 +47,8 @@ namespace VirtoCommerce.XCart.Data.Services
             IMemberResolver memberResolver,
             IStoreService storeService,
             ICartProductService cartProductsService,
-            IPlatformMemoryCache platformMemoryCache)
+            IPlatformMemoryCache platformMemoryCache,
+            IFileUploadService fileUploadService)
         {
             _cartAggregateFactory = cartAggregateFactory;
             _shoppingCartSearchService = shoppingCartSearchService;
@@ -53,6 +58,7 @@ namespace VirtoCommerce.XCart.Data.Services
             _storeService = storeService;
             _cartProductsService = cartProductsService;
             _platformMemoryCache = platformMemoryCache;
+            _fileUploadService = fileUploadService;
         }
 
         public virtual async Task SaveAsync(CartAggregate cartAggregate)
@@ -61,6 +67,8 @@ namespace VirtoCommerce.XCart.Data.Services
             cartAggregate.Cart.ModifiedDate = DateTime.UtcNow;
 
             await _shoppingCartService.SaveChangesAsync([cartAggregate.Cart]);
+
+            await UpdateConfigurationFiles(cartAggregate.Cart);
 
             // Clear cache
             GenericCachingRegion<CartAggregate>.ExpireTokenForKey(cartAggregate.Id);
@@ -308,6 +316,39 @@ namespace VirtoCommerce.XCart.Data.Services
         {
             var configurationLineItems = aggregate.LineItems.Where(x => x.IsConfigured).ToArray();
             await aggregate.UpdateConfiguredLineItemPrice(configurationLineItems);
+        }
+
+        private async Task UpdateConfigurationFiles(ShoppingCart cart)
+        {
+            var configurationItems = cart.Items
+                .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
+                .SelectMany(x => x.ConfigurationItems.Where(y => y.Files != null))
+                .ToList();
+
+            var fileUrls = configurationItems
+                .SelectMany(x => x.Files)
+                .Where(x => !string.IsNullOrEmpty(x.Url))
+                .Select(x => x.Url)
+                .Distinct()
+                .ToArray();
+
+            var files = (await _fileUploadService.GetByPublicUrlAsync(fileUrls))
+                .Where(x => x.Scope == ConfigurationSectionFilesScope && x.OwnerIsEmpty())
+                .ToList();
+
+            if (files.Count > 0)
+            {
+                foreach (var file in files)
+                {
+                    var configurationItem = configurationItems.FirstOrDefault(i => i.Files.Any(f => f.Url == file.PublicUrl));
+                    if (configurationItem != null)
+                    {
+                        file.SetOwner(configurationItem);
+                    }
+                }
+
+                await _fileUploadService.SaveChangesAsync(files);
+            }
         }
     }
 }

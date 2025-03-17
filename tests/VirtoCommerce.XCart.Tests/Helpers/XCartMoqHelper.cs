@@ -13,6 +13,7 @@ using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.InventoryModule.Core.Model;
 using VirtoCommerce.MarketingModule.Core.Services;
 using VirtoCommerce.PaymentModule.Core.Model;
@@ -51,6 +52,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         protected readonly Mock<IMemberService> _memberService;
         protected readonly Mock<IGenericPipelineLauncher> _genericPipelineLauncherMock;
         protected readonly Mock<IConfigurationItemValidator> _configurationItemValidatorMock;
+        protected readonly Mock<IFileUploadService> _fileUploadService;
 
         protected readonly Randomizer Rand = new Randomizer();
 
@@ -185,6 +187,11 @@ namespace VirtoCommerce.XCart.Tests.Helpers
             _configurationItemValidatorMock = new Mock<IConfigurationItemValidator>();
             _configurationItemValidatorMock.Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), CancellationToken.None))
                 .ReturnsAsync(new FluentValidation.Results.ValidationResult());
+
+            _fileUploadService = new Mock<IFileUploadService>();
+            _fileUploadService
+                .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
+                .ReturnsAsync(() => []);
         }
 
         protected ShoppingCart GetCart() => _fixture.Create<ShoppingCart>();
@@ -243,7 +250,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 _mapperMock.Object,
                 _memberService.Object,
                 _genericPipelineLauncherMock.Object,
-                _configurationItemValidatorMock.Object);
+                _configurationItemValidatorMock.Object,
+                _fileUploadService.Object);
 
             aggregate.GrabCart(cart ?? GetCart(), new Store(), GetMember(), currency ?? GetCurrency());
 
