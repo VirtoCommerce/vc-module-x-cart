@@ -11,7 +11,6 @@ The xCart module provides high-performance API for shopping carts with the follo
 ## Documentation
 
 * [xCart documentation](https://docs.virtocommerce.org/platform/developer-guide/GraphQL-Storefront-API-Reference-xAPI/Cart/overview/)
-* [REST API](https://virtostart-demo-admin.govirto.com/docs/index.html?urls.primaryName=VirtoCommerce.XCart)
 * [View on GitHub](https://github.com/VirtoCommerce/vc-module-x-cart)
 * [Experience API Documentation](https://docs.virtocommerce.org/platform/developer-guide/GraphQL-Storefront-API-Reference-xAPI/)
 * [Getting started](https://docs.virtocommerce.org/platform/developer-guide/GraphQL-Storefront-API-Reference-xAPI/getting-started/)
