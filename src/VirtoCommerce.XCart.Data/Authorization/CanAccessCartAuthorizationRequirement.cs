@@ -5,8 +5,12 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.CartModule.Core.Model.Search;
+using VirtoCommerce.CartModule.Core.Services;
+using VirtoCommerce.FileExperienceApi.Core.Extensions;
 using VirtoCommerce.FileExperienceApi.Core.Models;
 using VirtoCommerce.Platform.Core;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Security.Authorization;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
@@ -25,10 +29,12 @@ namespace VirtoCommerce.XCart.Data.Authorization
     public class CanAccessCartAuthorizationHandler : PermissionAuthorizationHandlerBase<CanAccessCartAuthorizationRequirement>
     {
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
+        private readonly IShoppingCartSearchService _shoppingCartSearchService;
 
-        public CanAccessCartAuthorizationHandler(Func<UserManager<ApplicationUser>> userManagerFactory)
+        public CanAccessCartAuthorizationHandler(Func<UserManager<ApplicationUser>> userManagerFactory, IShoppingCartSearchService shoppingCartSearchService)
         {
             _userManagerFactory = userManagerFactory;
+            _shoppingCartSearchService = shoppingCartSearchService;
         }
 
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, CanAccessCartAuthorizationRequirement requirement)
@@ -37,11 +43,27 @@ namespace VirtoCommerce.XCart.Data.Authorization
 
             if (!authorized)
             {
-                switch (context.Resource)
+                var resource = context.Resource;
+
+                if (resource is File file)
                 {
-                    case File:
-                        authorized = true;
-                        break;
+                    authorized = file.OwnerIsEmpty();
+
+                    if (!authorized && file.OwnerEntityType.EqualsInvariant(typeof(ConfigurationItem).FullName))
+                    {
+                        var searchCriteria = AbstractTypeFactory<ShoppingCartSearchCriteria>.TryCreateInstance();
+                        searchCriteria.ConfigurationItemIds = [file.OwnerEntityId];
+                        var cartSearchResult = await _shoppingCartSearchService.SearchAsync(searchCriteria);
+
+                        if (cartSearchResult.TotalCount > 0)
+                        {
+                            resource = cartSearchResult.Results.First();
+                        }
+                    }
+                }
+
+                switch (resource)
+                {
                     case string userId when context.User.Identity.IsAuthenticated:
                         authorized = userId == GetUserId(context);
                         break;
