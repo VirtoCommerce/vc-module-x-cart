@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Models;
 
-namespace VirtoCommerce.XCart.Core.Commands;
+namespace VirtoCommerce.XCart.Core.Commands.Configuration;
 
 public class ChangeCartConfiguredLineItemCommand : CartCommand
 {
@@ -10,5 +10,5 @@ public class ChangeCartConfiguredLineItemCommand : CartCommand
 
     public int? Quantity { get; set; }
 
-    public IList<ProductConfigurationSection> ConfigurationSections { get; set; } = new List<ProductConfigurationSection>();
+    public IList<ProductConfigurationSection> ConfigurationSections { get; set; } = [];
 }

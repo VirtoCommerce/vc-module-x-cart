@@ -5,10 +5,10 @@ using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.Xapi.Core.BaseQueries;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.XCart.Core;
-using VirtoCommerce.XCart.Core.Commands;
+using VirtoCommerce.XCart.Core.Commands.Configuration;
 using VirtoCommerce.XCart.Core.Schemas;
 
-namespace VirtoCommerce.XCart.Data.Commands;
+namespace VirtoCommerce.XCart.Data.Commands.Configuration;
 
 public class CreateConfiguredLineItemBuilder : CommandBuilder<CreateConfiguredLineItemCommand, ExpConfigurationLineItem, InputCreateConfiguredLineItemCommand, ConfigurationLineItemType>
 {

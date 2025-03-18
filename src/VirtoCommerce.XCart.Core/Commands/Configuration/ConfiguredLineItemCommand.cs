@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Core.Models;
 
-namespace VirtoCommerce.XCart.Core.Commands;
+namespace VirtoCommerce.XCart.Core.Commands.Configuration;
 
-public class CreateConfiguredLineItemCommand : ICommand<ExpConfigurationLineItem>, ICartProductContainerRequest
+public abstract class ConfiguredLineItemCommand : ICommand<ExpConfigurationLineItem>, ICartProductContainerRequest
 {
     public string StoreId { get; set; }
 
