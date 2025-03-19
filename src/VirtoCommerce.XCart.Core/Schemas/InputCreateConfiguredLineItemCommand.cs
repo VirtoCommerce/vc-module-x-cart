@@ -1,6 +1,5 @@
 ﻿using GraphQL.Types;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Core.Commands.Configuration;
 
 namespace VirtoCommerce.XCart.Core.Schemas;
 

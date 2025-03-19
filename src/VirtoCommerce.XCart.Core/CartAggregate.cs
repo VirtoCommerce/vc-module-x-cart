@@ -1153,7 +1153,7 @@ namespace VirtoCommerce.XCart.Core
             }
         }
 
-        public virtual async Task<CartAggregate> UpdateConfiguredLineItemAsync(string lineItemId, LineItem configuredItem)
+        public virtual Task<CartAggregate> UpdateConfiguredLineItemAsync(string lineItemId, LineItem configuredItem)
         {
             ArgumentNullException.ThrowIfNull(lineItemId);
             ArgumentNullException.ThrowIfNull(configuredItem);
@@ -1171,12 +1171,10 @@ namespace VirtoCommerce.XCart.Core
                 lineItem.PlacedPrice = configuredItem.PlacedPrice;
                 lineItem.ExtendedPrice = configuredItem.ExtendedPrice;
 
-                await ClearConfigurationFiles([lineItem]);
-
                 lineItem.ConfigurationItems = new List<ConfigurationItem>(configuredItem.ConfigurationItems);
             }
 
-            return this;
+            return Task.FromResult(this);
         }
 
         public virtual async Task<CartAggregate> UpdateConfiguredLineItemPrice(IList<LineItem> configuredItems)

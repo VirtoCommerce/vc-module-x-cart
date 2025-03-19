@@ -4,11 +4,11 @@ using System.Threading.Tasks;
 using MediatR;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.XCart.Core;
+using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
-using VirtoCommerce.XCart.Core.Commands.Configuration;
 using VirtoCommerce.XCart.Core.Services;
 
-namespace VirtoCommerce.XCart.Data.Commands.Configuration;
+namespace VirtoCommerce.XCart.Data.Commands;
 
 public class ChangeCartConfiguredLineItemCommandHandler : CartCommandHandler<ChangeCartConfiguredLineItemCommand>
 {
@@ -23,11 +23,11 @@ public class ChangeCartConfiguredLineItemCommandHandler : CartCommandHandler<Cha
     public override async Task<CartAggregate> Handle(ChangeCartConfiguredLineItemCommand request, CancellationToken cancellationToken)
     {
         var cartAggregate = await GetOrCreateCartFromCommandAsync(request);
-        var lineItem = GetConfiguredLineItem(request, cartAggregate);
 
+        var lineItem = GetConfiguredLineItem(request, cartAggregate);
         if (lineItem != null)
         {
-            var command = new ChangeConfiguredLineItemCommand
+            var command = new CreateConfiguredLineItemCommand
             {
                 StoreId = request.StoreId,
                 UserId = request.UserId,
@@ -37,7 +37,6 @@ public class ChangeCartConfiguredLineItemCommandHandler : CartCommandHandler<Cha
                 ConfigurableProductId = lineItem.ProductId,
                 ConfigurationSections = request.ConfigurationSections,
                 Quantity = request.Quantity ?? lineItem.Quantity,
-                ConfigurationItems = [.. lineItem.ConfigurationItems],
             };
 
             var mediatorResult = await _mediator.Send(command, cancellationToken);

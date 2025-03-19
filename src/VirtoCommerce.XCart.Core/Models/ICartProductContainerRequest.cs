@@ -1,4 +1,4 @@
-namespace VirtoCommerce.XCart.Core.Models;
+﻿namespace VirtoCommerce.XCart.Core.Models;
 
 public interface ICartProductContainerRequest
 {

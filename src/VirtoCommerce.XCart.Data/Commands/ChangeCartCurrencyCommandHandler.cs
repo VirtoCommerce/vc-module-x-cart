@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,8 +11,6 @@ using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
-using static System.Collections.Specialized.BitVector32;
-using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Commands
 {
@@ -111,39 +108,26 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             foreach (var configurationLineItem in configuredItems)
             {
-                var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
-                container.Currency = newCurrencyCartAggregate.Currency;
-                container.Store = newCurrencyCartAggregate.Store;
+                var contaner = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
+                contaner.Currency = newCurrencyCartAggregate.Currency;
+                contaner.Store = newCurrencyCartAggregate.Store;
 
-                container.ConfigurableProduct = configProducts.FirstOrDefault(x => x.Product.Id == configurationLineItem.ProductId);
+                contaner.ConfigurableProduct = configProducts.FirstOrDefault(x => x.Product.Id == configurationLineItem.ProductId);
 
                 foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
                 {
-                    if (configurationItem.Type == ConfigurationSectionTypeProduct)
+                    var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
+                    if (product != null)
                     {
-                        var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
-                        if (product != null)
-                        {
-                            container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId);
-                        }
-                    }
-
-                    if (configurationItem.Type == ConfigurationSectionTypeText)
-                    {
-                        container.AddTextSectionLIneItem(configurationItem.CustomText, configurationItem.SectionId);
-                    }
-
-                    if (configurationItem.Type == ConfigurationSectionTypeFile)
-                    {
-                        container.AddFileSectionLineItem(configurationItem.Files, configurationItem.SectionId);
+                        contaner.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId);
                     }
                 }
 
-                var expItem = container.CreateConfiguredLineItem(configurationLineItem.Quantity);
+                var expItem = contaner.CreateConfiguredLineItem(configurationLineItem.Quantity);
 
                 await newCurrencyCartAggregate.AddConfiguredItemAsync(new NewCartItem(configurationLineItem.ProductId, configurationLineItem.Quantity)
                 {
-                    CartProduct = container.ConfigurableProduct,
+                    CartProduct = contaner.ConfigurableProduct,
                     IgnoreValidationErrors = true,
                     CreatedDate = configurationLineItem.CreatedDate,
                     Comment = configurationLineItem.Note,
