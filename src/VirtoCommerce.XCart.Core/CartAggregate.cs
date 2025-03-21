@@ -602,7 +602,7 @@ namespace VirtoCommerce.XCart.Core
         {
             EnsureCartExists();
 
-            await ClearConfigurationFiles(Cart.Items);
+            await ClearConfigurationFiles();
 
             Cart.Comment = string.Empty;
             Cart.PurchaseOrderNumber = string.Empty;
@@ -1153,7 +1153,7 @@ namespace VirtoCommerce.XCart.Core
             }
         }
 
-        public virtual Task<CartAggregate> UpdateConfiguredLineItemAsync(string lineItemId, LineItem configuredItem)
+        public virtual async Task<CartAggregate> UpdateConfiguredLineItemAsync(string lineItemId, LineItem configuredItem)
         {
             ArgumentNullException.ThrowIfNull(lineItemId);
             ArgumentNullException.ThrowIfNull(configuredItem);
@@ -1171,10 +1171,27 @@ namespace VirtoCommerce.XCart.Core
                 lineItem.PlacedPrice = configuredItem.PlacedPrice;
                 lineItem.ExtendedPrice = configuredItem.ExtendedPrice;
 
+                var notedFileUrls = configuredItem.ConfigurationItems
+                    .Where(x => x.Files != null).SelectMany(x => x.Files)
+                    .Where(x => !string.IsNullOrEmpty(x.Url))
+                    .Select(x => x.Url)
+                    .Distinct()
+                    .ToArray();
+
+                var skippedFileUrls = lineItem.ConfigurationItems
+                    .Where(x => x.Files != null).SelectMany(x => x.Files)
+                    .Where(x => !string.IsNullOrEmpty(x.Url))
+                    .Select(x => x.Url)
+                    .Distinct()
+                    .Except(notedFileUrls)
+                    .ToArray();
+
+                await ClearConfigurationFiles(skippedFileUrls);
+
                 lineItem.ConfigurationItems = new List<ConfigurationItem>(configuredItem.ConfigurationItems);
             }
 
-            return Task.FromResult(this);
+            return this;
         }
 
         public virtual async Task<CartAggregate> UpdateConfiguredLineItemPrice(IList<LineItem> configuredItems)
@@ -1217,33 +1234,26 @@ namespace VirtoCommerce.XCart.Core
             return this;
         }
 
-        private async Task ClearConfigurationFiles(ICollection<LineItem> configuredItems)
+        private async Task ClearConfigurationFiles()
         {
-            var configuredFiles = configuredItems
+            var fileUrls = Cart.Items
                 .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
-                .SelectMany(x => x.ConfigurationItems
-                    .Where(y => y.Files != null)
-                    .SelectMany(y => y.Files));
-
-            var fileUrls = configuredFiles
+                .SelectMany(x => x.ConfigurationItems.Where(y => y.Files != null).SelectMany(y => y.Files))
                 .Where(x => !string.IsNullOrEmpty(x.Url))
                 .Select(x => x.Url)
                 .Distinct()
                 .ToArray();
 
+            await ClearConfigurationFiles(fileUrls);
+        }
+
+        private async Task ClearConfigurationFiles(string[] fileUrls)
+        {
             var files = (await _fileUploadService.GetByPublicUrlAsync(fileUrls))
-                .Where(x => x.Scope == ConfigurationSectionFilesScope && !x.OwnerIsEmpty())
+                .Where(x => x.Scope == ConfigurationSectionFilesScope && x.OwnerIs(Cart))
                 .ToList();
 
-            if (files.Count > 0)
-            {
-                foreach (var file in files)
-                {
-                    file.ClearOwner();
-                }
-
-                await _fileUploadService.SaveChangesAsync(files);
-            }
+            await _fileUploadService.DeleteAsync(files.Select(x => x.Id).ToList());
         }
 
         #region ICloneable

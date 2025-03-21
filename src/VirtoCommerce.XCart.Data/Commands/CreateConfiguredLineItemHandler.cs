@@ -36,8 +36,8 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
     public async Task<ExpConfigurationLineItem> Handle(CreateConfiguredLineItemCommand request, CancellationToken cancellationToken)
     {
         var container = await _configuredLineItemContainerService.CreateContainerAsync(request);
-
         var productsRequest = container.GetCartProductsRequest();
+
         productsRequest.ProductIds = [request.ConfigurableProductId];
         productsRequest.EvaluatePromotions = request.EvaluatePromotions;
 
@@ -47,7 +47,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
         // need to take productId and quantity from the configuration
         var selectedProductIds = request.ConfigurationSections
-            .Where(x => x.Option != null)
+            .Where(x => x.Option != null && !string.IsNullOrEmpty(x.Option.ProductId))
             .Select(section => section.Option.ProductId)
             .ToList();
 
@@ -74,7 +74,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
             if (section.Type == ConfigurationSectionTypeFile)
             {
-                var files = await CreateFiles(section);
+                var files = await CreateFiles(section, request.CartId);
                 container.AddFileSectionLineItem(files, section.SectionId);
             }
         }
@@ -84,10 +84,10 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
         return configuredItem;
     }
 
-    protected virtual async Task<IList<ConfigurationItemFile>> CreateFiles(ProductConfigurationSection section)
+    protected virtual async Task<IList<ConfigurationItemFile>> CreateFiles(ProductConfigurationSection section, string cartId)
     {
         var filesByUrls = (await _fileUploadService.GetByPublicUrlAsync(section.FileUrls))
-            .Where(x => x.Scope == ConfigurationSectionFilesScope && x.OwnerIsEmpty())
+            .Where(x => x.Scope == ConfigurationSectionFilesScope && x.OwnerIsEmpty() || (x.OwnerEntityId == cartId && x.OwnerEntityType == typeof(ShoppingCart).FullName))
             .ToDictionary(x => x.PublicUrl, StringComparer.OrdinalIgnoreCase);
 
         var configurationItemFiles = new List<ConfigurationItemFile>(section.FileUrls.Count);

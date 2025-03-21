@@ -320,13 +320,9 @@ namespace VirtoCommerce.XCart.Data.Services
 
         private async Task UpdateConfigurationFiles(ShoppingCart cart)
         {
-            var configurationItems = cart.Items
+            var fileUrls = cart.Items
                 .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
-                .SelectMany(x => x.ConfigurationItems.Where(y => y.Files != null))
-                .ToList();
-
-            var fileUrls = configurationItems
-                .SelectMany(x => x.Files)
+                .SelectMany(x => x.ConfigurationItems.Where(y => y.Files != null).SelectMany(x => x.Files))
                 .Where(x => !string.IsNullOrEmpty(x.Url))
                 .Select(x => x.Url)
                 .Distinct()
@@ -340,11 +336,7 @@ namespace VirtoCommerce.XCart.Data.Services
             {
                 foreach (var file in files)
                 {
-                    var configurationItem = configurationItems.FirstOrDefault(i => i.Files.Any(f => f.Url == file.PublicUrl));
-                    if (configurationItem != null)
-                    {
-                        file.SetOwner(configurationItem);
-                    }
+                    file.SetOwner(cart);
                 }
 
                 await _fileUploadService.SaveChangesAsync(files);

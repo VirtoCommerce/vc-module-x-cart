@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using VirtoCommerce.CartModule.Core.Model;
-using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.FileExperienceApi.Core.Extensions;
 using VirtoCommerce.FileExperienceApi.Core.Models;
@@ -29,12 +28,12 @@ namespace VirtoCommerce.XCart.Data.Authorization
     public class CanAccessCartAuthorizationHandler : PermissionAuthorizationHandlerBase<CanAccessCartAuthorizationRequirement>
     {
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
-        private readonly IShoppingCartSearchService _shoppingCartSearchService;
+        private readonly IShoppingCartService _shoppingCartService;
 
-        public CanAccessCartAuthorizationHandler(Func<UserManager<ApplicationUser>> userManagerFactory, IShoppingCartSearchService shoppingCartSearchService)
+        public CanAccessCartAuthorizationHandler(Func<UserManager<ApplicationUser>> userManagerFactory, IShoppingCartService shoppingCartService)
         {
             _userManagerFactory = userManagerFactory;
-            _shoppingCartSearchService = shoppingCartSearchService;
+            _shoppingCartService = shoppingCartService;
         }
 
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, CanAccessCartAuthorizationRequirement requirement)
@@ -49,15 +48,13 @@ namespace VirtoCommerce.XCart.Data.Authorization
                 {
                     authorized = file.OwnerIsEmpty();
 
-                    if (!authorized && file.OwnerEntityType.EqualsInvariant(typeof(ConfigurationItem).FullName))
+                    if (!authorized && file.OwnerEntityType.EqualsInvariant(typeof(ShoppingCart).FullName))
                     {
-                        var searchCriteria = AbstractTypeFactory<ShoppingCartSearchCriteria>.TryCreateInstance();
-                        searchCriteria.ConfigurationItemIds = [file.OwnerEntityId];
-                        var cartSearchResult = await _shoppingCartSearchService.SearchAsync(searchCriteria);
+                        var cart = await _shoppingCartService.GetByIdAsync(file.OwnerEntityId);
 
-                        if (cartSearchResult.TotalCount > 0)
+                        if (cart != null)
                         {
-                            resource = cartSearchResult.Results.First();
+                            resource = cart;
                         }
                     }
                 }

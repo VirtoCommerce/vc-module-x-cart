@@ -11,6 +11,7 @@ using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
+using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Commands
 {
@@ -108,26 +109,39 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             foreach (var configurationLineItem in configuredItems)
             {
-                var contaner = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
-                contaner.Currency = newCurrencyCartAggregate.Currency;
-                contaner.Store = newCurrencyCartAggregate.Store;
+                var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
+                container.Currency = newCurrencyCartAggregate.Currency;
+                container.Store = newCurrencyCartAggregate.Store;
 
-                contaner.ConfigurableProduct = configProducts.FirstOrDefault(x => x.Product.Id == configurationLineItem.ProductId);
+                container.ConfigurableProduct = configProducts.FirstOrDefault(x => x.Product.Id == configurationLineItem.ProductId);
 
                 foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
                 {
-                    var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
-                    if (product != null)
+                    if (configurationItem.Type == ConfigurationSectionTypeProduct)
                     {
-                        contaner.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId);
+                        var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
+                        if (product != null)
+                        {
+                            container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId);
+                        }
+                    }
+
+                    if (configurationItem.Type == ConfigurationSectionTypeText)
+                    {
+                        container.AddTextSectionLIneItem(configurationItem.CustomText, configurationItem.SectionId);
+                    }
+
+                    if (configurationItem.Type == ConfigurationSectionTypeFile)
+                    {
+                        container.AddFileSectionLineItem(configurationItem.Files, configurationItem.SectionId);
                     }
                 }
 
-                var expItem = contaner.CreateConfiguredLineItem(configurationLineItem.Quantity);
+                var expItem = container.CreateConfiguredLineItem(configurationLineItem.Quantity);
 
                 await newCurrencyCartAggregate.AddConfiguredItemAsync(new NewCartItem(configurationLineItem.ProductId, configurationLineItem.Quantity)
                 {
-                    CartProduct = contaner.ConfigurableProduct,
+                    CartProduct = container.ConfigurableProduct,
                     IgnoreValidationErrors = true,
                     CreatedDate = configurationLineItem.CreatedDate,
                     Comment = configurationLineItem.Note,
