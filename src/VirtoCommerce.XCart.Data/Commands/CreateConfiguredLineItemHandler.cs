@@ -13,6 +13,7 @@ using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
+using VirtoCommerce.XCart.Data.Extensions;
 using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Commands;
@@ -96,22 +97,10 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
         {
             if (filesByUrls.TryGetValue(url, out var file))
             {
-                configurationItemFiles.Add(ConvertToItemFile(file));
+                configurationItemFiles.Add(file.ConvertToItemFile());
             }
         }
 
         return configurationItemFiles;
-    }
-
-    protected virtual ConfigurationItemFile ConvertToItemFile(File file)
-    {
-        var configurationItemFile = AbstractTypeFactory<ConfigurationItemFile>.TryCreateInstance();
-
-        configurationItemFile.Name = file.Name;
-        configurationItemFile.ContentType = file.ContentType;
-        configurationItemFile.Size = file.Size;
-        configurationItemFile.Url = file.PublicUrl;
-
-        return configurationItemFile;
     }
 }

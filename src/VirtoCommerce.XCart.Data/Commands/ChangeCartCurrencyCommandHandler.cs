@@ -4,6 +4,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.FileExperienceApi.Core.Extensions;
+using VirtoCommerce.FileExperienceApi.Core.Models;
+using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.XCart.Core;
@@ -11,6 +14,8 @@ using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
+using VirtoCommerce.XCart.Data.Extensions;
+using static System.Collections.Specialized.BitVector32;
 using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Commands
@@ -18,13 +23,16 @@ namespace VirtoCommerce.XCart.Data.Commands
     public class ChangeCartCurrencyCommandHandler : CartCommandHandler<ChangeCartCurrencyCommand>
     {
         private readonly ICartProductService _cartProductService;
+        private readonly IFileUploadService _fileUploadService;
 
         public ChangeCartCurrencyCommandHandler(
             ICartAggregateRepository cartAggregateRepository,
-            ICartProductService cartProductService)
+            ICartProductService cartProductService,
+            IFileUploadService fileUploadService)
             : base(cartAggregateRepository)
         {
             _cartProductService = cartProductService;
+            _fileUploadService = fileUploadService;
         }
 
         public override async Task<CartAggregate> Handle(ChangeCartCurrencyCommand request, CancellationToken cancellationToken)
@@ -82,24 +90,23 @@ namespace VirtoCommerce.XCart.Data.Commands
                 await newCurrencyCartAggregate.AddItemsAsync(newCartItems);
             }
 
-            // copy configured items
+            await CopyConfiguredItems(currentCurrencyCartAggregate, newCurrencyCartAggregate);
+        }
+
+        protected virtual async Task CopyConfiguredItems(CartAggregate currentCurrencyCartAggregate, CartAggregate newCurrencyCartAggregate)
+        {
             var configuredItems = currentCurrencyCartAggregate.LineItems
                 .Where(x => x.IsConfigured)
                 .ToArray();
 
-            await CopyConfiguredItems(newCurrencyCartAggregate, configuredItems);
-        }
-
-        protected virtual async Task CopyConfiguredItems(CartAggregate newCurrencyCartAggregate, IList<LineItem> configuredItems)
-        {
-            if (configuredItems.Count == 0)
+            if (configuredItems.Length == 0)
             {
                 return;
             }
 
             var configProductsIds = configuredItems
                             .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
-                            .SelectMany(x => x.ConfigurationItems.Select(x => x.ProductId))
+                            .SelectMany(x => x.ConfigurationItems.Where(x => !string.IsNullOrEmpty(x.ProductId)).Select(x => x.ProductId))
                             .Distinct()
                             .ToList();
 
@@ -133,7 +140,8 @@ namespace VirtoCommerce.XCart.Data.Commands
 
                     if (configurationItem.Type == ConfigurationSectionTypeFile)
                     {
-                        container.AddFileSectionLineItem(configurationItem.Files, configurationItem.SectionId);
+                        var files = await CopyConfigurationFiles(currentCurrencyCartAggregate, configurationItem);
+                        container.AddFileSectionLineItem(files, configurationItem.SectionId);
                     }
                 }
 
@@ -154,6 +162,41 @@ namespace VirtoCommerce.XCart.Data.Commands
                     })).ToArray(),
                 }, expItem.Item);
             }
+        }
+
+        protected virtual async Task<IList<ConfigurationItemFile>> CopyConfigurationFiles(CartAggregate currentCurrencyCartAggregate, ConfigurationItem configurationItem)
+        {
+            List<ConfigurationItemFile> configurationItemFiles = null;
+
+            if (!configurationItem.Files.IsNullOrEmpty())
+            {
+                var fileUrls = configurationItem.Files
+                    .Where(x => !string.IsNullOrEmpty(x.Url))
+                    .Select(x => x.Url)
+                    .Distinct()
+                    .ToArray();
+
+                var filesByUrls = (await _fileUploadService.GetByPublicUrlAsync(fileUrls))
+                    .Where(x => x.Scope == ConfigurationSectionFilesScope && x.OwnerIs(currentCurrencyCartAggregate.Cart))
+                    .ToDictionary(x => x.PublicUrl, StringComparer.OrdinalIgnoreCase);
+
+                configurationItemFiles = new List<ConfigurationItemFile>(fileUrls.Length);
+                var filesForClear = new List<File>(fileUrls.Length);
+
+                foreach (var url in fileUrls)
+                {
+                    if (filesByUrls.TryGetValue(url, out var file))
+                    {
+                        configurationItemFiles.Add(file.ConvertToItemFile());
+                        file.ClearOwner();
+                        filesForClear.Add(file);
+                    }
+                }
+
+                await _fileUploadService.SaveChangesAsync(filesForClear);
+            }
+
+            return configurationItemFiles;
         }
     }
 }
