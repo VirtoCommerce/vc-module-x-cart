@@ -602,7 +602,7 @@ namespace VirtoCommerce.XCart.Core
         {
             EnsureCartExists();
 
-            await ClearConfigurationFiles();
+            await DeleteConfigurationFiles();
 
             Cart.Comment = string.Empty;
             Cart.PurchaseOrderNumber = string.Empty;
@@ -1171,24 +1171,14 @@ namespace VirtoCommerce.XCart.Core
                 lineItem.PlacedPrice = configuredItem.PlacedPrice;
                 lineItem.ExtendedPrice = configuredItem.ExtendedPrice;
 
-                var notedFileUrls = configuredItem.ConfigurationItems
-                    .Where(x => x.Files != null).SelectMany(x => x.Files)
-                    .Where(x => !string.IsNullOrEmpty(x.Url))
-                    .Select(x => x.Url)
-                    .Distinct()
+                // Delete files that are not present in the updated configuration
+                var fileUrls = lineItem.GetConfigurationFileUrls()
+                    .Except(configuredItem.GetConfigurationFileUrls())
                     .ToArray();
 
-                var skippedFileUrls = lineItem.ConfigurationItems
-                    .Where(x => x.Files != null).SelectMany(x => x.Files)
-                    .Where(x => !string.IsNullOrEmpty(x.Url))
-                    .Select(x => x.Url)
-                    .Distinct()
-                    .Except(notedFileUrls)
-                    .ToArray();
+                await DeleteConfigurationFiles(fileUrls);
 
-                await ClearConfigurationFiles(skippedFileUrls);
-
-                lineItem.ConfigurationItems = new List<ConfigurationItem>(configuredItem.ConfigurationItems);
+                lineItem.ConfigurationItems = configuredItem.ConfigurationItems.ToList();
             }
 
             return this;
@@ -1211,12 +1201,12 @@ namespace VirtoCommerce.XCart.Core
 
             foreach (var configurationLineItem in configuredItems)
             {
-                var contaner = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
-                contaner.Currency = Currency;
+                var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
+                container.Currency = Currency;
 
                 if (CartProducts.TryGetValue(configurationLineItem.ProductId, out var configurableProduct))
                 {
-                    contaner.ConfigurableProduct = configurableProduct;
+                    container.ConfigurableProduct = configurableProduct;
                 }
 
                 foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
@@ -1224,36 +1214,42 @@ namespace VirtoCommerce.XCart.Core
                     var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
                     if (product != null)
                     {
-                        contaner.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId);
+                        container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId);
                     }
                 }
 
-                contaner.UpdatePrice(configurationLineItem);
+                container.UpdatePrice(configurationLineItem);
             }
 
             return this;
         }
 
-        private async Task ClearConfigurationFiles()
+        private async Task DeleteConfigurationFiles()
         {
             var fileUrls = Cart.Items
-                .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
-                .SelectMany(x => x.ConfigurationItems.Where(y => y.Files != null).SelectMany(y => y.Files))
-                .Where(x => !string.IsNullOrEmpty(x.Url))
-                .Select(x => x.Url)
+                .SelectMany(x => x.GetConfigurationFileUrls())
                 .Distinct()
                 .ToArray();
 
-            await ClearConfigurationFiles(fileUrls);
+            await DeleteConfigurationFiles(fileUrls);
         }
 
-        private async Task ClearConfigurationFiles(string[] fileUrls)
+        private async Task DeleteConfigurationFiles(IList<string> fileUrls)
         {
+            if (fileUrls.IsNullOrEmpty())
+            {
+                return;
+            }
+
             var files = (await _fileUploadService.GetByPublicUrlAsync(fileUrls))
                 .Where(x => x.Scope == ConfigurationSectionFilesScope && x.OwnerIs(Cart))
                 .ToList();
 
-            await _fileUploadService.DeleteAsync(files.Select(x => x.Id).ToList());
+            if (files.Count > 0)
+            {
+                var fileIds = files.Select(x => x.Id).ToArray();
+                await _fileUploadService.DeleteAsync(fileIds);
+            }
         }
 
         #region ICloneable

@@ -17,6 +17,7 @@ using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.XCart.Core;
+using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
@@ -321,15 +322,17 @@ namespace VirtoCommerce.XCart.Data.Services
         private async Task UpdateConfigurationFiles(ShoppingCart cart)
         {
             var fileUrls = cart.Items
-                .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
-                .SelectMany(x => x.ConfigurationItems.Where(y => y.Files != null).SelectMany(x => x.Files))
-                .Where(x => !string.IsNullOrEmpty(x.Url))
-                .Select(x => x.Url)
+                .SelectMany(x => x.GetConfigurationFileUrls())
                 .Distinct()
                 .ToArray();
 
+            if (fileUrls.IsNullOrEmpty())
+            {
+                return;
+            }
+
             var files = (await _fileUploadService.GetByPublicUrlAsync(fileUrls))
-                .Where(x => x.Scope == ConfigurationSectionFilesScope && x.OwnerIsEmpty())
+                .Where(x => x.Scope == ConfigurationSectionFilesScope)
                 .ToList();
 
             if (files.Count > 0)

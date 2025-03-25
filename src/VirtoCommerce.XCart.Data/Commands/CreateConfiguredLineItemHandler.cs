@@ -6,14 +6,13 @@ using System.Threading.Tasks;
 using MediatR;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.FileExperienceApi.Core.Extensions;
-using VirtoCommerce.FileExperienceApi.Core.Models;
 using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
+using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
-using VirtoCommerce.XCart.Data.Extensions;
 using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Commands;
@@ -48,8 +47,8 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
         // need to take productId and quantity from the configuration
         var selectedProductIds = request.ConfigurationSections
-            .Where(x => x.Option != null && !string.IsNullOrEmpty(x.Option.ProductId))
-            .Select(section => section.Option.ProductId)
+            .Select(x => x.Option?.ProductId)
+            .Where(x => !string.IsNullOrEmpty(x))
             .ToList();
 
         productsRequest.ProductIds = selectedProductIds;
@@ -67,15 +66,13 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
                 container.AddProductSectionLineItem(selectedProduct, productOption.Quantity, section.SectionId);
             }
-
-            if (section.Type == ConfigurationSectionTypeText)
+            else if (section.Type == ConfigurationSectionTypeText)
             {
                 container.AddTextSectionLIneItem(section.CustomText, section.SectionId);
             }
-
-            if (section.Type == ConfigurationSectionTypeFile)
+            else if (section.Type == ConfigurationSectionTypeFile)
             {
-                var files = await CreateFiles(section, request.CartId);
+                var files = await CreateConfigurationFiles(section, request.CartId);
                 container.AddFileSectionLineItem(files, section.SectionId);
             }
         }
@@ -85,22 +82,16 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
         return configuredItem;
     }
 
-    protected virtual async Task<IList<ConfigurationItemFile>> CreateFiles(ProductConfigurationSection section, string cartId)
+    private async Task<IList<ConfigurationItemFile>> CreateConfigurationFiles(ProductConfigurationSection section, string cartId)
     {
-        var filesByUrls = (await _fileUploadService.GetByPublicUrlAsync(section.FileUrls))
-            .Where(x => x.Scope == ConfigurationSectionFilesScope && x.OwnerIsEmpty() || (x.OwnerEntityId == cartId && x.OwnerEntityType == typeof(ShoppingCart).FullName))
-            .ToDictionary(x => x.PublicUrl, StringComparer.OrdinalIgnoreCase);
-
-        var configurationItemFiles = new List<ConfigurationItemFile>(section.FileUrls.Count);
-
-        foreach (var url in section.FileUrls)
+        if (section.FileUrls.IsNullOrEmpty())
         {
-            if (filesByUrls.TryGetValue(url, out var file))
-            {
-                configurationItemFiles.Add(file.ConvertToItemFile());
-            }
+            return null;
         }
 
-        return configurationItemFiles;
+        return (await _fileUploadService.GetByPublicUrlAsync(section.FileUrls))
+            .Where(x => x.Scope == ConfigurationSectionFilesScope && (x.OwnerIsEmpty() || x.OwnerIs<ShoppingCart>(cartId)))
+            .Select(x => x.ConvertToConfigurationItemFile())
+            .ToList();
     }
 }

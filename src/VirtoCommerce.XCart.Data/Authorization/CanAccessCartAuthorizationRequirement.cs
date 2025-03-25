@@ -48,7 +48,7 @@ namespace VirtoCommerce.XCart.Data.Authorization
                 {
                     authorized = file.OwnerIsEmpty();
 
-                    if (!authorized && file.OwnerEntityType.EqualsInvariant(typeof(ShoppingCart).FullName))
+                    if (!authorized && file.OwnerTypeIs<ShoppingCart>())
                     {
                         var cart = await _shoppingCartService.GetByIdAsync(file.OwnerEntityId);
 

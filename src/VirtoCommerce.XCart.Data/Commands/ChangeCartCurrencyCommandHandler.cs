@@ -5,17 +5,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.FileExperienceApi.Core.Extensions;
-using VirtoCommerce.FileExperienceApi.Core.Models;
 using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
+using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
-using VirtoCommerce.XCart.Data.Extensions;
-using static System.Collections.Specialized.BitVector32;
 using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Commands
@@ -97,16 +95,17 @@ namespace VirtoCommerce.XCart.Data.Commands
         {
             var configuredItems = currentCurrencyCartAggregate.LineItems
                 .Where(x => x.IsConfigured)
-                .ToArray();
+                .ToList();
 
-            if (configuredItems.Length == 0)
+            if (configuredItems.Count == 0)
             {
                 return;
             }
 
             var configProductsIds = configuredItems
                             .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
-                            .SelectMany(x => x.ConfigurationItems.Where(x => !string.IsNullOrEmpty(x.ProductId)).Select(x => x.ProductId))
+                            .SelectMany(x => x.ConfigurationItems.Select(y => y.ProductId))
+                            .Where(x => !string.IsNullOrEmpty(x))
                             .Distinct()
                             .ToList();
 
@@ -132,15 +131,13 @@ namespace VirtoCommerce.XCart.Data.Commands
                             container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId);
                         }
                     }
-
-                    if (configurationItem.Type == ConfigurationSectionTypeText)
+                    else if (configurationItem.Type == ConfigurationSectionTypeText)
                     {
                         container.AddTextSectionLIneItem(configurationItem.CustomText, configurationItem.SectionId);
                     }
-
-                    if (configurationItem.Type == ConfigurationSectionTypeFile)
+                    else if (configurationItem.Type == ConfigurationSectionTypeFile)
                     {
-                        var files = await CopyConfigurationFiles(currentCurrencyCartAggregate, configurationItem);
+                        var files = await CopyConfigurationFiles(configurationItem, currentCurrencyCartAggregate.Cart);
                         container.AddFileSectionLineItem(files, configurationItem.SectionId);
                     }
                 }
@@ -164,39 +161,23 @@ namespace VirtoCommerce.XCart.Data.Commands
             }
         }
 
-        protected virtual async Task<IList<ConfigurationItemFile>> CopyConfigurationFiles(CartAggregate currentCurrencyCartAggregate, ConfigurationItem configurationItem)
+        private async Task<IList<ConfigurationItemFile>> CopyConfigurationFiles(ConfigurationItem configurationItem, ShoppingCart cart)
         {
-            List<ConfigurationItemFile> configurationItemFiles = null;
+            var fileUrls = configurationItem.Files
+                ?.Select(x => x.Url)
+                .Where(x => !string.IsNullOrEmpty(x))
+                .Distinct()
+                .ToArray();
 
-            if (!configurationItem.Files.IsNullOrEmpty())
+            if (fileUrls.IsNullOrEmpty())
             {
-                var fileUrls = configurationItem.Files
-                    .Where(x => !string.IsNullOrEmpty(x.Url))
-                    .Select(x => x.Url)
-                    .Distinct()
-                    .ToArray();
-
-                var filesByUrls = (await _fileUploadService.GetByPublicUrlAsync(fileUrls))
-                    .Where(x => x.Scope == ConfigurationSectionFilesScope && x.OwnerIs(currentCurrencyCartAggregate.Cart))
-                    .ToDictionary(x => x.PublicUrl, StringComparer.OrdinalIgnoreCase);
-
-                configurationItemFiles = new List<ConfigurationItemFile>(fileUrls.Length);
-                var filesForClear = new List<File>(fileUrls.Length);
-
-                foreach (var url in fileUrls)
-                {
-                    if (filesByUrls.TryGetValue(url, out var file))
-                    {
-                        configurationItemFiles.Add(file.ConvertToItemFile());
-                        file.ClearOwner();
-                        filesForClear.Add(file);
-                    }
-                }
-
-                await _fileUploadService.SaveChangesAsync(filesForClear);
+                return null;
             }
 
-            return configurationItemFiles;
+            return (await _fileUploadService.GetByPublicUrlAsync(fileUrls))
+                .Where(x => x.Scope == ConfigurationSectionFilesScope && x.OwnerIs(cart))
+                .Select(x => x.ConvertToConfigurationItemFile())
+                .ToList();
         }
     }
 }
