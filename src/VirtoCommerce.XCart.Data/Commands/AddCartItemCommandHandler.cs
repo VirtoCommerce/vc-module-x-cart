@@ -63,6 +63,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                     CurrencyCode = request.CurrencyCode,
                     ConfigurableProductId = request.ProductId,
                     ConfigurationSections = request.ConfigurationSections,
+                    CartId = cartAggregate.Cart.Id,
                 };
 
                 var mediatorResult = await _mediator.Send(createConfigurableProductCommand, cancellationToken);

@@ -23,4 +23,6 @@ public class CreateConfiguredLineItemCommand : ICommand<ExpConfigurationLineItem
     public bool EvaluatePromotions { get; set; } = false;
 
     public IList<ProductConfigurationSection> ConfigurationSections { get; set; } = [];
+
+    public string CartId { get; set; }
 }

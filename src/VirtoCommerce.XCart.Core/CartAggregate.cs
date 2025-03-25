@@ -13,6 +13,8 @@ using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.FileExperienceApi.Core.Extensions;
+using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.MarketingModule.Core.Services;
 using VirtoCommerce.PaymentModule.Core.Model;
@@ -30,9 +32,10 @@ using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
+using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
 using Store = VirtoCommerce.StoreModule.Core.Model.Store;
 using StoreSetting = VirtoCommerce.StoreModule.Core.ModuleConstants.Settings.General;
-using XCartiSetting = VirtoCommerce.XCart.Core.ModuleConstants.Settings.General;
+using XCartSetting = VirtoCommerce.XCart.Core.ModuleConstants.Settings.General;
 
 namespace VirtoCommerce.XCart.Core
 {
@@ -47,6 +50,8 @@ namespace VirtoCommerce.XCart.Core
         private readonly IMemberService _memberService;
         private readonly IMapper _mapper;
         private readonly IGenericPipelineLauncher _pipeline;
+        private readonly IConfigurationItemValidator _configurationItemValidator;
+        private readonly IFileUploadService _fileUploadService;
 
         public CartAggregate(
             IMarketingPromoEvaluator marketingEvaluator,
@@ -56,7 +61,9 @@ namespace VirtoCommerce.XCart.Core
             IDynamicPropertyUpdaterService dynamicPropertyUpdaterService,
             IMapper mapper,
             IMemberService memberService,
-            IGenericPipelineLauncher pipeline)
+            IGenericPipelineLauncher pipeline,
+            IConfigurationItemValidator configurationItemValidator,
+            IFileUploadService fileUploadService)
         {
             _cartTotalsCalculator = cartTotalsCalculator;
             _marketingEvaluator = marketingEvaluator;
@@ -66,6 +73,8 @@ namespace VirtoCommerce.XCart.Core
             _mapper = mapper;
             _memberService = memberService;
             _pipeline = pipeline;
+            _configurationItemValidator = configurationItemValidator;
+            _fileUploadService = fileUploadService;
         }
 
         public Store Store { get; protected set; }
@@ -137,7 +146,7 @@ namespace VirtoCommerce.XCart.Core
         public IList<string> ProductsIncludeFields { get; set; }
         public string ResponseGroup { get; set; }
 
-        public bool IsSelectedForCheckout => Store.Settings?.GetValue<bool>(XCartiSetting.IsSelectedForCheckout) ?? true;
+        public bool IsSelectedForCheckout => Store.Settings?.GetValue<bool>(XCartSetting.IsSelectedForCheckout) ?? true;
 
         public virtual IList<ValidationFailure> GetValidationErrors()
         {
@@ -177,6 +186,13 @@ namespace VirtoCommerce.XCart.Core
         {
             ArgumentNullException.ThrowIfNull(newCartItem);
             ArgumentNullException.ThrowIfNull(newConfiguredItem);
+
+            var validationResult = await _configurationItemValidator.ValidateAsync(newConfiguredItem);
+            if (!validationResult.IsValid)
+            {
+                OperationValidationErrors.AddRange(validationResult.Errors);
+                return this;
+            }
 
             EnsureCartExists();
 
@@ -582,9 +598,11 @@ namespace VirtoCommerce.XCart.Core
             return Task.FromResult(this);
         }
 
-        public virtual Task<CartAggregate> ClearAsync()
+        public virtual async Task<CartAggregate> ClearAsync()
         {
             EnsureCartExists();
+
+            await DeleteConfigurationFiles();
 
             Cart.Comment = string.Empty;
             Cart.PurchaseOrderNumber = string.Empty;
@@ -596,7 +614,7 @@ namespace VirtoCommerce.XCart.Core
             Cart.Items.Clear();
             Cart.DynamicProperties?.Clear();
 
-            return Task.FromResult(this);
+            return this;
         }
 
         public virtual Task<CartAggregate> ChangePurchaseOrderNumber(string purchaseOrderNumber)
@@ -1135,7 +1153,7 @@ namespace VirtoCommerce.XCart.Core
             }
         }
 
-        public virtual Task<CartAggregate> UpdateConfiguredLineItemAsync(string lineItemId, LineItem configuredItem)
+        public virtual async Task<CartAggregate> UpdateConfiguredLineItemAsync(string lineItemId, LineItem configuredItem)
         {
             ArgumentNullException.ThrowIfNull(lineItemId);
             ArgumentNullException.ThrowIfNull(configuredItem);
@@ -1153,10 +1171,17 @@ namespace VirtoCommerce.XCart.Core
                 lineItem.PlacedPrice = configuredItem.PlacedPrice;
                 lineItem.ExtendedPrice = configuredItem.ExtendedPrice;
 
-                lineItem.ConfigurationItems = new List<ConfigurationItem>(configuredItem.ConfigurationItems);
+                // Delete files that are not present in the updated configuration
+                var fileUrls = lineItem.GetConfigurationFileUrls()
+                    .Except(configuredItem.GetConfigurationFileUrls())
+                    .ToArray();
+
+                await DeleteConfigurationFiles(fileUrls);
+
+                lineItem.ConfigurationItems = configuredItem.ConfigurationItems.ToList();
             }
 
-            return Task.FromResult(this);
+            return this;
         }
 
         public virtual async Task<CartAggregate> UpdateConfiguredLineItemPrice(IList<LineItem> configuredItems)
@@ -1176,12 +1201,12 @@ namespace VirtoCommerce.XCart.Core
 
             foreach (var configurationLineItem in configuredItems)
             {
-                var contaner = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
-                contaner.Currency = Currency;
+                var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
+                container.Currency = Currency;
 
                 if (CartProducts.TryGetValue(configurationLineItem.ProductId, out var configurableProduct))
                 {
-                    contaner.ConfigurableProduct = configurableProduct;
+                    container.ConfigurableProduct = configurableProduct;
                 }
 
                 foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
@@ -1189,14 +1214,42 @@ namespace VirtoCommerce.XCart.Core
                     var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
                     if (product != null)
                     {
-                        contaner.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId);
+                        container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId);
                     }
                 }
 
-                contaner.UpdatePrice(configurationLineItem);
+                container.UpdatePrice(configurationLineItem);
             }
 
             return this;
+        }
+
+        private async Task DeleteConfigurationFiles()
+        {
+            var fileUrls = Cart.Items
+                .SelectMany(x => x.GetConfigurationFileUrls())
+                .Distinct()
+                .ToArray();
+
+            await DeleteConfigurationFiles(fileUrls);
+        }
+
+        private async Task DeleteConfigurationFiles(IList<string> fileUrls)
+        {
+            if (fileUrls.IsNullOrEmpty())
+            {
+                return;
+            }
+
+            var files = (await _fileUploadService.GetByPublicUrlAsync(fileUrls))
+                .Where(x => x.Scope == ConfigurationSectionFilesScope && x.OwnerIs(Cart))
+                .ToList();
+
+            if (files.Count > 0)
+            {
+                var fileIds = files.Select(x => x.Id).ToArray();
+                await _fileUploadService.DeleteAsync(fileIds);
+            }
         }
 
         #region ICloneable

@@ -10,6 +10,7 @@ public class ConfigurationSectionInput : InputObjectGraphType<ProductConfigurati
         Field<NonNullGraphType<StringGraphType>>("sectionId").Description("Configuration section ID");
         Field<NonNullGraphType<StringGraphType>>("type").Description("Configuration section type. Possible values: 'Product', 'Text', 'File'");
         Field<ConfigurableProductOptionInput>("option").Description("Configuration section option/product");
-        Field<StringGraphType>("customText").Description("Custom text for 'Text' type section");
+        Field<StringGraphType>("customText").Description("Custom text for 'Text' section");
+        Field<ListGraphType<StringGraphType>>(nameof(ProductConfigurationSection.FileUrls)).Description("List of file links for 'File' section");
     }
 }

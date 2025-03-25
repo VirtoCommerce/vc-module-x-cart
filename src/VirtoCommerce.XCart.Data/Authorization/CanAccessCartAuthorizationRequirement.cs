@@ -5,7 +5,11 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.CartModule.Core.Services;
+using VirtoCommerce.FileExperienceApi.Core.Extensions;
+using VirtoCommerce.FileExperienceApi.Core.Models;
 using VirtoCommerce.Platform.Core;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Security.Authorization;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
@@ -24,62 +28,81 @@ namespace VirtoCommerce.XCart.Data.Authorization
     public class CanAccessCartAuthorizationHandler : PermissionAuthorizationHandlerBase<CanAccessCartAuthorizationRequirement>
     {
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
+        private readonly IShoppingCartService _shoppingCartService;
 
-        public CanAccessCartAuthorizationHandler(Func<UserManager<ApplicationUser>> userManagerFactory)
+        public CanAccessCartAuthorizationHandler(Func<UserManager<ApplicationUser>> userManagerFactory, IShoppingCartService shoppingCartService)
         {
             _userManagerFactory = userManagerFactory;
+            _shoppingCartService = shoppingCartService;
         }
 
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, CanAccessCartAuthorizationRequirement requirement)
         {
-            var result = context.User.IsInRole(PlatformConstants.Security.SystemRoles.Administrator);
+            var authorized = context.User.IsInRole(PlatformConstants.Security.SystemRoles.Administrator);
 
-            if (!result)
+            if (!authorized)
             {
-                switch (context.Resource)
+                var resource = context.Resource;
+
+                if (resource is File file)
+                {
+                    authorized = file.OwnerIsEmpty();
+
+                    if (!authorized && file.OwnerTypeIs<ShoppingCart>())
+                    {
+                        var cart = await _shoppingCartService.GetByIdAsync(file.OwnerEntityId);
+
+                        if (cart != null)
+                        {
+                            resource = cart;
+                        }
+                    }
+                }
+
+                switch (resource)
                 {
                     case string userId when context.User.Identity.IsAuthenticated:
-                        result = userId == GetUserId(context);
+                        authorized = userId == GetUserId(context);
                         break;
                     case string userId when !context.User.Identity.IsAuthenticated:
                         using (var userManager = _userManagerFactory())
                         {
                             var userById = await userManager.FindByIdAsync(userId);
-                            result = userById == null;
+                            authorized = userById == null;
                         }
                         break;
                     case ShoppingCart cart when context.User.Identity.IsAuthenticated:
-                        result = cart.CustomerId == GetUserId(context);
+                        authorized = cart.CustomerId == GetUserId(context);
                         break;
                     case ShoppingCart cart when !context.User.Identity.IsAuthenticated:
-                        result = cart.IsAnonymous;
+                        authorized = cart.IsAnonymous;
                         break;
                     case IEnumerable<ShoppingCart> carts:
                         var user = GetUserId(context);
-                        result = carts.All(x => x.CustomerId == user);
+                        authorized = carts.All(x => x.CustomerId == user);
                         break;
                     case SearchCartQuery searchQuery:
                         var currentUserId = GetUserId(context);
                         if (searchQuery.UserId != null)
                         {
-                            result = searchQuery.UserId == currentUserId;
+                            authorized = searchQuery.UserId == currentUserId;
                         }
                         else
                         {
                             searchQuery.UserId = currentUserId;
-                            result = searchQuery.UserId != null;
+                            authorized = searchQuery.UserId != null;
                         }
                         break;
                     case WishlistUserContext wishlistUserContext:
-                        result = CheckWishlistUserContext(wishlistUserContext);
+                        authorized = CheckWishlistUserContext(wishlistUserContext);
                         break;
                     case WishlistCommand { WishlistUserContext: not null } wishlistCommand:
-                        result = CheckWishlistUserContext(wishlistCommand.WishlistUserContext);
+                        authorized = CheckWishlistUserContext(wishlistCommand.WishlistUserContext);
                         break;
                 }
             }
 
-            if (result)
+            if (authorized)
             {
                 context.Succeed(requirement);
             }

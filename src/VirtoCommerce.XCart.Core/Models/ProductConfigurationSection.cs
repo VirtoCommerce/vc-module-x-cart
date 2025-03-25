@@ -1,5 +1,4 @@
-using System;
-using VirtoCommerce.CartModule.Core.Model;
+using System.Collections.Generic;
 
 namespace VirtoCommerce.XCart.Core.Models;
 
@@ -12,4 +11,6 @@ public class ProductConfigurationSection
     public ConfigurableProductOption Option { get; set; }
 
     public string CustomText { get; set; }
+
+    public IList<string> FileUrls { get; set; } = [];
 }
