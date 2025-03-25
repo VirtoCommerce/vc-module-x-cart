@@ -173,7 +173,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             ExtendableFieldAsync<ListGraphType<DynamicPropertyValueType>>(
                 "dynamicProperties",
                 "Cart line item dynamic property values",
-                QueryArgumentPresets.GetArgumentForDynamicProperties(),
+                null,
                 async context => await dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source, context.GetArgumentOrValue<string>("cultureName")));
 
             var vendorField = new FieldType
