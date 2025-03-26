@@ -10,11 +10,11 @@ using VirtoCommerce.XCart.Core.Schemas;
 namespace VirtoCommerce.XCart.Data.Queries;
 
 public class GetPickupStoresAddressesQueryBuilder(IMediator mediator, IAuthorizationService authorizationService) :
-    QueryBuilder<GetPickupStoresAddressesQuery, PickupStoresAddressesResponse, PickupStoresAddressesType>(mediator, authorizationService)
+    QueryBuilder<GetPickupLocationsQuery, PickupLocationsResponse, PickupStoresAddressesType>(mediator, authorizationService)
 {
     protected override string Name { get; } = "getPickupInStoreAddresses";
 
-    protected override Task<PickupStoresAddressesResponse> GetResponseAsync(IResolveFieldContext<object> context, GetPickupStoresAddressesQuery request)
+    protected override Task<PickupLocationsResponse> GetResponseAsync(IResolveFieldContext<object> context, GetPickupLocationsQuery request)
     {
         return base.GetResponseAsync(context, request);
     }

@@ -4,6 +4,7 @@ using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Queries;
 
-public class GetPickupStoresAddressesQuery : SearchQuery<PickupStoresAddressesResponse>, ISearchQuery
+public class GetPickupLocationsQuery : SearchQuery<PickupLocationsResponse>, ISearchQuery
 {
+    public string StoreId { get; set; }
 }
