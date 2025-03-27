@@ -32,7 +32,7 @@ public sealed class PickupLocationsType : ExtendableGraphType<PickupLocation>
     }
 }
 
-public sealed class PickupAddressType : ExtendableGraphType<Address>
+public sealed class PickupAddressType : ExtendableGraphType<PickupLocationAddress>
 {
     public PickupAddressType()
     {
