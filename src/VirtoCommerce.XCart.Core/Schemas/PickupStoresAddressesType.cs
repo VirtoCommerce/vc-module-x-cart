@@ -1,21 +1,7 @@
-using GraphQL.Types;
 using VirtoCommerce.ShippingModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Schemas;
-using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Schemas;
-
-public sealed class PickupStoresAddressesType : ExtendableGraphType<PickupLocationsResponse>
-{
-    public PickupStoresAddressesType()
-    {
-        ExtendableField<ListGraphType<PickupLocationsType>>(
-            "addresses",
-            "Pickup Stores Addresses",
-            resolve: context => context.Source.Addresses ?? []);
-        Field(x => x.TotalCount, nullable: false).Description("Total count of pickup locations");
-    }
-}
 
 public sealed class PickupLocationsType : ExtendableGraphType<PickupLocation>
 {

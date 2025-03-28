@@ -24,7 +24,7 @@ public class GetPickupStoresAddressesQueryHandler(IPickupLocationsSearchService 
 
         var response = AbstractTypeFactory<PickupLocationsResponse>.TryCreateInstance();
 
-        response.Addresses = result.Results;
+        response.Results = result.Results;
         response.TotalCount = result.TotalCount;
 
         return response;
