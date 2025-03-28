@@ -13,6 +13,7 @@ public sealed class PickupStoresAddressesType : ExtendableGraphType<PickupLocati
             "addresses",
             "Pickup Stores Addresses",
             resolve: context => context.Source.Addresses ?? []);
+        Field(x => x.TotalCount, nullable: false).Description("Total count of pickup locations");
     }
 }
 
