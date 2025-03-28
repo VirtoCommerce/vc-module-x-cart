@@ -15,7 +15,7 @@
     <PackageReference Include="VirtoCommerce.MarketingModule.Core" Version="3.815.0" />
     <PackageReference Include="VirtoCommerce.PaymentModule.Core" Version="3.804.0" />
     <PackageReference Include="VirtoCommerce.PricingModule.Core" Version="3.809.0" />
-    <PackageReference Include="VirtoCommerce.ShippingModule.Core" Version="3.805.0-alpha.208-vcst-2932" />
+    <PackageReference Include="VirtoCommerce.ShippingModule.Core" Version="3.805.0-alpha.211-vcst-2932" />
     <PackageReference Include="VirtoCommerce.Xapi.Core" Version="3.906.0" />
     <PackageReference Include="VirtoCommerce.XCatalog.Core" Version="3.908.0" />
   </ItemGroup>
