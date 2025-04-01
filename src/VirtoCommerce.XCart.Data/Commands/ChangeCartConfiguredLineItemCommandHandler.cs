@@ -23,8 +23,8 @@ public class ChangeCartConfiguredLineItemCommandHandler : CartCommandHandler<Cha
     public override async Task<CartAggregate> Handle(ChangeCartConfiguredLineItemCommand request, CancellationToken cancellationToken)
     {
         var cartAggregate = await GetOrCreateCartFromCommandAsync(request);
-
         var lineItem = GetConfiguredLineItem(request, cartAggregate);
+
         if (lineItem != null)
         {
             var command = new CreateConfiguredLineItemCommand
@@ -37,6 +37,7 @@ public class ChangeCartConfiguredLineItemCommandHandler : CartCommandHandler<Cha
                 ConfigurableProductId = lineItem.ProductId,
                 ConfigurationSections = request.ConfigurationSections,
                 Quantity = request.Quantity ?? lineItem.Quantity,
+                CartId = cartAggregate.Cart.Id,
             };
 
             var mediatorResult = await _mediator.Send(command, cancellationToken);

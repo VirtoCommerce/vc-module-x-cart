@@ -4,26 +4,33 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.FileExperienceApi.Core.Extensions;
+using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
+using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
+using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Commands
 {
     public class ChangeCartCurrencyCommandHandler : CartCommandHandler<ChangeCartCurrencyCommand>
     {
         private readonly ICartProductService _cartProductService;
+        private readonly IFileUploadService _fileUploadService;
 
         public ChangeCartCurrencyCommandHandler(
             ICartAggregateRepository cartAggregateRepository,
-            ICartProductService cartProductService)
+            ICartProductService cartProductService,
+            IFileUploadService fileUploadService)
             : base(cartAggregateRepository)
         {
             _cartProductService = cartProductService;
+            _fileUploadService = fileUploadService;
         }
 
         public override async Task<CartAggregate> Handle(ChangeCartCurrencyCommand request, CancellationToken cancellationToken)
@@ -81,16 +88,15 @@ namespace VirtoCommerce.XCart.Data.Commands
                 await newCurrencyCartAggregate.AddItemsAsync(newCartItems);
             }
 
-            // copy configured items
-            var configuredItems = currentCurrencyCartAggregate.LineItems
-                .Where(x => x.IsConfigured)
-                .ToArray();
-
-            await CopyConfiguredItems(newCurrencyCartAggregate, configuredItems);
+            await CopyConfiguredItems(currentCurrencyCartAggregate, newCurrencyCartAggregate);
         }
 
-        protected virtual async Task CopyConfiguredItems(CartAggregate newCurrencyCartAggregate, IList<LineItem> configuredItems)
+        protected virtual async Task CopyConfiguredItems(CartAggregate currentCurrencyCartAggregate, CartAggregate newCurrencyCartAggregate)
         {
+            var configuredItems = currentCurrencyCartAggregate.LineItems
+                .Where(x => x.IsConfigured)
+                .ToList();
+
             if (configuredItems.Count == 0)
             {
                 return;
@@ -98,7 +104,8 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             var configProductsIds = configuredItems
                             .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
-                            .SelectMany(x => x.ConfigurationItems.Select(x => x.ProductId))
+                            .SelectMany(x => x.ConfigurationItems.Select(y => y.ProductId))
+                            .Where(x => !string.IsNullOrEmpty(x))
                             .Distinct()
                             .ToList();
 
@@ -108,26 +115,38 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             foreach (var configurationLineItem in configuredItems)
             {
-                var contaner = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
-                contaner.Currency = newCurrencyCartAggregate.Currency;
-                contaner.Store = newCurrencyCartAggregate.Store;
+                var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
+                container.Currency = newCurrencyCartAggregate.Currency;
+                container.Store = newCurrencyCartAggregate.Store;
 
-                contaner.ConfigurableProduct = configProducts.FirstOrDefault(x => x.Product.Id == configurationLineItem.ProductId);
+                container.ConfigurableProduct = configProducts.FirstOrDefault(x => x.Product.Id == configurationLineItem.ProductId);
 
                 foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
                 {
-                    var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
-                    if (product != null)
+                    if (configurationItem.Type == ConfigurationSectionTypeProduct)
                     {
-                        contaner.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId);
+                        var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
+                        if (product != null)
+                        {
+                            container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId);
+                        }
+                    }
+                    else if (configurationItem.Type == ConfigurationSectionTypeText)
+                    {
+                        container.AddTextSectionLIneItem(configurationItem.CustomText, configurationItem.SectionId);
+                    }
+                    else if (configurationItem.Type == ConfigurationSectionTypeFile)
+                    {
+                        var files = await CopyConfigurationFiles(configurationItem, currentCurrencyCartAggregate.Cart);
+                        container.AddFileSectionLineItem(files, configurationItem.SectionId);
                     }
                 }
 
-                var expItem = contaner.CreateConfiguredLineItem(configurationLineItem.Quantity);
+                var expItem = container.CreateConfiguredLineItem(configurationLineItem.Quantity);
 
                 await newCurrencyCartAggregate.AddConfiguredItemAsync(new NewCartItem(configurationLineItem.ProductId, configurationLineItem.Quantity)
                 {
-                    CartProduct = contaner.ConfigurableProduct,
+                    CartProduct = container.ConfigurableProduct,
                     IgnoreValidationErrors = true,
                     CreatedDate = configurationLineItem.CreatedDate,
                     Comment = configurationLineItem.Note,
@@ -140,6 +159,25 @@ namespace VirtoCommerce.XCart.Data.Commands
                     })).ToArray(),
                 }, expItem.Item);
             }
+        }
+
+        private async Task<IList<ConfigurationItemFile>> CopyConfigurationFiles(ConfigurationItem configurationItem, ShoppingCart cart)
+        {
+            var fileUrls = configurationItem.Files
+                ?.Select(x => x.Url)
+                .Where(x => !string.IsNullOrEmpty(x))
+                .Distinct()
+                .ToArray();
+
+            if (fileUrls.IsNullOrEmpty())
+            {
+                return null;
+            }
+
+            return (await _fileUploadService.GetByPublicUrlAsync(fileUrls))
+                .Where(x => x.Scope == ConfigurationSectionFilesScope && x.OwnerIs(cart))
+                .Select(x => x.ConvertToConfigurationItemFile())
+                .ToList();
         }
     }
 }

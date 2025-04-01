@@ -2,6 +2,7 @@ using System;
 using GraphQL.DI;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
+using VirtoCommerce.FileExperienceApi.Core.Authorization;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.TaxModule.Core.Model;
@@ -34,6 +35,8 @@ namespace VirtoCommerce.XCart.Data.Extensions
             services.AddTransient<CartAggregate>();
             services.AddTransient<Func<CartAggregate>>(provider => () => provider.CreateScope().ServiceProvider.GetRequiredService<CartAggregate>());
             services.AddTransient<IConfiguredLineItemContainerService, ConfiguredLineItemContainerService>();
+            services.AddTransient<IConfigurationItemValidator, ConfigurationItemValidator>();
+            services.AddSingleton<IFileAuthorizationRequirementFactory, ConfigurationItemFileAuthorizationRequirementFactory>();
 
             services.AddPipeline<SearchProductResponse>(builder =>
             {
