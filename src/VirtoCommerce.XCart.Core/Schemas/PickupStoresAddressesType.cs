@@ -3,12 +3,12 @@ using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.XCart.Core.Schemas;
 
-public sealed class PickupLocationsType : ExtendableGraphType<PickupLocation>
+public sealed class PickupLocationType : ExtendableGraphType<PickupLocation>
 {
-    public PickupLocationsType()
+    public PickupLocationType()
     {
         Field(x => x.Id).Description("Id");
-        Field(x => x.Active, false).Description("Name");
+        Field(x => x.IsActive, false).Description("IsActive");
         Field(x => x.Name, false).Description("Name");
         Field(x => x.Description, true).Description("Description");
         Field(x => x.ContactEmail, true).Description("ContactEmail");
@@ -24,7 +24,7 @@ public sealed class PickupAddressType : ExtendableGraphType<PickupLocationAddres
     public PickupAddressType()
     {
         Field(x => x.Id).Description("Id");
-        Field(x => x.Key, true).Description("key");
+        Field(x => x.Key, true).Description("Key");
         Field(x => x.Name, true).Description("Name");
         Field(x => x.Organization, true).Description("Company name");
         Field(x => x.CountryCode).Description("Country code");
