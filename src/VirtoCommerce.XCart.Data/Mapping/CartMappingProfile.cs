@@ -4,8 +4,7 @@ using System.Linq;
 using AutoMapper;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
-using VirtoCommerce.CoreModule.Core.Outlines;
-using VirtoCommerce.CoreModule.Core.Seo;
+using VirtoCommerce.CatalogModule.Core.Extensions;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
@@ -13,7 +12,6 @@ using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.SearchModule.Core.Model;
 using VirtoCommerce.ShippingModule.Core.Model;
 using VirtoCommerce.TaxModule.Core.Model;
-using VirtoCommerce.Tools;
 using VirtoCommerce.Xapi.Core.Index;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
@@ -76,10 +74,6 @@ namespace VirtoCommerce.XCart.Data.Mapping
 
                 return lineItem;
             });
-
-            CreateMap<Outline, Tools.Models.Outline>();
-            CreateMap<OutlineItem, Tools.Models.OutlineItem>();
-            CreateMap<SeoInfo, Tools.Models.SeoInfo>();
 
             CreateMap<LineItem, IEnumerable<TaxLine>>().ConvertUsing((lineItem, taxLines, context) =>
             {
@@ -225,7 +219,7 @@ namespace VirtoCommerce.XCart.Data.Mapping
                     if (cartProduct != null)
                     {
                         promoEntry.InStockQuantity = (int)(cartProduct.Inventory?.InStockQuantity ?? 0);
-                        promoEntry.Outline = cartProduct.Product.Outlines?.Select(x => context.Mapper.Map<Tools.Models.Outline>(x)).GetOutlinePath(cartProduct.Product.CatalogId);
+                        promoEntry.Outline = cartProduct.Product.Outlines?.GetOutlinePath(cartProduct.Product.CatalogId);
                     }
                     promoEvalcontext.CartPromoEntries.Add(promoEntry);
                 }
