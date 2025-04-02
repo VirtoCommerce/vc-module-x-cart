@@ -7,6 +7,9 @@ using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Model.Search;
 using VirtoCommerce.CatalogModule.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.SearchModule.Core.Model;
+using VirtoCommerce.StoreModule.Core.Model;
+using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Validators;
@@ -15,14 +18,17 @@ namespace VirtoCommerce.XCart.Data.Commands
 {
     public class AddCartItemsBulkCommandHandler : IRequestHandler<AddCartItemsBulkCommand, BulkCartResult>
     {
-        private readonly IProductSearchService _productSearchService;
+        private readonly IProductIndexedSearchService _productIndexedSearchService;
+        private readonly IStoreService _storeService;
         private readonly IMediator _mediator;
 
         public AddCartItemsBulkCommandHandler(
-            IProductSearchService productSearchService,
+            IProductIndexedSearchService productIndexedSearchService,
+            IStoreService storeService,
             IMediator mediator)
         {
-            _productSearchService = productSearchService;
+            _productIndexedSearchService = productIndexedSearchService;
+            _storeService = storeService;
             _mediator = mediator;
         }
 
@@ -88,30 +94,45 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         protected virtual async Task<IList<CatalogProduct>> FindProductsBySkuAsync(AddCartItemsBulkCommand request)
         {
-            var result = new List<CatalogProduct>();
-
             var productSkus = request.CartItems.Select(x => x.ProductSku).ToList();
 
-            int totalCount;
-
-            var searchCriteria = new ProductSearchCriteria
+            var searchCriteria = new ProductIndexedSearchCriteria
             {
-                Skus = productSkus,
+                StoreId = request.StoreId,
+                Terms = [new TermFilter { FieldName = "code", Values = productSkus }.ToString()],
+                SearchInVariations = true,
+                ResponseGroup = ItemResponseGroup.ItemInfo.ToString(),
+            };
+
+            long totalCount;
+            var result = new List<CatalogProduct>();
+
+            var indexedSearchCriteria = new ProductIndexedSearchCriteria
+            {
+                StoreId = request.StoreId,
+                CatalogId = await GetCatalogId(request.StoreId),
+                Terms = [new TermFilter { FieldName = "code", Values = productSkus }.ToString()],
                 SearchInVariations = true,
                 ResponseGroup = ItemResponseGroup.ItemInfo.ToString(),
             };
 
             do
             {
-                var searchResult = await _productSearchService.SearchAsync(searchCriteria);
-                result.AddRange(searchResult.Results);
+                var searchResult = await _productIndexedSearchService.SearchAsync(indexedSearchCriteria);
+                result.AddRange(searchResult.Items);
 
                 totalCount = searchResult.TotalCount;
-                searchCriteria.Skip += searchCriteria.Take;
+                indexedSearchCriteria.Skip += indexedSearchCriteria.Take;
             }
-            while (searchCriteria.Skip < totalCount);
+            while (indexedSearchCriteria.Skip < totalCount);
 
             return result;
+        }
+
+        private async Task<string> GetCatalogId(string storeId)
+        {
+            var store = await _storeService.GetByIdAsync(storeId, StoreResponseGroup.StoreInfo.ToString(), false);
+            return store.Catalog;
         }
 
         protected virtual IDictionary<string, List<string>> GetDuplicatesBySku(IList<CatalogProduct> catalogProducts)
