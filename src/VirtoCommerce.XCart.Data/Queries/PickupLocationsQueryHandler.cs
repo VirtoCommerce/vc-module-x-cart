@@ -8,7 +8,7 @@ using VirtoCommerce.XCart.Core.Queries;
 
 namespace VirtoCommerce.XCart.Data.Queries;
 
-public class GetPickupStoresAddressesQueryHandler(IPickupLocationSearchService service) : IQueryHandler<GetPickupLocationsQuery, PickupLocationSearchResult>
+public class PickupLocationsQueryHandler(IPickupLocationSearchService service) : IQueryHandler<GetPickupLocationsQuery, PickupLocationSearchResult>
 {
     public async Task<PickupLocationSearchResult> Handle(GetPickupLocationsQuery request, CancellationToken cancellationToken)
     {

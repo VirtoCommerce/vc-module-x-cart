@@ -8,8 +8,8 @@ using VirtoCommerce.XCart.Core.Schemas;
 
 namespace VirtoCommerce.XCart.Data.Queries;
 
-public class GetPickupStoresAddressesQueryBuilder(IMediator mediator, IAuthorizationService authorizationService)
+public class PickupLocationsQueryBuilder(IMediator mediator, IAuthorizationService authorizationService)
     : SearchQueryBuilder<GetPickupLocationsQuery, PickupLocationSearchResult, PickupLocation, PickupLocationType>(mediator, authorizationService)
 {
-    protected override string Name => "getPickupInStoreAddresses";
+    protected override string Name => "pickupLocations";
 }
