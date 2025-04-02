@@ -23,5 +23,7 @@ PipelineNet.dll
 System.Diagnostics.PerformanceCounter.dll
 System.Reactive.dll
 TimeZoneConverter.dll
+VirtoCommerce.FileExperienceApi.Core.dll
+VirtoCommerce.Tools.dll
 VirtoCommerce.Xapi.Core.dll
 VirtoCommerce.XCatalog.Core.dll
