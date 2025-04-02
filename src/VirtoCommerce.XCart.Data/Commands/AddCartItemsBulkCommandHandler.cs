@@ -96,14 +96,6 @@ namespace VirtoCommerce.XCart.Data.Commands
         {
             var productSkus = request.CartItems.Select(x => x.ProductSku).ToList();
 
-            var searchCriteria = new ProductIndexedSearchCriteria
-            {
-                StoreId = request.StoreId,
-                Terms = [new TermFilter { FieldName = "code", Values = productSkus }.ToString()],
-                SearchInVariations = true,
-                ResponseGroup = ItemResponseGroup.ItemInfo.ToString(),
-            };
-
             long totalCount;
             var result = new List<CatalogProduct>();
 
@@ -114,6 +106,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                 Terms = [new TermFilter { FieldName = "code", Values = productSkus }.ToString()],
                 SearchInVariations = true,
                 ResponseGroup = ItemResponseGroup.ItemInfo.ToString(),
+                Take = 20
             };
 
             do
