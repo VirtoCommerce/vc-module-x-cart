@@ -75,7 +75,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             ExtendableField<NonNullGraphType<ListGraphType<NonNullGraphType<DynamicPropertyValueType>>>>(
                 "dynamicProperties",
                 "Cart payment dynamic property values",
-                QueryArgumentPresets.GetArgumentForDynamicProperties(),
+                null,
                 context => dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source, context.GetArgumentOrValue<string>("cultureName")));
         }
     }

@@ -201,11 +201,11 @@ namespace VirtoCommerce.XCart.Core.Schemas
             ExtendableField<NonNullGraphType<ListGraphType<NonNullGraphType<DynamicPropertyValueType>>>>(
                 "dynamicProperties",
                 "Cart dynamic property values",
-                QueryArgumentPresets.GetArgumentForDynamicProperties(),
+                null,
                 context => dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source.Cart, context.GetArgumentOrValue<string>("cultureName")));
 
             FieldAsync<NonNullGraphType<BooleanGraphType>>("isValid", "Shows whether the cart is valid",
-                QueryArgumentPresets.GetArgumentsForCartValidator(),
+                null,
                 resolve: async context =>
                 {
                     var ruleSet = context.GetArgumentOrValue<string>("ruleSet");
