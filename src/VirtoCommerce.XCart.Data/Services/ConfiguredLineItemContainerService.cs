@@ -10,6 +10,7 @@ using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 
 namespace VirtoCommerce.XCart.Data.Services;
+
 public class ConfiguredLineItemContainerService : IConfiguredLineItemContainerService
 {
     private readonly ICurrencyService _currencyService;
