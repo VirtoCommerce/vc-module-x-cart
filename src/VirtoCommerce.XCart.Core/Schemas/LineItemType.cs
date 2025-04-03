@@ -40,7 +40,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
                     {
                         //Get currencies and store only from one cart.
                         //We intentionally ignore the case when there are ma be the carts with the different currencies and stores in the resulting set
-                        var cart = context.GetValueForSource<CartAggregate>().Cart;
+                        var cartAggregate = context.GetValueForSource<CartAggregate>();
+                        var cart = cartAggregate.Cart;
                         var userId = context.GetArgumentOrValue<string>("userId") ?? cart.CustomerId;
 
                         var request = new LoadProductsQuery
@@ -57,6 +58,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
                         context.SetCurrencies(allCurrencies, cultureName);
                         context.UserContext.TryAdd("currencyCode", cart.Currency);
                         context.UserContext.TryAdd("storeId", cart.StoreId);
+                        context.UserContext.TryAdd("store", cartAggregate.Store);
                         context.UserContext.TryAdd("cultureName", cultureName);
 
                         var response = await mediator.Send(request);
@@ -172,7 +174,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             ExtendableField<ListGraphType<DynamicPropertyValueType>>(
                 "dynamicProperties",
                 "Cart line item dynamic property values",
-                QueryArgumentPresets.GetArgumentForDynamicProperties(),
+                null,
                 context => dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source, context.GetArgumentOrValue<string>("cultureName")));
 
             var vendorField = new FieldType
