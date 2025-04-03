@@ -7,7 +7,7 @@ using VirtoCommerce.Xapi.Core.BaseQueries;
 
 namespace VirtoCommerce.XCart.Core.Queries;
 
-public class GetPickupLocationsQuery : SearchQuery<PickupLocationSearchResult>
+public class PickupLocationsQuery : SearchQuery<PickupLocationSearchResult>
 {
     public string StoreId { get; set; }
 
