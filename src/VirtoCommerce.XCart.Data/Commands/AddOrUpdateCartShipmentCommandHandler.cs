@@ -23,9 +23,21 @@ namespace VirtoCommerce.XCart.Data.Commands
         {
             var cartAggregate = await GetOrCreateCartFromCommandAsync(request);
 
-            var shipmentId = request.Shipment.Id?.Value ?? null;
+            var previousShipmentCode = cartAggregate.Cart.Shipments.FirstOrDefault()?.ShipmentMethodCode;
+
+            var shipmentId = request.Shipment.Id?.Value;
             var shipment = cartAggregate.Cart.Shipments.FirstOrDefault(s => shipmentId != null && s.Id == shipmentId);
             shipment = request.Shipment.MapTo(shipment);
+
+            var newShipmentCode = cartAggregate.Cart.Shipments.FirstOrDefault()?.ShipmentMethodCode;
+            var shippingChanged = previousShipmentCode != newShipmentCode &&
+                                  (previousShipmentCode == "BuyOnlinePickupInStore" ||
+                                   newShipmentCode == "BuyOnlinePickupInStore");
+
+            if (shippingChanged)
+            {
+                shipment.DeliveryAddress = null;
+            }
 
             await cartAggregate.AddShipmentAsync(shipment, await _cartAvailMethodService.GetAvailableShippingRatesAsync(cartAggregate));
 
