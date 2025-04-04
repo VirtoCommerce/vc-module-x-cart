@@ -19,13 +19,29 @@ namespace VirtoCommerce.XCart.Data.Commands
             _cartAvailMethodService = cartAvailMethodService;
         }
 
-        public override async Task<CartAggregate> Handle(AddOrUpdateCartShipmentCommand request, CancellationToken cancellationToken)
+        public override async Task<CartAggregate> Handle(AddOrUpdateCartShipmentCommand request,
+            CancellationToken cancellationToken)
         {
             var cartAggregate = await GetOrCreateCartFromCommandAsync(request);
 
-            var shipmentId = request.Shipment.Id?.Value ?? null;
+            var previousShipmentCode = cartAggregate.Cart.Shipments.FirstOrDefault()?.ShipmentMethodCode;
+
+            var shipmentId = request.Shipment.Id?.Value;
             var shipment = cartAggregate.Cart.Shipments.FirstOrDefault(s => shipmentId != null && s.Id == shipmentId);
             shipment = request.Shipment.MapTo(shipment);
+
+            var newShipmentCode = cartAggregate.Cart.Shipments.FirstOrDefault()?.ShipmentMethodCode;
+            var shippingChanged = previousShipmentCode != newShipmentCode &&
+                                  new[]
+                                  {
+                                      previousShipmentCode,
+                                      newShipmentCode
+                                  }.Contains("BuyOnlinePickupInStore");
+
+            if (shippingChanged)
+            {
+                cartAggregate.Cart.Shipments.Clear();
+            }
 
             await cartAggregate.AddShipmentAsync(shipment, await _cartAvailMethodService.GetAvailableShippingRatesAsync(cartAggregate));
 

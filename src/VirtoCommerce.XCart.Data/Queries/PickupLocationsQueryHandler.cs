@@ -14,6 +14,7 @@ public class PickupLocationsQueryHandler(IPickupLocationSearchService service) :
     {
         var searchCriteria = AbstractTypeFactory<PickupLocationSearchCriteria>.TryCreateInstance();
 
+        searchCriteria.IsActive = true;
         searchCriteria.Keyword = request.Keyword;
         searchCriteria.StoreId = request.StoreId;
         searchCriteria.Skip = request.Skip;
