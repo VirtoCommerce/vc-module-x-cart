@@ -36,7 +36,7 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             if (shippingChanged)
             {
-                cartAggregate.Cart.Shipments.Clear();
+                shipment.DeliveryAddress = null;
             }
 
             await cartAggregate.AddShipmentAsync(shipment, await _cartAvailMethodService.GetAvailableShippingRatesAsync(cartAggregate));
