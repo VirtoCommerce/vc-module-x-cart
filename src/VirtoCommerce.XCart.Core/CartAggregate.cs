@@ -1136,9 +1136,9 @@ namespace VirtoCommerce.XCart.Core
                 return null;
             }
 
-            var cartSearchCriteria = AbstractTypeFactory<TaxProviderSearchCriteria>.TryCreateInstance();
-            cartSearchCriteria.StoreIds = [Cart.StoreId];
-            var storeTaxProviders = await _taxProviderSearchService.Value.SearchAsync(cartSearchCriteria);
+            var taxProviderSearchCriteria = AbstractTypeFactory<TaxProviderSearchCriteria>.TryCreateInstance();
+            taxProviderSearchCriteria.StoreIds = [Cart.StoreId];
+            var storeTaxProviders = await _taxProviderSearchService.Value.SearchAsync(taxProviderSearchCriteria);
 
             return storeTaxProviders?.Results.FirstOrDefault(x => x.IsActive);
         }
