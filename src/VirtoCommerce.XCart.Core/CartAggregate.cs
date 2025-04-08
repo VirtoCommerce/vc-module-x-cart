@@ -20,6 +20,7 @@ using VirtoCommerce.MarketingModule.Core.Services;
 using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Domain;
+using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.ShippingModule.Core.Model;
 using VirtoCommerce.TaxModule.Core.Model;
@@ -44,7 +45,7 @@ namespace VirtoCommerce.XCart.Core
     {
         private readonly IMarketingPromoEvaluator _marketingEvaluator;
         private readonly IShoppingCartTotalsCalculator _cartTotalsCalculator;
-        private readonly ITaxProviderSearchService _taxProviderSearchService;
+        private readonly IOptionalDependency<ITaxProviderSearchService> _taxProviderSearchService;
         private readonly ICartProductService _cartProductService;
         private readonly IDynamicPropertyUpdaterService _dynamicPropertyUpdaterService;
         private readonly IMemberService _memberService;
@@ -56,7 +57,7 @@ namespace VirtoCommerce.XCart.Core
         public CartAggregate(
             IMarketingPromoEvaluator marketingEvaluator,
             IShoppingCartTotalsCalculator cartTotalsCalculator,
-            ITaxProviderSearchService taxProviderSearchService,
+            IOptionalDependency<ITaxProviderSearchService> taxProviderSearchService,
             ICartProductService cartProductService,
             IDynamicPropertyUpdaterService dynamicPropertyUpdaterService,
             IMapper mapper,
@@ -889,8 +890,11 @@ namespace VirtoCommerce.XCart.Core
             var promotionEvalResult = await EvaluatePromotionsAsync();
             await this.ApplyRewardsAsync(promotionEvalResult.Rewards);
 
-            var taxRates = await EvaluateTaxesAsync();
-            Cart.ApplyTaxRates(taxRates);
+            if (_taxProviderSearchService.HasValue)
+            {
+                var taxRates = await EvaluateTaxesAsync();
+                Cart.ApplyTaxRates(taxRates);
+            }
 
             _cartTotalsCalculator.CalculateTotals(Cart);
             return this;
@@ -1127,10 +1131,14 @@ namespace VirtoCommerce.XCart.Core
                 return null;
             }
 
-            var storeTaxProviders = await _taxProviderSearchService.SearchAsync(new TaxProviderSearchCriteria
+            if (!_taxProviderSearchService.HasValue)
             {
-                StoreIds = [Cart.StoreId]
-            });
+                return null;
+            }
+
+            var cartSearchCriteria = AbstractTypeFactory<TaxProviderSearchCriteria>.TryCreateInstance();
+            cartSearchCriteria.StoreIds = [Cart.StoreId];
+            var storeTaxProviders = await _taxProviderSearchService.Value.SearchAsync(cartSearchCriteria);
 
             return storeTaxProviders?.Results.FirstOrDefault(x => x.IsActive);
         }
