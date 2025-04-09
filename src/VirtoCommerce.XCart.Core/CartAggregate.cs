@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FluentValidation;
 using FluentValidation.Results;
+using Serilog;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CatalogModule.Core.Model;
@@ -628,41 +629,54 @@ namespace VirtoCommerce.XCart.Core
 
         public virtual async Task<CartAggregate> AddShipmentAsync(Shipment shipment, IEnumerable<ShippingRate> availRates)
         {
+            Log.Logger.Information("1: {0}", shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
             EnsureCartExists();
 
+            Log.Logger.Information("2: {0}", shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
             var validationContext = new ShipmentValidationContext
             {
                 Shipment = shipment,
                 AvailShippingRates = availRates
             };
+            Log.Logger.Information("3: {0}", shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
             await AbstractTypeFactory<CartShipmentValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(ValidationRuleSet).ThrowOnFailures());
 
+            Log.Logger.Information("4: {0}", shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
             await RemoveExistingShipmentAsync(shipment);
 
+            Log.Logger.Information("5: {0}", shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
             shipment.Currency = Cart.Currency;
+            Log.Logger.Information("6: {0}", shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
             if (shipment.DeliveryAddress != null)
             {
+                Log.Logger.Information("7: {0}", shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
                 //Reset address key because it can equal a customer address from profile and if not do that it may cause
                 //address primary key duplication error for multiple carts with the same address
                 shipment.DeliveryAddress.Key = null;
             }
+            Log.Logger.Information("8: {0}", shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
             Cart.Shipments.Add(shipment);
+            Log.Logger.Information("9: {0}", shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
 
             if (availRates != null && !string.IsNullOrEmpty(shipment.ShipmentMethodCode) && !Cart.IsTransient())
             {
+                Log.Logger.Information("10: {0}", shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
                 var shippingMethod = availRates.First(sm => shipment.ShipmentMethodCode.EqualsInvariant(sm.ShippingMethod.Code) && shipment.ShipmentMethodOption.EqualsInvariant(sm.OptionName));
                 shipment.Price = shippingMethod.Rate;
                 shipment.DiscountAmount = shippingMethod.DiscountAmount;
             }
 
+            Log.Logger.Information("11: {0}", shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
             // pass shipment to the middleware pipeline
             var shipmentContext = new ShipmentContextCartMap
             {
                 CartAggregate = this,
                 Shipment = shipment,
             };
+            Log.Logger.Information("12: {0}", shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
             await _pipeline.Execute(shipmentContext);
 
+            Log.Logger.Information("13: {0}", shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
             return this;
         }
 
