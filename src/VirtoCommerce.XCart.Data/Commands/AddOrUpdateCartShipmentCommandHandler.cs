@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Serilog;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
@@ -34,8 +35,13 @@ namespace VirtoCommerce.XCart.Data.Commands
                                   (previousShipmentCode == "BuyOnlinePickupInStore" ||
                                    newShipmentCode == "BuyOnlinePickupInStore");
 
+            Log.Logger.Information("Change shipping info: {0}, {1}, {2}, {3}",
+                request.UserId, previousShipmentCode,
+                newShipmentCode, shippingChanged);
+
             if (shippingChanged)
             {
+                Log.Logger.Information("Set address to null: {0}", request.UserId);
                 shipment.DeliveryAddress = null;
             }
 
@@ -47,7 +53,10 @@ namespace VirtoCommerce.XCart.Data.Commands
             }
 
             cartAggregate = await SaveCartAsync(cartAggregate);
-            return await GetCartById(cartAggregate.Cart.Id, request.CultureName);
+            var result = await GetCartById(cartAggregate.Cart.Id, request.CultureName);
+            Log.Logger.Information("return cart: {0}, {1}",
+                request.UserId, shipment.DeliveryAddress);
+            return result;
         }
     }
 }
