@@ -45,14 +45,24 @@ namespace VirtoCommerce.XCart.Data.Commands
                 shipment.DeliveryAddress = null;
             }
 
+            Log.Logger.Information("add shipment: {0}, {1}",
+                request.UserId, shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
             await cartAggregate.AddShipmentAsync(shipment, await _cartAvailMethodService.GetAvailableShippingRatesAsync(cartAggregate));
 
+            Log.Logger.Information("dynamic properties: {0}, {1}",
+                request.UserId, shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
             if (!request.Shipment.DynamicProperties.IsNullOrEmpty())
             {
+                Log.Logger.Information("update dynamic properties: {0}, {1}",
+                    request.UserId, shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
                 await cartAggregate.UpdateCartShipmentDynamicProperties(shipment, request.Shipment.DynamicProperties);
             }
 
+            Log.Logger.Information("save cart async: {0}, {1}",
+                request.UserId, shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
             cartAggregate = await SaveCartAsync(cartAggregate);
+            Log.Logger.Information("get cart by id: {0}, {1}",
+                request.UserId, shipment.DeliveryAddress == null ? "null" : shipment.DeliveryAddress);
             var result = await GetCartById(cartAggregate.Cart.Id, request.CultureName);
             Log.Logger.Information("return cart: {0}, {1}",
                 request.UserId, shipment.DeliveryAddress);
