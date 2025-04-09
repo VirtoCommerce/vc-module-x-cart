@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using VirtoCommerce.CoreModule.Core.Currency;
@@ -42,31 +43,27 @@ public class GetPricesSumQueryHandler : IQueryHandler<GetPricesSumQuery, ExpPric
         {
             Currency = productRequest.Currency
         };
-
-        foreach (var cartProduct in products)
+        foreach (var productPrice in products.Where(cartProduct => cartProduct.Price != null).Select(cartProduct => cartProduct.Price))
         {
-            if (cartProduct.Price != null)
+            decimal salePrice = 0;
+            decimal listPrice = 0;
+
+            if (productPrice.ListPrice != null)
             {
-                decimal salePrice = 0;
-                decimal listPrice = 0;
-
-                if (cartProduct.Price.ListPrice != null)
-                {
-                    listPrice = cartProduct.Price.ListPrice.Amount;
-                }
-
-                if (cartProduct.Price.SalePrice != null)
-                {
-                    salePrice = cartProduct.Price.SalePrice.Amount;
-                }
-
-                var discountAmount = Math.Max(0, listPrice - salePrice);
-
-                result.ListPriceSum += listPrice;
-                result.SalePriceSum += salePrice;
-                result.DiscountAmountSum += discountAmount;
+                listPrice = productPrice.ListPrice.Amount;
             }
+
+            if (productPrice.SalePrice != null)
+            {
+                salePrice = productPrice.SalePrice.Amount;
+            }
+
+            var discountAmount = Math.Max(0, listPrice - salePrice);
+            result.ListPriceSum += listPrice;
+            result.SalePriceSum += salePrice;
+            result.DiscountAmountSum += discountAmount;
         }
+
         return result;
     }
 
