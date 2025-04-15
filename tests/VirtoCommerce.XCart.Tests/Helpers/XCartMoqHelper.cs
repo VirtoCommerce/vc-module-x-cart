@@ -18,6 +18,7 @@ using VirtoCommerce.InventoryModule.Core.Model;
 using VirtoCommerce.MarketingModule.Core.Services;
 using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.PaymentModule.Core.Services;
+using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.ShippingModule.Core.Services;
 using VirtoCommerce.StoreModule.Core.Services;
@@ -46,7 +47,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         protected readonly Mock<IShippingMethodsSearchService> _shippingMethodsSearchServiceMock;
         protected readonly Mock<IShoppingCartTotalsCalculator> _shoppingCartTotalsCalculatorMock;
         protected readonly Mock<IStoreService> _crudStoreServiceMock;
-        protected readonly Mock<ITaxProviderSearchService> _taxProviderSearchServiceMock;
+        protected readonly Mock<IOptionalDependency<ITaxProviderSearchService>> _taxProviderSearchServiceMock;
         protected readonly Mock<IDynamicPropertyUpdaterService> _dynamicPropertyUpdaterService;
         protected readonly Mock<IMapper> _mapperMock;
         protected readonly Mock<IMemberService> _memberService;
@@ -172,7 +173,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
                 .ReturnsAsync(_fixture.CreateMany<Store>(1).ToList);
 
-            _taxProviderSearchServiceMock = new Mock<ITaxProviderSearchService>();
+            _taxProviderSearchServiceMock = new Mock<IOptionalDependency<ITaxProviderSearchService>>();
             _dynamicPropertyUpdaterService = new Mock<IDynamicPropertyUpdaterService>();
 
             _mapperMock = new Mock<IMapper>();
