@@ -11,8 +11,6 @@ public class GetPricesSumQuery : Query<ExpPricesSum>
 {
     public string CartId { get; set; }
     public string StoreId { get; set; }
-    public string CartType { get; set; }
-    public string CartName { get; set; }
     public string UserId { get; set; }
     public string OrganizationId { get; set; }
     public string CurrencyCode { get; set; }
@@ -35,8 +33,6 @@ public class GetPricesSumQuery : Query<ExpPricesSum>
     {
         CartId = context.GetArgument<string>(nameof(CartId));
         StoreId = context.GetArgument<string>(nameof(StoreId));
-        CartType = context.GetArgument<string>(nameof(CartType));
-        CartName = context.GetArgument<string>(nameof(CartName));
         UserId = context.GetArgument<string>(nameof(UserId));
         OrganizationId = context.GetCurrentOrganizationId();
         CurrencyCode = context.GetArgument<string>(nameof(CurrencyCode));

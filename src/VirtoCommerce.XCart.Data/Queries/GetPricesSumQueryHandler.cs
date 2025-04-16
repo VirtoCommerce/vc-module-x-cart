@@ -4,9 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Common;
-using VirtoCommerce.CoreModule.Core.Tax;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.Platform.Core.DynamicProperties;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
@@ -69,21 +67,14 @@ public class GetPricesSumQueryHandler : IQueryHandler<GetPricesSumQuery, ExpPric
     {
         var cart = AbstractTypeFactory<ShoppingCart>.TryCreateInstance();
 
+        cart.Name = "default";
         cart.CustomerId = request.UserId;
         cart.OrganizationId = request.OrganizationId;
-        cart.Name = request.CartName ?? "default";
         cart.StoreId = request.StoreId;
         cart.LanguageCode = request.CultureName;
-        cart.Type = request.CartType;
         cart.Currency = request.CurrencyCode;
         cart.Items = new List<LineItem>();
-        cart.Shipments = new List<Shipment>();
-        cart.Payments = new List<Payment>();
-        cart.Addresses = new List<CartModule.Core.Model.Address>();
-        cart.TaxDetails = new List<TaxDetail>();
-        cart.Coupons = new List<string>();
         cart.Discounts = new List<Discount>();
-        cart.DynamicProperties = new List<DynamicObjectProperty>();
 
         return _cartAggregateRepository.GetCartForShoppingCartAsync(cart);
     }
