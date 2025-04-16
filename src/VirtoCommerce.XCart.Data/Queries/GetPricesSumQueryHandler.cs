@@ -1,12 +1,12 @@
-using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using VirtoCommerce.CoreModule.Core.Currency;
-using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.CoreModule.Core.Common;
+using VirtoCommerce.CoreModule.Core.Tax;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.StoreModule.Core.Services;
-using VirtoCommerce.Xapi.Core.Extensions;
+using VirtoCommerce.Platform.Core.DynamicProperties;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
@@ -17,86 +17,74 @@ namespace VirtoCommerce.XCart.Data.Queries;
 
 public class GetPricesSumQueryHandler : IQueryHandler<GetPricesSumQuery, ExpPricesSum>
 {
-    private readonly ICartProductsLoaderService _cartProductsLoaderService;
-    private readonly ICurrencyService _currencyService;
-    private readonly IMemberResolver _memberResolver;
-    private readonly IStoreService _storeService;
+    private readonly ICartAggregateRepository _cartAggregateRepository;
 
-    public GetPricesSumQueryHandler(
-        ICartProductsLoaderService cartProductsLoaderService,
-        ICurrencyService currencyService,
-        IMemberResolver memberResolver,
-        IStoreService storeService)
+    public GetPricesSumQueryHandler(ICartAggregateRepository cartAggregateRepository)
     {
-        _cartProductsLoaderService = cartProductsLoaderService;
-        _currencyService = currencyService;
-        _memberResolver = memberResolver;
-        _storeService = storeService;
+        _cartAggregateRepository = cartAggregateRepository;
     }
 
     public async Task<ExpPricesSum> Handle(GetPricesSumQuery request, CancellationToken cancellationToken)
     {
-        var productRequest = await GetCartProductsRequest(request);
-        var products = await _cartProductsLoaderService.GetCartProductsAsync(productRequest);
+        var result = new ExpPricesSum();
 
-        var result = new ExpPricesSum
+        if (string.IsNullOrEmpty(request.CartId) || request.LineItemIds.IsNullOrEmpty())
         {
-            Currency = productRequest.Currency
-        };
-        foreach (var productPrice in products.Where(cartProduct => cartProduct.Price != null).Select(cartProduct => cartProduct.Price))
-        {
-            decimal salePrice = 0;
-            decimal listPrice = 0;
-
-            if (productPrice.ListPrice != null)
-            {
-                listPrice = productPrice.ListPrice.Amount;
-            }
-
-            if (productPrice.SalePrice != null)
-            {
-                salePrice = productPrice.SalePrice.Amount;
-            }
-
-            var discountAmount = Math.Max(0, listPrice - salePrice);
-            result.ListPriceSum += listPrice;
-            result.SalePriceSum += salePrice;
-            result.DiscountAmountSum += discountAmount;
+            return result;
         }
+
+        var currentCartAggregate = await _cartAggregateRepository.GetCartByIdAsync(request.CartId);
+        var tempCartAggregate = await CreateNewCartAggregateAsync(request);
+
+        await CopyItems(currentCartAggregate, tempCartAggregate, request.LineItemIds);
+        await tempCartAggregate.RecalculateAsync();
+
+        result.Currency = tempCartAggregate.Currency;
+        result.Total = tempCartAggregate.Cart.Total;
+        result.DiscountTotal = tempCartAggregate.Cart.DiscountAmount;
 
         return result;
     }
 
-    private async Task<CartProductsRequest> GetCartProductsRequest(GetPricesSumQuery request)
+    protected virtual async Task CopyItems(CartAggregate currentCartAggregate, CartAggregate tempCartAggregate, IList<string> lineItemIds)
     {
-        var storeLoadTask = _storeService.GetByIdAsync(request.StoreId);
-        var allCurrenciesLoadTask = _currencyService.GetAllCurrenciesAsync();
-        await Task.WhenAll(storeLoadTask, allCurrenciesLoadTask);
+        var items = currentCartAggregate.LineItems
+            .Where(x => lineItemIds.Contains(x.Id))
+            .ToArray();
 
-        var store = storeLoadTask.Result;
-        var allCurrencies = allCurrenciesLoadTask.Result;
-
-        if (store == null)
+        if (items.Length > 0)
         {
-            throw new OperationCanceledException($"Store with id {request.StoreId} not found");
+            var newCartItems = items
+                .Select(x => new NewCartItem(x.ProductId, x.Quantity)
+                {
+                    IgnoreValidationErrors = true,
+                })
+                .ToArray();
+
+            await tempCartAggregate.AddItemsAsync(newCartItems);
         }
+    }
 
-        var language = !string.IsNullOrEmpty(request.CultureName) ? request.CultureName : store.DefaultLanguage;
-        var currencyCode = !string.IsNullOrEmpty(request.CurrencyCode) ? request.CurrencyCode : store.DefaultCurrency;
-        var currency = allCurrencies.GetCurrencyForLanguage(currencyCode, language);
+    protected virtual Task<CartAggregate> CreateNewCartAggregateAsync(GetPricesSumQuery request)
+    {
+        var cart = AbstractTypeFactory<ShoppingCart>.TryCreateInstance();
 
-        var member = await _memberResolver.ResolveMemberByIdAsync(request.UserId);
+        cart.CustomerId = request.UserId;
+        cart.OrganizationId = request.OrganizationId;
+        cart.Name = request.CartName ?? "default";
+        cart.StoreId = request.StoreId;
+        cart.LanguageCode = request.CultureName;
+        cart.Type = request.CartType;
+        cart.Currency = request.CurrencyCode;
+        cart.Items = new List<LineItem>();
+        cart.Shipments = new List<Shipment>();
+        cart.Payments = new List<Payment>();
+        cart.Addresses = new List<CartModule.Core.Model.Address>();
+        cart.TaxDetails = new List<TaxDetail>();
+        cart.Coupons = new List<string>();
+        cart.Discounts = new List<Discount>();
+        cart.DynamicProperties = new List<DynamicObjectProperty>();
 
-        var productRequest = AbstractTypeFactory<CartProductsRequest>.TryCreateInstance();
-
-        productRequest.Store = store;
-        productRequest.Member = member;
-        productRequest.Currency = currency;
-        productRequest.CultureName = language;
-        productRequest.UserId = request.UserId;
-        productRequest.ProductIds = request.ProductIds;
-        productRequest.LoadInventory = false;
-
-        return productRequest;
+        return _cartAggregateRepository.GetCartForShoppingCartAsync(cart);
     }
 }

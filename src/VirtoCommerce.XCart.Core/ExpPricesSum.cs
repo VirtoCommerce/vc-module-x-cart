@@ -4,11 +4,9 @@ namespace VirtoCommerce.XCart.Core
 {
     public class ExpPricesSum
     {
-        public decimal ListPriceSum { get; set; }
+        public decimal Total { get; set; }
 
-        public decimal SalePriceSum { get; set; }
-
-        public decimal DiscountAmountSum { get; set; }
+        public decimal DiscountTotal { get; set; }
 
         public Currency Currency { get; set; }
     }

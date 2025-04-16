@@ -9,35 +9,39 @@ namespace VirtoCommerce.XCart.Core.Queries;
 
 public class GetPricesSumQuery : Query<ExpPricesSum>
 {
+    public string CartId { get; set; }
     public string StoreId { get; set; }
-
+    public string CartType { get; set; }
+    public string CartName { get; set; }
     public string UserId { get; set; }
-
     public string OrganizationId { get; set; }
-
+    public string CurrencyCode { get; set; }
     public string CultureName { get; set; }
 
-    public string CurrencyCode { get; set; }
-
-    public IList<string> ProductIds { get; set; } = Array.Empty<string>();
+    public IList<string> LineItemIds { get; set; } = Array.Empty<string>();
 
     public override IEnumerable<QueryArgument> GetArguments()
     {
+        yield return Argument<NonNullGraphType<StringGraphType>>(nameof(CartId));
         yield return Argument<NonNullGraphType<StringGraphType>>(nameof(StoreId), description: "Store Id");
+        yield return Argument<NonNullGraphType<StringGraphType>>(nameof(CurrencyCode), description: "Currency code (\"USD\")");
+        yield return Argument<StringGraphType>(nameof(CultureName), description: "Culture name (\"en-Us\")");
         yield return Argument<StringGraphType>(nameof(UserId), description: "User Id");
-        yield return Argument<StringGraphType>(nameof(CultureName), description: "Currency code (\"USD\")");
-        yield return Argument<StringGraphType>(nameof(CurrencyCode), description: "Culture name (\"en-US\")");
 
-        yield return Argument<NonNullGraphType<ListGraphType<StringGraphType>>>(nameof(ProductIds), description: "Products Id");
+        yield return Argument<NonNullGraphType<ListGraphType<StringGraphType>>>(nameof(LineItemIds), description: "Line item Id");
     }
 
     public override void Map(IResolveFieldContext context)
     {
-        OrganizationId = context.GetCurrentOrganizationId();
+        CartId = context.GetArgument<string>(nameof(CartId));
         StoreId = context.GetArgument<string>(nameof(StoreId));
-        UserId = context.GetArgument<string>(nameof(UserId)) ?? context.GetCurrentUserId();
-        CultureName = context.GetArgument<string>(nameof(CultureName));
+        CartType = context.GetArgument<string>(nameof(CartType));
+        CartName = context.GetArgument<string>(nameof(CartName));
+        UserId = context.GetArgument<string>(nameof(UserId));
+        OrganizationId = context.GetCurrentOrganizationId();
         CurrencyCode = context.GetArgument<string>(nameof(CurrencyCode));
-        ProductIds = context.GetArgument<IList<string>>(nameof(ProductIds));
+        CultureName = context.GetArgument<string>(nameof(CultureName));
+
+        LineItemIds = context.GetArgument<IList<string>>(nameof(LineItemIds));
     }
 }
