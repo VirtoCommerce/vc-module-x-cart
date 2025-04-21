@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using VirtoCommerce.CatalogModule.Core.Model.Configuration;
 
 namespace VirtoCommerce.XCart.Core.Models;
 
@@ -10,11 +9,8 @@ public class ExpProductConfigurationSection
     public string Description { get; set; }
     public bool IsRequired { get; set; }
     public string Type { get; set; }
+    public bool AllowCustomText { get; set; }
+    public bool AllowTextOptions { get; set; }
 
-    public IList<ExpConfigurationLineItem> Options { get; set; } = [];
-}
-
-public class ProductConfigurationQueryResponse
-{
-    public IList<ExpProductConfigurationSection> ConfigurationSections { get; set; } = [];
+    public IList<ExpProductConfigurationOption> Options { get; set; } = [];
 }

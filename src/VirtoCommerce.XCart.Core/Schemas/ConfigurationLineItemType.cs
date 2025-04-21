@@ -9,6 +9,7 @@ using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Schemas;
+using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCatalog.Core.Models;
 using VirtoCommerce.XCatalog.Core.Queries;
 using VirtoCommerce.XCatalog.Core.Schemas;
@@ -45,7 +46,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
                             CurrencyCode = currencyCode,
                             UserId = userId,
                             ObjectIds = ids.ToArray(),
-                            IncludeFields = includeFields.ToArray(),
+                            IncludeFields = includeFields,
                         };
 
                         var allCurrencies = await currencyService.GetAllCurrenciesAsync();

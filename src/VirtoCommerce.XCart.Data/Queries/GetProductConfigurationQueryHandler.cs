@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,8 +11,10 @@ using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
 using VirtoCommerce.XCart.Core.Services;
+using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
+using CatalogProductConfigurationSection = VirtoCommerce.CatalogModule.Core.Model.Configuration.ProductConfigurationSection;
 
-namespace VirtoCommerce.XCatalog.Data.Queries;
+namespace VirtoCommerce.XCart.Data.Queries;
 
 public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfigurationQuery, ProductConfigurationQueryResponse>
 {
@@ -41,13 +44,14 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         }
 
         var container = await _configuredLineItemContainerService.CreateContainerAsync(request);
-
-        var allProductIds = configuration.Sections.SelectMany(x => x.Options?.Select(x => x.ProductId)).Distinct().ToArray();
-
         var productsRequest = container.GetCartProductsRequest();
-        productsRequest.ProductIds = allProductIds;
-        var cartProducts = await _cartProductService.GetCartProductsAsync(productsRequest);
 
+        productsRequest.ProductIds = configuration.Sections
+            .SelectMany(x => x.Options?.Select(x => x.ProductId).Where(x => !string.IsNullOrEmpty(x)))
+            .Distinct()
+            .ToArray();
+
+        var cartProducts = await _cartProductService.GetCartProductsAsync(productsRequest);
         var productByIds = cartProducts.ToDictionary(x => x.Product.Id, x => x);
 
         foreach (var section in configuration.Sections.OrderBy(x => x.DisplayOrder))
@@ -59,31 +63,14 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
                 IsRequired = section.IsRequired,
                 Description = section.Description,
                 Type = section.Type,
+                AllowCustomText = section.AllowCustomText,
+                AllowTextOptions = section.AllowPredefinedOptions,
             };
+
             result.ConfigurationSections.Add(configurationSection);
 
-            if (section.Type == CatalogModule.Core.ModuleConstants.ConfigurationSectionTypeProduct && !section.Options.IsNullOrEmpty())
-            {
-                foreach (var option in section.Options)
-                {
-                    if (productByIds.TryGetValue(option.ProductId, out var cartProduct))
-                    {
-                        var item = container.CreateLineItem(cartProduct, option.Quantity);
-                        item.Id = option.Id;
-
-                        var expConfigurationLineItem = new ExpConfigurationLineItem
-                        {
-                            Item = item,
-                            Currency = container.Currency,
-                            CultureName = container.CultureName,
-                            UserId = container.UserId,
-                            StoreId = container.Store.Id,
-                        };
-
-                        configurationSection.Options.Add(expConfigurationLineItem);
-                    }
-                }
-            }
+            AddProductOptions(section, configurationSection, container, productByIds);
+            AddTextOptions(section, configurationSection);
         }
 
         return result;
@@ -96,5 +83,49 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
 
         var configurationsResult = await _productConfigurationSearchService.SearchNoCloneAsync(criteria);
         return configurationsResult.Results.FirstOrDefault();
+    }
+
+    private static void AddProductOptions(CatalogProductConfigurationSection section, ExpProductConfigurationSection configurationSection, ConfiguredLineItemContainer container, Dictionary<string, CartProduct> productByIds)
+    {
+        if (section.Type == ConfigurationSectionTypeProduct && !section.Options.IsNullOrEmpty())
+        {
+            foreach (var option in section.Options)
+            {
+                if (productByIds.TryGetValue(option.ProductId, out var cartProduct))
+                {
+                    var item = container.CreateLineItem(cartProduct, option.Quantity);
+
+                    var expConfigurationLineItem = new ExpProductConfigurationOption
+                    {
+                        Id = option.Id,
+                        Quantity = option.Quantity,
+                        Item = item,
+                        Currency = container.Currency,
+                        CultureName = container.CultureName,
+                        UserId = container.UserId,
+                        StoreId = container.Store.Id,
+                    };
+
+                    configurationSection.Options.Add(expConfigurationLineItem);
+                }
+            }
+        }
+    }
+
+    private static void AddTextOptions(CatalogProductConfigurationSection section, ExpProductConfigurationSection configurationSection)
+    {
+        if (section.Type == ConfigurationSectionTypeText && section.AllowPredefinedOptions && !section.Options.IsNullOrEmpty())
+        {
+            foreach (var option in section.Options)
+            {
+                var expConfigurationLineItem = new ExpProductConfigurationOption
+                {
+                    Id = option.Id,
+                    Text = option.Text,
+                };
+
+                configurationSection.Options.Add(expConfigurationLineItem);
+            }
+        }
     }
 }

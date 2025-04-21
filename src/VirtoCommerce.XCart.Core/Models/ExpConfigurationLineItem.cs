@@ -1,7 +1,7 @@
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Currency;
 
-namespace VirtoCommerce.XCart.Core
+namespace VirtoCommerce.XCart.Core.Models
 {
     public class ExpConfigurationLineItem
     {
