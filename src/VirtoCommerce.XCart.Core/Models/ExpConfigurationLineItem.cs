@@ -11,5 +11,9 @@ namespace VirtoCommerce.XCart.Core.Models
 
         public LineItem Item { get; set; }
         public Currency Currency { get; set; }
+
+        public string Id { get; set; }
+        public string Text { get; set; }
+        public int Quantity { get; set; }
     }
 }

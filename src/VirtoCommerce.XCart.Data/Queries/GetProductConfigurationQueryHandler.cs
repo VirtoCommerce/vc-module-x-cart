@@ -95,7 +95,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
                 {
                     var item = container.CreateLineItem(cartProduct, option.Quantity);
 
-                    var expConfigurationLineItem = new ExpProductConfigurationOption
+                    var expConfigurationLineItem = new ExpConfigurationLineItem
                     {
                         Id = option.Id,
                         Quantity = option.Quantity,
@@ -118,7 +118,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         {
             foreach (var option in section.Options)
             {
-                var expConfigurationLineItem = new ExpProductConfigurationOption
+                var expConfigurationLineItem = new ExpConfigurationLineItem
                 {
                     Id = option.Id,
                     Text = option.Text,

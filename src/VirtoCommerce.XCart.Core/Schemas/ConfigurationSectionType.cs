@@ -16,7 +16,7 @@ public class ConfigurationSectionType : ExtendableGraphType<ExpProductConfigurat
         Field(x => x.AllowCustomText, nullable: false).Description("Is custom text allowed for Text-type section");
         Field(x => x.AllowTextOptions, nullable: false).Description("Is predefined text options allowed for Text-type section");
 
-        ExtendableField<ListGraphType<ConfigurationOptionType>>(
+        ExtendableField<ListGraphType<ConfigurationLineItemType>>(
             nameof(ExpProductConfigurationSection.Options),
             resolve: context => context.Source.Options);
     }

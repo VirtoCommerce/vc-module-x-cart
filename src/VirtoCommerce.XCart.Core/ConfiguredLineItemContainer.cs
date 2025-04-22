@@ -143,6 +143,8 @@ namespace VirtoCommerce.XCart.Core
 
             return new ExpConfigurationLineItem
             {
+                Id = lineItem.Id,
+                Quantity = lineItem.Quantity,
                 Item = lineItem,
                 Currency = Currency,
                 CultureName = CultureName,

@@ -12,5 +12,5 @@ public class ExpProductConfigurationSection
     public bool AllowCustomText { get; set; }
     public bool AllowTextOptions { get; set; }
 
-    public IList<ExpProductConfigurationOption> Options { get; set; } = [];
+    public IList<ExpConfigurationLineItem> Options { get; set; } = [];
 }
