@@ -23,7 +23,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             IDataLoaderContextAccessor dataLoader,
             ICurrencyService currencyService)
         {
-            Field(x => x.Id).Description("The unique identifier");
+            Field(x => x.Id, nullable: true).Description("The unique identifier");
             Field(x => x.Text, nullable: true).Description("The text of the Text-type option");
             Field(x => x.Quantity).Description("The quantity of the option");
 
