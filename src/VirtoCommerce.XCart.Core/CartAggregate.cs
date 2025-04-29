@@ -924,7 +924,10 @@ namespace VirtoCommerce.XCart.Core
                 if (!string.IsNullOrEmpty(cart.OrganizationId))
                 {
                     var org = await _memberService.GetByIdAsync(cart.OrganizationId);
-                    cart.OrganizationName = org.Name;
+                    if (org != null)
+                    {
+                        cart.OrganizationName = org.Name;
+                    }
                 }
             }
 
@@ -940,7 +943,10 @@ namespace VirtoCommerce.XCart.Core
             else if (string.IsNullOrEmpty(Cart.OrganizationName))
             {
                 var organization = await _memberService.GetByIdAsync(Cart.OrganizationId);
-                Cart.OrganizationName = organization.Name;
+                if (organization != null)
+                {
+                    Cart.OrganizationName = organization.Name;
+                }
             }
 
             return this;
