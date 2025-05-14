@@ -133,7 +133,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                     }
                     else if (configurationItem.Type == ConfigurationSectionTypeText)
                     {
-                        container.AddTextSectionLIneItem(configurationItem.CustomText, configurationItem.SectionId);
+                        container.AddTextSectionLineItem(configurationItem.CustomText, configurationItem.SectionId);
                     }
                     else if (configurationItem.Type == ConfigurationSectionTypeFile)
                     {
