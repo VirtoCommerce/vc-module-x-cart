@@ -27,7 +27,7 @@ public class ConfiguredLineItemContainerService : IConfiguredLineItemContainerSe
         _storeService = storeService;
     }
 
-    public async Task<ConfiguredLineItemContainer> CreateContainerAsync(ICartProductContainerRequest request)
+    public virtual async Task<ConfiguredLineItemContainer> CreateContainerAsync(ICartProductContainerRequest request)
     {
         var storeLoadTask = _storeService.GetByIdAsync(request.StoreId);
         var allCurrenciesLoadTask = _currencyService.GetAllCurrenciesAsync();

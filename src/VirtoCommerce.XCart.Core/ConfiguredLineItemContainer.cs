@@ -24,7 +24,7 @@ namespace VirtoCommerce.XCart.Core
 
         private readonly List<SectionLineItem> _items = [];
 
-        public LineItem CreateLineItem(CartProduct cartProduct, int quantity)
+        public virtual LineItem CreateLineItem(CartProduct cartProduct, int quantity)
         {
             var lineItem = AbstractTypeFactory<LineItem>.TryCreateInstance();
             lineItem.ProductId = cartProduct.Id;
@@ -56,7 +56,7 @@ namespace VirtoCommerce.XCart.Core
             return lineItem;
         }
 
-        public void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId)
+        public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId)
         {
             var lineItem = CreateLineItem(cartProduct, quantity);
 
@@ -68,7 +68,7 @@ namespace VirtoCommerce.XCart.Core
             });
         }
 
-        public void AddTextSectionLIneItem(string customText, string sectionId)
+        public virtual void AddTextSectionLineItem(string customText, string sectionId)
         {
             _items.Add(new SectionLineItem
             {
@@ -78,7 +78,7 @@ namespace VirtoCommerce.XCart.Core
             });
         }
 
-        public void AddFileSectionLineItem(IList<ConfigurationItemFile> files, string sectionId)
+        public virtual void AddFileSectionLineItem(IList<ConfigurationItemFile> files, string sectionId)
         {
             _items.Add(new SectionLineItem
             {
@@ -88,7 +88,7 @@ namespace VirtoCommerce.XCart.Core
             });
         }
 
-        public ExpConfigurationLineItem CreateConfiguredLineItem(int quantity)
+        public virtual ExpConfigurationLineItem CreateConfiguredLineItem(int quantity)
         {
             var lineItem = AbstractTypeFactory<LineItem>.TryCreateInstance();
 
@@ -153,7 +153,7 @@ namespace VirtoCommerce.XCart.Core
             };
         }
 
-        public void UpdatePrice(LineItem lineItem)
+        public virtual void UpdatePrice(LineItem lineItem)
         {
             var configurableProductPrice = ConfigurableProduct.Price ?? new Xapi.Core.Models.ProductPrice(Currency);
             var items = _items.Where(x => x.Item != null).Select(x => x.Item).ToArray();
@@ -165,7 +165,7 @@ namespace VirtoCommerce.XCart.Core
             lineItem.ExtendedPrice = lineItem.PlacedPrice * lineItem.Quantity;
         }
 
-        public CartProductsRequest GetCartProductsRequest()
+        public virtual CartProductsRequest GetCartProductsRequest()
         {
             var request = AbstractTypeFactory<CartProductsRequest>.TryCreateInstance();
 
