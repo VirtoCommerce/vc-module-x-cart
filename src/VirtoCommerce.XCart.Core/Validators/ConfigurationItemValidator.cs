@@ -25,7 +25,6 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigur
         _productConfigurationService = productConfigurationService;
 
         RuleFor(x => x.ProductId).NotEmpty();
-        RuleFor(x => x.ConfigurationItems).NotEmpty();
         RuleFor(x => x).CustomAsync(ValidateAsync);
     }
 
@@ -46,6 +45,11 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigur
         if (missingRequiredSectionIds.Count > 0)
         {
             context.AddFailure(CartErrorDescriber.MissingRequiredSections(item, missingRequiredSectionIds));
+        }
+
+        if (item.ConfigurationItems.Count == 0)
+        {
+            return;
         }
 
         var limitOfFiles = await _settingsManager.GetValueAsync<int>(ProductConfigurationMaximumFiles);
