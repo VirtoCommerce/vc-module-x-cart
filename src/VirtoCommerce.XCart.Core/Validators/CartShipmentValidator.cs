@@ -15,7 +15,7 @@ namespace VirtoCommerce.XCart.Core.Validators
                 var shipment = shipmentContext.Shipment;
                 if (availShippingRates != null && !string.IsNullOrEmpty(shipment.ShipmentMethodCode))
                 {
-                    var shipmentShippingMethod = availShippingRates.FirstOrDefault(sm => shipment.ShipmentMethodCode.EqualsInvariant(sm.ShippingMethod.Code) && shipment.ShipmentMethodOption.EqualsInvariant(sm.OptionName));
+                    var shipmentShippingMethod = availShippingRates.FirstOrDefault(sm => shipment.ShipmentMethodCode.EqualsIgnoreCase(sm.ShippingMethod.Code) && shipment.ShipmentMethodOption.EqualsIgnoreCase(sm.OptionName));
                     if (shipmentShippingMethod == null)
                     {
                         context.AddFailure(CartErrorDescriber.ShipmentMethodUnavailable(shipment, shipment.ShipmentMethodCode, shipment.ShipmentMethodOption));

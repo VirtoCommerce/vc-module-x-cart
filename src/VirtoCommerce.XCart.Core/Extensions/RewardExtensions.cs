@@ -18,14 +18,14 @@ namespace VirtoCommerce.XCart.Core.Extensions
             => paymentMethod.DiscountAmount = rewards
                 .Where(r => r.IsValid)
                 .OfType<PaymentReward>()
-                .Where(r => r.PaymentMethod.IsNullOrEmpty() || r.PaymentMethod.EqualsInvariant(paymentMethod.Code))
+                .Where(r => r.PaymentMethod.IsNullOrEmpty() || r.PaymentMethod.EqualsIgnoreCase(paymentMethod.Code))
                 .Sum(reward => reward.GetTotalAmount(paymentMethod.Price - paymentMethod.DiscountAmount, 1, currency));
 
         public static void ApplyRewards(this ShippingRate shippingRate, Currency currency, ICollection<PromotionReward> rewards)
             => shippingRate.DiscountAmount = rewards
                 .Where(r => r.IsValid)
                 .OfType<ShipmentReward>()
-                .Where(r => r.ShippingMethod.IsNullOrEmpty() || shippingRate.ShippingMethod != null && r.ShippingMethod.EqualsInvariant(shippingRate.ShippingMethod.Code))
+                .Where(r => r.ShippingMethod.IsNullOrEmpty() || shippingRate.ShippingMethod != null && r.ShippingMethod.EqualsIgnoreCase(shippingRate.ShippingMethod.Code))
                 .Sum(reward => reward.GetTotalAmount(shippingRate.Rate, 1, currency));
 
         public static void ApplyRewards(this CartAggregate aggregate, ICollection<PromotionReward> rewards)
@@ -51,7 +51,7 @@ namespace VirtoCommerce.XCart.Core.Extensions
         {
             var lineItemRewards = rewards
                 .Where(r => r.IsValid)
-                .Where(r => r.ProductId.IsNullOrEmpty() || r.ProductId.EqualsInvariant(lineItem.ProductId));
+                .Where(r => r.ProductId.IsNullOrEmpty() || r.ProductId.EqualsIgnoreCase(lineItem.ProductId));
 
             lineItem.Discounts?.Clear();
             lineItem.DiscountAmount = Math.Max(0, lineItem.ListPrice - lineItem.SalePrice);
@@ -91,7 +91,7 @@ namespace VirtoCommerce.XCart.Core.Extensions
         {
             var shipmentRewards = rewards
                 .Where(r => r.IsValid)
-                .Where(r => r.ShippingMethod.IsNullOrEmpty() || r.ShippingMethod.EqualsInvariant(shipment.ShipmentMethodCode));
+                .Where(r => r.ShippingMethod.IsNullOrEmpty() || r.ShippingMethod.EqualsIgnoreCase(shipment.ShipmentMethodCode));
 
             shipment.Discounts?.Clear();
             shipment.DiscountAmount = 0M;
@@ -123,7 +123,7 @@ namespace VirtoCommerce.XCart.Core.Extensions
         {
             var paymentRewards = rewards
                 .Where(r => r.IsValid)
-                .Where(r => r.PaymentMethod.IsNullOrEmpty() || r.PaymentMethod.EqualsInvariant(payment.PaymentGatewayCode));
+                .Where(r => r.PaymentMethod.IsNullOrEmpty() || r.PaymentMethod.EqualsIgnoreCase(payment.PaymentGatewayCode));
 
             payment.Discounts?.Clear();
             payment.DiscountAmount = 0M;

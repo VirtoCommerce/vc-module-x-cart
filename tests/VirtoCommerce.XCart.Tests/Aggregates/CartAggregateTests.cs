@@ -949,7 +949,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             // Assert
             newAddress.Key.Should().BeNull();
-            cartAggregate.Cart.Addresses.Should().ContainSingle(x => x.Name.EqualsInvariant(newAddress.Name)).And.NotContain(x => x.Name.EqualsInvariant(oldAddress.Name));
+            cartAggregate.Cart.Addresses.Should().ContainSingle(x => x.Name.EqualsIgnoreCase(newAddress.Name)).And.NotContain(x => x.Name.EqualsIgnoreCase(oldAddress.Name));
         }
 
         [Theory]
@@ -972,8 +972,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             await cartAggregate.AddOrUpdateCartAddressByTypeAsync(newAddress);
 
             // Assert
-            cartAggregate.Cart.Shipments.Select(x => x.DeliveryAddress).Should().NotContain(x => x.Name.EqualsInvariant(newAddress.Name));
-            cartAggregate.Cart.Payments.Select(x => x.BillingAddress).Should().NotContain(x => x.Name.EqualsInvariant(newAddress.Name));
+            cartAggregate.Cart.Shipments.Select(x => x.DeliveryAddress).Should().NotContain(x => x.Name.EqualsIgnoreCase(newAddress.Name));
+            cartAggregate.Cart.Payments.Select(x => x.BillingAddress).Should().NotContain(x => x.Name.EqualsIgnoreCase(newAddress.Name));
         }
 
         #endregion AddCartAddressAsync

@@ -16,7 +16,7 @@ namespace VirtoCommerce.XCart.Core.Validators
             {
                 var lineItem = lineItemContext.LineItem;
                 var allCartProducts = lineItemContext.AllCartProducts;
-                var cartProduct = allCartProducts.FirstOrDefault(x => x.Id.EqualsInvariant(lineItem.ProductId));
+                var cartProduct = allCartProducts.FirstOrDefault(x => x.Id.EqualsIgnoreCase(lineItem.ProductId));
 
                 var minQuantity = cartProduct?.GetMinQuantity();
 
