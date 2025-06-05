@@ -17,7 +17,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             _cartAggregateRepository = cartAggregateRepository;
         }
 
-        public async Task<BulkCartAggregateResult> Handle(AddWishlistBulkItemCommand request, CancellationToken cancellationToken)
+        public virtual async Task<BulkCartAggregateResult> Handle(AddWishlistBulkItemCommand request, CancellationToken cancellationToken)
         {
             var result = new BulkCartAggregateResult();
 
