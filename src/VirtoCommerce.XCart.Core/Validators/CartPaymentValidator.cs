@@ -16,7 +16,7 @@ namespace VirtoCommerce.XCart.Core.Validators
 
                 if (availPaymentMethods != null && !string.IsNullOrEmpty(payment.PaymentGatewayCode))
                 {
-                    var paymentMethod = availPaymentMethods.FirstOrDefault(x => payment.PaymentGatewayCode.EqualsInvariant(x.Code));
+                    var paymentMethod = availPaymentMethods.FirstOrDefault(x => payment.PaymentGatewayCode.EqualsIgnoreCase(x.Code));
                     if (paymentMethod == null)
                     {
                         context.AddFailure(CartErrorDescriber.PaymentMethodUnavailable(payment, payment.PaymentGatewayCode));

@@ -14,7 +14,7 @@ namespace VirtoCommerce.XCart.Core.Extensions
             ArgumentNullException.ThrowIfNull(errors);
             ArgumentNullException.ThrowIfNull(entity);
 
-            return errors.OfType<CartValidationError>().Where(x => x.ObjectType.EqualsInvariant(entity.GetType().Name) && x.ObjectId == entity.Id);
+            return errors.OfType<CartValidationError>().Where(x => x.ObjectType.EqualsIgnoreCase(entity.GetType().Name) && x.ObjectId == entity.Id);
         }
     }
 }

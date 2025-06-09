@@ -577,7 +577,7 @@ namespace VirtoCommerce.XCart.Core
         {
             EnsureCartExists();
 
-            if (!Cart.Coupons.Any(c => c.EqualsInvariant(couponCode)))
+            if (!Cart.Coupons.Any(c => c.EqualsIgnoreCase(couponCode)))
             {
                 Cart.Coupons.Add(couponCode);
             }
@@ -594,7 +594,7 @@ namespace VirtoCommerce.XCart.Core
             }
             else
             {
-                Cart.Coupons.Remove(Cart.Coupons.FirstOrDefault(c => c.EqualsInvariant(couponCode)));
+                Cart.Coupons.Remove(Cart.Coupons.FirstOrDefault(c => c.EqualsIgnoreCase(couponCode)));
             }
             return Task.FromResult(this);
         }
@@ -651,7 +651,7 @@ namespace VirtoCommerce.XCart.Core
 
             if (availRates != null && !string.IsNullOrEmpty(shipment.ShipmentMethodCode) && !Cart.IsTransient())
             {
-                var shippingMethod = availRates.First(sm => shipment.ShipmentMethodCode.EqualsInvariant(sm.ShippingMethod.Code) && shipment.ShipmentMethodOption.EqualsInvariant(sm.OptionName));
+                var shippingMethod = availRates.First(sm => shipment.ShipmentMethodCode.EqualsIgnoreCase(sm.ShippingMethod.Code) && shipment.ShipmentMethodOption.EqualsIgnoreCase(sm.OptionName));
                 shipment.Price = shippingMethod.Rate;
                 shipment.DiscountAmount = shippingMethod.DiscountAmount;
             }

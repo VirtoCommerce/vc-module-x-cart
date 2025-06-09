@@ -32,7 +32,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             _mediator = mediator;
         }
 
-        public async Task<BulkCartResult> Handle(AddCartItemsBulkCommand request, CancellationToken cancellationToken)
+        public virtual async Task<BulkCartResult> Handle(AddCartItemsBulkCommand request, CancellationToken cancellationToken)
         {
             var result = new BulkCartResult();
             var cartItemsToAdd = new List<NewCartItem>();
