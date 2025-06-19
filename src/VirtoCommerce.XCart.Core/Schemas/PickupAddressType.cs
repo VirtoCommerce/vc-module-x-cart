@@ -28,6 +28,5 @@ public class PickupAddressType : ExtendableGraphType<PickupLocationAddress>
         Field<IntGraphType>(nameof(PickupLocationAddress.AddressType))
             .Description("Address type")
             .Resolve(context => (int)context.Source.AddressType);
-
     }
 }
