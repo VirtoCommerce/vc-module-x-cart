@@ -1,5 +1,6 @@
 using VirtoCommerce.ShippingModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Schemas;
+using IntGraphType = GraphQL.Types.IntGraphType;
 
 namespace VirtoCommerce.XCart.Core.Schemas;
 
@@ -11,7 +12,6 @@ public class PickupAddressType : ExtendableGraphType<PickupLocationAddress>
         Field(x => x.Key, true).Description("Key");
         Field(x => x.Name, nullable: true).Description("Name");
         Field(x => x.Organization, nullable: true).Description("Company name");
-        Field(x => x.AddressType, nullable: true).Description("Address type");
         Field(x => x.CountryCode, nullable: true).Description("Country code");
         Field(x => x.CountryName, nullable: true).Description("Country name");
         Field(x => x.City, nullable: true).Description("City");
@@ -24,5 +24,9 @@ public class PickupAddressType : ExtendableGraphType<PickupLocationAddress>
         Field(x => x.Email, nullable: true).Description("Email");
         Field(x => x.OuterId, nullable: true).Description("Outer id");
         Field(x => x.Description, nullable: true).Description("Description");
+
+        Field<IntGraphType>(nameof(PickupLocationAddress.AddressType))
+            .Description("Address type")
+            .Resolve(context => (int)context.Source.AddressType);
     }
 }
