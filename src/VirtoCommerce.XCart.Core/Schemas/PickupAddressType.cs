@@ -12,6 +12,7 @@ public class PickupAddressType : ExtendableGraphType<PickupLocationAddress>
         Field(x => x.Key, true).Description("Key");
         Field(x => x.Name, nullable: true).Description("Name");
         Field(x => x.Organization, nullable: true).Description("Company name");
+        Field(x => x.AddressType, nullable: true).Description("Address type");
         Field(x => x.CountryCode, nullable: true).Description("Country code");
         Field(x => x.CountryName, nullable: true).Description("Country name");
         Field(x => x.City, nullable: true).Description("City");
