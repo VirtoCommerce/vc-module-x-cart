@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using AutoFixture;
 using FluentAssertions;
 using Moq;
+using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ShippingModule.Core.Model;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
@@ -46,12 +47,17 @@ namespace VirtoCommerce.XCart.Tests.Handlers
                     }
                 });
 
+            var customerPreferenceService = new Mock<ICustomerPreferenceService>();
+
             var request = new AddOrUpdateCartShipmentCommand()
             {
                 Shipment = shipment,
                 CartId = cartAggregate.Cart.Id,
             };
-            var handler = new AddOrUpdateCartShipmentCommandHandler(cartAggregateRepositoryMock.Object, availableShippingMethods.Object);
+            var handler = new AddOrUpdateCartShipmentCommandHandler(
+                cartAggregateRepositoryMock.Object,
+                availableShippingMethods.Object,
+                customerPreferenceService.Object);
 
             // Act
             var aggregate = await handler.Handle(request, CancellationToken.None);
