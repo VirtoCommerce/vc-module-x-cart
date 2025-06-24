@@ -37,7 +37,19 @@ namespace VirtoCommerce.XCart.Data.Commands
             var shipment = cartAggregate.Cart.Shipments.FirstOrDefault(s => shipmentId != null && s.Id == shipmentId);
             shipment = request.Shipment.MapTo(shipment);
 
-            await FillAddress(request, shipment);
+            var preferenceKey = GeneratePreferenceKey(request, shipment);
+
+            if (preferenceKey != null)
+            {
+                if (request.Shipment.DeliveryAddress?.Value == null)
+                {
+                    await LoadAddress(request.UserId, preferenceKey, shipment);
+                }
+                else
+                {
+                    await SaveAddress(request.UserId, preferenceKey, request.Shipment.DeliveryAddress?.Value);
+                }
+            }
 
             await cartAggregate.AddShipmentAsync(shipment, await _cartAvailMethodService.GetAvailableShippingRatesAsync(cartAggregate));
 
@@ -50,32 +62,27 @@ namespace VirtoCommerce.XCart.Data.Commands
             return await GetCartById(cartAggregate.Cart.Id, request.CultureName);
         }
 
-        private async Task FillAddress(AddOrUpdateCartShipmentCommand request, Shipment shipment)
+        private string[] GeneratePreferenceKey(AddOrUpdateCartShipmentCommand request, Shipment shipment)
         {
             if (request.UserId == "Anonymous")
             {
-                return;
+                return null;
             }
 
-            var customerSettingsKey = new List<string>
-            {
-                request.OrganizationId,
-                request.Shipment.ShipmentMethodCode?.Value ?? shipment.ShipmentMethodCode
-            }.Where(x => !x.IsNullOrEmpty()).ToList();
+            var result = new List<string>
+                {
+                    request.OrganizationId,
+                    request.Shipment.ShipmentMethodCode?.Value ?? shipment.ShipmentMethodCode
+                }
+                .Where(x => !x.IsNullOrEmpty())
+                .ToList();
 
-            if (customerSettingsKey.Count == 0)
+            if (result.Count == 0)
             {
-                return;
+                return null;
             }
 
-            if (request.Shipment.DeliveryAddress?.Value == null)
-            {
-                await LoadAddress(request.UserId, customerSettingsKey, shipment);
-            }
-            else
-            {
-                await SaveAddress(request.UserId, customerSettingsKey, request.Shipment.DeliveryAddress?.Value);
-            }
+            return ["CartShipmentLastAddress", .. result];
         }
 
         private async Task LoadAddress(string userId, IList<string> key, Shipment shipment)
