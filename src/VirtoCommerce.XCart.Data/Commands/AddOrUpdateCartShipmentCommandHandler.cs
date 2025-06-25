@@ -39,7 +39,7 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             var preferenceKey = GeneratePreferenceKey(request, shipment);
 
-            if (preferenceKey != null)
+            if (preferenceKey.Length != 0)
             {
                 if (request.Shipment.DeliveryAddress?.Value == null)
                 {
@@ -64,9 +64,9 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         private string[] GeneratePreferenceKey(AddOrUpdateCartShipmentCommand request, Shipment shipment)
         {
-            if (request.UserId == "Anonymous")
+            if (request.UserId == Xapi.Core.ModuleConstants.AnonymousUser.UserName)
             {
-                return null;
+                return [];
             }
 
             var result = new List<string>
@@ -79,7 +79,7 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             if (result.Count == 0)
             {
-                return null;
+                return [];
             }
 
             return ["CartShipmentLastAddress", .. result];
