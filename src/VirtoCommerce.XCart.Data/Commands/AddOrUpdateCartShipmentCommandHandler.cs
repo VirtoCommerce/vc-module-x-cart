@@ -92,7 +92,8 @@ namespace VirtoCommerce.XCart.Data.Commands
             if (savedAddress != null)
             {
                 var address = JsonConvert.DeserializeObject<ExpCartAddress>(savedAddress);
-                shipment.DeliveryAddress = address.MapTo(null);
+                shipment.DeliveryAddress = AbstractTypeFactory<Address>.TryCreateInstance();
+                address.MapTo(shipment.DeliveryAddress);
             }
             else
             {
