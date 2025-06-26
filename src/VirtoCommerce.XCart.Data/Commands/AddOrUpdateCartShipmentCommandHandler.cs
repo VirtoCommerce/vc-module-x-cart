@@ -72,7 +72,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             var result = new List<string>
                 {
                     request.OrganizationId,
-                    request.Shipment.ShipmentMethodCode?.Value ?? shipment.ShipmentMethodCode
+                    request.Shipment.ShipmentMethodCode?.Value ?? shipment.ShipmentMethodCode ?? "FixedRate"
                 }
                 .Where(x => !x.IsNullOrEmpty())
                 .ToList();
