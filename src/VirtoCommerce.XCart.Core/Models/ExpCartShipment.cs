@@ -24,6 +24,7 @@ namespace VirtoCommerce.XCart.Core.Models
         public Optional<string> Comment { get; set; }
         public Optional<string> VendorId { get; set; }
         public Optional<ExpCartAddress> DeliveryAddress { get; set; }
+        public Optional<string> PickupLocationId { get; set; }
 
         public IList<DynamicPropertyValue> DynamicProperties { get; set; }
 
@@ -50,6 +51,7 @@ namespace VirtoCommerce.XCart.Core.Models
             Optional.SetValue(Comment, x => shipment.Comment = x);
             Optional.SetValue(VendorId, x => shipment.VendorId = x);
             Optional.SetValue(DeliveryAddress, x => shipment.DeliveryAddress = x?.MapTo(shipment.DeliveryAddress));
+            Optional.SetValue(PickupLocationId, x => shipment.PickupLocationId = x);
 
             return shipment;
         }

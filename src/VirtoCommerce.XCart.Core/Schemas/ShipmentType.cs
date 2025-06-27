@@ -6,7 +6,10 @@ using GraphQL.Resolvers;
 using GraphQL.Types;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ShippingModule.Core.Model;
+using VirtoCommerce.ShippingModule.Core.Model.Search;
+using VirtoCommerce.ShippingModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Models;
@@ -23,7 +26,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
             IMemberService memberService,
             IDataLoaderContextAccessor dataLoader,
             IDynamicPropertyResolverService dynamicPropertyResolverService,
-            ICartAvailMethodsService availableMethodsService)
+            ICartAvailMethodsService availableMethodsService,
+            IPickupLocationSearchService pickupLocationSearchService)
         {
             Field(x => x.Id, nullable: false).Description("Shipment Id");
             Field(x => x.ShipmentMethodCode, nullable: true).Description("Shipment method code");
@@ -120,6 +124,32 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 })
             };
             AddField(nameField);
+
+            var pickupLocationField = new FieldType
+            {
+                Name = "pickupLocation",
+                Type = typeof(PickupLocationType),
+                Resolver = new FuncFieldResolver<Shipment, IDataLoaderResult<PickupLocation>>(context =>
+                {
+                    var loader = dataLoader.Context.GetOrAddBatchLoader<string, PickupLocation>("cart_pickup_location",
+                        async pickupLocationIds =>
+                        {
+                            var cartAggregate = context.GetValueForSource<CartAggregate>();
+                            var criteria = AbstractTypeFactory<PickupLocationSearchCriteria>.TryCreateInstance();
+                            criteria.ObjectIds = pickupLocationIds.ToArray();
+                            criteria.StoreId = cartAggregate.Cart.StoreId;
+
+                            var result = await pickupLocationSearchService.SearchAsync(criteria);
+
+                            return result.Results.ToDictionary(x => x.Id);
+                        });
+
+                    return loader.LoadAsync(context.Source.PickupLocationId);
+
+                })
+            };
+
+            AddField(pickupLocationField);
         }
     }
 }

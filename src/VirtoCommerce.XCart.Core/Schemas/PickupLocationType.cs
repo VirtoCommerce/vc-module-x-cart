@@ -14,6 +14,8 @@ public sealed class PickupLocationType : ExtendableGraphType<PickupLocation>
         Field(x => x.ContactEmail, nullable: true).Description("ContactEmail");
         Field(x => x.ContactPhone, nullable: true).Description("ContactPhone");
         Field(x => x.WorkingHours, nullable: true).Description("WorkingHours");
+        Field(x => x.ReadyForPickup, nullable: true).Description("Days until ready for pickup");
+        Field(x => x.PickupDeadline, nullable: true).Description("Pickup duration in days");
         Field(x => x.GeoLocation, nullable: true).Description("GeoLocation");
         Field(x => x.Address, typeof(PickupAddressType)).Description("Address");
     }
