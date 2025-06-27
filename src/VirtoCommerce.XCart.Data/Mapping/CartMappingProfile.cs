@@ -220,6 +220,7 @@ namespace VirtoCommerce.XCart.Data.Mapping
                     {
                         promoEntry.InStockQuantity = (int)(cartProduct.Inventory?.InStockQuantity ?? 0);
                         promoEntry.Outline = cartProduct.Product.Outlines?.GetOutlinePath(cartProduct.Product.CatalogId);
+                        promoEntry.ParentId = cartProduct.Product.MainProductId;
                     }
                     promoEvalcontext.CartPromoEntries.Add(promoEntry);
                 }
