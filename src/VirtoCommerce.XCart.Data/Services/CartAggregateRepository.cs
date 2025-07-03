@@ -331,7 +331,7 @@ namespace VirtoCommerce.XCart.Data.Services
             }
         }
 
-        private static Task UpdateConfiguredLineItemPrice(CartAggregate aggregate)
+        private static Task<CartAggregate> UpdateConfiguredLineItemPrice(CartAggregate aggregate)
         {
             var configurationLineItems = aggregate.LineItems.Where(x => x.IsConfigured).ToArray();
             return aggregate.UpdateConfiguredLineItemPrice(configurationLineItems);
