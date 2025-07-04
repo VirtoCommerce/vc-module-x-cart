@@ -1525,6 +1525,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                 Currency = request.CurrencyCode,
                 Type = request.CartType,
                 LanguageCode = request.CultureName,
+                ResponseGroup = Core.ModuleConstants.OneCartResponseGroup,
             };
 
             var cartSearchResult = await _shoppingCartSearchService.SearchAsync(criteria);
@@ -1542,7 +1543,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
         private async Task CheckAuthAsyncByCartId(IResolveFieldContext context, string cartId)
         {
-            var cart = await _cartService.GetByIdAsync(cartId, CartResponseGroup.Default.ToString());
+            var cart = await _cartService.GetByIdAsync(cartId, Core.ModuleConstants.OneCartResponseGroup);
 
             if (cart == null)
             {

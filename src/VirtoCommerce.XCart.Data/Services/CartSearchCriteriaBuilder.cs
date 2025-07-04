@@ -118,7 +118,7 @@ namespace VirtoCommerce.XCart.Data.Services
 
         public CartSearchCriteriaBuilder WithResponseGroup(CartResponseGroup responseGroup)
         {
-            _searchCriteria.ResponseGroup = responseGroup.ToString();
+            _searchCriteria.ResponseGroup = XCart.Core.ModuleConstants.OneCartResponseGroup;
 
             return this;
         }
