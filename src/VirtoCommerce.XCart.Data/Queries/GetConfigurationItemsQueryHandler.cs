@@ -1,7 +1,7 @@
-using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
@@ -21,17 +21,25 @@ public class GetConfigurationItemsQueryHandler : IQueryHandler<GetConfigurationI
 
     public async Task<ConfigurationItemsResponse> Handle(GetConfigurationItemsQuery request, CancellationToken cancellationToken)
     {
-        var cartAggregate = await GetCartAggregateAsync(request)
-            ?? throw new OperationCanceledException($"Cart not found");
+        var result = AbstractTypeFactory<ConfigurationItemsResponse>.TryCreateInstance();
 
-        var lineItem = cartAggregate.Cart.Items.FirstOrDefault(x => x.Id == request.LineItemId)
-            ?? throw new OperationCanceledException($"Line item not found");
-
-        return new ConfigurationItemsResponse
+        var cartAggregate = await GetCartAggregateAsync(request);
+        if (cartAggregate == null)
         {
-            CartAggregate = cartAggregate,
-            ConfigurationItems = lineItem.ConfigurationItems?.ToArray(),
-        };
+            return result;
+        }
+
+        result.CartAggregate = cartAggregate;
+
+        var lineItem = cartAggregate.Cart.Items.FirstOrDefault(x => x.Id == request.LineItemId);
+        if (lineItem == null)
+        {
+            return result;
+        }
+
+        result.ConfigurationItems = lineItem.ConfigurationItems?.ToArray();
+
+        return result;
     }
 
     protected virtual Task<CartAggregate> GetCartAggregateAsync(GetConfigurationItemsQuery request)
