@@ -17,7 +17,6 @@ namespace VirtoCommerce.XCart.Data.Queries
     {
         protected override string Name => "cart";
 
-        private readonly IMediator _mediator;
         private readonly ICurrencyService _currencyService;
         private readonly IUserManagerCore _userManagerCore;
 
@@ -28,7 +27,6 @@ namespace VirtoCommerce.XCart.Data.Queries
             IUserManagerCore userManagerCore)
             : base(mediator, authorizationService)
         {
-            _mediator = mediator;
             _currencyService = currencyService;
             _userManagerCore = userManagerCore;
         }
