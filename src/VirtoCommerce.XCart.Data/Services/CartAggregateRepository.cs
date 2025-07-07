@@ -85,7 +85,7 @@ namespace VirtoCommerce.XCart.Data.Services
             var cacheEntryOptions = _platformMemoryCache.GetDefaultCacheEntryOptions();
             cacheEntryOptions.AddExpirationToken(GenericCachingRegion<ShoppingCart>.CreateChangeTokenForKey(cart.Id));
             _platformMemoryCache.Set(
-                CacheKey.With("ShoppingCartService:GetAsync", ModuleConstants.OneCartResponseGroup, cart.Id),
+                CacheKey.With("ShoppingCartService:GetAsync", ModuleConstants.XCartResponseGroup, cart.Id),
                 cart,
                 cacheEntryOptions);
         }
@@ -107,10 +107,10 @@ namespace VirtoCommerce.XCart.Data.Services
                 return cartAggregate;
             }
 
-            var cart = await _shoppingCartService.GetByIdAsync(cartId, ModuleConstants.OneCartResponseGroup);
+            var cart = await _shoppingCartService.GetByIdAsync(cartId, ModuleConstants.XCartResponseGroup);
             if (cart != null)
             {
-                return await InnerGetCartAggregateFromCartAsync(cart, cultureName ?? Language.InvariantLanguage.CultureName, productsIncludeFields, ModuleConstants.OneCartResponseGroup);
+                return await InnerGetCartAggregateFromCartAsync(cart, cultureName ?? Language.InvariantLanguage.CultureName, productsIncludeFields, ModuleConstants.XCartResponseGroup);
             }
             return null;
         }
@@ -122,7 +122,7 @@ namespace VirtoCommerce.XCart.Data.Services
                 return Task.FromResult(cartAggregate);
             }
 
-            return InnerGetCartAggregateFromCartAsync(cart, cultureName ?? Language.InvariantLanguage.CultureName, ModuleConstants.OneCartResponseGroup);
+            return InnerGetCartAggregateFromCartAsync(cart, cultureName ?? Language.InvariantLanguage.CultureName, ModuleConstants.XCartResponseGroup);
         }
 
         public async Task<CartAggregate> GetCartAsync(ICartRequest cartRequest, string responseGroup = null)
@@ -141,7 +141,7 @@ namespace VirtoCommerce.XCart.Data.Services
                 Name = cartRequest.CartName,
                 Currency = cartRequest.CurrencyCode,
                 Type = cartRequest.CartType,
-                ResponseGroup = ModuleConstants.OneCartResponseGroup,
+                ResponseGroup = ModuleConstants.XCartResponseGroup,
             };
 
             var cartSearchResult = await _shoppingCartSearchService.SearchAsync(criteria);
@@ -165,7 +165,7 @@ namespace VirtoCommerce.XCart.Data.Services
 
             criteria = criteria.CloneTyped();
             criteria.CustomerId ??= AnonymousUser.UserName;
-            criteria.ResponseGroup = ModuleConstants.OneCartResponseGroup;
+            criteria.ResponseGroup = ModuleConstants.XCartResponseGroup;
 
             var cartSearchResult = await _shoppingCartSearchService.SearchAsync(criteria);
             //The null value for the Type parameter should be interpreted as a valuable parameter, and we must return a cart object with Type property that has null exactly set.
@@ -188,7 +188,7 @@ namespace VirtoCommerce.XCart.Data.Services
         {
             ArgumentNullException.ThrowIfNull(criteria);
 
-            criteria.ResponseGroup = ModuleConstants.OneCartResponseGroup;
+            criteria.ResponseGroup = ModuleConstants.XCartResponseGroup;
 
             var searchResult = await _shoppingCartSearchService.SearchAsync(criteria);
             var cartAggregates = await GetCartsForShoppingCartsAsync(criteria, searchResult.Results, productsIncludeFields);
@@ -223,20 +223,20 @@ namespace VirtoCommerce.XCart.Data.Services
         {
             if (string.IsNullOrEmpty(cart.Id))
             {
-                return await InnerGetCartAggregateFromCartNoCacheAsync(cart, language, productsIncludeFields, ModuleConstants.OneCartResponseGroup);
+                return await InnerGetCartAggregateFromCartNoCacheAsync(cart, language, productsIncludeFields, ModuleConstants.XCartResponseGroup);
             }
 
             var cacheKey = CacheKey.With(GetType(),
                 nameof(InnerGetCartAggregateFromCartAsync),
                 cart.Id,
                 language,
-                ModuleConstants.OneCartResponseGroup,
+                ModuleConstants.XCartResponseGroup,
                 !productsIncludeFields.IsNullOrEmpty() ? string.Join(',', productsIncludeFields) : string.Empty);
 
             var result = await _platformMemoryCache.GetOrCreateExclusiveAsync(cacheKey, async cacheOptions =>
             {
                 cacheOptions.AddExpirationToken(GenericCachingRegion<CartAggregate>.CreateChangeTokenForKey(cart.Id));
-                return await InnerGetCartAggregateFromCartNoCacheAsync(cart, language, productsIncludeFields, ModuleConstants.OneCartResponseGroup);
+                return await InnerGetCartAggregateFromCartNoCacheAsync(cart, language, productsIncludeFields, ModuleConstants.XCartResponseGroup);
             });
 
             return result;

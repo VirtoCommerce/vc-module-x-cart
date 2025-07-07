@@ -50,7 +50,7 @@ namespace VirtoCommerce.XCart.Data.Queries
             cartSearchCriteria.Name = request.CartName;
             cartSearchCriteria.Currency = request.CurrencyCode;
             cartSearchCriteria.Type = request.CartType;
-            cartSearchCriteria.ResponseGroup = Core.ModuleConstants.OneCartResponseGroup;
+            cartSearchCriteria.ResponseGroup = Core.ModuleConstants.XCartResponseGroup;
 
             return cartSearchCriteria;
         }

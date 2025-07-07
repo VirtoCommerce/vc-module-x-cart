@@ -81,7 +81,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             cartSearchCriteria.CustomerId = context.CustomerId;
             cartSearchCriteria.OrganizationId = context.OrganizaitonId;
             cartSearchCriteria.Currency = context.Currency;
-            cartSearchCriteria.ResponseGroup = Core.ModuleConstants.OneCartResponseGroup;
+            cartSearchCriteria.ResponseGroup = Core.ModuleConstants.XCartResponseGroup;
 
             return cartSearchCriteria;
         }
@@ -95,7 +95,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             cartSearchCriteria.CustomerId = context.CustomerId;
             cartSearchCriteria.OrganizationId = context.OrganizationId;
             cartSearchCriteria.Currency = context.Currency;
-            cartSearchCriteria.ResponseGroup = Core.ModuleConstants.OneCartResponseGroup;
+            cartSearchCriteria.ResponseGroup = Core.ModuleConstants.XCartResponseGroup;
 
             return cartSearchCriteria;
         }
@@ -109,7 +109,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             cartSearchCriteria.CustomerId = context.CustomerId;
             cartSearchCriteria.OrganizationId = context.OrganizationId;
             cartSearchCriteria.Currency = context.Currency;
-            cartSearchCriteria.ResponseGroup = Core.ModuleConstants.OneCartResponseGroup;
+            cartSearchCriteria.ResponseGroup = Core.ModuleConstants.XCartResponseGroup;
 
             return cartSearchCriteria;
         }

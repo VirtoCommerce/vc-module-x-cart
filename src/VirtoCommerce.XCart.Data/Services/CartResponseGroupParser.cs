@@ -7,7 +7,7 @@ namespace VirtoCommerce.XCart.Data.Services
     {
         public virtual string GetResponseGroup(IList<string> includeFields)
         {
-            return Core.ModuleConstants.OneCartResponseGroup;
+            return Core.ModuleConstants.XCartResponseGroup;
         }
     }
 }
