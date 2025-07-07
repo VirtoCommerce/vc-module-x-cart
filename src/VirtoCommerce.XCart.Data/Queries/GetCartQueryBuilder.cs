@@ -3,12 +3,10 @@ using GraphQL;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.CoreModule.Core.Currency;
-using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.BaseQueries;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.XCart.Core;
-using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Queries;
 using VirtoCommerce.XCart.Core.Schemas;
 using VirtoCommerce.XCart.Data.Authorization;
@@ -58,11 +56,6 @@ namespace VirtoCommerce.XCart.Data.Queries
             else if (string.IsNullOrEmpty(request.CartId))
             {
                 await Authorize(context, request.UserId, cartAuthorizationRequirement);
-
-                var createCartCommand = AbstractTypeFactory<CreateCartCommand>.TryCreateInstance();
-                createCartCommand.CopyFrom(request);
-
-                response = await _mediator.Send(createCartCommand);
             }
 
             return response;
@@ -70,7 +63,10 @@ namespace VirtoCommerce.XCart.Data.Queries
 
         protected override Task AfterMediatorSend(IResolveFieldContext<object> context, GetCartQuery request, CartAggregate response)
         {
-            context.SetExpandedObjectGraph(response);
+            if (response != null)
+            {
+                context.SetExpandedObjectGraph(response);
+            }
             return Task.CompletedTask;
         }
 
