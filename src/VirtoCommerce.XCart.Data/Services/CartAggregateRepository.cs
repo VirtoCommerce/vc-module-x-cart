@@ -85,7 +85,7 @@ namespace VirtoCommerce.XCart.Data.Services
             var cacheEntryOptions = _platformMemoryCache.GetDefaultCacheEntryOptions();
             cacheEntryOptions.AddExpirationToken(GenericCachingRegion<ShoppingCart>.CreateChangeTokenForKey(cart.Id));
             _platformMemoryCache.Set(
-                CacheKey.With("ShoppingCartService:GetAsync", ModuleConstants.XCartResponseGroup, cart.Id),
+                CacheKey.With(_shoppingCartService.GetType(), "GetAsync", ModuleConstants.XCartResponseGroup, cart.Id),
                 cart,
                 cacheEntryOptions);
         }
