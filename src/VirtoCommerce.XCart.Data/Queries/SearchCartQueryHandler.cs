@@ -1,9 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
-using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
-using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.SearchModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Core.Models;
@@ -49,7 +47,7 @@ namespace VirtoCommerce.XCart.Data.Queries
                                      .WithLanguage(request.CultureName)
                                      .WithCustomerId(request.UserId)
                                      .WithOrganizationId(request.OrganizationId)
-                                     .WithResponseGroup(EnumUtility.SafeParseFlags(_cartResponseGroupParser.GetResponseGroup(request.IncludeFields), CartResponseGroup.Full))
+                                     .WithXCartResponseGroup()
                                      .WithPaging(request.Skip, request.Take)
                                      .WithSorting(request.Sort)
                                      .Build();

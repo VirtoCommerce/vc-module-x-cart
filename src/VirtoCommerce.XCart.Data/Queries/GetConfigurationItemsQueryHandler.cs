@@ -42,7 +42,7 @@ public class GetConfigurationItemsQueryHandler : IQueryHandler<GetConfigurationI
         }
         else
         {
-            return _cartAggregateRepository.GetCartAsync(request);
+            return _cartAggregateRepository.GetCartAsync(request, ModuleConstants.XCartResponseGroup);
         }
     }
 }

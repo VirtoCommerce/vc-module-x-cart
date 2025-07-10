@@ -1,6 +1,5 @@
 using System.Threading;
 using System.Threading.Tasks;
-using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Infrastructure;
@@ -26,7 +25,7 @@ namespace VirtoCommerce.XCart.Data.Queries
         {
             if (!string.IsNullOrEmpty(request.CartId))
             {
-                return _cartAggregateRepository.GetCartByIdAsync(request.CartId, GetResponseGroup(request), request.IncludeFields.ItemsToProductIncludeField(), request.CultureName);
+                return _cartAggregateRepository.GetCartByIdAsync(request.CartId, ModuleConstants.XCartResponseGroup, request.IncludeFields.ItemsToProductIncludeField(), request.CultureName);
             }
 
             var cartSearchCriteria = GetCartSearchCriteria(request);
@@ -55,9 +54,5 @@ namespace VirtoCommerce.XCart.Data.Queries
             return cartSearchCriteria;
         }
 
-        private string GetResponseGroup(GetCartQuery request)
-        {
-            return EnumUtility.SafeParseFlags(_cartResponseGroupParser.GetResponseGroup(request.IncludeFields), CartResponseGroup.Full).ToString();
-        }
     }
 }

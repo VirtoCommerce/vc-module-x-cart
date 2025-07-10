@@ -97,7 +97,7 @@ namespace VirtoCommerce.XCart.Data.Services
 
         public Task<CartAggregate> GetCartByIdAsync(string cartId, IList<string> productsIncludeFields, string cultureName = null)
         {
-            return GetCartByIdAsync(cartId, null, productsIncludeFields, cultureName);
+            return GetCartByIdAsync(cartId, ModuleConstants.XCartResponseGroup, productsIncludeFields, cultureName);
         }
 
         public async Task<CartAggregate> GetCartByIdAsync(string cartId, string responseGroup, IList<string> productsIncludeFields, string cultureName = null)
@@ -107,10 +107,10 @@ namespace VirtoCommerce.XCart.Data.Services
                 return cartAggregate;
             }
 
-            var cart = await _shoppingCartService.GetByIdAsync(cartId, ModuleConstants.XCartResponseGroup);
+            var cart = await _shoppingCartService.GetByIdAsync(cartId, responseGroup);
             if (cart != null)
             {
-                return await InnerGetCartAggregateFromCartAsync(cart, cultureName ?? Language.InvariantLanguage.CultureName, productsIncludeFields, ModuleConstants.XCartResponseGroup);
+                return await InnerGetCartAggregateFromCartAsync(cart, cultureName ?? Language.InvariantLanguage.CultureName, productsIncludeFields, responseGroup);
             }
             return null;
         }
@@ -141,7 +141,7 @@ namespace VirtoCommerce.XCart.Data.Services
                 Name = cartRequest.CartName,
                 Currency = cartRequest.CurrencyCode,
                 Type = cartRequest.CartType,
-                ResponseGroup = ModuleConstants.XCartResponseGroup,
+                ResponseGroup = responseGroup,
             };
 
             var cartSearchResult = await _shoppingCartSearchService.SearchAsync(criteria);
@@ -165,7 +165,6 @@ namespace VirtoCommerce.XCart.Data.Services
 
             criteria = criteria.CloneTyped();
             criteria.CustomerId ??= AnonymousUser.UserName;
-            criteria.ResponseGroup = ModuleConstants.XCartResponseGroup;
 
             var cartSearchResult = await _shoppingCartSearchService.SearchAsync(criteria);
             //The null value for the Type parameter should be interpreted as a valuable parameter, and we must return a cart object with Type property that has null exactly set.
@@ -187,8 +186,6 @@ namespace VirtoCommerce.XCart.Data.Services
         public async Task<SearchCartResponse> SearchCartAsync(ShoppingCartSearchCriteria criteria, IList<string> productsIncludeFields)
         {
             ArgumentNullException.ThrowIfNull(criteria);
-
-            criteria.ResponseGroup = ModuleConstants.XCartResponseGroup;
 
             var searchResult = await _shoppingCartSearchService.SearchAsync(criteria);
             var cartAggregates = await GetCartsForShoppingCartsAsync(criteria, searchResult.Results, productsIncludeFields);
@@ -223,7 +220,7 @@ namespace VirtoCommerce.XCart.Data.Services
         {
             if (string.IsNullOrEmpty(cart.Id))
             {
-                return await InnerGetCartAggregateFromCartNoCacheAsync(cart, language, productsIncludeFields, ModuleConstants.XCartResponseGroup);
+                return await InnerGetCartAggregateFromCartNoCacheAsync(cart, language, productsIncludeFields, responseGroup);
             }
 
             var cacheKey = CacheKey.With(GetType(),
