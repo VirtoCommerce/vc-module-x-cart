@@ -16,7 +16,6 @@ namespace VirtoCommerce.XCart.Data.Queries
         private readonly ICartAggregateRepository _cartAggregateRepository;
         private readonly IMapper _mapper;
         private readonly ISearchPhraseParser _searchPhraseParser;
-        private readonly ICartResponseGroupParser _cartResponseGroupParser;
 
         public SearchCartQueryHandler(
             ICartAggregateRepository cartAggregateRepository,
@@ -27,7 +26,6 @@ namespace VirtoCommerce.XCart.Data.Queries
             _cartAggregateRepository = cartAggregateRepository;
             _mapper = mapper;
             _searchPhraseParser = searchPhraseParser;
-            _cartResponseGroupParser = cartResponseGroupParser;
         }
 
         public virtual Task<SearchCartResponse> Handle(SearchCartQuery request, CancellationToken cancellationToken)

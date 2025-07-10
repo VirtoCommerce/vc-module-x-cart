@@ -13,12 +13,10 @@ namespace VirtoCommerce.XCart.Data.Queries
     public class GetCartQueryHandler : IQueryHandler<GetCartQuery, CartAggregate>, IQueryHandler<GetCartByIdQuery, CartAggregate>
     {
         private readonly ICartAggregateRepository _cartAggregateRepository;
-        private readonly ICartResponseGroupParser _cartResponseGroupParser;
 
         public GetCartQueryHandler(ICartAggregateRepository cartAggregateRepository, ICartResponseGroupParser cartResponseGroupParser)
         {
             _cartAggregateRepository = cartAggregateRepository;
-            _cartResponseGroupParser = cartResponseGroupParser;
         }
 
         public virtual Task<CartAggregate> Handle(GetCartQuery request, CancellationToken cancellationToken)
