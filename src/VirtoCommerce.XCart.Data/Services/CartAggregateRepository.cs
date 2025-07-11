@@ -280,9 +280,8 @@ namespace VirtoCommerce.XCart.Data.Services
 
                 // Load cart products explicitly if no validation is requested
                 aggregate.ProductsIncludeFields = productsIncludeFields;
-                // Recalculate Totals remove because it is not needed for the cart aggregate
                 var cartProducts = await _cartProductsService.GetCartProductsByIdsAsync(aggregate, aggregate.Cart.Items.Select(x => x.ProductId).ToArray());
-                //Populate aggregate.CartProducts with the  products data for all cart  line items
+                // Populate aggregate.CartProducts with the products data for all cart line items
                 foreach (var cartProduct in cartProducts)
                 {
                     aggregate.CartProducts[cartProduct.Id] = cartProduct;
