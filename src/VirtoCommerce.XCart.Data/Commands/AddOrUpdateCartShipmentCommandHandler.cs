@@ -38,10 +38,10 @@ namespace VirtoCommerce.XCart.Data.Commands
             var shipment = cartAggregate.Cart.Shipments.FirstOrDefault(s => shipmentId != null && s.Id == shipmentId);
             shipment = request.Shipment.MapTo(shipment);
 
-            var preferenceKey = GeneratePreferenceKey(request, shipment);
-
-            if (preferenceKey.Length != 0)
+            if (!cartAggregate.Cart.IsAnonymous)
             {
+                var preferenceKey = GeneratePreferenceKey(request, shipment);
+
                 if (request.Shipment.DeliveryAddress?.Value == null)
                 {
                     await LoadAddress(request.UserId, preferenceKey, shipment);
@@ -65,11 +65,6 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         private string[] GeneratePreferenceKey(AddOrUpdateCartShipmentCommand request, Shipment shipment)
         {
-            if (request.UserId == Xapi.Core.ModuleConstants.AnonymousUser.UserName)
-            {
-                return [];
-            }
-
             var result = new List<string>
                 {
                     request.OrganizationId,
