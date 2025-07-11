@@ -25,6 +25,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.Price, nullable: true).Description("Price value");
             Field(x => x.VendorId, nullable: true).Description("Vendor ID");
             Field(x => x.Comment, nullable: true).Description("Text comment");
+            Field(x => x.PickupLocationId, nullable: true).Description("Pickup location Id when shipment is Pickup");
 
             Field<ListGraphType<InputDynamicPropertyValueType>>("dynamicProperties")
                 .Description("Dynamic properties");

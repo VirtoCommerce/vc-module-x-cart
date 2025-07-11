@@ -11,6 +11,7 @@ using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
+using ModuleConstants = VirtoCommerce.ShippingModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Commands
 {
@@ -37,10 +38,10 @@ namespace VirtoCommerce.XCart.Data.Commands
             var shipment = cartAggregate.Cart.Shipments.FirstOrDefault(s => shipmentId != null && s.Id == shipmentId);
             shipment = request.Shipment.MapTo(shipment);
 
-            var preferenceKey = GeneratePreferenceKey(request, shipment);
-
-            if (preferenceKey.Length != 0)
+            if (!cartAggregate.Cart.IsAnonymous)
             {
+                var preferenceKey = GeneratePreferenceKey(request, shipment);
+
                 if (request.Shipment.DeliveryAddress?.Value == null)
                 {
                     await LoadAddress(request.UserId, preferenceKey, shipment);
@@ -64,15 +65,10 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         private string[] GeneratePreferenceKey(AddOrUpdateCartShipmentCommand request, Shipment shipment)
         {
-            if (request.UserId == Xapi.Core.ModuleConstants.AnonymousUser.UserName)
-            {
-                return [];
-            }
-
             var result = new List<string>
                 {
                     request.OrganizationId,
-                    request.Shipment.ShipmentMethodCode?.Value ?? shipment.ShipmentMethodCode ?? "FixedRate"
+                    request.Shipment.ShipmentMethodCode?.Value ?? shipment.ShipmentMethodCode ?? ModuleConstants.FixedRateShipmentCode
                 }
                 .Where(x => !x.IsNullOrEmpty())
                 .ToList();
@@ -94,6 +90,11 @@ namespace VirtoCommerce.XCart.Data.Commands
                 var address = JsonConvert.DeserializeObject<ExpCartAddress>(savedAddress);
                 shipment.DeliveryAddress = AbstractTypeFactory<Address>.TryCreateInstance();
                 address.MapTo(shipment.DeliveryAddress);
+                if (shipment.ShipmentMethodCode == ModuleConstants.BuyOnlinePickupInStoreShipmentCode &&
+                    !shipment.DeliveryAddress.OuterId.IsNullOrEmpty())
+                {
+                    shipment.PickupLocationId = shipment.DeliveryAddress.OuterId;
+                }
             }
             else
             {

@@ -14,6 +14,8 @@ public class PickupLocationType : ExtendableGraphType<PickupLocation>
         Field(x => x.ContactEmail, nullable: true).Description("ContactEmail");
         Field(x => x.ContactPhone, nullable: true).Description("ContactPhone");
         Field(x => x.WorkingHours, nullable: true).Description("WorkingHours");
+        Field(x => x.DeliveryDays, nullable: true).Description("Days until ready for pickup");
+        Field(x => x.StorageDays, nullable: true).Description("How long an order will be stored at a pickup point");
         Field(x => x.GeoLocation, nullable: true).Description("GeoLocation");
         ExtendableField<PickupAddressType>("address", "Address", resolve: context => context.Source.Address);
     }
