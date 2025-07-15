@@ -1474,7 +1474,21 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             schema.Mutation.AddField(moveListItemField);
 
-            #endregion Wishlists
+            #endregion Wishlists 
+
+            var saveForLaterField = FieldBuilder<CartAggregate, CartAggregate>.Create("saveForLater", GraphTypeExtensionHelper.GetActualType<CartType>())
+                .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputSaveForLaterType>>(), SchemaConstants.CommandName)
+                .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
+                {
+                    var cartCommand = context.GetCartCommand<SaveForLaterItemsCommand>();
+                    await CheckAuthByCartCommandAsync(context, cartCommand);
+                    var cartAggregate = await _mediator.Send(cartCommand);
+                    context.SetExpandedObjectGraph(cartAggregate);
+                    return cartAggregate;
+                })
+                .FieldType;
+
+            schema.Mutation.AddField(saveForLaterField);
         }
 
         private async Task<object> ResolveListConnectionAsync(IMediator mediator, IResolveConnectionContext<object> context)
