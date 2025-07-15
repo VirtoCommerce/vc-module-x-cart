@@ -6,6 +6,8 @@ using FluentAssertions;
 using Moq;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ShippingModule.Core.Model;
+using VirtoCommerce.ShippingModule.Core.Model.Search;
+using VirtoCommerce.ShippingModule.Core.Services;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Models;
@@ -47,6 +49,14 @@ namespace VirtoCommerce.XCart.Tests.Handlers
                     }
                 });
 
+            var pickupLocationSearchService = new Mock<IPickupLocationSearchService>();
+            pickupLocationSearchService
+                .Setup(x => x.SearchAsync(It.IsAny<PickupLocationSearchCriteria>(), It.IsAny<bool>()))
+                .ReturnsAsync(new PickupLocationSearchResult()
+                {
+                    Results = new List<PickupLocation>()
+                });
+
             var customerPreferenceService = new Mock<ICustomerPreferenceService>();
 
             var request = new AddOrUpdateCartShipmentCommand()
@@ -57,6 +67,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
             var handler = new AddOrUpdateCartShipmentCommandHandler(
                 cartAggregateRepositoryMock.Object,
                 availableShippingMethods.Object,
+                pickupLocationSearchService.Object,
                 customerPreferenceService.Object);
 
             // Act
