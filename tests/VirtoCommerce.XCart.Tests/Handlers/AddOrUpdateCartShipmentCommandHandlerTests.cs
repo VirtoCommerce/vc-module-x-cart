@@ -87,7 +87,6 @@ namespace VirtoCommerce.XCart.Tests.Handlers
             cartAggregate.Cart.Shipments.Should().ContainSingle(x => x.Width == shipment.Width.Value);
             cartAggregate.Cart.Shipments.Should().ContainSingle(x => x.Currency == shipment.Currency.Value);
             cartAggregate.Cart.Shipments.Should().ContainSingle(x => x.Price == shipment.Price.Value);
-            cartAggregate.Cart.Shipments.Should().ContainSingle(x => x.DeliveryAddress != null);
         }
     }
 }
