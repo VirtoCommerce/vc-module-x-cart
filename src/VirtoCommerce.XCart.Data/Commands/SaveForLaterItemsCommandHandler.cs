@@ -65,9 +65,10 @@ namespace VirtoCommerce.XCart.Data.Commands
         {
             var saveForLaterListSearchCriteria = AbstractTypeFactory<ShoppingCartSearchCriteria>.TryCreateInstance();
             saveForLaterListSearchCriteria.Type = savedForLaterCartType;
+            saveForLaterListSearchCriteria.StoreId = request.StoreId;
             saveForLaterListSearchCriteria.CustomerId = request.UserId;
             saveForLaterListSearchCriteria.OrganizationId = request.OrganizationId;
-            saveForLaterListSearchCriteria.Currency = request.CurrencyCode;//Do we need Currency here?
+            saveForLaterListSearchCriteria.Currency = request.CurrencyCode;
 
             return await cartAggregateRepository.GetCartAsync(saveForLaterListSearchCriteria, request.CultureName);
         }
