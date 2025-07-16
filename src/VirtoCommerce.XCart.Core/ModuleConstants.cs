@@ -18,7 +18,7 @@ namespace VirtoCommerce.XCart.Core
         public const int LineItemQualityLimit = 999999;
 
         // We use this response group for all X-Cart related operations to avoid recalculation of totals and improve performance.
-        public static readonly string XCartResponseGroup = (CartResponseGroup.Full & ~CartResponseGroup.RecalculateTotals).ToString();
+        public static string XCartResponseGroup { get; set; } = (CartResponseGroup.Full & ~CartResponseGroup.RecalculateTotals).ToString();
 
         public static class Settings
         {
