@@ -1,7 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
-using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.SearchModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Core;
@@ -29,7 +28,7 @@ namespace VirtoCommerce.XCart.Data.Queries
             _searchPhraseParser = searchPhraseParser;
         }
 
-        public virtual async Task<SearchCartResponse> Handle(SearchWishlistQuery request, CancellationToken cancellationToken)
+        public virtual Task<SearchCartResponse> Handle(SearchWishlistQuery request, CancellationToken cancellationToken)
         {
             var searchCriteria = new CartSearchCriteriaBuilder(_searchPhraseParser, _mapper)
                                      .WithCurrency(request.CurrencyCode)
@@ -41,10 +40,10 @@ namespace VirtoCommerce.XCart.Data.Queries
                                      .WithScope(request.Scope)
                                      .WithPaging(request.Skip, request.Take)
                                      .WithSorting(request.Sort)
-                                     .WithResponseGroup(CartResponseGroup.WithLineItems)
+                                     .WithXCartResponseGroup()
                                      .Build();
 
-            return await _cartAggregateRepository.SearchCartAsync(searchCriteria, request.IncludeFields.ItemsToProductIncludeField());
+            return _cartAggregateRepository.SearchCartAsync(searchCriteria, request.IncludeFields.ItemsToProductIncludeField());
         }
     }
 }
