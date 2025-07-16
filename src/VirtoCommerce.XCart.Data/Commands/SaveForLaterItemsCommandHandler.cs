@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model.Search;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
@@ -46,7 +47,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             await SaveCartAsync(saveForLaterList);
             await SaveCartAsync(cart);
 
-            return saveForLaterList;//or cart? or both?
+            return saveForLaterList;//or cart? or both? ask teams
         }
 
         protected virtual async Task<CartAggregate> GetSaveForLaterListAsync(SaveForLaterItemsCommand request)
@@ -63,21 +64,20 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         protected virtual async Task<CartAggregate> FindExistingSaveForLaterListAsync(SaveForLaterItemsCommand request)
         {
-            var saveForLaterListSearchCriteria = new ShoppingCartSearchCriteria()
-            {
-                Type = savedForLaterCartType,
-                CustomerId = request.UserId,
-                LanguageCode = request.CultureName,//other search fields?
-            };
+            var saveForLaterListSearchCriteria = AbstractTypeFactory<ShoppingCartSearchCriteria>.TryCreateInstance();
+            saveForLaterListSearchCriteria.Type = savedForLaterCartType;
+            saveForLaterListSearchCriteria.CustomerId = request.UserId;
+            saveForLaterListSearchCriteria.OrganizationId = request.OrganizationId;
+            saveForLaterListSearchCriteria.Currency = request.CurrencyCode;//Do we need Currency here?
 
             return await CartRepository.GetCartAsync(saveForLaterListSearchCriteria, request.CultureName);
         }
 
         protected virtual async Task<CartAggregate> CreateSaveForLaterListAsync(SaveForLaterItemsCommand request)
         {
-            var createRequest = new SaveForLaterItemsCommand();
+            var createRequest = AbstractTypeFactory<SaveForLaterItemsCommand>.TryCreateInstance();
             createRequest.CopyFrom(request);
-            createRequest.CartType = savedForLaterCartType;//other create params?
+            createRequest.CartType = savedForLaterCartType;
 
             return await CreateNewCartAggregateAsync(createRequest);
         }
