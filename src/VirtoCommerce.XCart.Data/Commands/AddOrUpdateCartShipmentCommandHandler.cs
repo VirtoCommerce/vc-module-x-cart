@@ -177,7 +177,7 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         private async Task SaveAddress(string userId, IList<string> key, ExpCartAddress address, string pickupLocationId)
         {
-            if (address != null)
+            if (address != null || pickupLocationId != null)
             {
                 var value = pickupLocationId ?? JsonConvert.SerializeObject(address);
                 await _customerPreferenceService.SaveValue(userId, key, value);
