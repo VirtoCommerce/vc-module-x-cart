@@ -1474,7 +1474,67 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             schema.Mutation.AddField(moveListItemField);
 
-            #endregion Wishlists
+            #endregion Wishlists 
+
+            #region Saved for later 
+
+            //queries
+            var savedForLaterListQueryField = new FieldType
+            {
+                Name = "getSavedForLater",
+                Arguments = new QueryArguments(
+                        new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "storeId", Description = "Store Id" },
+                        new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "userId", Description = "Customer Id" },
+                        new QueryArgument<StringGraphType> { Name = "organizationId", Description = "Organization Id" },
+                        new QueryArgument<StringGraphType> { Name = "currencyCode", Description = "Currency Code" },
+                        new QueryArgument<StringGraphType> { Name = "cultureName", Description = "Culture name (\"en-Us\")" }),
+                Type = GraphTypeExtensionHelper.GetActualType<CartType>(),
+                Resolver = new FuncFieldResolver<object>(async context =>
+                {
+                    var query = AbstractTypeFactory<GetSavedForLaterListQuery>.TryCreateInstance();
+                    query.StoreId = context.GetArgument<string>("storeId");
+                    query.UserId = context.GetArgument<string>("userId");
+                    query.OrganizationId = context.GetArgument<string>("organizationId");
+                    query.CurrencyCode = context.GetArgument<string>("currencyCode");
+                    query.CultureName = context.GetArgument<string>("cultureName");
+                    context.CopyArgumentsToUserContext();
+
+                    var savedForLaterList = await _mediator.Send(query);
+
+                    if (savedForLaterList == null)
+                    {
+                        return null;
+                    }
+
+                    //Q: do we need this?
+                    //context.UserContext["storeId"] = savedForLaterList.Cart.StoreId;
+
+                    //var wishlistUserContext = await InitializeWishlistUserContext(context, cart: savedForLaterList.Cart);
+                    //await AuthorizeAsync(context, wishlistUserContext);
+
+                    context.SetExpandedObjectGraph(savedForLaterList);
+
+                    return savedForLaterList;
+                })
+            };
+            schema.Query.AddField(savedForLaterListQueryField);
+
+            //mutations
+            var saveForLaterMutationField = FieldBuilder<CartAggregateWithList, CartAggregateWithList>.Create("moveToSavedForLater", GraphTypeExtensionHelper.GetActualType<CartWithListType>())
+                .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputSaveForLaterType>>(), SchemaConstants.CommandName)
+                .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
+                {
+                    var cartCommand = context.GetCartCommand<MoveToSavedForLaterItemsCommand>();
+                    await CheckAuthAsyncByCartId(context, cartCommand.CartId);//await CheckAuthByCartCommandAsync(context, cartCommand);
+                    var cartAggregateWithList = await _mediator.Send(cartCommand);
+                    context.SetExpandedObjectGraph(cartAggregateWithList);
+                    return cartAggregateWithList;
+                })
+                .FieldType;
+
+            schema.Mutation.AddField(saveForLaterMutationField);
+
+            #endregion
         }
 
         private async Task<object> ResolveListConnectionAsync(IMediator mediator, IResolveConnectionContext<object> context)
