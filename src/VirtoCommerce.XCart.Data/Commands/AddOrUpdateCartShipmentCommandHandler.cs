@@ -41,9 +41,10 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             var shipmentId = request.Shipment.Id?.Value;
             var shipment = cartAggregate.Cart.Shipments.FirstOrDefault(s => shipmentId != null && s.Id == shipmentId);
+            var previousShipmentCode = shipment?.ShipmentMethodCode;
             shipment = request.Shipment.MapTo(shipment);
 
-            ClearAddressInfo(request, shipment);
+            ClearAddressInfo(request, shipment, previousShipmentCode);
 
             if (!cartAggregate.Cart.IsAnonymous)
             {
@@ -71,8 +72,13 @@ namespace VirtoCommerce.XCart.Data.Commands
         }
 
 
-        private static void ClearAddressInfo(AddOrUpdateCartShipmentCommand request, Shipment shipment)
+        private static void ClearAddressInfo(AddOrUpdateCartShipmentCommand request, Shipment shipment, string previousShipmentCode)
         {
+            if (shipment.ShipmentMethodCode != previousShipmentCode && request.Shipment.DeliveryAddress?.Value == null)
+            {
+                shipment.DeliveryAddress = null;
+            }
+
             if (shipment.ShipmentMethodCode == ModuleConstants.BuyOnlinePickupInStoreShipmentCode)
             {
                 shipment.DeliveryAddress = null;
