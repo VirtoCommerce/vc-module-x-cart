@@ -240,6 +240,25 @@ namespace VirtoCommerce.XCart.Tests.Helpers
             return newCartItem;
         }
 
+        protected CartAggregate GetValidAnonymousCartAggregate(ShoppingCart cart = null, Currency currency = null)
+        {
+            var aggregate = new CartAggregate(
+                _marketingPromoEvaluatorMock.Object,
+                GeTotalsCalculator(currency),
+                _taxProviderSearchServiceMock.Object,
+                _cartProductServiceMock.Object,
+                _dynamicPropertyUpdaterService.Object,
+                _mapperMock.Object,
+                _memberService.Object,
+                _genericPipelineLauncherMock.Object,
+                _configurationItemValidatorMock.Object,
+                _fileUploadService.Object);
+
+            aggregate.GrabCart(cart ?? GetCart(), new Store(), null, currency ?? GetCurrency());
+
+            return aggregate;
+        }
+
         protected CartAggregate GetValidCartAggregate(ShoppingCart cart = null, Currency currency = null)
         {
             var aggregate = new CartAggregate(
