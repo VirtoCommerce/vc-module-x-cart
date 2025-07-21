@@ -38,9 +38,6 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
 
         await MoveItemsAsync(savedForLaterList, cart, request.LineItemIds);
 
-        await cartAggregateRepository.SaveAsync(savedForLaterList);
-        await cartAggregateRepository.SaveAsync(cart);
-
         return new CartAggregateWithList() { Cart = cart, List = savedForLaterList };
     }
 
@@ -58,9 +55,6 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
 
         await MoveItemsAsync(cart, savedForLaterList, request.LineItemIds);
 
-        await cartAggregateRepository.SaveAsync(savedForLaterList);
-        await cartAggregateRepository.SaveAsync(cart);
-
         return new CartAggregateWithList() { Cart = cart, List = savedForLaterList };
     }
 
@@ -74,18 +68,6 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
         searchCriteria.Currency = request.CurrencyCode;
 
         return await cartAggregateRepository.GetCartAsync(searchCriteria, request.CultureName);
-    }
-
-    protected virtual async Task<CartAggregate> EnsureSaveForLaterListAsync(ICartRequest request)
-    {
-        var existingSaveForLaterList = await FindSavedForLaterListAsync(request);
-
-        if (existingSaveForLaterList != null)
-        {
-            return existingSaveForLaterList;
-        }
-
-        return await CreateSaveForLaterListAsync(request);
     }
 
     protected virtual async Task<CartAggregate> CreateSaveForLaterListAsync(ICartRequest request)
@@ -111,6 +93,18 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
         return await cartAggregateRepository.GetCartForShoppingCartAsync(cart);
     }
 
+    protected async Task<CartAggregate> EnsureSaveForLaterListAsync(ICartRequest request)
+    {
+        var existingSaveForLaterList = await FindSavedForLaterListAsync(request);
+
+        if (existingSaveForLaterList != null)
+        {
+            return existingSaveForLaterList;
+        }
+
+        return await CreateSaveForLaterListAsync(request);
+    }
+
     protected async Task MoveItemsAsync(CartAggregate from, CartAggregate to, IList<string> lineItemIds)
     {
         foreach (var lineItemId in lineItemIds)
@@ -123,5 +117,8 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
                 await from.RemoveItemAsync(lineItemId);
             }
         }
+
+        await cartAggregateRepository.SaveAsync(from);
+        await cartAggregateRepository.SaveAsync(to);
     }
 }
