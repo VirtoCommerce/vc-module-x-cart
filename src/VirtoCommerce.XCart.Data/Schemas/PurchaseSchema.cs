@@ -1491,6 +1491,8 @@ namespace VirtoCommerce.XCart.Data.Schemas
                 Type = GraphTypeExtensionHelper.GetActualType<CartType>(),
                 Resolver = new FuncFieldResolver<object>(async context =>
                 {
+                    await _userManagerCore.CheckCurrentUserState(context, allowAnonymous: false);
+
                     var query = AbstractTypeFactory<GetSavedForLaterListQuery>.TryCreateInstance();
                     query.StoreId = context.GetArgument<string>("storeId");
                     query.UserId = context.GetArgument<string>("userId");
@@ -1506,11 +1508,10 @@ namespace VirtoCommerce.XCart.Data.Schemas
                         return null;
                     }
 
-                    //Q: do we need this?
+                    //Q: authorization
                     //context.UserContext["storeId"] = savedForLaterList.Cart.StoreId;
-
-                    //var wishlistUserContext = await InitializeWishlistUserContext(context, cart: savedForLaterList.Cart);
-                    //await AuthorizeAsync(context, wishlistUserContext);
+                    //var savedForLaterListUserContext = await InitializeWishlistUserContext(context, cart: savedForLaterList.Cart);
+                    //await AuthorizeAsync(context, savedForLaterListUserContext);
 
                     context.SetExpandedObjectGraph(savedForLaterList);
 
@@ -1520,19 +1521,45 @@ namespace VirtoCommerce.XCart.Data.Schemas
             schema.Query.AddField(savedForLaterListQueryField);
 
             //mutations
-            var saveForLaterMutationField = FieldBuilder<CartAggregateWithList, CartAggregateWithList>.Create("moveToSavedForLater", GraphTypeExtensionHelper.GetActualType<CartWithListType>())
+            var moveToSavedForLaterMutationField = FieldBuilder<CartAggregateWithList, CartAggregateWithList>.Create("moveToSavedForLater", GraphTypeExtensionHelper.GetActualType<CartWithListType>())
                 .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputSaveForLaterType>>(), SchemaConstants.CommandName)
                 .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                 {
+                    //Q: authorization
+                    await _userManagerCore.CheckCurrentUserState(context, allowAnonymous: false);
+
                     var cartCommand = context.GetCartCommand<MoveToSavedForLaterItemsCommand>();
-                    await CheckAuthAsyncByCartId(context, cartCommand.CartId);//await CheckAuthByCartCommandAsync(context, cartCommand);
+                    await CheckAuthAsyncByCartId(context, cartCommand.CartId);
                     var cartAggregateWithList = await _mediator.Send(cartCommand);
-                    context.SetExpandedObjectGraph(cartAggregateWithList);
+
+                    context.SetExpandedObjectGraph(cartAggregateWithList.Cart);
+                    context.SetExpandedObjectGraph(cartAggregateWithList.List);
+
                     return cartAggregateWithList;
                 })
                 .FieldType;
 
-            schema.Mutation.AddField(saveForLaterMutationField);
+            schema.Mutation.AddField(moveToSavedForLaterMutationField);
+
+            var moveFromSavedForLaterMutationField = FieldBuilder<CartAggregateWithList, CartAggregateWithList>.Create("moveFromSavedForLater", GraphTypeExtensionHelper.GetActualType<CartWithListType>())
+             .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputSaveForLaterType>>(), SchemaConstants.CommandName)
+             .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
+             {
+                 //Q: authorization
+                 await _userManagerCore.CheckCurrentUserState(context, allowAnonymous: false);
+
+                 var cartCommand = context.GetCartCommand<MoveFromSavedForLaterItemsCommand>();
+                 await CheckAuthAsyncByCartId(context, cartCommand.CartId);
+                 var cartAggregateWithList = await _mediator.Send(cartCommand);
+
+                 context.SetExpandedObjectGraph(cartAggregateWithList.Cart);
+                 context.SetExpandedObjectGraph(cartAggregateWithList.List);
+
+                 return cartAggregateWithList;
+             })
+             .FieldType;
+
+            schema.Mutation.AddField(moveFromSavedForLaterMutationField);
 
             #endregion
         }
