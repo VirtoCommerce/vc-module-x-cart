@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
@@ -7,6 +9,7 @@ using VirtoCommerce.CoreModule.Core.Tax;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.DynamicProperties;
 using VirtoCommerce.XCart.Core;
+using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 
@@ -16,16 +19,49 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
 {
     protected const string savedForLaterCartType = "SavedForLater";//TODO: use name too
 
-    public virtual async Task<CartAggregate> EnsureSaveForLaterListAsync(ICartRequest request)
+    public virtual async Task<CartAggregateWithList> MoveFromSavedForLaterItems(MoveSavedForLaterItemsCommandBase request)
     {
-        var existingSaveForLaterList = await FindSavedForLaterListAsync(request);
+        var cart = await cartAggregateRepository.GetCartByIdAsync(request.CartId, request.CultureName);
 
-        if (existingSaveForLaterList != null)
+        if (cart == null)
         {
-            return existingSaveForLaterList;
+            throw new OperationCanceledException("Cart not found");
         }
 
-        return await CreateSaveForLaterListAsync(request);
+        var savedForLaterList = await FindSavedForLaterListAsync(request);
+
+        if (savedForLaterList == null)
+        {
+            throw new OperationCanceledException("Saved for later list not found");
+        }
+
+
+        await MoveItemsAsync(savedForLaterList, cart, request.LineItemIds);
+
+        await cartAggregateRepository.SaveAsync(savedForLaterList);
+        await cartAggregateRepository.SaveAsync(cart);
+
+        return new CartAggregateWithList() { Cart = cart, List = savedForLaterList };
+    }
+
+    public virtual async Task<CartAggregateWithList> MoveToSavedForLaterItems(MoveSavedForLaterItemsCommandBase request)
+    {
+        var cart = await cartAggregateRepository.GetCartByIdAsync(request.CartId, request.CultureName);
+
+        if (cart == null)
+        {
+            throw new OperationCanceledException("Cart not found");
+        }
+
+
+        var savedForLaterList = await EnsureSaveForLaterListAsync(request);
+
+        await MoveItemsAsync(cart, savedForLaterList, request.LineItemIds);
+
+        await cartAggregateRepository.SaveAsync(savedForLaterList);
+        await cartAggregateRepository.SaveAsync(cart);
+
+        return new CartAggregateWithList() { Cart = cart, List = savedForLaterList };
     }
 
     public virtual async Task<CartAggregate> FindSavedForLaterListAsync(ICartRequest request)
@@ -40,7 +76,19 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
         return await cartAggregateRepository.GetCartAsync(searchCriteria, request.CultureName);
     }
 
-    public virtual async Task<CartAggregate> CreateSaveForLaterListAsync(ICartRequest request)
+    protected virtual async Task<CartAggregate> EnsureSaveForLaterListAsync(ICartRequest request)
+    {
+        var existingSaveForLaterList = await FindSavedForLaterListAsync(request);
+
+        if (existingSaveForLaterList != null)
+        {
+            return existingSaveForLaterList;
+        }
+
+        return await CreateSaveForLaterListAsync(request);
+    }
+
+    protected virtual async Task<CartAggregate> CreateSaveForLaterListAsync(ICartRequest request)
     {
         var cart = AbstractTypeFactory<ShoppingCart>.TryCreateInstance();
 
@@ -61,5 +109,19 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
         cart.DynamicProperties = new List<DynamicObjectProperty>();
 
         return await cartAggregateRepository.GetCartForShoppingCartAsync(cart);
+    }
+
+    protected async Task MoveItemsAsync(CartAggregate from, CartAggregate to, IList<string> lineItemIds)
+    {
+        foreach (var lineItemId in lineItemIds)
+        {
+            var item = from.Cart.Items.FirstOrDefault(x => x.Id == lineItemId);
+
+            if (item != null)
+            {
+                await to.AddItemsAsync(new List<NewCartItem> { new NewCartItem(item.ProductId, item.Quantity) });
+                await from.RemoveItemAsync(lineItemId);
+            }
+        }
     }
 }

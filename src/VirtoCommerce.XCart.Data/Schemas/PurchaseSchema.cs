@@ -1474,10 +1474,13 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             schema.Mutation.AddField(moveListItemField);
 
-            #endregion Wishlists 
+            #endregion Wishlists
 
-            #region Saved for later 
+            AddSavedForLaterFields(schema);
+        }
 
+        private void AddSavedForLaterFields(ISchema schema)
+        {
             //queries
             var savedForLaterListQueryField = new FieldType
             {
@@ -1487,7 +1490,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                         new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "userId", Description = "Customer Id" },
                         new QueryArgument<StringGraphType> { Name = "organizationId", Description = "Organization Id" },
                         new QueryArgument<StringGraphType> { Name = "currencyCode", Description = "Currency Code" },
-                        new QueryArgument<StringGraphType> { Name = "cultureName", Description = "Culture name (\"en-Us\")" }),
+                        new QueryArgument<StringGraphType> { Name = "cultureName", Description = "Culture name (\"en-US\")" }),
                 Type = GraphTypeExtensionHelper.GetActualType<CartType>(),
                 Resolver = new FuncFieldResolver<object>(async context =>
                 {
@@ -1542,26 +1545,24 @@ namespace VirtoCommerce.XCart.Data.Schemas
             schema.Mutation.AddField(moveToSavedForLaterMutationField);
 
             var moveFromSavedForLaterMutationField = FieldBuilder<CartAggregateWithList, CartAggregateWithList>.Create("moveFromSavedForLater", GraphTypeExtensionHelper.GetActualType<CartWithListType>())
-             .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputSaveForLaterType>>(), SchemaConstants.CommandName)
-             .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
-             {
-                 //Q: authorization
-                 await _userManagerCore.CheckCurrentUserState(context, allowAnonymous: false);
+                .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputSaveForLaterType>>(), SchemaConstants.CommandName)
+                .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
+                {
+                    //Q: authorization
+                    await _userManagerCore.CheckCurrentUserState(context, allowAnonymous: false);
 
-                 var cartCommand = context.GetCartCommand<MoveFromSavedForLaterItemsCommand>();
-                 await CheckAuthAsyncByCartId(context, cartCommand.CartId);
-                 var cartAggregateWithList = await _mediator.Send(cartCommand);
+                    var cartCommand = context.GetCartCommand<MoveFromSavedForLaterItemsCommand>();
+                    await CheckAuthAsyncByCartId(context, cartCommand.CartId);
+                    var cartAggregateWithList = await _mediator.Send(cartCommand);
 
-                 context.SetExpandedObjectGraph(cartAggregateWithList.Cart);
-                 context.SetExpandedObjectGraph(cartAggregateWithList.List);
+                    context.SetExpandedObjectGraph(cartAggregateWithList.Cart);
+                    context.SetExpandedObjectGraph(cartAggregateWithList.List);
 
-                 return cartAggregateWithList;
-             })
-             .FieldType;
+                    return cartAggregateWithList;
+                })
+                .FieldType;
 
             schema.Mutation.AddField(moveFromSavedForLaterMutationField);
-
-            #endregion
         }
 
         private async Task<object> ResolveListConnectionAsync(IMediator mediator, IResolveConnectionContext<object> context)
