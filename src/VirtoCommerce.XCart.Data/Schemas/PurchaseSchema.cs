@@ -1474,53 +1474,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             schema.Mutation.AddField(moveListItemField);
 
-            #endregion Wishlists
-
-            AddSavedForLaterFields(schema);
-        }
-
-        private void AddSavedForLaterFields(ISchema schema)
-        {
-            //mutations
-            var moveToSavedForLaterMutationField = FieldBuilder<CartAggregateWithList, CartAggregateWithList>.Create("moveToSavedForLater", GraphTypeExtensionHelper.GetActualType<CartWithListType>())
-                .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputSaveForLaterType>>(), SchemaConstants.CommandName)
-                .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
-                {
-                    //Q: authorization
-                    await _userManagerCore.CheckCurrentUserState(context, allowAnonymous: false);
-
-                    var cartCommand = context.GetCartCommand<MoveToSavedForLaterItemsCommand>();
-                    await CheckAuthAsyncByCartId(context, cartCommand.CartId);
-                    var cartAggregateWithList = await _mediator.Send(cartCommand);
-
-                    context.SetExpandedObjectGraph(cartAggregateWithList.Cart);
-                    context.SetExpandedObjectGraph(cartAggregateWithList.List);
-
-                    return cartAggregateWithList;
-                })
-                .FieldType;
-
-            schema.Mutation.AddField(moveToSavedForLaterMutationField);
-
-            var moveFromSavedForLaterMutationField = FieldBuilder<CartAggregateWithList, CartAggregateWithList>.Create("moveFromSavedForLater", GraphTypeExtensionHelper.GetActualType<CartWithListType>())
-                .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputSaveForLaterType>>(), SchemaConstants.CommandName)
-                .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
-                {
-                    //Q: authorization
-                    await _userManagerCore.CheckCurrentUserState(context, allowAnonymous: false);
-
-                    var cartCommand = context.GetCartCommand<MoveFromSavedForLaterItemsCommand>();
-                    await CheckAuthAsyncByCartId(context, cartCommand.CartId);
-                    var cartAggregateWithList = await _mediator.Send(cartCommand);
-
-                    context.SetExpandedObjectGraph(cartAggregateWithList.Cart);
-                    context.SetExpandedObjectGraph(cartAggregateWithList.List);
-
-                    return cartAggregateWithList;
-                })
-                .FieldType;
-
-            schema.Mutation.AddField(moveFromSavedForLaterMutationField);
+            #endregion Wishlists 
         }
 
         private async Task<object> ResolveListConnectionAsync(IMediator mediator, IResolveConnectionContext<object> context)
