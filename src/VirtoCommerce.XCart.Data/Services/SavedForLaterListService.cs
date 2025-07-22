@@ -17,7 +17,8 @@ namespace VirtoCommerce.XCart.Data.Services;
 
 public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepository) : ISavedForLaterListService
 {
-    protected const string savedForLaterCartType = "SavedForLater";//TODO: use name too
+    protected const string savedForLaterCartType = ModuleConstants.ListTypeName;
+    protected const string savedForLaterCartName = "Saved for later";
 
     public virtual async Task<CartAggregateWithList> MoveFromSavedForLaterItems(MoveSavedForLaterItemsCommandBase request)
     {
@@ -61,9 +62,12 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
     public virtual async Task<CartAggregate> FindSavedForLaterListAsync(ICartRequest request)
     {
         var searchCriteria = AbstractTypeFactory<ShoppingCartSearchCriteria>.TryCreateInstance();
+
         searchCriteria.Type = savedForLaterCartType;
+        searchCriteria.Name = savedForLaterCartName;
         searchCriteria.StoreId = request.StoreId;
         searchCriteria.CustomerId = request.UserId;
+        searchCriteria.LanguageCode = request.CultureName;
         searchCriteria.OrganizationId = request.OrganizationId;
         searchCriteria.Currency = request.CurrencyCode;
 
@@ -74,14 +78,14 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
     {
         var cart = AbstractTypeFactory<ShoppingCart>.TryCreateInstance();
 
-        cart.CustomerId = request.UserId;
-        cart.OrganizationId = request.OrganizationId;
-        cart.Name = request.CartName ?? "default";
+        cart.Type = savedForLaterCartType;
+        cart.Name = savedForLaterCartName;
         cart.StoreId = request.StoreId;
+        cart.CustomerId = request.UserId;
         cart.LanguageCode = request.CultureName;
+        cart.OrganizationId = request.OrganizationId;
         cart.Currency = request.CurrencyCode;
         cart.Items = new List<LineItem>();
-        cart.Type = request.CartType;
         cart.Shipments = new List<Shipment>();
         cart.Payments = new List<Payment>();
         cart.Addresses = new List<CartModule.Core.Model.Address>();
