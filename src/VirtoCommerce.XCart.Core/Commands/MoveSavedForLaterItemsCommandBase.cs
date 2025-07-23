@@ -7,5 +7,7 @@ namespace VirtoCommerce.XCart.Core.Commands
     {
         public string CartId { get; set; }
         public string[] LineItemIds { get; set; }
+
+        public CartAggregate Cart { get; set; }
     }
 }

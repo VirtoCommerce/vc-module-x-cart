@@ -8,11 +8,12 @@ using VirtoCommerce.Xapi.Core.Security.Authorization;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Schemas;
+using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Authorization;
 
 namespace VirtoCommerce.XCart.Data.Commands;
 
-public class MoveFromSavedForLaterItemsCommandBuilder(IMediator mediator, IAuthorizationService authorizationService)
+public class MoveFromSavedForLaterItemsCommandBuilder(IMediator mediator, IAuthorizationService authorizationService, ICartAggregateRepository cartRepository)
     : CommandBuilder<MoveFromSavedForLaterItemsCommand, CartAggregateWithList, InputSaveForLaterType, CartWithListType>(mediator, authorizationService)
 {
     protected override string Name => "moveFromSavedForLater";
@@ -35,14 +36,15 @@ public class MoveFromSavedForLaterItemsCommandBuilder(IMediator mediator, IAutho
         {
             throw AuthorizationError.AnonymousAccessDenied();
         }
+
+        var cart = await cartRepository.GetCartByIdAsync(request.CartId);
+        await Authorize(context, cart.Cart, new CanAccessCartAuthorizationRequirement());
+        request.Cart = cart;
     }
 
     protected override async Task AfterMediatorSend(IResolveFieldContext<object> context, MoveFromSavedForLaterItemsCommand request, CartAggregateWithList response)
     {
         await base.AfterMediatorSend(context, request, response);
-
-        await Authorize(context, response.Cart.Cart, new CanAccessCartAuthorizationRequirement());
-        await Authorize(context, response.List.Cart, new CanAccessCartAuthorizationRequirement());
 
         context.SetExpandedObjectGraph(response.Cart);
         context.SetExpandedObjectGraph(response.List);

@@ -22,7 +22,7 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
 
     public virtual async Task<CartAggregateWithList> MoveFromSavedForLaterItems(MoveSavedForLaterItemsCommandBase request)
     {
-        var cart = await cartAggregateRepository.GetCartByIdAsync(request.CartId, request.CultureName);
+        var cart = request.Cart ?? await cartAggregateRepository.GetCartByIdAsync(request.CartId, request.CultureName);
 
         if (cart == null)
         {
@@ -44,7 +44,7 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
 
     public virtual async Task<CartAggregateWithList> MoveToSavedForLaterItems(MoveSavedForLaterItemsCommandBase request)
     {
-        var cart = await cartAggregateRepository.GetCartByIdAsync(request.CartId, request.CultureName);
+        var cart = request.Cart ?? await cartAggregateRepository.GetCartByIdAsync(request.CartId, request.CultureName);
 
         if (cart == null)
         {
