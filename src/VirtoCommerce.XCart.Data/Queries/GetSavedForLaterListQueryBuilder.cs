@@ -41,8 +41,11 @@ public class GetSavedForLaterListQueryBuilder(IMediator mediator, IAuthorization
     {
         await base.AfterMediatorSend(context, request, response);
 
-        await Authorize(context, response.Cart, new CanAccessCartAuthorizationRequirement());
+        if (response != null)
+        {
+            await Authorize(context, response.Cart, new CanAccessCartAuthorizationRequirement());
 
-        context.SetExpandedObjectGraph(response);
+            context.SetExpandedObjectGraph(response);
+        }
     }
 }

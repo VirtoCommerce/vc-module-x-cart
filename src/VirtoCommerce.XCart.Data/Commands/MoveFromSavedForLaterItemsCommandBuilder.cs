@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using GraphQL;
 using MediatR;
@@ -38,7 +39,14 @@ public class MoveFromSavedForLaterItemsCommandBuilder(IMediator mediator, IAutho
         }
 
         var cart = await cartRepository.GetCartByIdAsync(request.CartId);
+
+        if (cart == null)
+        {
+            throw new OperationCanceledException("Cart not found");
+        }
+
         await Authorize(context, cart.Cart, new CanAccessCartAuthorizationRequirement());
+
         request.Cart = cart;
     }
 
