@@ -10,6 +10,7 @@ using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Pipelines;
+using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 
@@ -20,12 +21,17 @@ namespace VirtoCommerce.XCart.Data.Middlewares
         private readonly IMapper _mapper;
         private readonly ICartAggregateRepository _cartAggregateRepository;
         private readonly IGenericPipelineLauncher _pipeline;
+        private readonly ILoadUserToEvalContextService _loadUserToEvalContextService;
 
-        public LoadCartToEvalContextMiddleware(IMapper mapper, ICartAggregateRepository cartAggregateRepository, IGenericPipelineLauncher pipeline)
+        public LoadCartToEvalContextMiddleware(IMapper mapper,
+            ICartAggregateRepository cartAggregateRepository,
+            IGenericPipelineLauncher pipeline,
+            ILoadUserToEvalContextService loadUserToEvalContextService)
         {
             _mapper = mapper;
             _cartAggregateRepository = cartAggregateRepository;
             _pipeline = pipeline;
+            _loadUserToEvalContextService = loadUserToEvalContextService;
         }
 
         public async Task Run(PromotionEvaluationContext parameter, Func<PromotionEvaluationContext, Task> next)
@@ -40,7 +46,12 @@ namespace VirtoCommerce.XCart.Data.Middlewares
                     CartAggregate = cartAggregate,
                     PromotionEvaluationContext = parameter
                 };
+
                 await _pipeline.Execute(evalContextCartMap);
+
+                await _loadUserToEvalContextService.SetShopperDataFromMember(evalContextCartMap.PromotionEvaluationContext, cartAggregate.Cart.CustomerId);
+                await _loadUserToEvalContextService.SetShopperDataFromOrganization(evalContextCartMap.PromotionEvaluationContext, cartAggregate.Cart.OrganizationId);
+
             }
 
             await next(parameter);
@@ -54,6 +65,9 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             if (cartAggregate != null)
             {
                 _mapper.Map(cartAggregate, parameter);
+
+                await _loadUserToEvalContextService.SetShopperDataFromMember(parameter, cartAggregate.Cart.CustomerId);
+                await _loadUserToEvalContextService.SetShopperDataFromOrganization(parameter, cartAggregate.Cart.OrganizationId);
             }
 
             await next(parameter);
@@ -67,6 +81,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             if (cartAggregate != null)
             {
                 _mapper.Map(cartAggregate, parameter);
+
             }
 
             await next(parameter);
