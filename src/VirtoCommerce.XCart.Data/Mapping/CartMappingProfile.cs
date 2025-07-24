@@ -126,6 +126,7 @@ namespace VirtoCommerce.XCart.Data.Mapping
                 priceEvalContext.StoreId = cartAggr.Cart.StoreId;
                 priceEvalContext.CatalogId = cartAggr.Store.Catalog;
                 priceEvalContext.Currency = cartAggr.Cart.Currency;
+                priceEvalContext.OrganizationId = cartAggr.Cart.OrganizationId;
 
                 var contact = cartAggr.Member;
                 if (contact != null)
