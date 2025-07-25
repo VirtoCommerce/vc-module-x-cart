@@ -83,7 +83,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             cartSearchCriteria.Name = "default";
             cartSearchCriteria.StoreId = context.StoreId;
             cartSearchCriteria.CustomerId = context.CustomerId;
-            cartSearchCriteria.OrganizationId = context.OrganizaitonId;
+            cartSearchCriteria.OrganizationId = context.OrganizationId;
             cartSearchCriteria.Currency = context.Currency;
             cartSearchCriteria.ResponseGroup = CartResponseGroup.Full.ToString();
 
