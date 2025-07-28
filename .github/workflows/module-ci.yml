@@ -264,7 +264,7 @@ jobs:
     if: ${{ ((github.ref == 'refs/heads/dev') && (github.event_name == 'push')) ||
         (github.event_name == 'workflow_dispatch') || ((github.base_ref == 'dev') && (github.event_name == 'pull_request')) }}
     needs: 'ci'
-    uses: VirtoCommerce/.github/.github/workflows/ui-autotests.yml@v3.800.13
+    uses: VirtoCommerce/.github/.github/workflows/ui-autotests.yml@VCST-2789-1 #v3.800.13
     with:
       installModules: 'false'
       installCustomModule: 'true'
