@@ -59,6 +59,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
                         var request = new LoadProductsQuery
                         {
                             UserId = context.GetArgumentOrValue<string>("userId") ?? context.GetCurrentUserId(),
+                            OrganizationId = context.GetCurrentOrganizationId(),
                             StoreId = context.GetValue<string>("storeId"),
                             CurrencyCode = context.GetArgumentOrValue<string>("currencyCode"),
                             ObjectIds = ids.ToArray(),

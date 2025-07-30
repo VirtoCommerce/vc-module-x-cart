@@ -81,11 +81,11 @@ namespace VirtoCommerce.XCart.Data.Services
 
             //Evaluate promotions cart and apply rewards for available shipping methods
             var evalContext = AbstractTypeFactory<PromotionEvaluationContext>.TryCreateInstance();
-            var evalContextCartMap = new PromotionEvaluationContextCartMap
-            {
-                CartAggregate = cartAggregate,
-                PromotionEvaluationContext = evalContext
-            };
+            var evalContextCartMap = AbstractTypeFactory<PromotionEvaluationContextCartMap>.TryCreateInstance();
+
+            evalContextCartMap.CartAggregate = cartAggregate;
+            evalContextCartMap.PromotionEvaluationContext = evalContext;
+
             await _pipeline.Execute(evalContextCartMap);
 
             var promoEvalResult = await cartAggregate.EvaluatePromotionsAsync(evalContextCartMap.PromotionEvaluationContext);
@@ -136,11 +136,11 @@ namespace VirtoCommerce.XCart.Data.Services
             }
 
             var evalContext = AbstractTypeFactory<PromotionEvaluationContext>.TryCreateInstance();
-            var evalContextCartMap = new PromotionEvaluationContextCartMap
-            {
-                CartAggregate = cartAggregate,
-                PromotionEvaluationContext = evalContext
-            };
+
+            var evalContextCartMap = AbstractTypeFactory<PromotionEvaluationContextCartMap>.TryCreateInstance();
+            evalContextCartMap.CartAggregate = cartAggregate;
+            evalContextCartMap.PromotionEvaluationContext = evalContext;
+
             await _pipeline.Execute(evalContextCartMap);
 
             var promoResult = await cartAggregate.EvaluatePromotionsAsync(evalContextCartMap.PromotionEvaluationContext);

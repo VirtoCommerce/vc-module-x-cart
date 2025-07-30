@@ -848,11 +848,11 @@ namespace VirtoCommerce.XCart.Core
             if (!LineItems.IsNullOrEmpty() && !LineItems.Any(i => i.IsReadOnly))
             {
                 var evalContext = AbstractTypeFactory<PromotionEvaluationContext>.TryCreateInstance();
-                var evalContextCartMap = new PromotionEvaluationContextCartMap
-                {
-                    CartAggregate = this,
-                    PromotionEvaluationContext = evalContext
-                };
+                var evalContextCartMap = AbstractTypeFactory<PromotionEvaluationContextCartMap>.TryCreateInstance();
+
+                evalContextCartMap.CartAggregate = this;
+                evalContextCartMap.PromotionEvaluationContext = evalContext;
+
                 await _pipeline.Execute(evalContextCartMap);
 
                 promotionResult = await EvaluatePromotionsAsync(evalContextCartMap.PromotionEvaluationContext);

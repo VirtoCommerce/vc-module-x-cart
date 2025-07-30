@@ -51,6 +51,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
                             StoreId = storeId,
                             CurrencyCode = currencyCode,
                             UserId = userId,
+                            OrganizationId = context.GetCurrentOrganizationId(),
                             ObjectIds = ids.ToArray(),
                             IncludeFields = includeFields,
                         };
