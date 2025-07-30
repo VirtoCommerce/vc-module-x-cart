@@ -20,7 +20,9 @@ namespace VirtoCommerce.XCart.Data.Middlewares
         private readonly ICartAggregateRepository _cartAggregateRepository;
         private readonly IGenericPipelineLauncher _pipeline;
 
-        public LoadCartToEvalContextMiddleware(IMapper mapper, ICartAggregateRepository cartAggregateRepository, IGenericPipelineLauncher pipeline)
+        public LoadCartToEvalContextMiddleware(IMapper mapper,
+            ICartAggregateRepository cartAggregateRepository,
+            IGenericPipelineLauncher pipeline)
         {
             _mapper = mapper;
             _cartAggregateRepository = cartAggregateRepository;
@@ -34,11 +36,11 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             var cartAggregate = await _cartAggregateRepository.GetCartAsync(criteria, parameter.Language);
             if (cartAggregate != null)
             {
-                var evalContextCartMap = new PromotionEvaluationContextCartMap
-                {
-                    CartAggregate = cartAggregate,
-                    PromotionEvaluationContext = parameter
-                };
+                var evalContextCartMap = AbstractTypeFactory<PromotionEvaluationContextCartMap>.TryCreateInstance();
+
+                evalContextCartMap.CartAggregate = cartAggregate;
+                evalContextCartMap.PromotionEvaluationContext = parameter;
+
                 await _pipeline.Execute(evalContextCartMap);
             }
 
@@ -66,6 +68,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             if (cartAggregate != null)
             {
                 _mapper.Map(cartAggregate, parameter);
+
             }
 
             await next(parameter);
@@ -79,7 +82,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             cartSearchCriteria.Name = "default";
             cartSearchCriteria.StoreId = context.StoreId;
             cartSearchCriteria.CustomerId = context.CustomerId;
-            cartSearchCriteria.OrganizationId = context.OrganizaitonId;
+            cartSearchCriteria.OrganizationId = context.OrganizationId;
             cartSearchCriteria.Currency = context.Currency;
             cartSearchCriteria.ResponseGroup = Core.ModuleConstants.XCartResponseGroup;
 
