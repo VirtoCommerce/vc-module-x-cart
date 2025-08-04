@@ -126,6 +126,7 @@ namespace VirtoCommerce.XCart.Data.Mapping
                 priceEvalContext.StoreId = cartAggr.Cart.StoreId;
                 priceEvalContext.CatalogId = cartAggr.Store.Catalog;
                 priceEvalContext.Currency = cartAggr.Cart.Currency;
+                priceEvalContext.OrganizationId = cartAggr.Cart.OrganizationId;
 
                 var contact = cartAggr.Member;
                 if (contact != null)
@@ -231,7 +232,7 @@ namespace VirtoCommerce.XCart.Data.Mapping
                 promoEvalcontext.Currency = cartAggr.Cart.Currency;
                 promoEvalcontext.CustomerId = promoEvalcontext.UserId = cartAggr.Cart.CustomerId;
                 promoEvalcontext.ContactId = cartAggr.Member?.Id;
-                promoEvalcontext.OrganizaitonId = cartAggr.Cart.OrganizationId;
+                promoEvalcontext.OrganizationId = cartAggr.Cart.OrganizationId;
                 promoEvalcontext.UserGroups = cartAggr.Member?.Groups.ToArray();
                 promoEvalcontext.IsRegisteredUser = !cartAggr.Cart.IsAnonymous;
                 promoEvalcontext.Language = cartAggr.Cart.LanguageCode;

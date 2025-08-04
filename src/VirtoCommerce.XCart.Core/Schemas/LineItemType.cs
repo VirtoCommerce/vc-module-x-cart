@@ -52,6 +52,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
                             ObjectIds = ids.ToArray(),
                             IncludeFields = includeFields.ToArray(),
                             UserId = userId,
+                            OrganizationId = context.GetCurrentOrganizationId(),
                         };
 
                         var allCurrencies = await currencyService.GetAllCurrenciesAsync();

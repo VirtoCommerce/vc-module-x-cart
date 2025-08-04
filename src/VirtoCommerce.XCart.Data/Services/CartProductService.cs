@@ -76,7 +76,7 @@ namespace VirtoCommerce.XCart.Data.Services
                 return [];
             }
 
-            var cartProducts = await GetCartProductsAsync(ids, aggregate.Store.Id, aggregate.Cart.Currency, aggregate.Cart.CustomerId, aggregate.ProductsIncludeFields ?? IncludeFields);
+            var cartProducts = await GetCartProductsAsync(ids, aggregate.Store.Id, aggregate.Cart.Currency, aggregate.Cart.CustomerId, aggregate.Cart.OrganizationId, aggregate.ProductsIncludeFields ?? IncludeFields);
 
             var productsToLoadDependencies = cartProducts.Where(x => x.LoadDependencies).ToList();
             if (productsToLoadDependencies.Count != 0)
@@ -99,7 +99,7 @@ namespace VirtoCommerce.XCart.Data.Services
                 return [];
             }
 
-            var cartProducts = await LoadCartProductsAsync(request.ProductIds, request.Store.Id, request.Currency.Code, request.UserId, request.ProductsIncludeFields ?? IncludeFields, request.EvaluatePromotions);
+            var cartProducts = await LoadCartProductsAsync(request.ProductIds, request.Store.Id, request.Currency.Code, request.UserId, request.OrganizationId, request.ProductsIncludeFields ?? IncludeFields, request.EvaluatePromotions);
 
             var productsToLoadDependencies = cartProducts.Where(x => x.LoadDependencies).ToList();
             if (productsToLoadDependencies.Count != 0)
@@ -115,9 +115,9 @@ namespace VirtoCommerce.XCart.Data.Services
         /// </summary>
         /// <param name="ids">Product ids</param>
         /// <returns>List of <see cref="CatalogProduct"/>s</returns>
-        protected virtual async Task<IList<CatalogProduct>> GetProductsByIdsAsync(IList<string> ids)
+        protected virtual Task<IList<CatalogProduct>> GetProductsByIdsAsync(IList<string> ids)
         {
-            return await _productService.GetAsync(ids, ResponseGroups.ToString());
+            return _productService.GetAsync(ids, ResponseGroups.ToString());
         }
 
 
@@ -125,18 +125,19 @@ namespace VirtoCommerce.XCart.Data.Services
         /// Map all <see cref="CatalogProduct"/> to <see cref="CartProduct"/>
         /// </summary>
         /// <returns>List of <see cref="CartProduct"/>s</returns>
-        protected virtual async Task<List<CartProduct>> GetCartProductsAsync(IList<string> ids, string storeId, string currencyCode, string userId, IList<string> includeFields)
+        protected virtual async Task<List<CartProduct>> GetCartProductsAsync(IList<string> ids, string storeId, string currencyCode, string userId, string organizationId, IList<string> includeFields)
         {
             // EvaluatePromotions = false - Promotions will be applied on the line item level
-            var result = await LoadCartProductsAsync(ids, storeId, currencyCode, userId, includeFields, false);
+            var result = await LoadCartProductsAsync(ids, storeId, currencyCode, userId, organizationId, includeFields, false);
             return result;
         }
 
-        protected virtual async Task<List<CartProduct>> LoadCartProductsAsync(IList<string> ids, string storeId, string currencyCode, string userId, IList<string> includeFields, bool evaluatePromotions)
+        protected virtual async Task<List<CartProduct>> LoadCartProductsAsync(IList<string> ids, string storeId, string currencyCode, string userId, string organizationId, IList<string> includeFields, bool evaluatePromotions)
         {
             var productsQuery = new LoadProductsQuery
             {
                 UserId = userId,
+                OrganizationId = organizationId,
                 StoreId = storeId,
                 CurrencyCode = currencyCode,
                 ObjectIds = ids,
@@ -293,6 +294,7 @@ namespace VirtoCommerce.XCart.Data.Services
             _mapper.Map(aggregate, pricesEvalContext);
 
             await _loadUserToEvalContextService.SetShopperDataFromMember(pricesEvalContext, pricesEvalContext.CustomerId);
+            await _loadUserToEvalContextService.SetShopperDataFromOrganization(pricesEvalContext, pricesEvalContext.OrganizationId);
 
             var evalPricesTask = await _pricingEvaluatorService.EvaluateProductPricesAsync(pricesEvalContext);
 

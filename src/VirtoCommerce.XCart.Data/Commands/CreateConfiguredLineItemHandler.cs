@@ -8,7 +8,6 @@ using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.FileExperienceApi.Core.Extensions;
 using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
@@ -40,6 +39,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
         productsRequest.ProductIds = [request.ConfigurableProductId];
         productsRequest.EvaluatePromotions = request.EvaluatePromotions;
+        productsRequest.OrganizationId = request.OrganizationId;
 
         var product = (await _cartProductService.GetCartProductsAsync(productsRequest)).FirstOrDefault();
 
