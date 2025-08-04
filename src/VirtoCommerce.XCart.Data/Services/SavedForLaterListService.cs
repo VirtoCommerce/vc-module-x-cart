@@ -83,7 +83,6 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
         cart.StoreId = request.StoreId;
         cart.CustomerId = request.UserId;
         cart.LanguageCode = request.CultureName;
-        cart.OrganizationId = request.OrganizationId;
         cart.Currency = request.CurrencyCode;
         cart.Items = new List<LineItem>();
         cart.Shipments = new List<Shipment>();
