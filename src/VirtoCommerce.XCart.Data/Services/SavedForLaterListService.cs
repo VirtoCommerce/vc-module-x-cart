@@ -68,7 +68,6 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
         searchCriteria.StoreId = request.StoreId;
         searchCriteria.CustomerId = request.UserId;
         searchCriteria.LanguageCode = request.CultureName;
-        searchCriteria.OrganizationId = request.OrganizationId;
         searchCriteria.Currency = request.CurrencyCode;
 
         return await cartAggregateRepository.GetCartAsync(searchCriteria, request.CultureName);
