@@ -58,7 +58,7 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                 _memberResolver.Object,
                 _storeService.Object,
                 null,
-                null,
+                _platformMemoryCache,
                 _fileUploadService.Object);
         }
 
