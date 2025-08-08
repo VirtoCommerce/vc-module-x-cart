@@ -1474,7 +1474,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             schema.Mutation.AddField(moveListItemField);
 
-            #endregion Wishlists
+            #endregion Wishlists 
         }
 
         private async Task<object> ResolveListConnectionAsync(IMediator mediator, IResolveConnectionContext<object> context)
