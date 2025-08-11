@@ -82,12 +82,12 @@ namespace VirtoCommerce.XCart.Data.Services
 
         private void AddCartToCache(ShoppingCart cart)
         {
-            var cacheEntryOptions = _platformMemoryCache.GetDefaultCacheEntryOptions();
-            cacheEntryOptions.AddExpirationToken(GenericCachingRegion<ShoppingCart>.CreateChangeTokenForKey(cart.Id));
-            _platformMemoryCache.Set(
-                CacheKey.With(_shoppingCartService.GetType(), "GetAsync", ModuleConstants.XCartResponseGroup, cart.Id),
-                cart,
-                cacheEntryOptions);
+            //var cacheEntryOptions = _platformMemoryCache.GetDefaultCacheEntryOptions();
+            //cacheEntryOptions.AddExpirationToken(GenericCachingRegion<ShoppingCart>.CreateChangeTokenForKey(cart.Id));
+            //_platformMemoryCache.Set(
+            //    CacheKey.With(_shoppingCartService.GetType(), "GetAsync", ModuleConstants.XCartResponseGroup, cart.Id),
+            //    cart,
+            //    cacheEntryOptions);
         }
 
         public Task<CartAggregate> GetCartByIdAsync(string cartId, string cultureName = null)
