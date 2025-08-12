@@ -1474,7 +1474,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             schema.Mutation.AddField(moveListItemField);
 
-            #endregion Wishlists
+            #endregion Wishlists 
         }
 
         private async Task<object> ResolveListConnectionAsync(IMediator mediator, IResolveConnectionContext<object> context)
@@ -1525,6 +1525,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                 Currency = request.CurrencyCode,
                 Type = request.CartType,
                 LanguageCode = request.CultureName,
+                ResponseGroup = Core.ModuleConstants.XCartResponseGroup,
             };
 
             var cartSearchResult = await _shoppingCartSearchService.SearchAsync(criteria);
@@ -1542,7 +1543,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
         private async Task CheckAuthAsyncByCartId(IResolveFieldContext context, string cartId)
         {
-            var cart = await _cartService.GetByIdAsync(cartId, CartResponseGroup.Default.ToString());
+            var cart = await _cartService.GetByIdAsync(cartId, Core.ModuleConstants.XCartResponseGroup);
 
             if (cart == null)
             {
