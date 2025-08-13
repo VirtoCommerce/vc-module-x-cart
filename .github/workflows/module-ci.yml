@@ -273,6 +273,7 @@ jobs:
       runTests: ${{ needs.ci.outputs.run-ui-tests }}
     secrets:
       envPAT: ${{ secrets.REPO_TOKEN }}
+      testSecretEnvFile: ${{ secrets.TEST_SECRET_ENV_FILE_4GRAPHQLTESTS }}
   
   # module-katalon-tests:
   #   if: ${{ ((github.ref == 'refs/heads/dev') && (github.event_name == 'push') && (needs.ci.outputs.run-e2e == 'true')) ||
