@@ -74,7 +74,8 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         private static void ClearAddressInfo(AddOrUpdateCartShipmentCommand request, Shipment shipment, string previousShipmentCode)
         {
-            if (shipment.ShipmentMethodCode != previousShipmentCode && request.Shipment.DeliveryAddress?.Value == null)
+            if (shipment.ShipmentMethodCode != previousShipmentCode &&
+                request.Shipment.DeliveryAddress is { IsSpecified: true, Value: null })
             {
                 shipment.DeliveryAddress = null;
             }
