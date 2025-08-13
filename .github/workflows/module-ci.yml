@@ -274,7 +274,7 @@ jobs:
       vctestingRepoBranch: 'vcst-3473'
     secrets:
       envPAT: ${{ secrets.REPO_TOKEN }}
-      testSecretEnvFile: ${{ secrets.TEST_SECRET_ENV_FILE_4GRAPHQLTESTS }}
+      testSecretEnvFile: ${{ secrets.VC_TESTING_MODULE_ENV_FILE }}
   
   # module-katalon-tests:
   #   if: ${{ ((github.ref == 'refs/heads/dev') && (github.event_name == 'push') && (needs.ci.outputs.run-e2e == 'true')) ||
