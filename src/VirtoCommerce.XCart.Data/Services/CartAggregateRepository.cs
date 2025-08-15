@@ -64,20 +64,31 @@ namespace VirtoCommerce.XCart.Data.Services
 
         public virtual async Task SaveAsync(CartAggregate cartAggregate)
         {
-            await cartAggregate.RecalculateAsync();
-            cartAggregate.Cart.ModifiedDate = DateTime.UtcNow;
+            try
+            {
+                await cartAggregate.RecalculateAsync();
+                cartAggregate.Cart.ModifiedDate = DateTime.UtcNow;
 
-            var cart = cartAggregate.Cart;
+                var cart = cartAggregate.Cart;
 
-            await _shoppingCartService.SaveChangesAsync([cart]);
+                await _shoppingCartService.SaveChangesAsync([cart]);
 
-            await UpdateConfigurationFiles(cart);
+                // Ensure that the cart aggregate has an ID
+                if (string.IsNullOrEmpty(cartAggregate.Id))
+                {
+                    cartAggregate.Id = cart.Id;
+                }
 
-            // Expire cache for the cart aggregate by its id to ensure that the next request will get the updated cart aggregate
-            GenericCachingRegion<CartAggregate>.ExpireTokenForKey(cartAggregate.Id);
+                await UpdateConfigurationFiles(cart);
 
-            // Put Cart into the cache to prevent loading it from the database again
-            //AddCartToCache(cart);
+                // Put Cart into the cache to prevent loading it from the database again
+                AddCartToCache(cart);
+            }
+            finally
+            {
+                // Expire cache for the cart aggregate by its id to ensure that the next request will get the updated cart aggregate
+                GenericCachingRegion<CartAggregate>.ExpireTokenForKey(cartAggregate.Id);
+            }
         }
 
         protected virtual void AddCartToCache(ShoppingCart cart)
