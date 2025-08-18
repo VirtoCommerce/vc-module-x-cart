@@ -3,9 +3,9 @@ using VirtoCommerce.XCart.Core.Commands;
 
 namespace VirtoCommerce.XCart.Core.Schemas;
 
-public class InputCreateCartFromWishlistCommand : InputObjectGraphType<CreateCartFromWishlistCommand>
+public class InputCreateCartFromWishlistType : InputObjectGraphType<CreateCartFromWishlistCommand>
 {
-    public InputCreateCartFromWishlistCommand()
+    public InputCreateCartFromWishlistType()
     {
         Field<NonNullGraphType<StringGraphType>>("listId").Description("Wishlist ID");
     }

@@ -17,9 +17,9 @@ using static VirtoCommerce.XCart.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Commands;
 
-public class CreateCartFromWishlistCommandBuilder : CommandBuilder<CreateCartFromWishlistCommand, CartAggregate, InputCreateCartFromWishlistCommand, CartType>
+public class CreateCartFromWishlistCommandBuilder : CommandBuilder<CreateCartFromWishlistCommand, CartAggregate, InputCreateCartFromWishlistType, CartType>
 {
-    protected override string Name => "createCartFromWishlistCommand";
+    protected override string Name => "createCartFromWishlist";
 
     private readonly IMemberResolver _memberResolver;
     private readonly IShoppingCartService _cartService;
