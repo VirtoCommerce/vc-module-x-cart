@@ -44,6 +44,8 @@ namespace VirtoCommerce.XCart.Data.Mapping
 
                 lineItem.CatalogId = cartProduct.Product.CatalogId;
                 lineItem.CategoryId = cartProduct.Product.CategoryId;
+                lineItem.DynamicProperties = [];
+
                 if (cartProduct.Price != null)
                 {
                     lineItem.Currency = cartProduct.Price.Currency.Code;

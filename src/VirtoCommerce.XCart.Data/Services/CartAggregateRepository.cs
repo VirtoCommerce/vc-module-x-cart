@@ -77,10 +77,10 @@ namespace VirtoCommerce.XCart.Data.Services
             GenericCachingRegion<CartAggregate>.ExpireTokenForKey(cartAggregate.Id);
 
             // Put Cart into the cache to prevent loading it from the database again
-            AddCartToCache(cart);
+            //AddCartToCache(cart);
         }
 
-        private void AddCartToCache(ShoppingCart cart)
+        protected virtual void AddCartToCache(ShoppingCart cart)
         {
             var cacheEntryOptions = _platformMemoryCache.GetDefaultCacheEntryOptions();
             cacheEntryOptions.AddExpirationToken(GenericCachingRegion<ShoppingCart>.CreateChangeTokenForKey(cart.Id));

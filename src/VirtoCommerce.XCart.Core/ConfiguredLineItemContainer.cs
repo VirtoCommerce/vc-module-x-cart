@@ -33,6 +33,7 @@ namespace VirtoCommerce.XCart.Core
             lineItem.ImageUrl = cartProduct.Product.ImgSrc;
             lineItem.CatalogId = cartProduct.Product.CatalogId;
             lineItem.CategoryId = cartProduct.Product.CategoryId;
+            lineItem.DynamicProperties = [];
 
             lineItem.Quantity = quantity;
 
@@ -97,6 +98,7 @@ namespace VirtoCommerce.XCart.Core
 
             lineItem.Discounts = [];
             lineItem.TaxDetails = [];
+            lineItem.DynamicProperties = [];
 
             lineItem.ProductId = ConfigurableProduct.Product.Id;
             lineItem.Sku = $"Configuration-{ConfigurableProduct.Product.Code}";
