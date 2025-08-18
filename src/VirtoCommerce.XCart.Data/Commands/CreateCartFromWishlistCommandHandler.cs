@@ -26,6 +26,7 @@ public class CreateCartFromWishlistCommandHandler : CartCommandHandler<CreateCar
         {
             StoreId = sourceAggreagate.Cart.StoreId,
             CartName = Guid.NewGuid().ToString("N"),
+            CartType = "CreatedFromWishlist",
             UserId = request.UserId,
             OrganizationId = request.OrganizationId,
             CultureName = sourceAggreagate.Cart.LanguageCode,
