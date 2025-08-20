@@ -1,7 +1,6 @@
 using System.Linq;
 using FluentValidation;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Validators
 {
@@ -14,7 +13,7 @@ namespace VirtoCommerce.XCart.Core.Validators
             {
                 if (string.IsNullOrWhiteSpace(shipmentContext.Shipment.ShipmentMethodCode))
                 {
-                    context.AddFailure(new CartValidationError(shipmentContext.Shipment, "ShipmentMethodCode is Mandatory", "SHIPMENT_METHOD_CODE_IS_MANDATORY"));
+                    context.AddFailure(CartErrorDescriber.ShipmentMethodCodeRequired(shipmentContext.Shipment));
                     return;
                 }
                 var availShippingRates = shipmentContext.AvailShippingRates;

@@ -81,6 +81,12 @@ namespace VirtoCommerce.XCart.Core.Validators
             return result;
         }
 
+        public static CartValidationError ShipmentMethodCodeRequired(IEntity entity)
+        {
+            var result = new CartValidationError(entity, "Shipment method code is required", "SHIPMENT_METHOD_CODE_REQUIRED");
+            return result;
+        }
+
         public static CartValidationError PaymentMethodUnavailable(IEntity entity, string name)
         {
             var result = new CartValidationError(entity, $"The payment method {name} unavailable", "PAYMENT_METHOD_UNAVAILABLE");
