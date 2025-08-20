@@ -49,7 +49,7 @@ public class CreateCartFromWishlistCommandBuilder : CommandBuilder<CreateCartFro
     {
         await base.BeforeMediatorSend(context, request);
 
-        var wishlistUserContext = await InitializeWishlistUserContext(context, request);
+        var wishlistUserContext = await InitializeWishlistUserContext(request);
 
         await Authorize(context, wishlistUserContext, new CanAccessCartAuthorizationRequirement());
 
@@ -64,7 +64,7 @@ public class CreateCartFromWishlistCommandBuilder : CommandBuilder<CreateCartFro
         return base.AfterMediatorSend(context, request, response);
     }
 
-    private async Task<WishlistUserContext> InitializeWishlistUserContext(IResolveFieldContext context, CreateCartFromWishlistCommand request)
+    private async Task<WishlistUserContext> InitializeWishlistUserContext(CreateCartFromWishlistCommand request)
     {
         var wishlistUserContext = new WishlistUserContext
         {
