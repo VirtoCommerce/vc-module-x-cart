@@ -30,7 +30,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
 
 
         [Fact]
-        public async Task ValidateShipment_RuleSetDefault_ShipmentMethodCodeIsNull_Valid()
+        public async Task ValidateShipment_RuleSetDefault_ShipmentMethodCodeIsNull_Invalid()
         {
             // Arrange
             var shipment = new CartModule.Core.Model.Shipment
@@ -47,12 +47,14 @@ namespace VirtoCommerce.XCart.Tests.Validators
             });
 
             // Assert
-            result.IsValid.Should().BeTrue();
-            result.Errors.Should().BeEmpty();
+            result.IsValid.Should().BeFalse();
+            result.Errors.Should().NotBeEmpty();
+            result.Errors.Should().HaveCount(1);
+            result.Errors.Should().Contain(x => x.ErrorCode == "SHIPMENT_METHOD_CODE_REQUIRED");
         }
 
         [Fact]
-        public async Task ValidateShipment_RuleSetDefault_ShipmentMethodCodeIsEmpty_Valid()
+        public async Task ValidateShipment_RuleSetDefault_ShipmentMethodCodeIsEmpty_Invalid()
         {
             // Arrange
             var shipment = new CartModule.Core.Model.Shipment
@@ -69,8 +71,10 @@ namespace VirtoCommerce.XCart.Tests.Validators
             });
 
             // Assert
-            result.IsValid.Should().BeTrue();
-            result.Errors.Should().BeEmpty();
+            result.IsValid.Should().BeFalse();
+            result.Errors.Should().NotBeEmpty();
+            result.Errors.Should().HaveCount(1);
+            result.Errors.Should().Contain(x => x.ErrorCode == "SHIPMENT_METHOD_CODE_REQUIRED");
         }
 
         [Fact]
