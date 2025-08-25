@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.Platform.Core.Settings;
@@ -12,8 +13,12 @@ namespace VirtoCommerce.XCart.Core
         }
 
         public const string ListTypeName = "Wishlist";
-        public const string PrivateScope = "Private";
-        public const string OrganizationScope = "Organization";
+
+        [Obsolete("Use VirtoCommerce.CartModule.Core.Services.CartSharingModes instead")]//TODO: Version info?
+        public const string PrivateScope = CartSharingModes.Private;
+
+        [Obsolete("Use VirtoCommerce.CartModule.Core.Services.CartSharingModes instead")]//TODO: Version info?
+        public const string OrganizationScope = CartSharingModes.Organization;
 
         public const int LineItemQualityLimit = 999999;
 
