@@ -1,9 +1,10 @@
+using System.Linq;
 using System.Threading.Tasks;
+using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Services;
-using static VirtoCommerce.XCart.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Commands.BaseCommands;
 
@@ -17,15 +18,23 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
 
     protected virtual Task UpdateScopeAsync(CartAggregate cartAggregate, TCommand request)
     {
-        if (request.Scope?.EqualsIgnoreCase(OrganizationScope) == true)
+        if (request.Scope?.EqualsIgnoreCase(CartSharingModes.Anyone) == true)
         {
+            EnsureActiveSharingSettings(cartAggregate.Cart, CartSharingModes.Anyone, CartSharingAccess.Read);
+        }
+        else if (request.Scope?.EqualsIgnoreCase(CartSharingModes.Organization) == true)
+        {
+            EnsureActiveSharingSettings(cartAggregate.Cart, CartSharingModes.Organization, CartSharingAccess.Write);
+
             if (!string.IsNullOrEmpty(request.WishlistUserContext.CurrentOrganizationId))
             {
                 cartAggregate.Cart.OrganizationId = request.WishlistUserContext.CurrentOrganizationId;
             }
         }
-        else if (request.Scope?.EqualsIgnoreCase(PrivateScope) == true)
+        else if (request.Scope?.EqualsIgnoreCase(CartSharingModes.Private) == true)
         {
+            DeactivateSharingSettings(cartAggregate.Cart);
+
             cartAggregate.Cart.OrganizationId = null;
 
             cartAggregate.Cart.CustomerId = request.WishlistUserContext.CurrentUserId;
@@ -33,5 +42,36 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
         }
 
         return Task.CompletedTask;
+    }
+
+    protected void EnsureActiveSharingSettings(ShoppingCart cart, string mode, string access)
+    {
+        if (cart.SharingSettings.Count == 0)
+        {
+            cart.SharingSettings.Add(new CartSharingSetting
+            {
+                ShoppingCartId = cart.Id,
+                Mode = mode,
+                Access = access,
+                IsActive = true
+            });
+        }
+        else
+        {
+            DeactivateSharingSettings(cart);
+
+            var sharingSetting = cart.SharingSettings.First();
+            sharingSetting.IsActive = true;
+            sharingSetting.Mode = mode;
+            sharingSetting.Access = access;
+        }
+    }
+
+    protected void DeactivateSharingSettings(ShoppingCart cart)
+    {
+        foreach (var setting in cart.SharingSettings)
+        {
+            setting.IsActive = false;
+        }
     }
 }
