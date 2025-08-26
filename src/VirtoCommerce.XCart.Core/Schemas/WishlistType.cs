@@ -1,6 +1,8 @@
+using System;
 using System.Linq;
 using GraphQL;
 using GraphQL.Types;
+using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.XCart.Core.Schemas
@@ -25,7 +27,20 @@ namespace VirtoCommerce.XCart.Core.Schemas
 
         protected virtual object ResolveSharingSetting(IResolveFieldContext<CartAggregate> context)
         {
-            return context.Source.Cart.SharingSettings.FirstOrDefault();
+            var sharingSetting = context.Source.Cart.SharingSettings.FirstOrDefault();
+
+            if (sharingSetting != null)
+            {
+                return sharingSetting;
+            }
+
+            return new CartSharingSetting()
+            {
+                Id = Guid.NewGuid().ToString(),
+                IsActive = true,
+                Access = CartSharingAccess.Read,
+                Scope = context.Source.Scope ?? CartSharingScope.Private,
+            };
         }
     }
 }
