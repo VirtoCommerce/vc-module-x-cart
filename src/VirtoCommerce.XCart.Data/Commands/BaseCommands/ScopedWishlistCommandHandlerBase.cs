@@ -18,20 +18,20 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
 
     protected virtual Task UpdateScopeAsync(CartAggregate cartAggregate, TCommand request)
     {
-        if (request.Scope?.EqualsIgnoreCase(CartSharingModes.Anyone) == true)
+        if (request.Scope?.EqualsIgnoreCase(CartSharingScope.Anyone) == true)
         {
-            EnsureActiveSharingSettings(cartAggregate.Cart, CartSharingModes.Anyone, CartSharingAccess.Read);
+            EnsureActiveSharingSettings(cartAggregate.Cart, CartSharingScope.Anyone, CartSharingAccess.Read);
         }
-        else if (request.Scope?.EqualsIgnoreCase(CartSharingModes.Organization) == true)
+        else if (request.Scope?.EqualsIgnoreCase(CartSharingScope.Organization) == true)
         {
-            EnsureActiveSharingSettings(cartAggregate.Cart, CartSharingModes.Organization, CartSharingAccess.Write);
+            EnsureActiveSharingSettings(cartAggregate.Cart, CartSharingScope.Organization, CartSharingAccess.Write);
 
             if (!string.IsNullOrEmpty(request.WishlistUserContext.CurrentOrganizationId))
             {
                 cartAggregate.Cart.OrganizationId = request.WishlistUserContext.CurrentOrganizationId;
             }
         }
-        else if (request.Scope?.EqualsIgnoreCase(CartSharingModes.Private) == true)
+        else if (request.Scope?.EqualsIgnoreCase(CartSharingScope.Private) == true)
         {
             DeactivateSharingSettings(cartAggregate.Cart);
 
@@ -51,7 +51,7 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
             cart.SharingSettings.Add(new CartSharingSetting
             {
                 ShoppingCartId = cart.Id,
-                Mode = mode,
+                Scope = mode,
                 Access = access,
                 IsActive = true
             });
@@ -62,7 +62,7 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
 
             var sharingSetting = cart.SharingSettings.First();
             sharingSetting.IsActive = true;
-            sharingSetting.Mode = mode;
+            sharingSetting.Scope = mode;
             sharingSetting.Access = access;
         }
     }

@@ -140,7 +140,7 @@ namespace VirtoCommerce.XCart.Core
         {
             get
             {
-                return string.IsNullOrEmpty(Cart.OrganizationId) ? ModuleConstants.PrivateScope : ModuleConstants.OrganizationScope;
+                return string.IsNullOrEmpty(Cart.OrganizationId) ? CartSharingScope.Private : CartSharingScope.Organization;
             }
         }
 

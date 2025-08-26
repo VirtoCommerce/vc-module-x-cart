@@ -1645,8 +1645,8 @@ namespace VirtoCommerce.XCart.Data.Schemas
             if (string.IsNullOrEmpty(scope) && context.Cart is not null)
             {
                 scope = string.IsNullOrEmpty(context.Cart.OrganizationId)
-                    ? PrivateScope
-                    : OrganizationScope;
+                    ? CartSharingScope.Private
+                    : CartSharingScope.Organization;
             }
 
             context.Scope = scope;

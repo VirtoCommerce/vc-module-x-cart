@@ -1,4 +1,5 @@
 using GraphQL.Types;
+using VirtoCommerce.CartModule.Core.Model;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
@@ -6,8 +7,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public WishlistScopeType()
         {
-            Add(ModuleConstants.PrivateScope, value: ModuleConstants.PrivateScope, description: "Private scope");
-            Add(ModuleConstants.OrganizationScope, value: ModuleConstants.OrganizationScope, description: "Organization scope");
+            Add(CartSharingScope.Private, value: CartSharingScope.Private, description: "Private scope");
+            Add(CartSharingScope.Organization, value: CartSharingScope.Organization, description: "Organization scope");
         }
     }
 }

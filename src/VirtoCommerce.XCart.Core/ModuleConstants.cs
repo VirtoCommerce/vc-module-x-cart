@@ -14,11 +14,11 @@ namespace VirtoCommerce.XCart.Core
 
         public const string ListTypeName = "Wishlist";
 
-        [Obsolete("Use VirtoCommerce.CartModule.Core.Services.CartSharingModes instead")]//TODO: Version info?
-        public const string PrivateScope = CartSharingModes.Private;
+        [Obsolete("Use VirtoCommerce.CartModule.Core.Services.CartSharingScope instead", false, DiagnosticId = "VC0011", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
+        public const string PrivateScope = CartSharingScope.Private;
 
-        [Obsolete("Use VirtoCommerce.CartModule.Core.Services.CartSharingModes instead")]//TODO: Version info?
-        public const string OrganizationScope = CartSharingModes.Organization;
+        [Obsolete("Use VirtoCommerce.CartModule.Core.Services.CartSharingScope instead", false, DiagnosticId = "VC0011", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
+        public const string OrganizationScope = CartSharingScope.Organization;
 
         public const int LineItemQualityLimit = 999999;
 
