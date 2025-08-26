@@ -1,3 +1,4 @@
+using System.Linq;
 using GraphQL.Types;
 using VirtoCommerce.Xapi.Core.Schemas;
 
@@ -18,6 +19,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             ExtendableField<WishlistScopeType>(nameof(CartAggregate.Scope), "Wishlist scope", resolve: context => context.Source.Scope);
             Field(x => x.Cart.Description, nullable: true).Description("Wishlist description");
             Field(x => x.Cart.ModifiedDate, nullable: true).Description("Wishlist modified date");
+            ExtendableField<SharingSettingType>("SharingSetting", "Sharing settings", resolve: context => context.Source.Cart.SharingSettings.FirstOrDefault());
         }
     }
 }
