@@ -8,7 +8,10 @@ namespace VirtoCommerce.XCart.Core.Schemas
         public WishlistScopeType()
         {
             Add(CartSharingScope.Private, value: CartSharingScope.Private, description: "Private scope");
+            Add(CartSharingScope.AnyoneAnonymous, value: CartSharingScope.Private, description: "Anyone (anonymous) scope");
+            Add(CartSharingScope.AnyoneAuthorized, value: CartSharingScope.Private, description: "Anyone (authorized) scope");
             Add(CartSharingScope.Organization, value: CartSharingScope.Organization, description: "Organization scope");
+            Add(CartSharingScope.User, value: CartSharingScope.Organization, description: "User scope");
         }
     }
 }

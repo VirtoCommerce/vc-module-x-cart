@@ -18,13 +18,13 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
 
     protected virtual Task UpdateScopeAsync(CartAggregate cartAggregate, TCommand request)
     {
-        if (request.Scope?.EqualsIgnoreCase(CartSharingScope.Anyone) == true)
+        if (request.Scope?.EqualsIgnoreCase(CartSharingScope.AnyoneAnonymous) == true)
         {
-            EnsureActiveSharingSettings(cartAggregate.Cart, CartSharingScope.Anyone, CartSharingAccess.Read);
+            EnsureActiveSharingSettings(cartAggregate.Cart, request.SharingKey, CartSharingScope.AnyoneAnonymous, CartSharingAccess.Read);
         }
         else if (request.Scope?.EqualsIgnoreCase(CartSharingScope.Organization) == true)
         {
-            EnsureActiveSharingSettings(cartAggregate.Cart, CartSharingScope.Organization, CartSharingAccess.Write);
+            EnsureActiveSharingSettings(cartAggregate.Cart, request.SharingKey, CartSharingScope.Organization, CartSharingAccess.Write);
 
             if (!string.IsNullOrEmpty(request.WishlistUserContext.CurrentOrganizationId))
             {
@@ -44,12 +44,13 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
         return Task.CompletedTask;
     }
 
-    protected void EnsureActiveSharingSettings(ShoppingCart cart, string mode, string access)
+    protected void EnsureActiveSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access)
     {
         if (cart.SharingSettings.Count == 0)
         {
             cart.SharingSettings.Add(new CartSharingSetting
             {
+                Id = sharingKey,
                 ShoppingCartId = cart.Id,
                 Scope = mode,
                 Access = access,
