@@ -15,6 +15,7 @@ using VirtoCommerce.Platform.Security.Authorization;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
+using VirtoCommerce.XCart.Core.Services;
 
 namespace VirtoCommerce.XCart.Data.Authorization
 {
@@ -29,11 +30,13 @@ namespace VirtoCommerce.XCart.Data.Authorization
     {
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
         private readonly IShoppingCartService _shoppingCartService;
+        private readonly ICartSharingService _cartSharingService;
 
-        public CanAccessCartAuthorizationHandler(Func<UserManager<ApplicationUser>> userManagerFactory, IShoppingCartService shoppingCartService)
+        public CanAccessCartAuthorizationHandler(Func<UserManager<ApplicationUser>> userManagerFactory, IShoppingCartService shoppingCartService, ICartSharingService cartSharingService)
         {
             _userManagerFactory = userManagerFactory;
             _shoppingCartService = shoppingCartService;
+            _cartSharingService = cartSharingService;
         }
 
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, CanAccessCartAuthorizationRequirement requirement)
@@ -117,18 +120,25 @@ namespace VirtoCommerce.XCart.Data.Authorization
             return context.User.GetUserId();
         }
 
-        private static bool CheckWishlistUserContext(WishlistUserContext context)
+        private bool CheckWishlistUserContext(WishlistUserContext context)
         {
             var result = true;
             if (context.Cart != null)
             {
-                if (context.Cart.OrganizationId != null)
+                if (!context.Cart.SharingSettings.IsNullOrEmpty())
                 {
-                    result = context.Cart.OrganizationId == context.CurrentOrganizationId;
+                    return _cartSharingService.IsAuthorized(context.Cart, context.UserId == context.CurrentUserId ? context.CurrentUserId : null, context.CurrentOrganizationId);
                 }
                 else
                 {
-                    result = context.Cart.CustomerId == context.CurrentUserId;
+                    if (context.Cart.OrganizationId != null)
+                    {
+                        result = context.Cart.OrganizationId == context.CurrentOrganizationId;
+                    }
+                    else
+                    {
+                        result = context.Cart.CustomerId == context.CurrentUserId;
+                    }
                 }
             }
 

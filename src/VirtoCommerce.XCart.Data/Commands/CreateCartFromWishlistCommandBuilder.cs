@@ -23,19 +23,19 @@ public class CreateCartFromWishlistCommandBuilder : CommandBuilder<CreateCartFro
 
     private readonly IMemberResolver _memberResolver;
     private readonly IShoppingCartService _cartService;
-    private readonly ICartSharingScopeCompatibilityService _cartSharingScopeCompatibilityService;
+    private readonly ICartSharingService _cartSharingService;
 
     public CreateCartFromWishlistCommandBuilder(
         IShoppingCartService cartService,
         IMemberResolver memberResolver,
         IMediator mediator,
         IAuthorizationService authorizationService,
-        ICartSharingScopeCompatibilityService cartSharingScopeCompatibilityService)
+        ICartSharingService cartSharingService)
         : base(mediator, authorizationService)
     {
         _cartService = cartService;
         _memberResolver = memberResolver;
-        _cartSharingScopeCompatibilityService = cartSharingScopeCompatibilityService;
+        _cartSharingService = cartSharingService;
     }
 
     protected override CreateCartFromWishlistCommand GetRequest(IResolveFieldContext<object> context)
@@ -89,6 +89,6 @@ public class CreateCartFromWishlistCommandBuilder : CommandBuilder<CreateCartFro
 
     private void InitializeWishlistUserContextScope(WishlistUserContext context)
     {
-        context.Scope = _cartSharingScopeCompatibilityService.GetSharingScope(context.Cart);
+        context.Scope = _cartSharingService.GetSharingScope(context.Cart);
     }
 }

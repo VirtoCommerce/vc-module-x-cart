@@ -46,7 +46,7 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
 
     protected void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access)
     {
-        if (cart.SharingSettings.Count == 0)
+        if (cart.SharingSettings.IsNullOrEmpty())
         {
             var sharingSetting = AbstractTypeFactory<CartSharingSetting>.TryCreateInstance();
 

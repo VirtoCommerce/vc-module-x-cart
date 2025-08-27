@@ -43,7 +43,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
         private readonly IDistributedLockService _distributedLockService;
         private readonly IUserManagerCore _userManagerCore;
         private readonly IMemberResolver _memberResolver;
-        private readonly ICartSharingScopeCompatibilityService _cartSharingScopeCompatibilityService;
+        private readonly ICartSharingService _cartSharingService;
 
         public const string CartPrefix = "Cart";
 
@@ -55,7 +55,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             IDistributedLockService distributedLockService,
             IUserManagerCore userManagerCore,
             IMemberResolver memberResolver,
-            ICartSharingScopeCompatibilityService cartSharingScopeCompatibilityService)
+            ICartSharingService cartSharingService)
         {
             _mediator = mediator;
             _authorizationService = authorizationService;
@@ -64,7 +64,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             _distributedLockService = distributedLockService;
             _userManagerCore = userManagerCore;
             _memberResolver = memberResolver;
-            _cartSharingScopeCompatibilityService = cartSharingScopeCompatibilityService;
+            _cartSharingService = cartSharingService;
         }
 
         public void Build(ISchema schema)
@@ -1648,7 +1648,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
         {
             if (string.IsNullOrEmpty(scope))
             {
-                scope = _cartSharingScopeCompatibilityService.GetSharingScope(context.Cart);
+                scope = _cartSharingService.GetSharingScope(context.Cart);
             }
 
             context.Scope = scope;
