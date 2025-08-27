@@ -20,11 +20,11 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
     {
         if (request.Scope?.EqualsIgnoreCase(CartSharingScope.AnyoneAnonymous) == true)
         {
-            EnsureActiveSharingSettings(cartAggregate.Cart, request.SharingKey, CartSharingScope.AnyoneAnonymous, CartSharingAccess.Read);
+            EnsureSharingSettings(cartAggregate.Cart, request.SharingKey, CartSharingScope.AnyoneAnonymous, CartSharingAccess.Read);
         }
         else if (request.Scope?.EqualsIgnoreCase(CartSharingScope.Organization) == true)
         {
-            EnsureActiveSharingSettings(cartAggregate.Cart, request.SharingKey, CartSharingScope.Organization, CartSharingAccess.Write);
+            EnsureSharingSettings(cartAggregate.Cart, request.SharingKey, CartSharingScope.Organization, CartSharingAccess.Write);
 
             if (!string.IsNullOrEmpty(request.WishlistUserContext.CurrentOrganizationId))
             {
@@ -33,7 +33,7 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
         }
         else if (request.Scope?.EqualsIgnoreCase(CartSharingScope.Private) == true)
         {
-            DeactivateSharingSettings(cartAggregate.Cart);
+            MakePrivate(cartAggregate.Cart);
 
             cartAggregate.Cart.OrganizationId = null;
 
@@ -44,7 +44,7 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
         return Task.CompletedTask;
     }
 
-    protected void EnsureActiveSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access)
+    protected void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access)
     {
         if (cart.SharingSettings.Count == 0)
         {
@@ -54,25 +54,23 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
                 ShoppingCartId = cart.Id,
                 Scope = mode,
                 Access = access,
-                IsActive = true
             });
         }
         else
         {
-            DeactivateSharingSettings(cart);
+            MakePrivate(cart);
 
             var sharingSetting = cart.SharingSettings.First();
-            sharingSetting.IsActive = true;
             sharingSetting.Scope = mode;
             sharingSetting.Access = access;
         }
     }
 
-    protected void DeactivateSharingSettings(ShoppingCart cart)
+    protected void MakePrivate(ShoppingCart cart)
     {
         foreach (var setting in cart.SharingSettings)
         {
-            setting.IsActive = false;
+            setting.Scope = CartSharingScope.Private;
         }
     }
 }

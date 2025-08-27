@@ -37,7 +37,6 @@ namespace VirtoCommerce.XCart.Core.Schemas
             return new CartSharingSetting()
             {
                 Id = Guid.NewGuid().ToString(),
-                IsActive = true,
                 Access = CartSharingAccess.Read,
                 Scope = context.Source.Scope ?? CartSharingScope.Private,
             };
