@@ -53,6 +53,7 @@ namespace VirtoCommerce.XCart.Core
         private readonly IGenericPipelineLauncher _pipeline;
         private readonly IConfigurationItemValidator _configurationItemValidator;
         private readonly IFileUploadService _fileUploadService;
+        private readonly ICartSharingScopeCompatibilityService _cartSharingScopeCompatibilityService;
 
         public CartAggregate(
             IMarketingPromoEvaluator marketingEvaluator,
@@ -64,7 +65,8 @@ namespace VirtoCommerce.XCart.Core
             IMemberService memberService,
             IGenericPipelineLauncher pipeline,
             IConfigurationItemValidator configurationItemValidator,
-            IFileUploadService fileUploadService)
+            IFileUploadService fileUploadService,
+            ICartSharingScopeCompatibilityService cartSharingScopeCompatibilityService)
         {
             _cartTotalsCalculator = cartTotalsCalculator;
             _marketingEvaluator = marketingEvaluator;
@@ -76,6 +78,7 @@ namespace VirtoCommerce.XCart.Core
             _pipeline = pipeline;
             _configurationItemValidator = configurationItemValidator;
             _fileUploadService = fileUploadService;
+            _cartSharingScopeCompatibilityService = cartSharingScopeCompatibilityService;
         }
 
         public Store Store { get; protected set; }
@@ -140,7 +143,7 @@ namespace VirtoCommerce.XCart.Core
         {
             get
             {
-                return string.IsNullOrEmpty(Cart.OrganizationId) ? CartSharingScope.Private : CartSharingScope.Organization;
+                return _cartSharingScopeCompatibilityService.GetSharingScope(Cart);
             }
         }
 

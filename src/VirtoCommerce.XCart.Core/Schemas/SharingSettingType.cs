@@ -10,6 +10,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.Id, nullable: false).Description("Id (sharing key)");
             Field(x => x.Scope, nullable: false).Description("Scope (private, organization, etc.)");
             Field(x => x.Access, nullable: false).Description("Access (read or write)");
+            Field(x => x.CreatedBy, nullable: false).Description("Created by");
         }
     }
 }

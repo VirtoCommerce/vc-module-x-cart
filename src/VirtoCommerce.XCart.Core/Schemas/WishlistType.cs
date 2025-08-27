@@ -3,6 +3,7 @@ using System.Linq;
 using GraphQL;
 using GraphQL.Types;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Schemas;
 
 namespace VirtoCommerce.XCart.Core.Schemas
@@ -19,7 +20,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<CurrencyType>("currency").Description("Currency").Resolve(context => context.Source.Currency);
             ExtendableField<ListGraphType<LineItemType>>("items", "Items", resolve: context => context.Source.LineItems);
             Field<IntGraphType>("itemsCount").Description("Item count").Resolve(context => context.Source.Cart.LineItemsCount);
-            ExtendableField<WishlistScopeType>(nameof(CartAggregate.Scope), "Wishlist scope", resolve: context => context.Source.Scope);
+            ExtendableField<WishlistScopeType>(nameof(CartAggregate.Scope), "Wishlist scope", resolve: context => context.Source.Scope, deprecationReason: "Use SharingSetting.Scope instead");
             Field(x => x.Cart.Description, nullable: true).Description("Wishlist description");
             Field(x => x.Cart.ModifiedDate, nullable: true).Description("Wishlist modified date");
             ExtendableField<SharingSettingType>("SharingSetting", "Sharing settings", resolve: ResolveSharingSetting);
@@ -34,12 +35,14 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 return sharingSetting;
             }
 
-            return new CartSharingSetting()
-            {
-                Id = Guid.NewGuid().ToString(),
-                Access = CartSharingAccess.Read,
-                Scope = context.Source.Scope ?? CartSharingScope.Private,
-            };
+            var result = AbstractTypeFactory<CartSharingSetting>.TryCreateInstance();
+
+            result.Id = Guid.NewGuid().ToString();
+            result.Access = CartSharingAccess.Read;
+            result.Scope = context.Source.Scope ?? CartSharingScope.Private;
+            result.CreatedBy = context.Source.Cart.CreatedBy;
+
+            return result;
         }
     }
 }

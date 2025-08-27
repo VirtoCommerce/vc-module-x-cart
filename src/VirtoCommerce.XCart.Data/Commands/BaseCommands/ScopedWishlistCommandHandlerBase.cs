@@ -48,19 +48,21 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
     {
         if (cart.SharingSettings.Count == 0)
         {
-            cart.SharingSettings.Add(new CartSharingSetting
-            {
-                Id = sharingKey,
-                ShoppingCartId = cart.Id,
-                Scope = mode,
-                Access = access,
-            });
+            var sharingSetting = AbstractTypeFactory<CartSharingSetting>.TryCreateInstance();
+
+            sharingSetting.Id = sharingKey;
+            sharingSetting.ShoppingCartId = cart.Id;
+            sharingSetting.Scope = mode;
+            sharingSetting.Access = access;
+
+            cart.SharingSettings.Add(sharingSetting);
         }
         else
         {
             MakePrivate(cart);
 
             var sharingSetting = cart.SharingSettings.First();
+
             sharingSetting.Scope = mode;
             sharingSetting.Access = access;
         }

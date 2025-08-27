@@ -26,6 +26,7 @@ using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
 using VirtoCommerce.XCart.Core.Schemas;
+using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Authorization;
 using VirtoCommerce.XPurchase.Schemas;
 using static VirtoCommerce.Xapi.Core.ModuleConstants;
@@ -42,6 +43,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
         private readonly IDistributedLockService _distributedLockService;
         private readonly IUserManagerCore _userManagerCore;
         private readonly IMemberResolver _memberResolver;
+        private readonly ICartSharingScopeCompatibilityService _cartSharingScopeCompatibilityService;
 
         public const string CartPrefix = "Cart";
 
@@ -52,7 +54,8 @@ namespace VirtoCommerce.XCart.Data.Schemas
             IShoppingCartSearchService shoppingCartSearchService,
             IDistributedLockService distributedLockService,
             IUserManagerCore userManagerCore,
-            IMemberResolver memberResolver)
+            IMemberResolver memberResolver,
+            ICartSharingScopeCompatibilityService cartSharingScopeCompatibilityService)
         {
             _mediator = mediator;
             _authorizationService = authorizationService;
@@ -61,6 +64,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             _distributedLockService = distributedLockService;
             _userManagerCore = userManagerCore;
             _memberResolver = memberResolver;
+            _cartSharingScopeCompatibilityService = cartSharingScopeCompatibilityService;
         }
 
         public void Build(ISchema schema)
@@ -1640,13 +1644,11 @@ namespace VirtoCommerce.XCart.Data.Schemas
             return wishlistUserContext;
         }
 
-        private static void InitializeWishlistUserContextScope(WishlistUserContext context, string scope = null)
+        private void InitializeWishlistUserContextScope(WishlistUserContext context, string scope = null)
         {
-            if (string.IsNullOrEmpty(scope) && context.Cart is not null)
+            if (string.IsNullOrEmpty(scope))
             {
-                scope = string.IsNullOrEmpty(context.Cart.OrganizationId)
-                    ? CartSharingScope.Private
-                    : CartSharingScope.Organization;
+                scope = _cartSharingScopeCompatibilityService.GetSharingScope(context.Cart);
             }
 
             context.Scope = scope;
