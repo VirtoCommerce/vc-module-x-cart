@@ -21,6 +21,8 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
         if (request.Scope?.EqualsIgnoreCase(CartSharingScope.AnyoneAnonymous) == true)
         {
             EnsureSharingSettings(cartAggregate.Cart, request.SharingKey, CartSharingScope.AnyoneAnonymous, CartSharingAccess.Read);
+
+            cartAggregate.Cart.OrganizationId = null;
         }
         else if (request.Scope?.EqualsIgnoreCase(CartSharingScope.Organization) == true)
         {
@@ -33,10 +35,9 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
         }
         else if (request.Scope?.EqualsIgnoreCase(CartSharingScope.Private) == true)
         {
-            MakePrivate(cartAggregate.Cart);
+            EnsureSharingSettings(cartAggregate.Cart, null, CartSharingScope.Private, CartSharingAccess.Read);
 
             cartAggregate.Cart.OrganizationId = null;
-
             cartAggregate.Cart.CustomerId = request.WishlistUserContext.CurrentUserId;
             cartAggregate.Cart.CustomerName = request.WishlistUserContext.CurrentContact.Name;
         }
@@ -59,20 +60,15 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
         }
         else
         {
-            MakePrivate(cart);
+            foreach (var setting in cart.SharingSettings)
+            {
+                setting.Scope = CartSharingScope.Private;
+            }
 
             var sharingSetting = cart.SharingSettings.First();
 
             sharingSetting.Scope = mode;
             sharingSetting.Access = access;
-        }
-    }
-
-    protected void MakePrivate(ShoppingCart cart)
-    {
-        foreach (var setting in cart.SharingSettings)
-        {
-            setting.Scope = CartSharingScope.Private;
         }
     }
 }
