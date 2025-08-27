@@ -127,7 +127,7 @@ namespace VirtoCommerce.XCart.Data.Authorization
             {
                 if (!context.Cart.SharingSettings.IsNullOrEmpty())
                 {
-                    return _cartSharingService.IsAuthorized(context.Cart, context.UserId == context.CurrentUserId ? context.CurrentUserId : null, context.CurrentOrganizationId);
+                    return _cartSharingService.IsAuthorized(context.Cart, context.CurrentUserId, context.CurrentOrganizationId);
                 }
                 else
                 {
@@ -142,6 +142,7 @@ namespace VirtoCommerce.XCart.Data.Authorization
                 }
             }
 
+            //TODO: what is this?
             if (result && !string.IsNullOrEmpty(context.UserId))
             {
                 result = context.UserId == context.CurrentUserId;

@@ -16,8 +16,8 @@ public class CloneWishlistCommandHandler : ScopedWishlistCommandHandlerBase<Clon
 {
     private readonly IShoppingCartService _shoppingCartService;
 
-    public CloneWishlistCommandHandler(ICartAggregateRepository cartAggregateRepository, IShoppingCartService shoppingCartService)
-        : base(cartAggregateRepository)
+    public CloneWishlistCommandHandler(ICartAggregateRepository cartAggregateRepository, IShoppingCartService shoppingCartService, ICartSharingService cartSharingService)
+        : base(cartAggregateRepository, cartSharingService)
     {
         _shoppingCartService = shoppingCartService;
     }

@@ -139,6 +139,7 @@ namespace VirtoCommerce.XCart.Core
 
         public IList<ValidationFailure> ValidationWarnings { get; protected set; } = new List<ValidationFailure>();
 
+        [Obsolete("Use Cart.SharingSettings and ICartSharingService instead", false, DiagnosticId = "VC0011", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         public virtual string Scope
         {
             get

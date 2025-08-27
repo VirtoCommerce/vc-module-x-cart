@@ -1,4 +1,3 @@
-using System.Linq;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
@@ -11,64 +10,32 @@ namespace VirtoCommerce.XCart.Data.Commands.BaseCommands;
 public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHandler<TCommand>
     where TCommand : ScopedWishlistCommand
 {
-    protected ScopedWishlistCommandHandlerBase(ICartAggregateRepository cartAggregateRepository)
+    private readonly ICartSharingService _cartSharingService;
+
+    protected ScopedWishlistCommandHandlerBase(ICartAggregateRepository cartAggregateRepository, ICartSharingService cartSharingService)
         : base(cartAggregateRepository)
     {
+        _cartSharingService = cartSharingService;
     }
 
     protected virtual Task UpdateScopeAsync(CartAggregate cartAggregate, TCommand request)
     {
         if (request.Scope?.EqualsIgnoreCase(CartSharingScope.AnyoneAnonymous) == true)
         {
-            EnsureSharingSettings(cartAggregate.Cart, request.SharingKey, CartSharingScope.AnyoneAnonymous, CartSharingAccess.Read);
-
-            cartAggregate.Cart.OrganizationId = null;
+            _cartSharingService.EnsureSharingSettings(cartAggregate.Cart, request.SharingKey, CartSharingScope.AnyoneAnonymous, CartSharingAccess.Read);
+            _cartSharingService.SetOwner(cartAggregate.Cart, request.WishlistUserContext.CurrentUserId, request.WishlistUserContext.CurrentContact.Name, null);
         }
         else if (request.Scope?.EqualsIgnoreCase(CartSharingScope.Organization) == true)
         {
-            EnsureSharingSettings(cartAggregate.Cart, request.SharingKey, CartSharingScope.Organization, CartSharingAccess.Write);
-
-            if (!string.IsNullOrEmpty(request.WishlistUserContext.CurrentOrganizationId))
-            {
-                cartAggregate.Cart.OrganizationId = request.WishlistUserContext.CurrentOrganizationId;
-            }
+            _cartSharingService.EnsureSharingSettings(cartAggregate.Cart, request.SharingKey, CartSharingScope.Organization, CartSharingAccess.Write);
+            _cartSharingService.SetOwner(cartAggregate.Cart, request.WishlistUserContext.CurrentUserId, request.WishlistUserContext.CurrentContact.Name, request.WishlistUserContext.CurrentOrganizationId);
         }
         else if (request.Scope?.EqualsIgnoreCase(CartSharingScope.Private) == true)
         {
-            EnsureSharingSettings(cartAggregate.Cart, null, CartSharingScope.Private, CartSharingAccess.Read);
-
-            cartAggregate.Cart.OrganizationId = null;
-            cartAggregate.Cart.CustomerId = request.WishlistUserContext.CurrentUserId;
-            cartAggregate.Cart.CustomerName = request.WishlistUserContext.CurrentContact.Name;
+            _cartSharingService.EnsureSharingSettings(cartAggregate.Cart, null, CartSharingScope.Private, CartSharingAccess.Write);
+            _cartSharingService.SetOwner(cartAggregate.Cart, request.WishlistUserContext.CurrentUserId, request.WishlistUserContext.CurrentContact.Name, null);
         }
 
         return Task.CompletedTask;
-    }
-
-    protected void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access)
-    {
-        if (cart.SharingSettings.IsNullOrEmpty())
-        {
-            var sharingSetting = AbstractTypeFactory<CartSharingSetting>.TryCreateInstance();
-
-            sharingSetting.Id = sharingKey;
-            sharingSetting.ShoppingCartId = cart.Id;
-            sharingSetting.Scope = mode;
-            sharingSetting.Access = access;
-
-            cart.SharingSettings.Add(sharingSetting);
-        }
-        else
-        {
-            foreach (var setting in cart.SharingSettings)
-            {
-                setting.Scope = CartSharingScope.Private;
-            }
-
-            var sharingSetting = cart.SharingSettings.First();
-
-            sharingSetting.Scope = mode;
-            sharingSetting.Access = access;
-        }
     }
 }
