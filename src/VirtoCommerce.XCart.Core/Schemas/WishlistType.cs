@@ -6,6 +6,7 @@ using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Xapi.Core.Schemas;
+using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Services;
 
 namespace VirtoCommerce.XCart.Core.Schemas
@@ -29,6 +30,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             ExtendableField<WishlistScopeType>("Scope", "Wishlist scope", resolve: context => (ResolveSharingSetting(context) as CartSharingSetting)?.Scope, deprecationReason: "Use SharingSetting.Scope instead");
             Field(x => x.Cart.Description, nullable: true).Description("Wishlist description");
             Field(x => x.Cart.ModifiedDate, nullable: true).Description("Wishlist modified date");
+            Field<NonNullGraphType<MoneyType>>("subTotal").Description("Wishlist subtotal").Resolve(context => context.GetTotal(context.Source.Cart.SubTotal));
             ExtendableField<SharingSettingType>("SharingSetting", "Sharing settings", resolve: ResolveSharingSetting);
         }
 
