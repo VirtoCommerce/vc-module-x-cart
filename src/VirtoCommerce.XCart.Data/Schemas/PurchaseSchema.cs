@@ -1286,8 +1286,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             var sharedListField = new FieldType
             {
                 Name = "sharedWishlist",
-                Arguments = new QueryArguments(
-                        new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "sharingKey", Description = "List Id" }),
+                Arguments = new QueryArguments(new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "sharingKey", Description = "Sharing key" }),
                 Type = GraphTypeExtensionHelper.GetActualType<WishlistType>(),
                 Resolver = new FuncFieldResolver<object>(async context =>
                 {
