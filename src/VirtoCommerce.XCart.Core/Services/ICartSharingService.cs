@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
 
 namespace VirtoCommerce.XCart.Core.Services;
@@ -13,4 +15,6 @@ public interface ICartSharingService
     string GetSharingOwnerOrganizationId(ShoppingCart cart);
 
     void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access);
+
+    Task<CartAggregate> GetWishlistBySharingKeyAsync(string sharingKey, IList<string> includeFields);
 }

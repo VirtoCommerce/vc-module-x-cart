@@ -1283,6 +1283,38 @@ namespace VirtoCommerce.XCart.Data.Schemas
             };
             schema.Query.AddField(listField);
 
+            var sharedListField = new FieldType
+            {
+                Name = "sharedWishlist",
+                Arguments = new QueryArguments(
+                        new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "sharingKey", Description = "List Id" }),
+                Type = GraphTypeExtensionHelper.GetActualType<WishlistType>(),
+                Resolver = new FuncFieldResolver<object>(async context =>
+                {
+                    var getSharedListQuery = AbstractTypeFactory<GetSharedWishlistQuery>.TryCreateInstance();
+                    getSharedListQuery.SharingKey = context.GetArgument<string>("sharingKey");
+                    getSharedListQuery.IncludeFields = context.SubFields.Values.GetAllNodesPaths(context).ToArray();
+                    context.CopyArgumentsToUserContext();
+
+                    var cartAggregate = await _mediator.Send(getSharedListQuery);
+
+                    if (cartAggregate == null)
+                    {
+                        return null;
+                    }
+
+                    context.UserContext["storeId"] = cartAggregate.Cart.StoreId;
+
+                    var wishlistUserContext = await InitializeWishlistUserContext(context, cart: cartAggregate.Cart);
+                    await AuthorizeAsync(context, wishlistUserContext);
+
+                    context.SetExpandedObjectGraph(cartAggregate);
+
+                    return cartAggregate;
+                })
+            };
+            schema.Query.AddField(sharedListField);
+
             var listConnectionBuilder = GraphTypeExtensionHelper.CreateConnection<WishlistType, object>("wishlists")
                 .Argument<StringGraphType>("storeId", "Store Id")
                 .Argument<StringGraphType>("userId", "User Id")

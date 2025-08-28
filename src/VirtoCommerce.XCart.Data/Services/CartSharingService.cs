@@ -1,11 +1,15 @@
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Services;
 
 namespace VirtoCommerce.XCart.Data.Services;
 
-public class CartSharingService : ICartSharingService
+public class CartSharingService(ICartAggregateRepository cartAggregateRepository) : ICartSharingService
 {
     public virtual string GetSharingScope(ShoppingCart cart)
     {
@@ -117,5 +121,16 @@ public class CartSharingService : ICartSharingService
             sharingSetting.Scope = mode;
             sharingSetting.Access = access;
         }
+    }
+
+    public virtual async Task<CartAggregate> GetWishlistBySharingKeyAsync(string sharingKey, IList<string> includeFields)
+    {
+        var cartSearchCriteria = AbstractTypeFactory<ShoppingCartSearchCriteria>.TryCreateInstance();
+
+        cartSearchCriteria.SharingKey = sharingKey;
+        cartSearchCriteria.Take = 1;
+
+        var searchResult = await cartAggregateRepository.SearchCartAsync(cartSearchCriteria, includeFields);
+        return searchResult.Results.FirstOrDefault();
     }
 }
