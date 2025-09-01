@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using AutoMapper;
 using PipelineNet.Middleware;
+using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
@@ -84,7 +85,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             cartSearchCriteria.CustomerId = context.CustomerId;
             cartSearchCriteria.OrganizationId = context.OrganizationId;
             cartSearchCriteria.Currency = context.Currency;
-            cartSearchCriteria.ResponseGroup = Core.ModuleConstants.XCartResponseGroup;
+            cartSearchCriteria.ResponseGroup = CartResponseGroup.Full.ToString();
 
             return cartSearchCriteria;
         }
@@ -98,7 +99,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             cartSearchCriteria.CustomerId = context.CustomerId;
             cartSearchCriteria.OrganizationId = context.OrganizationId;
             cartSearchCriteria.Currency = context.Currency;
-            cartSearchCriteria.ResponseGroup = Core.ModuleConstants.XCartResponseGroup;
+            cartSearchCriteria.ResponseGroup = CartResponseGroup.Full.ToString();
 
             return cartSearchCriteria;
         }
@@ -112,7 +113,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             cartSearchCriteria.CustomerId = context.CustomerId;
             cartSearchCriteria.OrganizationId = context.OrganizationId;
             cartSearchCriteria.Currency = context.Currency;
-            cartSearchCriteria.ResponseGroup = Core.ModuleConstants.XCartResponseGroup;
+            cartSearchCriteria.ResponseGroup = CartResponseGroup.Full.ToString();
 
             return cartSearchCriteria;
         }
