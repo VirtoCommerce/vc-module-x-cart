@@ -10,7 +10,7 @@ namespace VirtoCommerce.XCart.Data.Queries;
 
 public class PickupLocationsQueryHandler(IPickupLocationSearchService service) : IQueryHandler<PickupLocationsQuery, PickupLocationSearchResult>
 {
-    public Task<PickupLocationSearchResult> Handle(PickupLocationsQuery request, CancellationToken cancellationToken)
+    public async Task<PickupLocationSearchResult> Handle(PickupLocationsQuery request, CancellationToken cancellationToken)
     {
         var searchCriteria = AbstractTypeFactory<PickupLocationSearchCriteria>.TryCreateInstance();
 
@@ -20,6 +20,6 @@ public class PickupLocationsQueryHandler(IPickupLocationSearchService service) :
         searchCriteria.Skip = request.Skip;
         searchCriteria.Take = request.Take;
 
-        return service.SearchAsync(searchCriteria);
+        return await service.SearchAsync(searchCriteria);
     }
 }
