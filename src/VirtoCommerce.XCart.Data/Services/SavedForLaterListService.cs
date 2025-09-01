@@ -12,12 +12,12 @@ using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
+using CartType = VirtoCommerce.CartModule.Core.ModuleConstants.CartType;
 
 namespace VirtoCommerce.XCart.Data.Services;
 
 public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepository) : ISavedForLaterListService
 {
-    protected const string savedForLaterCartType = ModuleConstants.ListTypeName;
     protected const string savedForLaterCartName = "Saved for later";
 
     public virtual async Task<CartAggregateWithList> MoveFromSavedForLaterItems(MoveSavedForLaterItemsCommandBase request)
@@ -63,7 +63,7 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
     {
         var searchCriteria = AbstractTypeFactory<ShoppingCartSearchCriteria>.TryCreateInstance();
 
-        searchCriteria.Type = savedForLaterCartType;
+        searchCriteria.Type = CartType.SavedForLater;//TODO #SavedToLater add Wishlist
         searchCriteria.Name = savedForLaterCartName;
         searchCriteria.StoreId = request.StoreId;
         searchCriteria.CustomerId = request.UserId;
@@ -77,7 +77,7 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
     {
         var cart = AbstractTypeFactory<ShoppingCart>.TryCreateInstance();
 
-        cart.Type = savedForLaterCartType;
+        cart.Type = CartType.SavedForLater;
         cart.Name = savedForLaterCartName;
         cart.StoreId = request.StoreId;
         cart.CustomerId = request.UserId;

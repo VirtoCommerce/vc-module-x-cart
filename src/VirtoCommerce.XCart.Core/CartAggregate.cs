@@ -34,6 +34,7 @@ using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
 using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
+using CartType = VirtoCommerce.CartModule.Core.ModuleConstants.CartType;
 using Store = VirtoCommerce.StoreModule.Core.Model.Store;
 using StoreSetting = VirtoCommerce.StoreModule.Core.ModuleConstants.Settings.General;
 using XCartSetting = VirtoCommerce.XCart.Core.ModuleConstants.Settings.General;
@@ -917,7 +918,7 @@ namespace VirtoCommerce.XCart.Core
 
         public virtual async Task<CartAggregate> UpdateOrganization(ShoppingCart cart, Member member)
         {
-            if (member is Contact contact && cart.Type != ModuleConstants.ListTypeName)
+            if (member is Contact contact && cart.Type != CartType.Wishlist)//TODO #SavedToLater use SavedForLater too
             {
                 cart.OrganizationId = contact.Organizations?.FirstOrDefault();
 

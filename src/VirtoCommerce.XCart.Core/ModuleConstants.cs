@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.Platform.Core.Settings;
+using CartType = VirtoCommerce.CartModule.Core.ModuleConstants.CartType;
 
 namespace VirtoCommerce.XCart.Core
 {
@@ -11,7 +13,8 @@ namespace VirtoCommerce.XCart.Core
             public const string CommandName = "command";
         }
 
-        public const string ListTypeName = "Wishlist";
+        [Obsolete("Use CartTypes.Wishlist instead", DiagnosticId = "VC0011", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+        public const string ListTypeName = CartType.Wishlist;
         public const string PrivateScope = "Private";
         public const string OrganizationScope = "Organization";
 
