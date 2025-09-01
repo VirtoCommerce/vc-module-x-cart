@@ -918,7 +918,7 @@ namespace VirtoCommerce.XCart.Core
 
         public virtual async Task<CartAggregate> UpdateOrganization(ShoppingCart cart, Member member)
         {
-            if (member is Contact contact && cart.Type != CartType.Wishlist)//TODO #SavedToLater use SavedForLater too
+            if (member is Contact contact && cart.Type != CartType.Wishlist && cart.Type != CartType.SavedForLater)
             {
                 cart.OrganizationId = contact.Organizations?.FirstOrDefault();
 
