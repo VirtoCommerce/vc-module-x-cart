@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -33,7 +34,7 @@ namespace VirtoCommerce.XCart.Data.Queries
             var searchCriteria = new CartSearchCriteriaBuilder(_searchPhraseParser, _mapper)
                                      .WithCurrency(request.CurrencyCode)
                                      .WithStore(request.StoreId)
-                                     .WithType(CartType.Wishlist)//TODO #SavedToLater add SavedToLater 
+                                     .WithTypes(new List<string> { CartType.Wishlist, CartType.SavedForLater })
                                      .WithLanguage(request.CultureName)
                                      .WithCustomerId(request.UserId)
                                      .WithOrganizationId(request.OrganizationId)
