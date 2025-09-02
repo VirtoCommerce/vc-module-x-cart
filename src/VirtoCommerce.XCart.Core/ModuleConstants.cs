@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.Platform.Core.Settings;
 
 namespace VirtoCommerce.XCart.Core
