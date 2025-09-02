@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Infrastructure;
@@ -13,17 +14,19 @@ namespace VirtoCommerce.XCart.Data.Queries
     public class GetCartQueryHandler : IQueryHandler<GetCartQuery, CartAggregate>, IQueryHandler<GetCartByIdQuery, CartAggregate>
     {
         private readonly ICartAggregateRepository _cartAggregateRepository;
+        private readonly ICartResponseGroupParser _cartResponseGroupParser;
 
         public GetCartQueryHandler(ICartAggregateRepository cartAggregateRepository, ICartResponseGroupParser cartResponseGroupParser)
         {
             _cartAggregateRepository = cartAggregateRepository;
+            _cartResponseGroupParser = cartResponseGroupParser;
         }
 
         public virtual Task<CartAggregate> Handle(GetCartQuery request, CancellationToken cancellationToken)
         {
             if (!string.IsNullOrEmpty(request.CartId))
             {
-                return _cartAggregateRepository.GetCartByIdAsync(request.CartId, ModuleConstants.XCartResponseGroup, request.IncludeFields.ItemsToProductIncludeField(), request.CultureName);
+                return _cartAggregateRepository.GetCartByIdAsync(request.CartId, GetResponseGroup(request), request.IncludeFields.ItemsToProductIncludeField(), request.CultureName);
             }
 
             var cartSearchCriteria = GetCartSearchCriteria(request);
@@ -47,10 +50,14 @@ namespace VirtoCommerce.XCart.Data.Queries
             cartSearchCriteria.Name = request.CartName;
             cartSearchCriteria.Currency = request.CurrencyCode;
             cartSearchCriteria.Type = request.CartType;
-            cartSearchCriteria.ResponseGroup = Core.ModuleConstants.XCartResponseGroup;
+            cartSearchCriteria.ResponseGroup = GetResponseGroup(request);
 
             return cartSearchCriteria;
         }
 
+        private string GetResponseGroup(GetCartQuery request)
+        {
+            return EnumUtility.SafeParseFlags(_cartResponseGroupParser.GetResponseGroup(request.IncludeFields), CartResponseGroup.Full).ToString();
+        }
     }
 }
