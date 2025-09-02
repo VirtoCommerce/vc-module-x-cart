@@ -12,7 +12,7 @@ using CartType = VirtoCommerce.CartModule.Core.ModuleConstants.CartType;
 
 namespace VirtoCommerce.XCart.Data.Commands;
 
-public class CloneWishlistCommandHandler : ScopedWishlistCommandHandlerBase<CloneWishlistCommand>//TODO #Q not used?
+public class CloneWishlistCommandHandler : ScopedWishlistCommandHandlerBase<CloneWishlistCommand>
 {
     private readonly IShoppingCartService _shoppingCartService;
 
