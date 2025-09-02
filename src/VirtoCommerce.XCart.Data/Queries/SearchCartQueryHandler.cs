@@ -1,7 +1,9 @@
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
+using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.SearchModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Core.Models;
@@ -16,6 +18,7 @@ namespace VirtoCommerce.XCart.Data.Queries
         private readonly ICartAggregateRepository _cartAggregateRepository;
         private readonly IMapper _mapper;
         private readonly ISearchPhraseParser _searchPhraseParser;
+        private readonly ICartResponseGroupParser _cartResponseGroupParser;
 
         public SearchCartQueryHandler(
             ICartAggregateRepository cartAggregateRepository,
@@ -26,6 +29,7 @@ namespace VirtoCommerce.XCart.Data.Queries
             _cartAggregateRepository = cartAggregateRepository;
             _mapper = mapper;
             _searchPhraseParser = searchPhraseParser;
+            _cartResponseGroupParser = cartResponseGroupParser;
         }
 
         public virtual Task<SearchCartResponse> Handle(SearchCartQuery request, CancellationToken cancellationToken)
@@ -45,7 +49,7 @@ namespace VirtoCommerce.XCart.Data.Queries
                                      .WithLanguage(request.CultureName)
                                      .WithCustomerId(request.UserId)
                                      .WithOrganizationId(request.OrganizationId)
-                                     .WithXCartResponseGroup()
+                                     .WithResponseGroup(EnumUtility.SafeParseFlags(_cartResponseGroupParser.GetResponseGroup(request.IncludeFields), CartResponseGroup.Full))
                                      .WithPaging(request.Skip, request.Take)
                                      .WithSorting(request.Sort)
                                      .Build();

@@ -52,7 +52,6 @@ namespace VirtoCommerce.XCart.Core.Commands.BaseCommands
             cartSearchCriteria.OrganizationId = request.OrganizationId;
             cartSearchCriteria.Currency = request.CurrencyCode;
             cartSearchCriteria.Type = request.CartType;
-            cartSearchCriteria.ResponseGroup = ModuleConstants.XCartResponseGroup;
 
             return cartSearchCriteria;
         }

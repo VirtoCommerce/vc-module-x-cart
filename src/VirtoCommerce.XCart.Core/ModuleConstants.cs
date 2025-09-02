@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.Platform.Core.Settings;
 
 namespace VirtoCommerce.XCart.Core
@@ -21,9 +20,6 @@ namespace VirtoCommerce.XCart.Core
         public const string OrganizationScope = CartSharingScope.Organization;
 
         public const int LineItemQualityLimit = 999999;
-
-        // We use this response group for all X-Cart related operations to avoid recalculation of totals and improve performance.
-        public static string XCartResponseGroup { get; set; } = (CartResponseGroup.Full & ~CartResponseGroup.RecalculateTotals).ToString();
 
         public static class Settings
         {
