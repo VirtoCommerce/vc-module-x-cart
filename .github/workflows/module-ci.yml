@@ -171,12 +171,12 @@ jobs:
           downloadComment: 'Artifact URL:'
 
       - name: Publish Github Release
-        if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test/VCST-1835'}}
         id: githubRelease
         with:
           changelog: ${{ steps.changelog.outputs.changelog }}
           organization: ${{ github.repository_owner }}
-        uses: VirtoCommerce/vc-github-actions/publish-github-release@master
+        uses: VirtoCommerce/vc-github-actions/publish-github-release@VCST-1835-1 #master
         
       - name: Set artifactUrl value
         id: artifactUrl
