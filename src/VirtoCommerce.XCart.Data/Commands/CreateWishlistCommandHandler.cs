@@ -4,7 +4,7 @@ using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Commands.BaseCommands;
-using static VirtoCommerce.XCart.Core.ModuleConstants;
+using CartType = VirtoCommerce.CartModule.Core.ModuleConstants.CartType;
 
 namespace VirtoCommerce.XCart.Data.Commands
 {
@@ -17,7 +17,7 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         public override async Task<CartAggregate> Handle(CreateWishlistCommand request, CancellationToken cancellationToken)
         {
-            request.CartType = ListTypeName;
+            request.CartType = CartType.Wishlist;
 
             var cartAggregate = await CreateNewCartAggregateAsync(request);
             cartAggregate.Cart.Description = request.Description;
