@@ -82,9 +82,6 @@ jobs:
       - name: Install VirtoCommerce.GlobalTool
         uses: VirtoCommerce/vc-github-actions/setup-vcbuild@master
 
-      # - name: Install dotnet-sonarscanner
-      #   run: dotnet tool install --global dotnet-sonarscanner
-
       - name: Get Changelog
         id: changelog
         uses: VirtoCommerce/vc-github-actions/changelog-generator@master
@@ -93,84 +90,13 @@ jobs:
         uses: VirtoCommerce/vc-github-actions/get-image-version@master
         id: artifact_ver
         with:
-          releaseBranch: test/VCST-1835
-
-      - name: Check if .deployment folder exists
-        id: check_deployment_folder
-        run: |
-          if [ -d ".deployment" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Diagnostic: .deployment folder exists."
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Diagnostic: .deployment folder does NOT exist."
-          fi
-
-      # - name: Set VERSION_SUFFIX variable
-      #   run: |
-      #     if [ '${{ github.event_name }}' = 'workflow_dispatch' ]; then
-      #       echo "VERSION_SUFFIX=${{ steps.artifact_ver.outputs.fullSuffix }}" >> $GITHUB_ENV
-      #     else
-      #       echo "VERSION_SUFFIX=${{ steps.artifact_ver.outputs.suffix }}" >> $GITHUB_ENV
-      #     fi;
-
-      # - name: Add version suffix
-      #   if: ${{ github.ref != 'refs/heads/master' && github.ref != 'refs/heads/main' && github.ref != 'refs/heads/test/VCST-1835' }}
-      #   uses: VirtoCommerce/vc-github-actions/add-version-suffix@master
-      #   with:
-      #     versionSuffix: ${{ env.VERSION_SUFFIX }}
-
-      # - name: SonarCloud Begin
-      #   uses: VirtoCommerce/vc-github-actions/sonar-scanner-begin@master
-      #   with:
-      #     repoOrg: ${{ github.repository_owner }}
-      #     sonarOrg: ${{secrets.SONAR_ORG_KEY}}
+          releaseBranch: VCST-1835
 
       - name: Build
         run: vc-build Compile
 
-      - name: Unit Tests
-        run: vc-build Test -skip
-
-      # - name: SonarCloud End
-      #   uses: VirtoCommerce/vc-github-actions/sonar-scanner-end@master
-
-      # - name: Quality Gate
-      #   uses: VirtoCommerce/vc-github-actions/sonar-quality-gate@master
-      #   with:
-      #     login: ${{secrets.SONAR_TOKEN}}
-
       - name: Packaging
         run: vc-build Compress -skip Clean+Restore+Compile+Test
-      
-      # - name: Publish Nuget
-      #   if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
-      #   uses: VirtoCommerce/vc-github-actions/publish-nuget@master
-
-      - name: Publish to Blob
-        if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
-        id: blobRelease
-        uses: VirtoCommerce/vc-github-actions/publish-blob-release@master
-        with:
-          blobSAS: ${{ secrets.BLOB_TOKEN }}
-          blobUrl: ${{ vars.BLOB_URL }}
-          
-      - name: Add Jira link
-        if: ${{ github.event_name == 'pull_request' }}
-        uses: VirtoCommerce/vc-github-actions/publish-jira-link@master
-        with:
-          branchName: ${{ github.head_ref }}
-          repoOrg: ${{ github.repository_owner }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Add link to PR
-        if: ${{ github.event_name == 'pull_request' }}
-        uses: VirtoCommerce/vc-github-actions/publish-artifact-link@master
-        with:
-          artifactUrl: ${{ steps.blobRelease.outputs.packageUrl }}
-          repoOrg: ${{ github.repository_owner }}
-          downloadComment: 'Artifact URL:'
 
       - name: Publish Github Release
         # if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test/VCST-1835'}}
@@ -180,100 +106,6 @@ jobs:
           changelog: ${{ steps.changelog.outputs.changelog }}
           organization: ${{ github.repository_owner }}
         uses: VirtoCommerce/vc-github-actions/publish-github-release@VCST-1835-1 #master
-        
-      - name: Set artifactUrl value
-        id: artifactUrl
-        run: |
-          if [ '${{ github.ref }}' = 'refs/heads/master' ] || [ '${{ github.ref }}' = 'refs/heads/main' ] || [ '${{ github.ref }}' = 'refs/heads/test/VCST-1835' ]; then
-            echo "download_url=${{ steps.githubRelease.outputs.downloadUrl }}" >> $GITHUB_OUTPUT
-          else
-            echo "download_url=${{ steps.blobRelease.outputs.packageUrl }}" >> $GITHUB_OUTPUT
-          fi;
-
-      # - name: Create deployment matrix
-      #   if: ${{ github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
-      #   uses: VirtoCommerce/vc-github-actions/cloud-create-deploy-matrix@master
-      #   id: deployment-matrix
-      #   with:
-      #     deployConfigPath: '.deployment/module/cloudDeploy.json'
-      #     releaseBranch: 'master'
-
-      - name: Check commit message for version number
-        id: run-e2e
-        run: |
-          if [[ "${{ github.event.head_commit.message }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; 
-          then
-            echo "result=false" >> $GITHUB_OUTPUT
-          else
-            echo "result=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Look for xapi module in dependencies
-        id: run-ui-tests
-        shell: pwsh
-        run: |
-          $manifestFile = Get-ChildItem -Path ${{ github.workspace }} -Recurse -Filter "module.manifest" | Where-Object { $_.FullName -like "*/src/*/module.manifest" } | Select-Object -First 1
-          if (-not $manifestFile) {
-            Write-Error "No module.manifest file found in src subdirectories"
-            exit 1
-          }
-          Write-Host "Found module.manifest at: $($manifestFile.FullName)"
-          $manifestContent = Get-Content $manifestFile.FullName -Raw
-          $containsXapi = 'false'
-          $dependecies = $(Select-Xml -Content $manifestContent -XPath "//dependencies").Node.dependency
-          foreach ($dependency in $dependecies) {
-            if ($dependency.id -eq 'VirtoCommerce.Xapi') {
-              Write-Host "Found VirtoCommerce.Xapi in dependencies"
-              $containsXapi = 'true'
-            }
-          }
-          echo "result=$containsXapi" >> $env:GITHUB_OUTPUT
-
-      - name: Setup Git Credentials
-        if: ${{ (github.ref == 'refs/heads/dev' && github.event_name != 'workflow_dispatch') || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test/VCST-1835' }}
-        uses: VirtoCommerce/vc-github-actions/setup-git-credentials-github@master
-        with: 
-          githubToken: ${{ secrets.REPO_TOKEN }}
-        
-      # - name: Publish Manifest
-      #   if: ${{ (github.ref == 'refs/heads/dev' && github.event_name != 'workflow_dispatch') || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
-      #   uses: VirtoCommerce/vc-github-actions/publish-manifest@master
-      #   with:
-      #     packageUrl: ${{ steps.artifactUrl.outputs.download_url }}
-
-      - name: Parse Jira Keys from All Commits
-        uses: VirtoCommerce/vc-github-actions/get-jira-keys@master
-        if: always()
-        id: jira_keys
-        with:
-          release: ${{ env.RELEASE_STATUS }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push Build Info to Jira
-        if: ${{ env.CLOUD_INSTANCE_BASE_URL != 0 && env.CLIENT_ID != 0 && env.CLIENT_SECRET != 0 && steps.jira_keys.outputs.jira-keys != '' && always() }}
-        id: push_build_info_to_jira
-        uses: VirtoCommerce/jira-upload-build-info@master
-        with:
-          cloud-instance-base-url: '${{ secrets.CLOUD_INSTANCE_BASE_URL }}'
-          client-id: '${{ secrets.CLIENT_ID }}'
-          client-secret: '${{ secrets.CLIENT_SECRET }}'
-          pipeline-id: '${{ github.repository }} ${{ github.workflow }}'
-          build-number: ${{ github.run_number }}
-          build-display-name: 'Workflow: ${{ github.workflow }} (#${{ github.run_number }})'
-          build-state: '${{ env.BUILD_STATE }}'
-          build-url: '${{github.event.repository.url}}/actions/runs/${{github.run_id}}'
-          update-sequence-number: '${{ github.run_id }}'
-          last-updated: '${{github.event.head_commit.timestamp}}'
-          issue-keys: '${{ steps.jira_keys.outputs.jira-keys }}'
-          commit-id: '${{ github.sha }}'
-          repo-url: '${{ github.event.repository.url }}'
-          build-ref-url: '${{ github.event.repository.url }}/actions/runs/${{ github.run_id }}'
-
-      - name: Confirm Jira Build Output
-        if: success()
-        run: |
-          echo "Jira Upload Build Info response: ${{ steps.push_build_info_to_jira.outputs.response }}"
 
   # ui-auto-tests:
   #   if: ${{ ((github.ref == 'refs/heads/dev') && (github.event_name == 'push')) ||
