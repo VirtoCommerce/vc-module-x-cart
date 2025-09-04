@@ -87,7 +87,7 @@ jobs:
         uses: VirtoCommerce/vc-github-actions/changelog-generator@master
 
       - name: Get Artifact Version
-        uses: VirtoCommerce/vc-github-actions/get-image-version@master
+        uses: VirtoCommerce/vc-github-actions/get-image-version@VCST-1835-1 #master
         id: artifact_ver
         with:
           releaseBranch: vcst-1835
