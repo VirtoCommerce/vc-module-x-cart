@@ -92,6 +92,8 @@ jobs:
       - name: Get Artifact Version
         uses: VirtoCommerce/vc-github-actions/get-image-version@master
         id: artifact_ver
+        with:
+          releaseBranch: test/VCST-1835
 
       - name: Check if .deployment folder exists
         id: check_deployment_folder
@@ -104,19 +106,19 @@ jobs:
             echo "Diagnostic: .deployment folder does NOT exist."
           fi
 
-      - name: Set VERSION_SUFFIX variable
-        run: |
-          if [ '${{ github.event_name }}' = 'workflow_dispatch' ]; then
-            echo "VERSION_SUFFIX=${{ steps.artifact_ver.outputs.fullSuffix }}" >> $GITHUB_ENV
-          else
-            echo "VERSION_SUFFIX=${{ steps.artifact_ver.outputs.suffix }}" >> $GITHUB_ENV
-          fi;
+      # - name: Set VERSION_SUFFIX variable
+      #   run: |
+      #     if [ '${{ github.event_name }}' = 'workflow_dispatch' ]; then
+      #       echo "VERSION_SUFFIX=${{ steps.artifact_ver.outputs.fullSuffix }}" >> $GITHUB_ENV
+      #     else
+      #       echo "VERSION_SUFFIX=${{ steps.artifact_ver.outputs.suffix }}" >> $GITHUB_ENV
+      #     fi;
 
-      - name: Add version suffix
-        if: ${{ github.ref != 'refs/heads/master' && github.ref != 'refs/heads/main' && github.ref != 'refs/heads/test/VCST-1835' }}
-        uses: VirtoCommerce/vc-github-actions/add-version-suffix@master
-        with:
-          versionSuffix: ${{ env.VERSION_SUFFIX }}
+      # - name: Add version suffix
+      #   if: ${{ github.ref != 'refs/heads/master' && github.ref != 'refs/heads/main' && github.ref != 'refs/heads/test/VCST-1835' }}
+      #   uses: VirtoCommerce/vc-github-actions/add-version-suffix@master
+      #   with:
+      #     versionSuffix: ${{ env.VERSION_SUFFIX }}
 
       # - name: SonarCloud Begin
       #   uses: VirtoCommerce/vc-github-actions/sonar-scanner-begin@master
@@ -174,6 +176,7 @@ jobs:
         # if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test/VCST-1835'}}
         id: githubRelease
         with:
+          makeLatest: false
           changelog: ${{ steps.changelog.outputs.changelog }}
           organization: ${{ github.repository_owner }}
         uses: VirtoCommerce/vc-github-actions/publish-github-release@VCST-1835-1 #master
