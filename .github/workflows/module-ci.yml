@@ -71,7 +71,7 @@ jobs:
           java-version: '17'
 
       - name: Set RELEASE_STATUS
-        if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test/VCST-1835') && github.event_name == 'push' }}
+        # if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test/VCST-1835') && github.event_name == 'push' }}
         run: |
           echo "RELEASE_STATUS=true" >> $GITHUB_ENV
 
@@ -82,8 +82,8 @@ jobs:
       - name: Install VirtoCommerce.GlobalTool
         uses: VirtoCommerce/vc-github-actions/setup-vcbuild@master
 
-      - name: Install dotnet-sonarscanner
-        run: dotnet tool install --global dotnet-sonarscanner
+      # - name: Install dotnet-sonarscanner
+      #   run: dotnet tool install --global dotnet-sonarscanner
 
       - name: Get Changelog
         id: changelog
@@ -113,16 +113,16 @@ jobs:
           fi;
 
       - name: Add version suffix
-        if: ${{ github.ref != 'refs/heads/master' && github.ref != 'refs/heads/main' && github.ref == 'refs/heads/test/VCST-1835' }}
+        if: ${{ github.ref != 'refs/heads/master' && github.ref != 'refs/heads/main' && github.ref != 'refs/heads/test/VCST-1835' }}
         uses: VirtoCommerce/vc-github-actions/add-version-suffix@master
         with:
           versionSuffix: ${{ env.VERSION_SUFFIX }}
 
-      - name: SonarCloud Begin
-        uses: VirtoCommerce/vc-github-actions/sonar-scanner-begin@master
-        with:
-          repoOrg: ${{ github.repository_owner }}
-          sonarOrg: ${{secrets.SONAR_ORG_KEY}}
+      # - name: SonarCloud Begin
+      #   uses: VirtoCommerce/vc-github-actions/sonar-scanner-begin@master
+      #   with:
+      #     repoOrg: ${{ github.repository_owner }}
+      #     sonarOrg: ${{secrets.SONAR_ORG_KEY}}
 
       - name: Build
         run: vc-build Compile
@@ -130,20 +130,20 @@ jobs:
       - name: Unit Tests
         run: vc-build Test -skip
 
-      - name: SonarCloud End
-        uses: VirtoCommerce/vc-github-actions/sonar-scanner-end@master
+      # - name: SonarCloud End
+      #   uses: VirtoCommerce/vc-github-actions/sonar-scanner-end@master
 
-      - name: Quality Gate
-        uses: VirtoCommerce/vc-github-actions/sonar-quality-gate@master
-        with:
-          login: ${{secrets.SONAR_TOKEN}}
+      # - name: Quality Gate
+      #   uses: VirtoCommerce/vc-github-actions/sonar-quality-gate@master
+      #   with:
+      #     login: ${{secrets.SONAR_TOKEN}}
 
       - name: Packaging
         run: vc-build Compress -skip Clean+Restore+Compile+Test
       
-      - name: Publish Nuget
-        if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
-        uses: VirtoCommerce/vc-github-actions/publish-nuget@master
+      # - name: Publish Nuget
+      #   if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
+      #   uses: VirtoCommerce/vc-github-actions/publish-nuget@master
 
       - name: Publish to Blob
         if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/master') || (github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main') }}
@@ -187,13 +187,13 @@ jobs:
             echo "download_url=${{ steps.blobRelease.outputs.packageUrl }}" >> $GITHUB_OUTPUT
           fi;
 
-      - name: Create deployment matrix
-        if: ${{ github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
-        uses: VirtoCommerce/vc-github-actions/cloud-create-deploy-matrix@master
-        id: deployment-matrix
-        with:
-          deployConfigPath: '.deployment/module/cloudDeploy.json'
-          releaseBranch: 'master'
+      # - name: Create deployment matrix
+      #   if: ${{ github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
+      #   uses: VirtoCommerce/vc-github-actions/cloud-create-deploy-matrix@master
+      #   id: deployment-matrix
+      #   with:
+      #     deployConfigPath: '.deployment/module/cloudDeploy.json'
+      #     releaseBranch: 'master'
 
       - name: Check commit message for version number
         id: run-e2e
@@ -232,11 +232,11 @@ jobs:
         with: 
           githubToken: ${{ secrets.REPO_TOKEN }}
         
-      - name: Publish Manifest
-        if: ${{ (github.ref == 'refs/heads/dev' && github.event_name != 'workflow_dispatch') || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
-        uses: VirtoCommerce/vc-github-actions/publish-manifest@master
-        with:
-          packageUrl: ${{ steps.artifactUrl.outputs.download_url }}
+      # - name: Publish Manifest
+      #   if: ${{ (github.ref == 'refs/heads/dev' && github.event_name != 'workflow_dispatch') || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
+      #   uses: VirtoCommerce/vc-github-actions/publish-manifest@master
+      #   with:
+      #     packageUrl: ${{ steps.artifactUrl.outputs.download_url }}
 
       - name: Parse Jira Keys from All Commits
         uses: VirtoCommerce/vc-github-actions/get-jira-keys@master
