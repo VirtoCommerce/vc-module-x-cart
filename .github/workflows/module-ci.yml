@@ -90,7 +90,7 @@ jobs:
         uses: VirtoCommerce/vc-github-actions/get-image-version@master
         id: artifact_ver
         with:
-          releaseBranch: VCST-1835
+          releaseBranch: vcst-1835
 
       - name: Build
         run: vc-build Compile
