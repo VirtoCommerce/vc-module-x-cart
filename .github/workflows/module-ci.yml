@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   push:
     paths-ignore:
-      - '.github/**'
+      # - '.github/**'
       - 'docs/**'
       - 'build/**'
       - 'README.md'
@@ -15,18 +15,18 @@ on:
       - '**/cloudDeploy.json'
       - samples/**
     branches:
-      [master, main, dev]
-  pull_request:
-    branches:
-      [master, main, dev]
-    paths-ignore:
-      - 'docs/**'
-      - 'build/**'
-      - 'README.md'
-      - 'LICENSE'
-      - '**/argoDeploy.json'
-      - '**/cloudDeploy.json'
-      - samples/**
+      [master, main, dev, test/VCST-1835]
+  # pull_request:
+  #   branches:
+  #     [master, main, dev]
+  #   paths-ignore:
+  #     - 'docs/**'
+  #     - 'build/**'
+  #     - 'README.md'
+  #     - 'LICENSE'
+  #     - '**/argoDeploy.json'
+  #     - '**/cloudDeploy.json'
+  #     - samples/**
     
 jobs:
   ci:
