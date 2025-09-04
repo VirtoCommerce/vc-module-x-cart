@@ -171,7 +171,7 @@ jobs:
           downloadComment: 'Artifact URL:'
 
       - name: Publish Github Release
-        if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test/VCST-1835'}}
+        # if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/test/VCST-1835'}}
         id: githubRelease
         with:
           changelog: ${{ steps.changelog.outputs.changelog }}
