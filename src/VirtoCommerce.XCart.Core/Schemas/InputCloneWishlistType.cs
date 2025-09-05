@@ -13,6 +13,7 @@ public class InputCloneWishlistType : InputObjectGraphType
         Field<StringGraphType>("cultureName").Description("Culture name");
         Field<StringGraphType>("currencyCode").Description("Currency code");
         Field<StringGraphType>("scope").Description("List scope (private or organization)");
+        Field<StringGraphType>("sharingKey").Description("Sharing key (URL argument)");
         Field<StringGraphType>("description").Description("List description");
     }
 }
