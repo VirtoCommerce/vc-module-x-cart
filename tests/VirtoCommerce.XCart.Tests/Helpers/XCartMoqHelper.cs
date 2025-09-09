@@ -54,6 +54,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         protected readonly Mock<IGenericPipelineLauncher> _genericPipelineLauncherMock;
         protected readonly Mock<IConfigurationItemValidator> _configurationItemValidatorMock;
         protected readonly Mock<IFileUploadService> _fileUploadService;
+        protected readonly Mock<ICartSharingService> _cartSharingService;
 
         protected readonly Randomizer Rand = new Randomizer();
 
@@ -193,6 +194,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
             _fileUploadService
                 .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
                 .ReturnsAsync(() => []);
+
+            _cartSharingService = new Mock<ICartSharingService>();
         }
 
         protected ShoppingCart GetCart() => _fixture.Create<ShoppingCart>();
@@ -252,7 +255,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 _memberService.Object,
                 _genericPipelineLauncherMock.Object,
                 _configurationItemValidatorMock.Object,
-                _fileUploadService.Object);
+                _fileUploadService.Object,
+                _cartSharingService.Object);
 
             aggregate.GrabCart(cart ?? GetCart(), new Store(), null, currency ?? GetCurrency());
 
@@ -271,7 +275,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 _memberService.Object,
                 _genericPipelineLauncherMock.Object,
                 _configurationItemValidatorMock.Object,
-                _fileUploadService.Object);
+                _fileUploadService.Object,
+                _cartSharingService.Object);
 
             aggregate.GrabCart(cart ?? GetCart(), new Store(), GetMember(), currency ?? GetCurrency());
 
