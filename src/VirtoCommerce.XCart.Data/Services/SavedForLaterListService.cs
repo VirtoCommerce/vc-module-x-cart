@@ -108,6 +108,8 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
 
     protected async Task MoveItemsAsync(CartAggregate from, CartAggregate to, IList<string> lineItemIds)
     {
+        to.ValidationRuleSet = ["default"];
+
         foreach (var lineItemId in lineItemIds)
         {
             var item = from.Cart.Items.FirstOrDefault(x => x.Id == lineItemId);
