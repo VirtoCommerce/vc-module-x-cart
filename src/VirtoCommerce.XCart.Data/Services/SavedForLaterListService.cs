@@ -12,13 +12,13 @@ using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
+using CartType = VirtoCommerce.CartModule.Core.ModuleConstants.CartType;
 
 namespace VirtoCommerce.XCart.Data.Services;
 
 public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepository) : ISavedForLaterListService
 {
-    protected const string savedForLaterCartType = ModuleConstants.ListTypeName;
-    protected const string savedForLaterCartName = "Saved for later";
+    protected const string savedForLaterDefaultName = "Saved for later";
 
     public virtual async Task<CartAggregateWithList> MoveFromSavedForLaterItems(MoveSavedForLaterItemsCommandBase request)
     {
@@ -63,8 +63,7 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
     {
         var searchCriteria = AbstractTypeFactory<ShoppingCartSearchCriteria>.TryCreateInstance();
 
-        searchCriteria.Type = savedForLaterCartType;
-        searchCriteria.Name = savedForLaterCartName;
+        searchCriteria.Type = CartType.SavedForLater;
         searchCriteria.StoreId = request.StoreId;
         searchCriteria.CustomerId = request.UserId;
         searchCriteria.LanguageCode = request.CultureName;
@@ -77,8 +76,8 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
     {
         var cart = AbstractTypeFactory<ShoppingCart>.TryCreateInstance();
 
-        cart.Type = savedForLaterCartType;
-        cart.Name = savedForLaterCartName;
+        cart.Type = CartType.SavedForLater;
+        cart.Name = savedForLaterDefaultName;
         cart.StoreId = request.StoreId;
         cart.CustomerId = request.UserId;
         cart.LanguageCode = request.CultureName;
@@ -109,6 +108,8 @@ public class SavedForLaterListService(ICartAggregateRepository cartAggregateRepo
 
     protected async Task MoveItemsAsync(CartAggregate from, CartAggregate to, IList<string> lineItemIds)
     {
+        to.ValidationRuleSet = ["default"];
+
         foreach (var lineItemId in lineItemIds)
         {
             var item = from.Cart.Items.FirstOrDefault(x => x.Id == lineItemId);

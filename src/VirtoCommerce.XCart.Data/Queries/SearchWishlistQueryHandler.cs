@@ -1,15 +1,16 @@
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.SearchModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Infrastructure;
-using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Extensions;
 using VirtoCommerce.XCart.Data.Services;
+using CartType = VirtoCommerce.CartModule.Core.ModuleConstants.CartType;
 
 namespace VirtoCommerce.XCart.Data.Queries
 {
@@ -18,23 +19,26 @@ namespace VirtoCommerce.XCart.Data.Queries
         private readonly ICartAggregateRepository _cartAggregateRepository;
         private readonly IMapper _mapper;
         private readonly ISearchPhraseParser _searchPhraseParser;
+        private readonly ISavedForLaterListService _savedForLaterListService;
 
         public SearchWishlistQueryHandler(
             ICartAggregateRepository cartAggregateRepository,
             IMapper mapper,
-            ISearchPhraseParser searchPhraseParser)
+            ISearchPhraseParser searchPhraseParser,
+            ISavedForLaterListService savedForLaterListService)
         {
             _cartAggregateRepository = cartAggregateRepository;
             _mapper = mapper;
             _searchPhraseParser = searchPhraseParser;
+            _savedForLaterListService = savedForLaterListService;
         }
 
         public virtual async Task<SearchCartResponse> Handle(SearchWishlistQuery request, CancellationToken cancellationToken)
         {
-            var searchCriteria = new CartSearchCriteriaBuilder(_searchPhraseParser, _mapper)
+            var wishlistSearchCriteria = new CartSearchCriteriaBuilder(_searchPhraseParser, _mapper)
                                      .WithCurrency(request.CurrencyCode)
                                      .WithStore(request.StoreId)
-                                     .WithType(ModuleConstants.ListTypeName)
+                                     .WithTypes([CartType.Wishlist, CartType.SavedForLater])
                                      .WithLanguage(request.CultureName)
                                      .WithCustomerId(request.UserId)
                                      .WithOrganizationId(request.OrganizationId)
@@ -44,7 +48,17 @@ namespace VirtoCommerce.XCart.Data.Queries
                                      .WithResponseGroup(CartResponseGroup.WithLineItems)
                                      .Build();
 
-            return await _cartAggregateRepository.SearchCartAsync(searchCriteria, request.IncludeFields.ItemsToProductIncludeField());
+            var wishlists = await _cartAggregateRepository.SearchCartAsync(wishlistSearchCriteria, request.IncludeFields.ItemsToProductIncludeField());
+
+            var savedForLater = await _savedForLaterListService.FindSavedForLaterListAsync(request);
+
+            if (savedForLater != null && !wishlists.Results.Any(x => x.Cart.Id == savedForLater.Cart.Id))
+            {
+                wishlists.Results.Insert(0, savedForLater);
+                wishlists.TotalCount += 1;
+            }
+
+            return wishlists;
         }
     }
 }

@@ -15,6 +15,7 @@ using VirtoCommerce.Platform.Security.Authorization;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
+using CartType = VirtoCommerce.CartModule.Core.ModuleConstants.CartType;
 
 namespace VirtoCommerce.XCart.Data.Authorization
 {
@@ -122,13 +123,20 @@ namespace VirtoCommerce.XCart.Data.Authorization
             var result = true;
             if (context.Cart != null)
             {
-                if (context.Cart.OrganizationId != null)
+                if (context.Cart.Type == CartType.SavedForLater)
                 {
-                    result = context.Cart.OrganizationId == context.CurrentOrganizationId;
+                    result = context.Cart.CustomerId == context.CurrentUserId || (context.Cart.OrganizationId != null && context.Cart.OrganizationId == context.CurrentOrganizationId);
                 }
                 else
                 {
-                    result = context.Cart.CustomerId == context.CurrentUserId;
+                    if (context.Cart.OrganizationId != null)
+                    {
+                        result = context.Cart.OrganizationId == context.CurrentOrganizationId;
+                    }
+                    else
+                    {
+                        result = context.Cart.CustomerId == context.CurrentUserId;
+                    }
                 }
             }
 
