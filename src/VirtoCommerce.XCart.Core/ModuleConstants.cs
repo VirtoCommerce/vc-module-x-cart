@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using VirtoCommerce.Platform.Core.Settings;
-using CartType = VirtoCommerce.CartModule.Core.ModuleConstants.CartType;
+using CartType = VirtoCommerce.CartModule.Core.ModuleConstants.CartType;//Moved to Core
 
 namespace VirtoCommerce.XCart.Core
 {
