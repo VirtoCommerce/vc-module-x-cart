@@ -40,7 +40,11 @@ public class GetConfigurationItemsQueryBuilder : QueryBuilder<GetConfigurationIt
 
     protected override Task AfterMediatorSend(IResolveFieldContext<object> context, GetConfigurationItemsQuery request, ConfigurationItemsResponse response)
     {
-        context.SetExpandedObjectGraph(response.CartAggregate);
+        if (response.CartAggregate is not null)
+        {
+            context.SetExpandedObjectGraph(response.CartAggregate);
+        }
+
         return Task.CompletedTask;
     }
 
