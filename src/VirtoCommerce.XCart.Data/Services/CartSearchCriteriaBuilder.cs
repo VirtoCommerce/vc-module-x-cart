@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using AutoMapper;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
@@ -61,6 +62,12 @@ namespace VirtoCommerce.XCart.Data.Services
         public CartSearchCriteriaBuilder WithType(string type)
         {
             _searchCriteria.Type = type ?? _searchCriteria.Type;
+            return this;
+        }
+
+        public CartSearchCriteriaBuilder WithTypes(IList<string> types)
+        {
+            _searchCriteria.Types = types ?? _searchCriteria.Types;
             return this;
         }
 

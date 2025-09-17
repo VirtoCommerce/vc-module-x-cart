@@ -8,7 +8,7 @@ using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Commands.BaseCommands;
-using static VirtoCommerce.XCart.Core.ModuleConstants;
+using CartType = VirtoCommerce.CartModule.Core.ModuleConstants.CartType;
 
 namespace VirtoCommerce.XCart.Data.Commands;
 
@@ -24,7 +24,7 @@ public class CloneWishlistCommandHandler : ScopedWishlistCommandHandlerBase<Clon
 
     public override async Task<CartAggregate> Handle(CloneWishlistCommand request, CancellationToken cancellationToken)
     {
-        request.CartType = ListTypeName;
+        request.CartType = CartType.Wishlist;
 
         var cloneCartAggregate = await CreateNewCartAggregateAsync(request);
         cloneCartAggregate.Cart.Description = request.Description;

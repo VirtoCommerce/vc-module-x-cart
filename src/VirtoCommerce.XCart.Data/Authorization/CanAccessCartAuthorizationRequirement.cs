@@ -16,6 +16,7 @@ using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
 using VirtoCommerce.XCart.Core.Services;
+using CartType = VirtoCommerce.CartModule.Core.ModuleConstants.CartType;
 
 namespace VirtoCommerce.XCart.Data.Authorization
 {
@@ -128,6 +129,10 @@ namespace VirtoCommerce.XCart.Data.Authorization
                 if (!context.Cart.SharingSettings.IsNullOrEmpty())
                 {
                     return _cartSharingService.IsAuthorized(context.Cart, context.CurrentUserId, context.CurrentOrganizationId);
+                }
+                else if (context.Cart.Type == CartType.SavedForLater)
+                {
+                    result = context.Cart.CustomerId == context.CurrentUserId || (context.Cart.OrganizationId != null && context.Cart.OrganizationId == context.CurrentOrganizationId);
                 }
                 else
                 {
