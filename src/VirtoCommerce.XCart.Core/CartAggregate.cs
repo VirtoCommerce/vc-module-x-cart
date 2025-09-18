@@ -54,6 +54,7 @@ namespace VirtoCommerce.XCart.Core
         private readonly IGenericPipelineLauncher _pipeline;
         private readonly IConfigurationItemValidator _configurationItemValidator;
         private readonly IFileUploadService _fileUploadService;
+        private readonly ICartSharingService _cartSharingService;
 
         public CartAggregate(
             IMarketingPromoEvaluator marketingEvaluator,
@@ -65,7 +66,8 @@ namespace VirtoCommerce.XCart.Core
             IMemberService memberService,
             IGenericPipelineLauncher pipeline,
             IConfigurationItemValidator configurationItemValidator,
-            IFileUploadService fileUploadService)
+            IFileUploadService fileUploadService,
+            ICartSharingService cartSharingService)
         {
             _cartTotalsCalculator = cartTotalsCalculator;
             _marketingEvaluator = marketingEvaluator;
@@ -77,6 +79,7 @@ namespace VirtoCommerce.XCart.Core
             _pipeline = pipeline;
             _configurationItemValidator = configurationItemValidator;
             _fileUploadService = fileUploadService;
+            _cartSharingService = cartSharingService;
         }
 
         public Store Store { get; protected set; }
@@ -137,11 +140,12 @@ namespace VirtoCommerce.XCart.Core
 
         public IList<ValidationFailure> ValidationWarnings { get; protected set; } = new List<ValidationFailure>();
 
+        [Obsolete("Use Cart.SharingSettings and ICartSharingService instead", false, DiagnosticId = "VC0011", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         public virtual string Scope
         {
             get
             {
-                return string.IsNullOrEmpty(Cart.OrganizationId) ? ModuleConstants.PrivateScope : ModuleConstants.OrganizationScope;
+                return _cartSharingService.GetSharingScope(Cart);
             }
         }
 

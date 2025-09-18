@@ -5,7 +5,6 @@ using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.SearchModule.Core.Services;
-using static VirtoCommerce.XCart.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Services
 {
@@ -97,11 +96,11 @@ namespace VirtoCommerce.XCart.Data.Services
         {
             _searchCriteria.CustomerOrOrganization = true;
 
-            if (scope.EqualsIgnoreCase(OrganizationScope))
+            if (scope.EqualsIgnoreCase(CartSharingScope.Organization))
             {
                 _searchCriteria.CustomerId = null;
             }
-            else if (scope.EqualsIgnoreCase(PrivateScope))
+            else if (scope.EqualsIgnoreCase(CartSharingScope.Private))
             {
                 _searchCriteria.OrganizationId = null;
             }

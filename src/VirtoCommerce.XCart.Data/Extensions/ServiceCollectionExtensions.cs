@@ -32,6 +32,7 @@ namespace VirtoCommerce.XCart.Data.Extensions
             services.AddTransient<ICartProductService, CartProductService>();
             services.AddTransient<ICartProductsLoaderService, CartProductService>();
             services.AddTransient<ISavedForLaterListService, SavedForLaterListService>();
+            services.AddTransient<ICartSharingService, CartSharingService>();
             services.AddSingleton<ICartResponseGroupParser, CartResponseGroupParser>();
             services.AddTransient<CartAggregate>();
             services.AddTransient<Func<CartAggregate>>(provider => () => provider.CreateScope().ServiceProvider.GetRequiredService<CartAggregate>());

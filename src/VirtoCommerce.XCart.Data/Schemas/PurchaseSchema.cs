@@ -26,6 +26,7 @@ using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
 using VirtoCommerce.XCart.Core.Schemas;
+using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Authorization;
 using VirtoCommerce.XPurchase.Schemas;
 using static VirtoCommerce.Xapi.Core.ModuleConstants;
@@ -42,6 +43,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
         private readonly IDistributedLockService _distributedLockService;
         private readonly IUserManagerCore _userManagerCore;
         private readonly IMemberResolver _memberResolver;
+        private readonly ICartSharingService _cartSharingService;
 
         public const string CartPrefix = "Cart";
 
@@ -52,7 +54,8 @@ namespace VirtoCommerce.XCart.Data.Schemas
             IShoppingCartSearchService shoppingCartSearchService,
             IDistributedLockService distributedLockService,
             IUserManagerCore userManagerCore,
-            IMemberResolver memberResolver)
+            IMemberResolver memberResolver,
+            ICartSharingService cartSharingService)
         {
             _mediator = mediator;
             _authorizationService = authorizationService;
@@ -61,6 +64,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             _distributedLockService = distributedLockService;
             _userManagerCore = userManagerCore;
             _memberResolver = memberResolver;
+            _cartSharingService = cartSharingService;
         }
 
         public void Build(ISchema schema)
@@ -1279,6 +1283,37 @@ namespace VirtoCommerce.XCart.Data.Schemas
             };
             schema.Query.AddField(listField);
 
+            var sharedListField = new FieldType
+            {
+                Name = "sharedWishlist",
+                Arguments = new QueryArguments(new QueryArgument<NonNullGraphType<StringGraphType>> { Name = "sharingKey", Description = "Sharing key" }),
+                Type = GraphTypeExtensionHelper.GetActualType<WishlistType>(),
+                Resolver = new FuncFieldResolver<object>(async context =>
+                {
+                    var getSharedListQuery = AbstractTypeFactory<GetSharedWishlistQuery>.TryCreateInstance();
+                    getSharedListQuery.SharingKey = context.GetArgument<string>("sharingKey");
+                    getSharedListQuery.IncludeFields = context.SubFields.Values.GetAllNodesPaths(context).ToArray();
+                    context.CopyArgumentsToUserContext();
+
+                    var cartAggregate = await _mediator.Send(getSharedListQuery);
+
+                    if (cartAggregate == null)
+                    {
+                        return null;
+                    }
+
+                    context.UserContext["storeId"] = cartAggregate.Cart.StoreId;
+
+                    var wishlistUserContext = await InitializeWishlistUserContext(context, cart: cartAggregate.Cart);
+                    await AuthorizeAsync(context, wishlistUserContext);
+
+                    context.SetExpandedObjectGraph(cartAggregate);
+
+                    return cartAggregate;
+                })
+            };
+            schema.Query.AddField(sharedListField);
+
             var listConnectionBuilder = GraphTypeExtensionHelper.CreateConnection<WishlistType, object>("wishlists")
                 .Argument<StringGraphType>("storeId", "Store Id")
                 .Argument<StringGraphType>("userId", "User Id")
@@ -1639,13 +1674,11 @@ namespace VirtoCommerce.XCart.Data.Schemas
             return wishlistUserContext;
         }
 
-        private static void InitializeWishlistUserContextScope(WishlistUserContext context, string scope = null)
+        private void InitializeWishlistUserContextScope(WishlistUserContext context, string scope = null)
         {
-            if (string.IsNullOrEmpty(scope) && context.Cart is not null)
+            if (string.IsNullOrEmpty(scope))
             {
-                scope = string.IsNullOrEmpty(context.Cart.OrganizationId)
-                    ? PrivateScope
-                    : OrganizationScope;
+                scope = _cartSharingService.GetSharingScope(context.Cart);
             }
 
             context.Scope = scope;

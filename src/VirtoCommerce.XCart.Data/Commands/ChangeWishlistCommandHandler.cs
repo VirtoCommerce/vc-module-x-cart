@@ -9,8 +9,8 @@ namespace VirtoCommerce.XCart.Data.Commands
 {
     public class ChangeWishlistCommandHandler : ScopedWishlistCommandHandlerBase<ChangeWishlistCommand>
     {
-        public ChangeWishlistCommandHandler(ICartAggregateRepository cartAggregateRepository)
-            : base(cartAggregateRepository)
+        public ChangeWishlistCommandHandler(ICartAggregateRepository cartAggregateRepository, ICartSharingService cartSharingService)
+            : base(cartAggregateRepository, cartSharingService)
         {
         }
 

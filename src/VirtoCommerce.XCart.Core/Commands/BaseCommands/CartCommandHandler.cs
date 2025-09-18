@@ -77,6 +77,7 @@ namespace VirtoCommerce.XCart.Core.Commands.BaseCommands
             cart.Coupons = new List<string>();
             cart.Discounts = new List<Discount>();
             cart.DynamicProperties = new List<DynamicObjectProperty>();
+            cart.SharingSettings = new List<CartSharingSetting>();
 
             return CartRepository.GetCartForShoppingCartAsync(cart);
         }
