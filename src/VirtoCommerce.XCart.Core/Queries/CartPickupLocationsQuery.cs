@@ -2,11 +2,11 @@ using System.Collections.Generic;
 using GraphQL;
 using GraphQL.Types;
 using VirtoCommerce.Xapi.Core.BaseQueries;
-using VirtoCommerce.XCart.Core.Models;
+using VirtoCommerce.XCatalog.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Queries;
 
-public class CartPickupLocationsQuery : SearchQuery<CartPickupLocationSearchResult>
+public class CartPickupLocationsQuery : SearchQuery<ProductPickupLocationSearchResult>
 {
     public string CartId { get; set; }
 
