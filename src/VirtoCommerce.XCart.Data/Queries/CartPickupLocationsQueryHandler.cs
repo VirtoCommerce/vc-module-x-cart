@@ -8,6 +8,7 @@ using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Services;
 using VirtoCommerce.InventoryModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.ShippingModule.Core.Model;
 using VirtoCommerce.ShippingModule.Core.Model.Search;
 using VirtoCommerce.ShippingModule.Core.Services;
@@ -17,6 +18,7 @@ using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
 using ShippingConstants = VirtoCommerce.ShippingModule.Core.ModuleConstants;
+using XCatalogConstants = VirtoCommerce.XCatalog.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Queries;
 
@@ -26,8 +28,8 @@ public class CartPickupLocationsQueryHandler(
     //IProductInventorySearchService productInventorySearchService,
     IShippingMethodsSearchService shippingMethodsSearchService,
     IPickupLocationSearchService pickupLocationSearchService,
-    IStoreService storeService//,
-    /*ILocalizableSettingService localizableSettingService*/) : IQueryHandler<CartPickupLocationsQuery, CartPickupLocationSearchResult>
+    IStoreService storeService,
+    ILocalizableSettingService localizableSettingService) : IQueryHandler<CartPickupLocationsQuery, CartPickupLocationSearchResult>
 {
     public async Task<CartPickupLocationSearchResult> Handle(CartPickupLocationsQuery request, CancellationToken cancellationToken)
     {
@@ -57,21 +59,36 @@ public class CartPickupLocationsQueryHandler(
 
             var resultItems = new List<CartPickupLocation>();
 
-            foreach (var product in products)
+            var worstAvailability = store.Settings.GetValue<bool>(XCatalogConstants.Settings.GlobalTransferEnabled) ? CartPickupAvailability.GlobalTransfer : CartPickupAvailability.Transfer;
+
+            foreach (var pickupLocation in pickupLocations)
             {
-                foreach (var pickupLocation in pickupLocations)
+                var worstProductAvailability = default(string);
+
+                foreach (var product in products)
                 {
                     var pickupLocationProductInventories = productInventories
                         .Where(x => x.ProductId == product.Id)
                         .Where(x => x.FulfillmentCenterId == pickupLocation.FulfillmentCenterId || pickupLocation.TransferFulfillmentCenterIds.Contains(x.FulfillmentCenterId))
                         .ToList();
 
-                    var productPickupLocation = await GetProductPickupLocationAsync(store, product, pickupLocation, pickupLocationProductInventories, request.CultureName);
-                    if (productPickupLocation != null)
+                    var productAvailability = GetProductPickupLocationAvailability(store, product, pickupLocation, pickupLocationProductInventories, request.CultureName);
+
+                    if (worstProductAvailability == null)
                     {
-                        resultItems.Add(productPickupLocation);
+                        worstProductAvailability = productAvailability;
                     }
+                    else
+                    {
+                        worstProductAvailability = GetWorstAvailability(worstProductAvailability, productAvailability);
+                    }
+
+                    if (worstProductAvailability == worstAvailability)
+                        break;
                 }
+
+                var productPickupLocation = await CreatePickupLocationFromProductInventoryAsync(pickupLocation, worstProductAvailability, request.CultureName);
+                resultItems.Add(productPickupLocation);
             }
 
             result.TotalCount = resultItems.Count;
@@ -114,6 +131,41 @@ public class CartPickupLocationsQueryHandler(
         //return await productInventorySearchService.SearchAllAsync(productInventorySearchCriteria, clone: false);
     }
 
+    protected virtual string GetProductPickupLocationAvailability(Store store, CatalogProduct product, PickupLocation pickupLocation, IList<InventoryInfo> pickupLocationProductInventories, string cultureName)
+    {
+        if (!product.TrackInventory.GetValueOrDefault())
+        {
+            return CartPickupAvailability.Today;
+        }
+
+        var mainPickupLocationProductInventory = pickupLocationProductInventories
+            .Where(x => x.FulfillmentCenterId == pickupLocation.FulfillmentCenterId)
+            .Where(x => x.InStockQuantity > 0)
+            .FirstOrDefault();
+
+        if (mainPickupLocationProductInventory != null)
+        {
+            return CartPickupAvailability.Today;
+        }
+
+        var transferPickupLocationProductInventory = pickupLocationProductInventories
+            .Where(x => pickupLocation.TransferFulfillmentCenterIds.Contains(x.FulfillmentCenterId))
+            .Where(x => x.InStockQuantity > 0)
+            .FirstOrDefault();
+
+        if (transferPickupLocationProductInventory != null)
+        {
+            return CartPickupAvailability.Transfer;
+        }
+
+        if (store.Settings.GetValue<bool>(XCatalogConstants.Settings.GlobalTransferEnabled))
+        {
+            return CartPickupAvailability.GlobalTransfer;
+        }
+
+        return null;
+    }
+
     protected virtual async Task<CartPickupLocation> GetProductPickupLocationAsync(Store store, CatalogProduct product, PickupLocation pickupLocation, IList<InventoryInfo> pickupLocationProductInventories, string cultureName)
     {
         if (!product.TrackInventory.GetValueOrDefault())
@@ -143,10 +195,10 @@ public class CartPickupLocationsQueryHandler(
             return await CreatePickupLocationFromProductInventoryAsync(pickupLocation, CartPickupAvailability.Transfer, cultureName);
         }
 
-        //if (store.Settings.GetValue<bool>(ModuleConstants.Settings.GlobalTransferEnabled))
-        //{
-        //    return await CreatePickupLocationFromProductInventoryAsync(pickupLocation, CartPickupAvailability.GlobalTransfer, cultureName);
-        //}
+        if (store.Settings.GetValue<bool>(XCatalogConstants.Settings.GlobalTransferEnabled))
+        {
+            return await CreatePickupLocationFromProductInventoryAsync(pickupLocation, CartPickupAvailability.GlobalTransfer, cultureName);
+        }
 
         return null;
     }
@@ -168,37 +220,35 @@ public class CartPickupLocationsQueryHandler(
 
     protected virtual async Task<string> GetProductPickupLocationNoteAsync(string productPickupAvailability, string cultureName)
     {
-        return await Task.FromResult(productPickupAvailability.ToString());
+        if (productPickupAvailability == CartPickupAvailability.Today)
+        {
+            var result = (await localizableSettingService.GetValuesAsync(XCatalogConstants.Settings.TodayAvailabilityNote.Name, cultureName)).FirstOrDefault()?.Value;
+            if (string.IsNullOrEmpty(result))
+            {
+                result = "Today";
+            }
+            return result;
+        }
+        else if (productPickupAvailability == CartPickupAvailability.Transfer)
+        {
+            var result = (await localizableSettingService.GetValuesAsync(XCatalogConstants.Settings.TransferAvailabilityNote.Name, cultureName)).FirstOrDefault()?.Value;
+            if (string.IsNullOrEmpty(result))
+            {
+                result = "Via transfer";
+            }
+            return result;
+        }
+        else if (productPickupAvailability == CartPickupAvailability.GlobalTransfer)
+        {
+            var result = (await localizableSettingService.GetValuesAsync(XCatalogConstants.Settings.GlobalTransferAvailabilityNote.Name, cultureName)).FirstOrDefault()?.Value;
+            if (string.IsNullOrEmpty(result))
+            {
+                result = "Via transfer";
+            }
+            return result;
+        }
 
-        //if (productPickupAvailability == CartPickupAvailability.Today)
-        //{
-        //    var result = (await localizableSettingService.GetValuesAsync(ModuleConstants.Settings.TodayAvailabilityNote.Name, cultureName)).FirstOrDefault()?.Value;
-        //    if (string.IsNullOrEmpty(result))
-        //    {
-        //        result = "Today";
-        //    }
-        //    return result;
-        //}
-        //else if (productPickupAvailability == CartPickupAvailability.Transfer)
-        //{
-        //    var result = (await localizableSettingService.GetValuesAsync(ModuleConstants.Settings.TransferAvailabilityNote.Name, cultureName)).FirstOrDefault()?.Value;
-        //    if (string.IsNullOrEmpty(result))
-        //    {
-        //        result = "Via transfer";
-        //    }
-        //    return result;
-        //}
-        //else if (productPickupAvailability == CartPickupAvailability.GlobalTransfer)
-        //{
-        //    var result = (await localizableSettingService.GetValuesAsync(ModuleConstants.Settings.GlobalTransferAvailabilityNote.Name, cultureName)).FirstOrDefault()?.Value;
-        //    if (string.IsNullOrEmpty(result))
-        //    {
-        //        result = "Via transfer";
-        //    }
-        //    return result;
-        //}
-
-        //return null;
+        return null;
     }
 
     protected virtual IEnumerable<CartPickupLocation> ApplySort(IList<CartPickupLocation> items, CartPickupLocationsQuery request)
@@ -211,6 +261,44 @@ public class CartPickupLocationsQueryHandler(
         }
 
         return items;
+    }
+
+    protected string GetWorstAvailability(string productAvailability1, string productAvailability2)
+    {
+        if (productAvailability1 == productAvailability2)
+        {
+            return productAvailability1;
+        }
+
+        if (productAvailability1 == CartPickupAvailability.GlobalTransfer)
+        {
+            return productAvailability1;
+        }
+        if (productAvailability2 == CartPickupAvailability.GlobalTransfer)
+        {
+            return productAvailability2;
+        }
+
+        if (productAvailability1 == CartPickupAvailability.Transfer)
+        {
+            return productAvailability1;
+        }
+        if (productAvailability2 == CartPickupAvailability.Transfer)
+        {
+            return productAvailability2;
+        }
+
+
+        if (productAvailability1 == CartPickupAvailability.Today)
+        {
+            return productAvailability1;
+        }
+        if (productAvailability2 == CartPickupAvailability.Today)
+        {
+            return productAvailability2;
+        }
+
+        return productAvailability1;
     }
 
     protected virtual int GetAvaiabilitySortOrder(string availabilityType)
