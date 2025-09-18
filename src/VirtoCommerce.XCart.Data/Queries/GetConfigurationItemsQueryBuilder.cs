@@ -30,7 +30,7 @@ public class GetConfigurationItemsQueryBuilder : QueryBuilder<GetConfigurationIt
 
         var cartAuthorizationRequirement = new CanAccessCartAuthorizationRequirement();
 
-        if (response is not null)
+        if (response is not null && response.CartAggregate is not null)
         {
             await Authorize(context, response.CartAggregate.Cart, cartAuthorizationRequirement);
         }
@@ -40,7 +40,11 @@ public class GetConfigurationItemsQueryBuilder : QueryBuilder<GetConfigurationIt
 
     protected override Task AfterMediatorSend(IResolveFieldContext<object> context, GetConfigurationItemsQuery request, ConfigurationItemsResponse response)
     {
-        context.SetExpandedObjectGraph(response.CartAggregate);
+        if (response.CartAggregate is not null)
+        {
+            context.SetExpandedObjectGraph(response.CartAggregate);
+        }
+
         return Task.CompletedTask;
     }
 
