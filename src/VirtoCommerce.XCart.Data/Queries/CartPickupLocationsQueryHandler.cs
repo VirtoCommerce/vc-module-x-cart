@@ -35,64 +35,68 @@ public class CartPickupLocationsQueryHandler(
             throw new InvalidOperationException($"Store with id {request.StoreId} not found");
         }
 
+        var cart = await shoppingCartService.GetNoCloneAsync(request.CartId);
+        if (cart == null)
+        {
+            throw new InvalidOperationException($"Cart with id {request.CartId} not found");
+        }
+
         var result = AbstractTypeFactory<ProductPickupLocationSearchResult>.TryCreateInstance();
 
-        if (await catalogPickupLocationService.IsPickupInStoreEnabledAsync(request.StoreId))
+        if (!await catalogPickupLocationService.IsPickupInStoreEnabledAsync(request.StoreId))
         {
-            var cart = await shoppingCartService.GetNoCloneAsync(request.CartId);
-            if (cart == null)
+            return result;
+        }
+
+        var globalTransferEnabled = catalogPickupLocationService.GlobalTransferEnabled(store);
+
+        var quantityByProductId = cart.Items.Select(x => new { x.ProductId, x.Quantity }).ToDictionary(x => x.ProductId);
+        var productIds = quantityByProductId.Keys.ToList();
+
+        var products = await itemService.GetByIdsAsync(productIds, responseGroup: null, catalogId: null);
+
+        var pickupLocations = await catalogPickupLocationService.SearchProductPickupLocationsAsync(request.StoreId, request.Keyword);
+
+        var productInventories = await catalogPickupLocationService.SearchProductInventoriesAsync(productIds);
+
+        var resultItems = new List<ProductPickupLocation>();
+
+        var worstAvailability = store.Settings.GetValue<bool>(XCatalogConstants.Settings.GlobalTransferEnabled) ? CartPickupAvailability.GlobalTransfer : CartPickupAvailability.Transfer;
+
+        foreach (var pickupLocation in pickupLocations)
+        {
+            var worstProductAvailability = default(string);
+
+            foreach (var product in products)
             {
-                throw new InvalidOperationException($"Cart with id {request.CartId} not found");
-            }
+                var pickupLocationProductInventories = productInventories
+                    .Where(x => x.ProductId == product.Id)
+                    .Where(x => x.FulfillmentCenterId == pickupLocation.FulfillmentCenterId || pickupLocation.TransferFulfillmentCenterIds.Contains(x.FulfillmentCenterId))
+                    .ToList();
 
-            var globalTransferEnabled = catalogPickupLocationService.GlobalTransferEnabled(store);
+                var productAvailability = GetProductPickupLocationAvailability(store, product, pickupLocation, pickupLocationProductInventories, quantityByProductId[product.Id].Quantity, request.CultureName, globalTransferEnabled);
 
-            var quantityByProductId = cart.Items.Select(x => new { x.ProductId, x.Quantity }).ToDictionary(x => x.ProductId);
-            var productIds = quantityByProductId.Keys.ToList();
-
-            var products = await itemService.GetByIdsAsync(productIds, responseGroup: null, catalogId: null);
-
-            var pickupLocations = await catalogPickupLocationService.SearchProductPickupLocationsAsync(request.StoreId, request.Keyword);
-
-            var productInventories = await catalogPickupLocationService.SearchProductInventoriesAsync(productIds);
-
-            var resultItems = new List<ProductPickupLocation>();
-
-            var worstAvailability = store.Settings.GetValue<bool>(XCatalogConstants.Settings.GlobalTransferEnabled) ? CartPickupAvailability.GlobalTransfer : CartPickupAvailability.Transfer;
-
-            foreach (var pickupLocation in pickupLocations)
-            {
-                var worstProductAvailability = default(string);
-
-                foreach (var product in products)
+                if (worstProductAvailability == null)
                 {
-                    var pickupLocationProductInventories = productInventories
-                        .Where(x => x.ProductId == product.Id)
-                        .Where(x => x.FulfillmentCenterId == pickupLocation.FulfillmentCenterId || pickupLocation.TransferFulfillmentCenterIds.Contains(x.FulfillmentCenterId))
-                        .ToList();
-
-                    var productAvailability = GetProductPickupLocationAvailability(store, product, pickupLocation, pickupLocationProductInventories, quantityByProductId[product.Id].Quantity, request.CultureName, globalTransferEnabled);
-
-                    if (worstProductAvailability == null)
-                    {
-                        worstProductAvailability = productAvailability;
-                    }
-                    else
-                    {
-                        worstProductAvailability = GetWorstAvailability(worstProductAvailability, productAvailability);
-                    }
-
-                    if (worstProductAvailability == worstAvailability)
-                        break;
+                    worstProductAvailability = productAvailability;
+                }
+                else
+                {
+                    worstProductAvailability = GetWorstAvailability(worstProductAvailability, productAvailability);
                 }
 
-                var productPickupLocation = await catalogPickupLocationService.CreatePickupLocationFromProductInventoryAsync(pickupLocation, productInventoryInfo: null, worstProductAvailability, request.CultureName);
-                resultItems.Add(productPickupLocation);
+                if (worstProductAvailability == worstAvailability)
+                {
+                    break;
+                }
             }
 
-            result.TotalCount = resultItems.Count;
-            result.Results = catalogPickupLocationService.ApplySort(resultItems, request.Sort).Skip(request.Skip).Take(request.Take).ToList();
+            var productPickupLocation = await catalogPickupLocationService.CreatePickupLocationFromProductInventoryAsync(pickupLocation, productInventoryInfo: null, worstProductAvailability, request.CultureName);
+            resultItems.Add(productPickupLocation);
         }
+
+        result.TotalCount = resultItems.Count;
+        result.Results = catalogPickupLocationService.ApplySort(resultItems, request.Sort).Skip(request.Skip).Take(request.Take).ToList();
 
         return result;
     }
