@@ -128,19 +128,7 @@ namespace VirtoCommerce.XCart.Data.Authorization
             {
                 if (!context.Cart.SharingSettings.IsNullOrEmpty())
                 {
-                    var isAuthorized = _cartSharingService.IsAuthorized(context.Cart, context.CurrentUserId, context.CurrentOrganizationId);
-                    if (!isAuthorized)
-                    {
-                        return false;
-                    }
-
-                    var sharingAccess = _cartSharingService.GetSharingAccess(context.Cart, context.CurrentUserId);
-                    if (context.RequestedAccess.IsNullOrEmpty() || context.RequestedAccess == CartSharingAccess.Write && sharingAccess != CartSharingAccess.Write)
-                    {
-                        return false;
-                    }
-
-                    return true;
+                    return CheckSharedWishlistUserContext(context);
                 }
                 else if (context.Cart.Type == CartType.SavedForLater)
                 {
@@ -166,6 +154,23 @@ namespace VirtoCommerce.XCart.Data.Authorization
             }
 
             return result;
+        }
+
+        protected virtual bool CheckSharedWishlistUserContext(WishlistUserContext context)
+        {
+            var isAuthorized = _cartSharingService.IsAuthorized(context.Cart, context.CurrentUserId, context.CurrentOrganizationId);
+            if (!isAuthorized)
+            {
+                return false;
+            }
+
+            var sharingAccess = _cartSharingService.GetSharingAccess(context.Cart, context.CurrentUserId);
+            if (context.RequestedAccess.IsNullOrEmpty() || context.RequestedAccess == CartSharingAccess.Write && sharingAccess != CartSharingAccess.Write)
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }
