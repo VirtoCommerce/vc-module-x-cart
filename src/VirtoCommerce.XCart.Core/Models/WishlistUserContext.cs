@@ -16,5 +16,7 @@ namespace VirtoCommerce.XCart.Core.Models
         public string UserId { get; set; }
 
         public string Scope { get; set; }
+
+        public string RequestedAccess { get; set; }
     }
 }

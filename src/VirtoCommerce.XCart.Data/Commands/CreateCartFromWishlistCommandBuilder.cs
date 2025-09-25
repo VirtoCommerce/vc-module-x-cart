@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using GraphQL;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
@@ -75,6 +76,7 @@ public class CreateCartFromWishlistCommandBuilder : CommandBuilder<CreateCartFro
             CurrentUserId = request.UserId,
             CurrentOrganizationId = request.OrganizationId,
             CurrentContact = await _memberResolver.ResolveMemberByIdAsync(request.UserId) as Contact,
+            RequestedAccess = CartSharingAccess.Write,
         };
 
         if (!string.IsNullOrEmpty(request.ListId))

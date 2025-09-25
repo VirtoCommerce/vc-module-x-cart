@@ -1304,7 +1304,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                     context.UserContext["storeId"] = cartAggregate.Cart.StoreId;
 
-                    var wishlistUserContext = await InitializeWishlistUserContext(context, cart: cartAggregate.Cart);
+                    var wishlistUserContext = await InitializeWishlistUserContext(context, cart: cartAggregate.Cart, requestedAccess: CartSharingAccess.Read);
                     await AuthorizeAsync(context, wishlistUserContext);
 
                     context.SetExpandedObjectGraph(cartAggregate);
@@ -1608,6 +1608,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                     CurrentOrganizationId = currentOrganizationId,
                     CurrentContact = contact,
                     Cart = cart,
+                    RequestedAccess = CartSharingAccess.Write,
                 };
                 InitializeWishlistUserContextScope(wishlistUserContext);
 
@@ -1630,6 +1631,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                     CurrentOrganizationId = currentOrganizationId,
                     CurrentContact = contact,
                     Cart = cart,
+                    RequestedAccess = CartSharingAccess.Write,
                 };
                 InitializeWishlistUserContextScope(wishlistUserContext);
 
@@ -1652,7 +1654,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             await AuthorizeAsync(context, resource);
         }
 
-        private async Task<WishlistUserContext> InitializeWishlistUserContext(IResolveFieldContext context, string listId = null, ShoppingCart cart = null, string userId = null, string scope = null)
+        private async Task<WishlistUserContext> InitializeWishlistUserContext(IResolveFieldContext context, string listId = null, ShoppingCart cart = null, string userId = null, string scope = null, string requestedAccess = CartSharingAccess.Write)
         {
             var currentUserId = context.GetCurrentUserId();
 
@@ -1668,6 +1670,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                 CurrentContact = await _memberResolver.ResolveMemberByIdAsync(currentUserId) as Contact,
                 Cart = cart,
                 UserId = userId,
+                RequestedAccess = requestedAccess,
             };
             InitializeWishlistUserContextScope(wishlistUserContext, scope);
 
