@@ -271,7 +271,7 @@ jobs:
       customModuleId:  ${{ needs.ci.outputs.moduleId }}
       customModuleUrl:  ${{ needs.ci.outputs.artifactUrl }}
       runTests: ${{ needs.ci.outputs.run-ui-tests }}
-      vctestingRepoBranch: 'vcst-2366'
+      vctestingRepoBranch: 'dev'
     secrets:
       envPAT: ${{ secrets.REPO_TOKEN }}
       testSecretEnvFile: ${{ secrets.VC_TESTING_MODULE_ENV_FILE }}
