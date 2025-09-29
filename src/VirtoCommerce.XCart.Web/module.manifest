@@ -7,7 +7,7 @@
   <platformVersion>3.903.0</platformVersion>
   <dependencies>
     <dependency id="VirtoCommerce.Catalog" version="3.868.0" />
-    <dependency id="VirtoCommerce.Cart" version="3.835.0-alpha.761-vcst-3772-shopping-list-sharing" />
+    <dependency id="VirtoCommerce.Cart" version="3.835.0" />
     <dependency id="VirtoCommerce.FileExperienceApi" version="3.904.0" />
     <dependency id="VirtoCommerce.Inventory" version="3.805.0" />
     <dependency id="VirtoCommerce.Marketing" version="3.820.0" />
