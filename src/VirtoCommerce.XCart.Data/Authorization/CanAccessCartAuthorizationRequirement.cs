@@ -15,6 +15,7 @@ using VirtoCommerce.Platform.Security.Authorization;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
+using VirtoCommerce.XCart.Core.Services;
 using CartType = VirtoCommerce.CartModule.Core.ModuleConstants.CartType;
 
 namespace VirtoCommerce.XCart.Data.Authorization
@@ -30,11 +31,13 @@ namespace VirtoCommerce.XCart.Data.Authorization
     {
         private readonly Func<UserManager<ApplicationUser>> _userManagerFactory;
         private readonly IShoppingCartService _shoppingCartService;
+        private readonly ICartSharingService _cartSharingService;
 
-        public CanAccessCartAuthorizationHandler(Func<UserManager<ApplicationUser>> userManagerFactory, IShoppingCartService shoppingCartService)
+        public CanAccessCartAuthorizationHandler(Func<UserManager<ApplicationUser>> userManagerFactory, IShoppingCartService shoppingCartService, ICartSharingService cartSharingService)
         {
             _userManagerFactory = userManagerFactory;
             _shoppingCartService = shoppingCartService;
+            _cartSharingService = cartSharingService;
         }
 
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, CanAccessCartAuthorizationRequirement requirement)
@@ -118,12 +121,16 @@ namespace VirtoCommerce.XCart.Data.Authorization
             return context.User.GetUserId();
         }
 
-        private static bool CheckWishlistUserContext(WishlistUserContext context)
+        private bool CheckWishlistUserContext(WishlistUserContext context)
         {
             var result = true;
             if (context.Cart != null)
             {
-                if (context.Cart.Type == CartType.SavedForLater)
+                if (!context.Cart.SharingSettings.IsNullOrEmpty())
+                {
+                    return CheckSharedWishlistUserContext(context);
+                }
+                else if (context.Cart.Type == CartType.SavedForLater)
                 {
                     result = context.Cart.CustomerId == context.CurrentUserId || (context.Cart.OrganizationId != null && context.Cart.OrganizationId == context.CurrentOrganizationId);
                 }
@@ -140,12 +147,30 @@ namespace VirtoCommerce.XCart.Data.Authorization
                 }
             }
 
+            //TODO: what is this?
             if (result && !string.IsNullOrEmpty(context.UserId))
             {
                 result = context.UserId == context.CurrentUserId;
             }
 
             return result;
+        }
+
+        protected virtual bool CheckSharedWishlistUserContext(WishlistUserContext context)
+        {
+            var isAuthorized = _cartSharingService.IsAuthorized(context.Cart, context.CurrentUserId, context.CurrentOrganizationId);
+            if (!isAuthorized)
+            {
+                return false;
+            }
+
+            var sharingAccess = _cartSharingService.GetSharingAccess(context.Cart, context.CurrentUserId);
+            if (context.RequestedAccess.IsNullOrEmpty() || context.RequestedAccess == CartSharingAccess.Write && sharingAccess != CartSharingAccess.Write)
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }
