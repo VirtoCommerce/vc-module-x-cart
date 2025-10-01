@@ -565,7 +565,7 @@ namespace VirtoCommerce.XCart.Core
         {
             EnsureCartExists();
 
-            var lineItems = Cart.Items.Where(x => x.ProductId == productId).ToList();
+            var lineItems = LineItems.Where(x => x.ProductId == productId).ToList();
             if (lineItems.Count != 0)
             {
                 lineItems.ForEach(x => Cart.Items.Remove(x));
