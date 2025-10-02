@@ -23,12 +23,7 @@ namespace VirtoCommerce.XCart.Data.Commands
         private readonly ICustomerPreferenceService _customerPreferenceService;
         private readonly IPickupLocationService _pickupLocationService;
 
-        public AddOrUpdateCartShipmentCommandHandler(
-            ICartAggregateRepository cartAggregateRepository,
-            ICartAvailMethodsService cartAvailMethodService,
-            IPickupLocationService pickupLocationService,
-            ICustomerPreferenceService customerPreferenceService)
-            : base(cartAggregateRepository)
+        public AddOrUpdateCartShipmentCommandHandler(ICartAggregateRepository cartAggregateRepository, ICartAvailMethodsService cartAvailMethodService, IPickupLocationService pickupLocationService, ICustomerPreferenceService customerPreferenceService) : base(cartAggregateRepository)
         {
             _cartAvailMethodService = cartAvailMethodService;
             _customerPreferenceService = customerPreferenceService;
@@ -70,7 +65,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             cartAggregate = await SaveCartAsync(cartAggregate);
             return await GetCartById(cartAggregate.Cart.Id, request.CultureName);
         }
-        
+
         protected virtual async Task SetPickupLocationAddress(Shipment shipment)
         {
             if (shipment.PickupLocationId != null && shipment.ShipmentMethodCode == ModuleConstants.BuyOnlinePickupInStoreShipmentCode)
@@ -131,8 +126,7 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         private static void ClearAddressInfo(AddOrUpdateCartShipmentCommand request, Shipment shipment, string previousShipmentCode)
         {
-            if (shipment.ShipmentMethodCode != previousShipmentCode &&
-                request.Shipment.DeliveryAddress is { IsSpecified: true, Value: null })
+            if (shipment.ShipmentMethodCode != previousShipmentCode && request.Shipment.DeliveryAddress is { IsSpecified: true, Value: null })
             {
                 shipment.DeliveryAddress = null;
             }
