@@ -2,6 +2,7 @@ using System.Threading.Tasks;
 using GraphQL;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
@@ -12,8 +13,8 @@ using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Schemas;
+using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Authorization;
-using static VirtoCommerce.XCart.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Commands;
 
@@ -23,16 +24,19 @@ public class CreateCartFromWishlistCommandBuilder : CommandBuilder<CreateCartFro
 
     private readonly IMemberResolver _memberResolver;
     private readonly IShoppingCartService _cartService;
+    private readonly ICartSharingService _cartSharingService;
 
     public CreateCartFromWishlistCommandBuilder(
         IShoppingCartService cartService,
         IMemberResolver memberResolver,
         IMediator mediator,
-        IAuthorizationService authorizationService)
+        IAuthorizationService authorizationService,
+        ICartSharingService cartSharingService)
         : base(mediator, authorizationService)
     {
         _cartService = cartService;
         _memberResolver = memberResolver;
+        _cartSharingService = cartSharingService;
     }
 
     protected override CreateCartFromWishlistCommand GetRequest(IResolveFieldContext<object> context)
@@ -72,6 +76,7 @@ public class CreateCartFromWishlistCommandBuilder : CommandBuilder<CreateCartFro
             CurrentUserId = request.UserId,
             CurrentOrganizationId = request.OrganizationId,
             CurrentContact = await _memberResolver.ResolveMemberByIdAsync(request.UserId) as Contact,
+            RequestedAccess = CartSharingAccess.Write,
         };
 
         if (!string.IsNullOrEmpty(request.ListId))
@@ -84,17 +89,8 @@ public class CreateCartFromWishlistCommandBuilder : CommandBuilder<CreateCartFro
         return wishlistUserContext;
     }
 
-    private static void InitializeWishlistUserContextScope(WishlistUserContext context)
+    private void InitializeWishlistUserContextScope(WishlistUserContext context)
     {
-        var scope = PrivateScope;
-
-        if (context.Cart is not null)
-        {
-            scope = string.IsNullOrEmpty(context.Cart.OrganizationId)
-                ? PrivateScope
-                : OrganizationScope;
-        }
-
-        context.Scope = scope;
+        context.Scope = _cartSharingService.GetSharingScope(context.Cart);
     }
 }
