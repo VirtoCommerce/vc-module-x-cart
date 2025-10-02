@@ -70,10 +70,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             cartAggregate = await SaveCartAsync(cartAggregate);
             return await GetCartById(cartAggregate.Cart.Id, request.CultureName);
         }
-
-
-
-
+        
         protected virtual async Task SetPickupLocationAddress(Shipment shipment)
         {
             if (shipment.PickupLocationId != null && shipment.ShipmentMethodCode == ModuleConstants.BuyOnlinePickupInStoreShipmentCode)
