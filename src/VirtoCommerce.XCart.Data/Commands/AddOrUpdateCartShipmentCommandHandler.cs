@@ -23,7 +23,12 @@ namespace VirtoCommerce.XCart.Data.Commands
         private readonly ICustomerPreferenceService _customerPreferenceService;
         private readonly IPickupLocationService _pickupLocationService;
 
-        public AddOrUpdateCartShipmentCommandHandler(ICartAggregateRepository cartAggregateRepository, ICartAvailMethodsService cartAvailMethodService, IPickupLocationService pickupLocationService, ICustomerPreferenceService customerPreferenceService) : base(cartAggregateRepository)
+        public AddOrUpdateCartShipmentCommandHandler(
+            ICartAggregateRepository cartAggregateRepository,
+            ICartAvailMethodsService cartAvailMethodService,
+            IPickupLocationService pickupLocationService,
+            ICustomerPreferenceService customerPreferenceService)
+            : base(cartAggregateRepository)
         {
             _cartAvailMethodService = cartAvailMethodService;
             _customerPreferenceService = customerPreferenceService;
@@ -43,17 +48,17 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             if (!cartAggregate.Cart.IsAnonymous)
             {
-                var preferenceKey = await GeneratePreferenceKey(request, shipment);
+                var preferenceKey = await GeneratePreferenceKeyAsync(request, shipment);
 
                 if (request.Shipment.DeliveryAddress?.Value != null || request.Shipment.PickupLocationId?.Value != null)
                 {
-                    await SaveAddressToPreferences(request.UserId, preferenceKey, request.Shipment.DeliveryAddress?.Value, request.Shipment.PickupLocationId?.Value);
+                    await SaveAddressToPreferencesAsync(request.UserId, preferenceKey, request.Shipment.DeliveryAddress?.Value, request.Shipment.PickupLocationId?.Value);
                 }
 
-                await LoadAddressFromPreferences(request.UserId, preferenceKey, shipment);
+                await LoadAddressFromPreferencesAsync(request.UserId, preferenceKey, shipment);
             }
 
-            await SetPickupLocationAddress(shipment);
+            await SetPickupLocationAddressAsync(shipment);
 
             await cartAggregate.AddShipmentAsync(shipment, await _cartAvailMethodService.GetAvailableShippingRatesAsync(cartAggregate));
 
@@ -66,7 +71,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             return await GetCartById(cartAggregate.Cart.Id, request.CultureName);
         }
 
-        protected virtual async Task SetPickupLocationAddress(Shipment shipment)
+        protected virtual async Task SetPickupLocationAddressAsync(Shipment shipment)
         {
             if (shipment.PickupLocationId != null && shipment.ShipmentMethodCode == ModuleConstants.BuyOnlinePickupInStoreShipmentCode)
             {
@@ -78,7 +83,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             }
         }
 
-        protected virtual Task<List<string>> GeneratePreferenceKey(AddOrUpdateCartShipmentCommand request, Shipment shipment)
+        protected virtual Task<List<string>> GeneratePreferenceKeyAsync(AddOrUpdateCartShipmentCommand request, Shipment shipment)
         {
             var result = new List<string> { "CartShipmentLastAddress" };
 
@@ -92,7 +97,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             return Task.FromResult(result);
         }
 
-        protected virtual async Task LoadAddressFromPreferences(string userId, IList<string> preferenceKey, Shipment shipment)
+        protected virtual async Task LoadAddressFromPreferencesAsync(string userId, IList<string> preferenceKey, Shipment shipment)
         {
             var savedValue = await _customerPreferenceService.GetValue(userId, preferenceKey);
 
@@ -115,7 +120,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             }
         }
 
-        protected virtual async Task SaveAddressToPreferences(string userId, IList<string> preferenceKey, ExpCartAddress address, string pickupLocationId)
+        protected virtual async Task SaveAddressToPreferencesAsync(string userId, IList<string> preferenceKey, ExpCartAddress address, string pickupLocationId)
         {
             if (address != null || pickupLocationId != null)
             {
@@ -124,7 +129,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             }
         }
 
-        private static void ClearAddressInfo(AddOrUpdateCartShipmentCommand request, Shipment shipment, string previousShipmentCode)
+        protected static void ClearAddressInfo(AddOrUpdateCartShipmentCommand request, Shipment shipment, string previousShipmentCode)
         {
             if (shipment.ShipmentMethodCode != previousShipmentCode && request.Shipment.DeliveryAddress is { IsSpecified: true, Value: null })
             {
@@ -141,7 +146,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             }
         }
 
-        private static Address ConvertFromPickupLocationAddress(PickupLocationAddress address)
+        protected static Address ConvertFromPickupLocationAddress(PickupLocationAddress address)
         {
             var result = AbstractTypeFactory<Address>.TryCreateInstance();
 
