@@ -71,7 +71,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             return await GetCartById(cartAggregate.Cart.Id, request.CultureName);
         }
 
-        protected virtual async Task SetPickupLocationAddressAsync(Shipment shipment)
+        protected virtual async Task SetPickupLocationAddressAsync(Shipment shipment, CartAggregate cartAggregate = null)
         {
             if (shipment.PickupLocationId != null && shipment.ShipmentMethodCode == ModuleConstants.BuyOnlinePickupInStoreShipmentCode)
             {
@@ -97,7 +97,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             return Task.FromResult(result);
         }
 
-        protected virtual async Task LoadAddressFromPreferencesAsync(string userId, IList<string> preferenceKey, Shipment shipment)
+        protected virtual async Task LoadAddressFromPreferencesAsync(string userId, IList<string> preferenceKey, Shipment shipment, CartAggregate cartAggregate = null)
         {
             var savedValue = await _customerPreferenceService.GetValue(userId, preferenceKey);
 
