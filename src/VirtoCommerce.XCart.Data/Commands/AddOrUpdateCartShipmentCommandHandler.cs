@@ -48,17 +48,17 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             if (!cartAggregate.Cart.IsAnonymous)
             {
-                var preferenceKey = await GeneratePreferenceKeyAsync(request, shipment);
+                var preferenceKey = await GeneratePreferenceKeyAsync(request, shipment, cartAggregate);
 
                 if (request.Shipment.DeliveryAddress?.Value != null || request.Shipment.PickupLocationId?.Value != null)
                 {
                     await SaveAddressToPreferencesAsync(request.UserId, preferenceKey, request.Shipment.DeliveryAddress?.Value, request.Shipment.PickupLocationId?.Value);
                 }
 
-                await LoadAddressFromPreferencesAsync(request.UserId, preferenceKey, shipment);
+                await LoadAddressFromPreferencesAsync(request.UserId, preferenceKey, shipment, cartAggregate);
             }
 
-            await SetPickupLocationAddressAsync(shipment);
+            await SetPickupLocationAddressAsync(shipment, cartAggregate);
 
             await cartAggregate.AddShipmentAsync(shipment, await _cartAvailMethodService.GetAvailableShippingRatesAsync(cartAggregate));
 
@@ -71,7 +71,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             return await GetCartById(cartAggregate.Cart.Id, request.CultureName);
         }
 
-        protected virtual async Task SetPickupLocationAddressAsync(Shipment shipment, CartAggregate cartAggregate = null)
+        protected virtual async Task SetPickupLocationAddressAsync(Shipment shipment, CartAggregate cartAggregate)
         {
             if (shipment.PickupLocationId != null && shipment.ShipmentMethodCode == ModuleConstants.BuyOnlinePickupInStoreShipmentCode)
             {
@@ -83,7 +83,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             }
         }
 
-        protected virtual Task<List<string>> GeneratePreferenceKeyAsync(AddOrUpdateCartShipmentCommand request, Shipment shipment)
+        protected virtual Task<List<string>> GeneratePreferenceKeyAsync(AddOrUpdateCartShipmentCommand request, Shipment shipment, CartAggregate cartAggregate)
         {
             var result = new List<string> { "CartShipmentLastAddress" };
 
@@ -97,7 +97,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             return Task.FromResult(result);
         }
 
-        protected virtual async Task LoadAddressFromPreferencesAsync(string userId, IList<string> preferenceKey, Shipment shipment, CartAggregate cartAggregate = null)
+        protected virtual async Task LoadAddressFromPreferencesAsync(string userId, IList<string> preferenceKey, Shipment shipment, CartAggregate cartAggregate)
         {
             var savedValue = await _customerPreferenceService.GetValue(userId, preferenceKey);
 
