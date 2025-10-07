@@ -271,7 +271,7 @@ jobs:
       customModuleId:  ${{ needs.ci.outputs.moduleId }}
       customModuleUrl:  ${{ needs.ci.outputs.artifactUrl }}
       runTests: ${{ needs.ci.outputs.run-ui-tests }}
-      vctestingRepoBranch: 'dev'
+      vctestingRepoBranch: 'vcst-fix-cart-addresses-ids' # 'dev'
       frontendZipUrl: 'https://github.com/VirtoCommerce/vc-frontend/releases/download/2.31.0/vc-theme-b2b-vue-2.31.0.zip'
     secrets:
       envPAT: ${{ secrets.REPO_TOKEN }}
