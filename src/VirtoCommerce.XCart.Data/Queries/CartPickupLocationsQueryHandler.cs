@@ -34,6 +34,7 @@ public class CartPickupLocationsQueryHandler(
 
         searchCriteria.StoreId = request.StoreId;
         searchCriteria.Products = cart.Items
+            .Where(x => x.SelectedForCheckout)
             .Select(x => new ProductPickupLocationSearchCriteriaItem { ProductId = x.ProductId, Quantity = x.Quantity })
             .ToDictionary(x => x.ProductId);
 
