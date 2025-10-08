@@ -33,10 +33,10 @@ namespace VirtoCommerce.XCart.Data.Commands
         }
 
         protected override Task<CartAggregate> GetCartById(string cartId, string language)
-            => CartRepository.GetCartByIdAsync(cartId, ["id", "name", "code"], language);
+            => CartRepository.GetCartByIdAsync(cartId, ["__none"], language);
 
         protected override Task<CartAggregate> GetCart(ShoppingCartSearchCriteria cartSearchCriteria, string language)
-            => CartRepository.GetCartAsync(cartSearchCriteria, ["id", "name", "code"], language);
+            => CartRepository.GetCartAsync(cartSearchCriteria, ["__none"], language);
 
         public override async Task<CartAggregate> Handle(UpdateCartQuantityCommand request, CancellationToken cancellationToken)
         {

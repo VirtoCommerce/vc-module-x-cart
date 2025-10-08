@@ -288,9 +288,15 @@ namespace VirtoCommerce.XCart.Data.Services
                 //Load cart products explicitly if no validation is requested
                 aggregate.ProductsIncludeFields = productsIncludeFields;
                 aggregate.ResponseGroup = responseGroup;
-                var cartProducts = await _cartProductsService.GetCartProductsByIdsAsync(aggregate, aggregate.Cart.Items.Select(x => x.ProductId).ToArray());
+
+                var cartProducts = default(IList<CartProduct>);
+                if (aggregate.ProductsIncludeFields == null || aggregate.ProductsIncludeFields.FirstOrDefault() != "__none")
+                {
+                    cartProducts = await _cartProductsService.GetCartProductsByIdsAsync(aggregate, aggregate.Cart.Items.Select(x => x.ProductId).ToArray());
+                }
+
                 //Populate aggregate.CartProducts with the  products data for all cart  line items
-                foreach (var cartProduct in cartProducts)
+                foreach (var cartProduct in cartProducts ?? [])
                 {
                     aggregate.CartProducts[cartProduct.Id] = cartProduct;
                 }
