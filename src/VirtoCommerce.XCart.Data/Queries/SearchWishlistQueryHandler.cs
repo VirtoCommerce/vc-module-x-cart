@@ -18,7 +18,6 @@ namespace VirtoCommerce.XCart.Data.Queries
         private readonly ICartAggregateRepository _cartAggregateRepository;
         private readonly IMapper _mapper;
         private readonly ISearchPhraseParser _searchPhraseParser;
-        private readonly ISavedForLaterListService _savedForLaterListService;
 
         public SearchWishlistQueryHandler(
             ICartAggregateRepository cartAggregateRepository,
@@ -29,12 +28,11 @@ namespace VirtoCommerce.XCart.Data.Queries
             _cartAggregateRepository = cartAggregateRepository;
             _mapper = mapper;
             _searchPhraseParser = searchPhraseParser;
-            _savedForLaterListService = savedForLaterListService;
         }
 
-        public virtual async Task<SearchCartResponse> Handle(SearchWishlistQuery request, CancellationToken cancellationToken)
+        public virtual Task<SearchCartResponse> Handle(SearchWishlistQuery request, CancellationToken cancellationToken)
         {
-            var wishlistSearchCriteria = new CartSearchCriteriaBuilder(_searchPhraseParser, _mapper)
+            var searchCriteria = new CartSearchCriteriaBuilder(_searchPhraseParser, _mapper)
                                      .WithCurrency(request.CurrencyCode)
                                      .WithStore(request.StoreId)
                                      .WithTypes([CartType.Wishlist])
@@ -47,7 +45,7 @@ namespace VirtoCommerce.XCart.Data.Queries
                                      .WithResponseGroup(CartResponseGroup.WithLineItems)
                                      .Build();
 
-            return await _cartAggregateRepository.SearchCartAsync(wishlistSearchCriteria, request.IncludeFields.ItemsToProductIncludeField());
+            return _cartAggregateRepository.SearchCartAsync(searchCriteria, request.IncludeFields.ItemsToProductIncludeField());
         }
     }
 }
