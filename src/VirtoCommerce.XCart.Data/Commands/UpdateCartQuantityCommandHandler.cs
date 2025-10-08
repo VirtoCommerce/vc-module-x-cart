@@ -2,9 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
 using VirtoCommerce.CartModule.Core.Model.Search;
-using VirtoCommerce.CatalogModule.Core.Search;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
@@ -16,20 +14,14 @@ namespace VirtoCommerce.XCart.Data.Commands
     public class UpdateCartQuantityCommandHandler : CartCommandHandler<UpdateCartQuantityCommand>
     {
         private readonly ICartProductsLoaderService _cartProductsLoaderService;
-        private readonly IProductConfigurationSearchService _productConfigurationSearchService;
-        private readonly IMediator _mediator;
 
         public UpdateCartQuantityCommandHandler(
             ICartAggregateRepository cartAggregateRepository,
-            ICartProductsLoaderService cartProductsLoaderService,
-            IProductConfigurationSearchService productConfigurationSearchService,
-            IMediator mediator
+            ICartProductsLoaderService cartProductsLoaderService
             )
             : base(cartAggregateRepository)
         {
             _cartProductsLoaderService = cartProductsLoaderService;
-            _productConfigurationSearchService = productConfigurationSearchService;
-            _mediator = mediator;
         }
 
         protected override Task<CartAggregate> GetCartById(string cartId, string language)
