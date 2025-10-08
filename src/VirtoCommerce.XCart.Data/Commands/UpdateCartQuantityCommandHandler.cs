@@ -40,35 +40,23 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         public override async Task<CartAggregate> Handle(UpdateCartQuantityCommand request, CancellationToken cancellationToken)
         {
-            var cartAggregate = await GetOrCreateCartFromCommandAsync(request);
-
             var requestItems = CombineRequestItems(request);
-            foreach (var requestItem in requestItems.Where(x => x.Quantity == 0))
-            {
-                await cartAggregate.RemoveItemsByProductIdAsync(requestItem.ProductId);
-                requestItems.Remove(requestItem);
-            }
-
-            var productIds = requestItems
+            var nonZeroQuantityProductIds = requestItems
+                .Where(x => x.Quantity > 0)
                 .Select(x => x.ProductId)
                 .ToArray();
 
-            var productRequest = new CartProductsRequest
+            var productsTask = LoadCartProductsAsync(request, nonZeroQuantityProductIds);
+            var cartAggregateTask = GetOrCreateCartFromCommandAsync(request);
+            await Task.WhenAll(productsTask, cartAggregateTask);
+
+            var cartAggregate = cartAggregateTask.Result;
+            var products = productsTask.Result;
+
+            foreach (var requestItem in requestItems.Where(x => x.Quantity == 0))
             {
-                EvaluatePromotions = false,
-                LoadInventory = false,
-                LoadPrice = false,
-
-                CultureName = request.CultureName,
-                Store = cartAggregate.Store,
-                Currency = cartAggregate.Currency,
-
-                ProductIds = productIds,
-
-                ProductsIncludeFields = ["id", "name", "code"],
-            };
-
-            var products = await _cartProductsLoaderService.GetCartProductsAsync(productRequest);
+                await cartAggregate.RemoveItemsByProductIdAsync(requestItem.ProductId);
+            }
 
             var newCartItems = new List<NewCartItem>();
             foreach (var product in products)
@@ -82,7 +70,6 @@ namespace VirtoCommerce.XCart.Data.Commands
                         IgnoreValidationErrors = true,
                     });
                 }
-
             }
 
             foreach (var item in newCartItems)
@@ -91,6 +78,26 @@ namespace VirtoCommerce.XCart.Data.Commands
             }
 
             return await SaveCartAsync(cartAggregate);
+        }
+
+        private async Task<IList<CartProduct>> LoadCartProductsAsync(UpdateCartQuantityCommand request, string[] productIds)
+        {
+            var productRequest = new CartProductsRequest
+            {
+                LoadPrice = false,
+                LoadInventory = false,
+                EvaluatePromotions = false,
+
+                CultureName = request.CultureName,
+                StoreId = request.StoreId,
+                CurrencyCode = request.CurrencyCode,
+
+                ProductIds = productIds,
+                ProductsIncludeFields = ["id", "name", "code"],
+            };
+
+            var products = await _cartProductsLoaderService.GetCartProductsAsync(productRequest);
+            return products;
         }
 
         private static List<UpdateCartQuantityItem> CombineRequestItems(UpdateCartQuantityCommand request)

@@ -99,7 +99,14 @@ namespace VirtoCommerce.XCart.Data.Services
                 return [];
             }
 
-            var cartProducts = await LoadCartProductsAsync(request.ProductIds, request.Store.Id, request.Currency.Code, request.UserId, request.OrganizationId, request.ProductsIncludeFields ?? IncludeFields, request.EvaluatePromotions);
+            var cartProducts = await LoadCartProductsAsync(
+                request.ProductIds,
+                request.Store != null ? request.Store.Id : request.StoreId,
+                request.Currency != null ? request.Currency.Code : request.CurrencyCode,
+                request.UserId,
+                request.OrganizationId,
+                request.ProductsIncludeFields ?? IncludeFields,
+                request.EvaluatePromotions);
 
             var productsToLoadDependencies = cartProducts.Where(x => x.LoadDependencies).ToList();
             if (productsToLoadDependencies.Count != 0)

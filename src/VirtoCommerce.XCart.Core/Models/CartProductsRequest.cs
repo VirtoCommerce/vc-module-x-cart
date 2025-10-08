@@ -8,8 +8,14 @@ namespace VirtoCommerce.XCart.Core.Models;
 public class CartProductsRequest
 {
     public Store Store { get; set; }
+
+    public string StoreId { get; set; }
+
     public string CultureName { get; set; }
+
     public Currency Currency { get; set; }
+    public string CurrencyCode { get; set; }
+
     public Member Member { get; set; }
     public string UserId { get; set; }
 
