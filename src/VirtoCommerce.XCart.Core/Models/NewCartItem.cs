@@ -43,5 +43,10 @@ namespace VirtoCommerce.XCart.Core.Models
         /// LineItem created date override
         /// </summary>
         public DateTime? CreatedDate { get; set; }
+
+        /// <summary>
+        /// Overrride quantity for existing line item instead of increasing it
+        /// </summary>
+        public bool OverrideQuantity { get; set; }
     }
 }

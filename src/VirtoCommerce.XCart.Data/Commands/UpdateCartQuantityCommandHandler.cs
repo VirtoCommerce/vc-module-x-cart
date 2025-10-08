@@ -68,6 +68,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                     {
                         CartProduct = product,
                         IgnoreValidationErrors = true,
+                        OverrideQuantity = true,
                     });
                 }
             }
