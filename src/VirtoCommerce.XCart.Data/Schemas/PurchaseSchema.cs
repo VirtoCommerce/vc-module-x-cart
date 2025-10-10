@@ -117,7 +117,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             var updateCartQuantityField = FieldBuilder<CartAggregate, CartAggregate>.Create("updateCartQuantity", GraphTypeExtensionHelper.GetActualType<CartType>())
                                .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputUpdateCartQuantityType>>(), SchemaConstants.CommandName)
-                               .ResolveAsync(async context =>
+                               .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
                                {
                                    var cartCommand = context.GetCartCommand<UpdateCartQuantityCommand>();
 
