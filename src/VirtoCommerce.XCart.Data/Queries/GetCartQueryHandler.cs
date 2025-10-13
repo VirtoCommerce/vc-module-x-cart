@@ -46,14 +46,8 @@ namespace VirtoCommerce.XCart.Data.Queries
 
             cartSearchCriteria.StoreId = request.StoreId;
             cartSearchCriteria.CustomerId = request.UserId;
-            if (string.IsNullOrEmpty(request.OrganizationId))
-            {
-                cartSearchCriteria.OrganizationIdIsEmpty = true;
-            }
-            else
-            {
-                cartSearchCriteria.OrganizationId = request.OrganizationId;
-            }
+            cartSearchCriteria.OrganizationId = request.OrganizationId;
+            cartSearchCriteria.OrganizationIdIsEmpty = string.IsNullOrEmpty(request.OrganizationId);
             cartSearchCriteria.Name = request.CartName;
             cartSearchCriteria.Currency = request.CurrencyCode;
             cartSearchCriteria.Type = request.CartType;
