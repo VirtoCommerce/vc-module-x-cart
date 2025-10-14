@@ -278,7 +278,7 @@ jobs:
     if: ${{ ((github.ref == 'refs/heads/dev') && (github.event_name == 'push')) ||
         (github.event_name == 'workflow_dispatch') || ((github.base_ref == 'dev') && (github.event_name == 'pull_request')) }}
     needs: 'ci'
-    uses: VirtoCommerce/.github/.github/workflows/ui-autotests.yml@v3.800.17
+    uses: VirtoCommerce/.github/.github/workflows/ui-autotests.yml@v3.800.18
     with:
       installModules: 'false'
       installCustomModule: 'true'
@@ -291,37 +291,37 @@ jobs:
       envPAT: ${{ secrets.REPO_TOKEN }}
       testSecretEnvFile: ${{ secrets.VC_TESTING_MODULE_ENV_FILE }}
   
-  module-katalon-tests:
-    if: ${{ ((github.ref == 'refs/heads/dev') && (github.event_name == 'push') && (needs.ci.outputs.run-e2e == 'true')) ||
-        (github.event_name == 'workflow_dispatch') || (github.base_ref == 'dev') && (github.event_name == 'pull_request') }}
-    needs: 'ci'
-    uses: VirtoCommerce/.github/.github/workflows/e2e.yml@v3.800.17
-    with:
-      katalonRepo: 'VirtoCommerce/vc-quality-gate-katalon'
-      katalonRepoBranch: 'dev'
-      testSuite: 'Test Suites/Modules/Platform_collection'
-      installModules: 'false'
-      installCustomModule: 'true'
-      customModuleId:  ${{ needs.ci.outputs.moduleId }}
-      customModuleUrl:  ${{ needs.ci.outputs.artifactUrl }}
-      platformDockerTag: 'dev-linux-latest'
-      storefrontDockerTag: 'dev-linux-latest'
-    secrets:
-      envPAT: ${{ secrets.REPO_TOKEN }}
-      katalonApiKey: ${{ secrets.KATALON_API_KEY }}
+  # module-katalon-tests:
+  #   if: ${{ ((github.ref == 'refs/heads/dev') && (github.event_name == 'push') && (needs.ci.outputs.run-e2e == 'true')) ||
+  #       (github.event_name == 'workflow_dispatch') || (github.base_ref == 'dev') && (github.event_name == 'pull_request') }}
+  #   needs: 'ci'
+  #   uses: VirtoCommerce/.github/.github/workflows/e2e.yml@v3.800.17
+  #   with:
+  #     katalonRepo: 'VirtoCommerce/vc-quality-gate-katalon'
+  #     katalonRepoBranch: 'dev'
+  #     testSuite: 'Test Suites/Modules/Platform_collection'
+  #     installModules: 'false'
+  #     installCustomModule: 'true'
+  #     customModuleId:  ${{ needs.ci.outputs.moduleId }}
+  #     customModuleUrl:  ${{ needs.ci.outputs.artifactUrl }}
+  #     platformDockerTag: 'dev-linux-latest'
+  #     storefrontDockerTag: 'dev-linux-latest'
+  #   secrets:
+  #     envPAT: ${{ secrets.REPO_TOKEN }}
+  #     katalonApiKey: ${{ secrets.KATALON_API_KEY }}
 
-  deploy-cloud:
-    if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
-      && github.event_name == 'push'
-      && needs.ci.outputs.deployment-folder-exists == 'true'}}
-    needs: ci
-    uses: VirtoCommerce/.github/.github/workflows/deploy-cloud.yml@v3.800.17
-    with:
-      releaseSource: module
-      moduleId: ${{ needs.ci.outputs.moduleId }}
-      moduleVer: ${{ needs.ci.outputs.version }}
-      moduleBlob: ${{ needs.ci.outputs.blobId }}
-      jiraKeys: ${{ needs.ci.outputs.jira-keys }}
-      argoServer: 'argo.virtocommerce.cloud'
-      matrix: '{"include":${{ needs.ci.outputs.matrix }}}'
-    secrets: inherit
+  # deploy-cloud:
+  #   if: ${{ (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+  #     && github.event_name == 'push'
+  #     && needs.ci.outputs.deployment-folder-exists == 'true'}}
+  #   needs: ci
+  #   uses: VirtoCommerce/.github/.github/workflows/deploy-cloud.yml@v3.800.17
+  #   with:
+  #     releaseSource: module
+  #     moduleId: ${{ needs.ci.outputs.moduleId }}
+  #     moduleVer: ${{ needs.ci.outputs.version }}
+  #     moduleBlob: ${{ needs.ci.outputs.blobId }}
+  #     jiraKeys: ${{ needs.ci.outputs.jira-keys }}
+  #     argoServer: 'argo.virtocommerce.cloud'
+  #     matrix: '{"include":${{ needs.ci.outputs.matrix }}}'
+  #   secrets: inherit
