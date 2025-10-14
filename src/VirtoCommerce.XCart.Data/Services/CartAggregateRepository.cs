@@ -123,6 +123,7 @@ namespace VirtoCommerce.XCart.Data.Services
                 // IMPORTANT! Need to specify customerId, otherwise any user cart could be returned while we expect anonymous in this case.
                 CustomerId = cartRequest.UserId ?? AnonymousUser.UserName,
                 OrganizationId = cartRequest.OrganizationId,
+                OrganizationIdIsEmpty = string.IsNullOrEmpty(cartRequest.OrganizationId),
                 Name = cartRequest.CartName,
                 Currency = cartRequest.CurrencyCode,
                 Type = cartRequest.CartType,
