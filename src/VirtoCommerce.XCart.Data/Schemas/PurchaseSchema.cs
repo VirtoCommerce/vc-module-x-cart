@@ -121,7 +121,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                {
                                    var cartCommand = context.GetCartCommand<UpdateCartQuantityCommand>();
 
-                                   //await CheckAuthByCartCommandAsync(context, cartCommand);
+                                   await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                    //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                    var cartAggregate = await _mediator.Send(cartCommand);
@@ -1581,6 +1581,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                 Currency = request.CurrencyCode,
                 Type = request.CartType,
                 LanguageCode = request.CultureName,
+                ResponseGroup = CartResponseGroup.Default.ToString(),
             };
 
             var cartSearchResult = await _shoppingCartSearchService.SearchAsync(criteria);
