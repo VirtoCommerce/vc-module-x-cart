@@ -285,7 +285,7 @@ jobs:
       customModuleId:  ${{ needs.ci.outputs.moduleId }}
       customModuleUrl:  ${{ needs.ci.outputs.artifactUrl }}
       runTests: ${{ needs.ci.outputs.run-ui-tests }}
-      vctestingRepoBranch: 'dev'
+      vctestingRepoBranch: 'vcst-dataset-timestamp' #'dev'
       frontendZipUrl: 'latest'
     secrets:
       envPAT: ${{ secrets.REPO_TOKEN }}
