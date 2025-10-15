@@ -1577,6 +1577,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                 StoreId = request.StoreId,
                 CustomerId = request.UserId ?? AnonymousUser.UserName,
                 OrganizationId = request.OrganizationId,
+                OrganizationIdIsEmpty = string.IsNullOrEmpty(request.OrganizationId),
                 Name = request.CartName,
                 Currency = request.CurrencyCode,
                 Type = request.CartType,
