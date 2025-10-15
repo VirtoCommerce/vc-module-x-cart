@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AutoFixture;
 using FluentAssertions;
 using Moq;
+using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.ShippingModule.Core.Model;
 using VirtoCommerce.ShippingModule.Core.Services;
@@ -312,6 +313,60 @@ namespace VirtoCommerce.XCart.Tests.Handlers
             aggregate.Cart.Shipments.Should().ContainSingle(x => x.PickupLocationId == pickupLocation.Id);
             aggregate.Cart.Shipments.Should().ContainSingle(x => x.DeliveryAddress.City == pickupLocation.Address.City);
             aggregate.Cart.Shipments.Should().ContainSingle(x => x.ShipmentMethodCode == ShippingModuleConstants.BuyOnlinePickupInStoreShipmentCode);
+        }
+
+        [Fact]
+        public async Task Handle_ChangePickupToShipmentAnonymous_NoAddress()
+        {
+            var shipment = _fixture.Create<ExpCartShipment>();
+
+            var cartAggregate = GetValidAnonymousCartAggregate();
+            shipment.Currency.Value = cartAggregate.Cart.Currency;
+            shipment.ShipmentMethodCode = new Optional<string>(ShippingModuleConstants.FixedRateShipmentCode);
+            shipment.DeliveryAddress = null;
+
+            var cartShipment = cartAggregate.Cart.Shipments.First();
+            cartShipment.Id = shipment.Id.Value;
+            cartShipment.ShipmentMethodCode = ShippingModuleConstants.BuyOnlinePickupInStoreShipmentCode;
+            cartShipment.PickupLocationId = "pickup-location-id";
+            cartShipment.DeliveryAddress = _fixture.Create<Address>();
+
+            var cartAggregateRepositoryMock = new Mock<ICartAggregateRepository>();
+            cartAggregateRepositoryMock
+                .Setup(x => x.GetCartByIdAsync(It.IsAny<string>(), It.IsAny<string>()))
+                .ReturnsAsync(cartAggregate);
+
+            var availableShippingMethods = new Mock<ICartAvailMethodsService>();
+            availableShippingMethods
+                .Setup(x => x.GetAvailableShippingRatesAsync(It.Is<CartAggregate>(y => y == cartAggregate)))
+                .ReturnsAsync(new List<ShippingRate>()
+                {
+                    new ShippingRate()
+                    {
+                        ShippingMethod = new StubShippingMethod(shipment.ShipmentMethodCode.Value),
+                        OptionName = shipment.ShipmentMethodOption.Value,
+                        Rate = shipment.Price.Value,
+                    }
+                });
+
+            var pickupLocationService = new Mock<IPickupLocationService>();
+            var customerPreferenceService = new Mock<ICustomerPreferenceService>();
+
+            var request = new AddOrUpdateCartShipmentCommand()
+            {
+                Shipment = shipment,
+                CartId = cartAggregate.Cart.Id,
+            };
+            var handler = new AddOrUpdateCartShipmentCommandHandler(
+                cartAggregateRepositoryMock.Object,
+                availableShippingMethods.Object,
+                pickupLocationService.Object,
+                customerPreferenceService.Object);
+
+            // Act
+            var aggregate = await handler.Handle(request, CancellationToken.None);
+
+            aggregate.Cart.Shipments.Should().ContainSingle(x => x.ShipmentMethodCode == ShippingModuleConstants.FixedRateShipmentCode && x.DeliveryAddress == null);
         }
 
     }

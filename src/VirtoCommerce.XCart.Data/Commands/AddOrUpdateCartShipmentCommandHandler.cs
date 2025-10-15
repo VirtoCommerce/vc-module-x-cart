@@ -136,6 +136,11 @@ namespace VirtoCommerce.XCart.Data.Commands
                 shipment.DeliveryAddress = null;
             }
 
+            if (request.Shipment.DeliveryAddress is { IsSpecified: true, Value: not null })
+            {
+                shipment.DeliveryAddress = request.Shipment.DeliveryAddress.Value.MapTo(shipment.DeliveryAddress);
+            }
+
             if (shipment.ShipmentMethodCode == ModuleConstants.BuyOnlinePickupInStoreShipmentCode)
             {
                 shipment.DeliveryAddress = null;
