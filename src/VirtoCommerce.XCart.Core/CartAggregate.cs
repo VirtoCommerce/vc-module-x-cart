@@ -922,7 +922,10 @@ namespace VirtoCommerce.XCart.Core
 
         public virtual Task<CartAggregate> UpdateImageUrl(LineItem lineItem, CartProduct cartProduct)
         {
-            lineItem.ImageUrl = cartProduct.Product.ImgSrc;
+            if (cartProduct?.Product?.ImgSrc != null)
+            {
+                lineItem.ImageUrl = cartProduct.Product.ImgSrc;
+            }
 
             return Task.FromResult(this);
 

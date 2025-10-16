@@ -318,7 +318,7 @@ namespace VirtoCommerce.XCart.Data.Services
         /// <param name="products">List of <see cref="CartProduct"/>s</param>
         protected virtual async Task ApplyPricesToCartProductAsync(CartProductsRequest request, List<CartProduct> products)
         {
-            if (request is null || products.IsNullOrEmpty())
+            if (request is null || request.Currency is null || products.IsNullOrEmpty())
             {
                 return;
             }
