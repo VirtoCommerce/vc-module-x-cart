@@ -114,6 +114,27 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             schema.Mutation.AddField(addItemField);
 
+
+            var updateCartQuantityField = FieldBuilder<CartAggregate, CartAggregate>.Create("updateCartQuantity", GraphTypeExtensionHelper.GetActualType<CartType>())
+                               .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputUpdateCartQuantityType>>(), SchemaConstants.CommandName)
+                               .ResolveSynchronizedAsync(CartPrefix, "userId", _distributedLockService, async context =>
+                               {
+                                   var cartCommand = context.GetCartCommand<UpdateCartQuantityCommand>();
+
+                                   await CheckAuthByCartCommandAsync(context, cartCommand);
+
+                                   //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
+                                   var cartAggregate = await _mediator.Send(cartCommand);
+
+                                   //store cart aggregate in the user context for future usage in the graph types resolvers
+                                   context.SetExpandedObjectGraph(cartAggregate);
+                                   return cartAggregate;
+                               })
+                               .FieldType;
+
+            schema.Mutation.AddField(updateCartQuantityField);
+
+
             schema.Mutation.AddField(FieldBuilder<CartAggregate, CartAggregate>
                 .Create("addGiftItems", GraphTypeExtensionHelper.GetActualType<CartType>())
                 .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputAddGiftItemsType>>(), SchemaConstants.CommandName)
@@ -1561,6 +1582,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                 Currency = request.CurrencyCode,
                 Type = request.CartType,
                 LanguageCode = request.CultureName,
+                ResponseGroup = CartResponseGroup.Default.ToString(),
             };
 
             var cartSearchResult = await _shoppingCartSearchService.SearchAsync(criteria);

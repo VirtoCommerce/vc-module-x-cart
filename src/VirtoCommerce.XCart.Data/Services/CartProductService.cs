@@ -76,7 +76,7 @@ namespace VirtoCommerce.XCart.Data.Services
                 return [];
             }
 
-            var cartProducts = await GetCartProductsAsync(ids, aggregate.Store.Id, aggregate.Cart.Currency, aggregate.Cart.CustomerId, aggregate.Cart.OrganizationId, aggregate.ProductsIncludeFields ?? IncludeFields);
+            var cartProducts = await GetCartProductsAsync(ids, aggregate.Store.Id, aggregate.Cart.Currency, aggregate.Cart.CustomerId, aggregate.Cart.OrganizationId, GetIncludeFields(aggregate.ProductsIncludeFields));
 
             var productsToLoadDependencies = cartProducts.Where(x => x.LoadDependencies).ToList();
             if (productsToLoadDependencies.Count != 0)
@@ -99,7 +99,14 @@ namespace VirtoCommerce.XCart.Data.Services
                 return [];
             }
 
-            var cartProducts = await LoadCartProductsAsync(request.ProductIds, request.Store.Id, request.Currency.Code, request.UserId, request.OrganizationId, request.ProductsIncludeFields ?? IncludeFields, request.EvaluatePromotions);
+            var cartProducts = await LoadCartProductsAsync(
+                request.ProductIds,
+                request.Store != null ? request.Store.Id : request.StoreId,
+                request.Currency != null ? request.Currency.Code : request.CurrencyCode,
+                request.UserId,
+                request.OrganizationId,
+                request.ProductsIncludeFields ?? IncludeFields,
+                request.EvaluatePromotions);
 
             var productsToLoadDependencies = cartProducts.Where(x => x.LoadDependencies).ToList();
             if (productsToLoadDependencies.Count != 0)
@@ -311,7 +318,7 @@ namespace VirtoCommerce.XCart.Data.Services
         /// <param name="products">List of <see cref="CartProduct"/>s</param>
         protected virtual async Task ApplyPricesToCartProductAsync(CartProductsRequest request, List<CartProduct> products)
         {
-            if (request is null || products.IsNullOrEmpty())
+            if (request is null || request.Currency is null || products.IsNullOrEmpty())
             {
                 return;
             }
@@ -332,6 +339,11 @@ namespace VirtoCommerce.XCart.Data.Services
             {
                 cartProduct.ApplyPrices(evalPricesTask, request.Currency);
             }
+        }
+
+        private List<string> GetIncludeFields(IList<string> includeFields)
+        {
+            return new List<string>(IncludeFields).Union(includeFields ?? []).ToList();
         }
     }
 }
