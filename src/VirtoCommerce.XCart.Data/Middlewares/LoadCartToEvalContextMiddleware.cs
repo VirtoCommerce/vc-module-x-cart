@@ -84,6 +84,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             cartSearchCriteria.StoreId = context.StoreId;
             cartSearchCriteria.CustomerId = context.CustomerId;
             cartSearchCriteria.OrganizationId = context.OrganizationId;
+            cartSearchCriteria.OrganizationIdIsEmpty = string.IsNullOrEmpty(context.OrganizationId);
             cartSearchCriteria.Currency = context.Currency;
             cartSearchCriteria.ResponseGroup = CartResponseGroup.Full.ToString();
 
@@ -98,6 +99,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             cartSearchCriteria.StoreId = context.StoreId;
             cartSearchCriteria.CustomerId = context.CustomerId;
             cartSearchCriteria.OrganizationId = context.OrganizationId;
+            cartSearchCriteria.OrganizationIdIsEmpty = string.IsNullOrEmpty(context.OrganizationId);
             cartSearchCriteria.Currency = context.Currency;
             cartSearchCriteria.ResponseGroup = CartResponseGroup.Full.ToString();
 
@@ -112,6 +114,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             cartSearchCriteria.StoreId = context.StoreId;
             cartSearchCriteria.CustomerId = context.CustomerId;
             cartSearchCriteria.OrganizationId = context.OrganizationId;
+            cartSearchCriteria.OrganizationIdIsEmpty = string.IsNullOrEmpty(context.OrganizationId);
             cartSearchCriteria.Currency = context.Currency;
             cartSearchCriteria.ResponseGroup = CartResponseGroup.Full.ToString();
 
