@@ -920,6 +920,14 @@ namespace VirtoCommerce.XCart.Core
             return Task.FromResult(this);
         }
 
+        public virtual Task<CartAggregate> UpdateImageUrl(LineItem lineItem, CartProduct cartProduct)
+        {
+            lineItem.ImageUrl = cartProduct.Product.ImgSrc;
+
+            return Task.FromResult(this);
+
+        }
+
         public virtual async Task<CartAggregate> UpdateOrganization(ShoppingCart cart, Member member)
         {
             if (member is Contact contact && cart.Type != CartType.Wishlist && cart.Type != CartType.SavedForLater)

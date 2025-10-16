@@ -76,7 +76,7 @@ namespace VirtoCommerce.XCart.Data.Services
                 return [];
             }
 
-            var cartProducts = await GetCartProductsAsync(ids, aggregate.Store.Id, aggregate.Cart.Currency, aggregate.Cart.CustomerId, aggregate.Cart.OrganizationId, aggregate.ProductsIncludeFields ?? IncludeFields);
+            var cartProducts = await GetCartProductsAsync(ids, aggregate.Store.Id, aggregate.Cart.Currency, aggregate.Cart.CustomerId, aggregate.Cart.OrganizationId, GetIncludeFields(aggregate.ProductsIncludeFields));
 
             var productsToLoadDependencies = cartProducts.Where(x => x.LoadDependencies).ToList();
             if (productsToLoadDependencies.Count != 0)
@@ -339,6 +339,11 @@ namespace VirtoCommerce.XCart.Data.Services
             {
                 cartProduct.ApplyPrices(evalPricesTask, request.Currency);
             }
+        }
+
+        private List<string> GetIncludeFields(IList<string> includeFields)
+        {
+            return new List<string>(IncludeFields).Union(includeFields ?? []).ToList();
         }
     }
 }
