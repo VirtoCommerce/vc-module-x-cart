@@ -928,7 +928,24 @@ namespace VirtoCommerce.XCart.Core
             }
 
             return Task.FromResult(this);
+        }
 
+        public virtual Task<CartAggregate> UpdatePrices(LineItem lineItem, CartProduct cartProduct)
+        {
+            // update only partially loaded line items
+            if (cartProduct?.Price != null && lineItem.PriceId == null)
+            {
+                lineItem.PriceId = cartProduct.Price.PricelistId;
+                lineItem.Currency = cartProduct.Price.Currency.Code;
+                lineItem.DiscountAmount = cartProduct.Price.DiscountAmount.InternalAmount;
+                lineItem.SalePrice = cartProduct.Price.SalePrice.InternalAmount;
+                lineItem.TaxDetails = cartProduct.Price.TaxDetails;
+                lineItem.TaxPercentRate = cartProduct.Price.TaxPercentRate;
+                lineItem.Discounts = cartProduct.Price.Discounts;
+                lineItem.ListPrice = cartProduct.Price.ListPrice.InternalAmount;
+            }
+
+            return Task.FromResult(this);
         }
 
         public virtual async Task<CartAggregate> UpdateOrganization(ShoppingCart cart, Member member)
