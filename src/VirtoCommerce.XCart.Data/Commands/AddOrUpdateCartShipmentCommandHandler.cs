@@ -131,9 +131,14 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         protected static void ClearAddressInfo(AddOrUpdateCartShipmentCommand request, Shipment shipment, string previousShipmentCode)
         {
-            if (shipment.ShipmentMethodCode != previousShipmentCode && request.Shipment.DeliveryAddress is { IsSpecified: true, Value: null })
+            if (shipment.ShipmentMethodCode != previousShipmentCode || request.Shipment.DeliveryAddress is { IsSpecified: true, Value: null })
             {
                 shipment.DeliveryAddress = null;
+            }
+
+            if (request.Shipment.DeliveryAddress is { IsSpecified: true, Value: not null })
+            {
+                shipment.DeliveryAddress = request.Shipment.DeliveryAddress.Value.MapTo(shipment.DeliveryAddress);
             }
 
             if (shipment.ShipmentMethodCode == ModuleConstants.BuyOnlinePickupInStoreShipmentCode)
