@@ -33,7 +33,7 @@ namespace VirtoCommerce.XCart.Core.Commands.BaseCommands
             else
             {
                 var cartSearchCriteria = GetCartSearchCriteria(request);
-                result = await CartRepository.GetCartAsync(cartSearchCriteria, request.CultureName);
+                result = await GetCart(cartSearchCriteria, request.CultureName);
                 if (result == null)
                 {
                     result = await CreateNewCartAggregateAsync(request);
@@ -58,6 +58,8 @@ namespace VirtoCommerce.XCart.Core.Commands.BaseCommands
         }
 
         protected virtual Task<CartAggregate> GetCartById(string cartId, string language) => CartRepository.GetCartByIdAsync(cartId, language);
+
+        protected virtual Task<CartAggregate> GetCart(ShoppingCartSearchCriteria cartSearchCriteria, string language) => CartRepository.GetCartAsync(cartSearchCriteria, language);
 
         protected virtual Task<CartAggregate> CreateNewCartAggregateAsync(TCartCommand request)
         {

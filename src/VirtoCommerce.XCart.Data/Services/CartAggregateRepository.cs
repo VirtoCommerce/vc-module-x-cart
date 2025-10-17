@@ -164,6 +164,28 @@ namespace VirtoCommerce.XCart.Data.Services
             return null;
         }
 
+        public async Task<CartAggregate> GetCartAsync(ShoppingCartSearchCriteria criteria, IList<string> productsIncludeFields, string cultureName)
+        {
+            if (CartAggregateBuilder.IsBuilding(out var cartAggregate))
+            {
+                return cartAggregate;
+            }
+
+            criteria = criteria.CloneTyped();
+            criteria.CustomerId ??= AnonymousUser.UserName;
+
+            var cartSearchResult = await _shoppingCartSearchService.SearchAsync(criteria);
+            //The null value for the Type parameter should be interpreted as a valuable parameter, and we must return a cart object with Type property that has null exactly set.
+            //otherwise, for the case where the system contains carts with different Types, the resulting cart may be a random result.
+            var cart = cartSearchResult.Results.FirstOrDefault(x => criteria.Type != null || x.Type == null);
+            if (cart != null)
+            {
+                return await InnerGetCartAggregateFromCartAsync(cart.Clone() as ShoppingCart, cultureName ?? Language.InvariantLanguage.CultureName, productsIncludeFields, criteria.ResponseGroup);
+            }
+
+            return null;
+        }
+
         public async Task<SearchCartResponse> SearchCartAsync(ShoppingCartSearchCriteria criteria)
         {
             return await SearchCartAsync(criteria, null);
@@ -267,9 +289,15 @@ namespace VirtoCommerce.XCart.Data.Services
                 //Load cart products explicitly if no validation is requested
                 aggregate.ProductsIncludeFields = productsIncludeFields;
                 aggregate.ResponseGroup = responseGroup;
-                var cartProducts = await _cartProductsService.GetCartProductsByIdsAsync(aggregate, aggregate.Cart.Items.Select(x => x.ProductId).ToArray());
+
+                var cartProducts = default(IList<CartProduct>);
+                if (aggregate.ProductsIncludeFields == null || aggregate.ProductsIncludeFields.FirstOrDefault() != "__none")
+                {
+                    cartProducts = await _cartProductsService.GetCartProductsByIdsAsync(aggregate, aggregate.Cart.Items.Select(x => x.ProductId).ToArray());
+                }
+
                 //Populate aggregate.CartProducts with the  products data for all cart  line items
-                foreach (var cartProduct in cartProducts)
+                foreach (var cartProduct in cartProducts ?? [])
                 {
                     aggregate.CartProducts[cartProduct.Id] = cartProduct;
                 }
@@ -285,6 +313,8 @@ namespace VirtoCommerce.XCart.Data.Services
 
                     await aggregate.SetItemFulfillmentCenterAsync(lineItem, cartProduct);
                     await aggregate.UpdateVendor(lineItem, cartProduct);
+                    await aggregate.UpdateImageUrl(lineItem, cartProduct);
+                    await aggregate.UpdatePrices(lineItem, cartProduct);
 
                     // validate price change
                     var lineItemContext = new CartLineItemPriceChangedValidationContext

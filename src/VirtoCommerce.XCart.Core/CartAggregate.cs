@@ -282,7 +282,7 @@ namespace VirtoCommerce.XCart.Core
             CartProducts[newCartItem.CartProduct.Id] = newCartItem.CartProduct;
             await SetItemFulfillmentCenterAsync(lineItem, newCartItem.CartProduct);
             await UpdateVendor(lineItem, newCartItem.CartProduct);
-            await InnerAddLineItemAsync(lineItem, newCartItem.CartProduct, newCartItem.DynamicProperties);
+            await InnerAddLineItemAsync(lineItem, newCartItem.OverrideQuantity, newCartItem.CartProduct, newCartItem.DynamicProperties);
 
             return this;
         }
@@ -569,7 +569,7 @@ namespace VirtoCommerce.XCart.Core
         {
             EnsureCartExists();
 
-            var lineItems = Cart.Items.Where(x => x.ProductId == productId).ToList();
+            var lineItems = LineItems.Where(x => x.ProductId == productId).ToList();
             if (lineItems.Count != 0)
             {
                 lineItems.ForEach(x => Cart.Items.Remove(x));
@@ -771,7 +771,7 @@ namespace VirtoCommerce.XCart.Core
         {
             foreach (var lineItem in otherCart.Cart.Items.ToList())
             {
-                await InnerAddLineItemAsync(lineItem, otherCart.CartProducts[lineItem.ProductId]);
+                await InnerAddLineItemAsync(lineItem, overrideQuantity: false, product: otherCart.CartProducts[lineItem.ProductId]);
             }
         }
 
@@ -916,6 +916,34 @@ namespace VirtoCommerce.XCart.Core
         public virtual Task<CartAggregate> UpdateVendor(LineItem lineItem, CartProduct cartProduct)
         {
             lineItem.VendorId = cartProduct?.Product?.Vendor;
+
+            return Task.FromResult(this);
+        }
+
+        public virtual Task<CartAggregate> UpdateImageUrl(LineItem lineItem, CartProduct cartProduct)
+        {
+            if (cartProduct?.Product?.ImgSrc != null)
+            {
+                lineItem.ImageUrl = cartProduct.Product.ImgSrc;
+            }
+
+            return Task.FromResult(this);
+        }
+
+        public virtual Task<CartAggregate> UpdatePrices(LineItem lineItem, CartProduct cartProduct)
+        {
+            // update only partially loaded line items
+            if (cartProduct?.Price != null && lineItem.PriceId == null)
+            {
+                lineItem.PriceId = cartProduct.Price.PricelistId;
+                lineItem.Currency = cartProduct.Price.Currency.Code;
+                lineItem.DiscountAmount = cartProduct.Price.DiscountAmount.InternalAmount;
+                lineItem.SalePrice = cartProduct.Price.SalePrice.InternalAmount;
+                lineItem.TaxDetails = cartProduct.Price.TaxDetails;
+                lineItem.TaxPercentRate = cartProduct.Price.TaxPercentRate;
+                lineItem.Discounts = cartProduct.Price.Discounts;
+                lineItem.ListPrice = cartProduct.Price.ListPrice.InternalAmount;
+            }
 
             return Task.FromResult(this);
         }
@@ -1087,6 +1115,7 @@ namespace VirtoCommerce.XCart.Core
             return tierPrice.Price.Amount > 0;
         }
 
+        [Obsolete("Use InnerAddLineItemAsync(LineItem newLineItem, bool overrideQuantity) instead", DiagnosticId = "VC0011", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
         protected virtual async Task<CartAggregate> InnerAddLineItemAsync(LineItem newLineItem, CartProduct product = null, IList<DynamicPropertyValue> dynamicProperties = null)
         {
             var existingLineItem = FindExistingLineItemBeforeAdd(newLineItem.ProductId, product, dynamicProperties);
@@ -1094,6 +1123,34 @@ namespace VirtoCommerce.XCart.Core
             if (existingLineItem != null)
             {
                 await InnerChangeItemQuantityAsync(existingLineItem, existingLineItem.Quantity + Math.Max(1, newLineItem.Quantity), product);
+
+                existingLineItem.FulfillmentCenterId = newLineItem.FulfillmentCenterId;
+                existingLineItem.FulfillmentCenterName = newLineItem.FulfillmentCenterName;
+
+                newLineItem = existingLineItem;
+            }
+            else
+            {
+                newLineItem.Id = null;
+                Cart.Items.Add(newLineItem);
+            }
+
+            if (dynamicProperties != null)
+            {
+                await UpdateCartItemDynamicProperties(newLineItem, dynamicProperties);
+            }
+
+            return this;
+        }
+
+        protected virtual async Task<CartAggregate> InnerAddLineItemAsync(LineItem newLineItem, bool overrideQuantity, CartProduct product = null, IList<DynamicPropertyValue> dynamicProperties = null)
+        {
+            var existingLineItem = FindExistingLineItemBeforeAdd(newLineItem.ProductId, product, dynamicProperties);
+
+            if (existingLineItem != null)
+            {
+                var newQuantity = overrideQuantity ? newLineItem.Quantity : existingLineItem.Quantity + Math.Max(1, newLineItem.Quantity);
+                await InnerChangeItemQuantityAsync(existingLineItem, newQuantity, product);
 
                 existingLineItem.FulfillmentCenterId = newLineItem.FulfillmentCenterId;
                 existingLineItem.FulfillmentCenterName = newLineItem.FulfillmentCenterName;
