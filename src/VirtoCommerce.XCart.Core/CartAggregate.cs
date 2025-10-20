@@ -948,6 +948,16 @@ namespace VirtoCommerce.XCart.Core
             return Task.FromResult(this);
         }
 
+        public virtual Task<CartAggregate> UpdateProductName(LineItem lineItem, CartProduct cartProduct)
+        {
+            if (cartProduct?.Product != null)
+            {
+                lineItem.Name = cartProduct.GetName(Cart.LanguageCode);
+            }
+
+            return Task.FromResult(this);
+        }
+
         public virtual async Task<CartAggregate> UpdateOrganization(ShoppingCart cart, Member member)
         {
             if (member is Contact contact && cart.Type != CartType.Wishlist && cart.Type != CartType.SavedForLater)
