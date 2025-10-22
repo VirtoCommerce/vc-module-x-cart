@@ -315,6 +315,7 @@ namespace VirtoCommerce.XCart.Data.Services
                     await aggregate.UpdateVendor(lineItem, cartProduct);
                     await aggregate.UpdateImageUrl(lineItem, cartProduct);
                     await aggregate.UpdatePrices(lineItem, cartProduct);
+                    await aggregate.UpdateProductName(lineItem, cartProduct);
 
                     // validate price change
                     var lineItemContext = new CartLineItemPriceChangedValidationContext
