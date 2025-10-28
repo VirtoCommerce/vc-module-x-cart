@@ -1266,7 +1266,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             schema.Mutation.AddField(refreshCartField);
 
-
             #region Wishlists
 
             // Queries
@@ -1530,7 +1529,24 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             schema.Mutation.AddField(moveListItemField);
 
-            #endregion Wishlists 
+            #endregion Wishlists
+
+            _ = schema.Mutation.AddField(FieldBuilder<object, InitializeCartPaymentResult>
+                .Create("initializeCartPayment", typeof(InitializeCartPaymentResultType))
+                .Argument(GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputInitializeCartPaymentType>>(), SchemaConstants.CommandName)
+                .ResolveAsync(async context =>
+                {
+                    var type = GenericTypeHelper.GetActualType<InitializeCartPaymentCommand>();
+
+                    var command = (InitializeCartPaymentCommand)context.GetArgument(type, SchemaConstants.CommandName);
+                    // await CheckAuthAsync(context, command.OrderId);
+
+                    var result = await _mediator.Send(command);
+                    return (InitializeCartPaymentResult)result;
+
+                })
+                .FieldType);
+
         }
 
         private async Task<object> ResolveListConnectionAsync(IMediator mediator, IResolveConnectionContext<object> context)
