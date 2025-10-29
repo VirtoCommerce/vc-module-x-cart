@@ -45,7 +45,7 @@ public class MoveFromSavedForLaterItemsCommandBuilder(IMediator mediator, IAutho
             throw AuthorizationError.AnonymousAccessDenied();
         }
 
-        var cart = await cartRepository.GetCartByIdAsync(request.CartId);
+        var cart = await cartRepository.EnsureUserCartAsync(request);
 
         if (cart == null)
         {

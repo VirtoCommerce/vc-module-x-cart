@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
+using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Services
@@ -29,5 +30,7 @@ namespace VirtoCommerce.XCart.Core.Services
         Task<SearchCartResponse> SearchCartAsync(ShoppingCartSearchCriteria criteria);
 
         Task<SearchCartResponse> SearchCartAsync(ShoppingCartSearchCriteria criteria, IList<string> productsIncludeFields);
+
+        Task<CartAggregate> EnsureUserCartAsync(CartCommand cartCommand);
     }
 }

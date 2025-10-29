@@ -8,15 +8,18 @@ using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
+using VirtoCommerce.CoreModule.Core.Tax;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.FileExperienceApi.Core.Extensions;
 using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Platform.Core.DynamicProperties;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.XCart.Core;
+using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
@@ -376,6 +379,66 @@ namespace VirtoCommerce.XCart.Data.Services
 
                 await _fileUploadService.SaveChangesAsync(files);
             }
+        }
+
+        public async Task<CartAggregate> EnsureUserCartAsync(CartCommand request)
+        {
+            CartAggregate result;
+
+            if (!string.IsNullOrEmpty(request.CartId))
+            {
+                result = await GetCartByIdAsync(request.CartId, request.CultureName);
+            }
+            else
+            {
+                var cartSearchCriteria = GetCartSearchCriteria(request);
+                result = await GetCartAsync(cartSearchCriteria, request.CultureName);
+                if (result == null)
+                {
+                    result = await CreateNewCartAggregateAsync(request);
+                }
+            }
+
+            return result;
+        }
+
+        protected virtual ShoppingCartSearchCriteria GetCartSearchCriteria(CartCommand request)
+        {
+            var cartSearchCriteria = AbstractTypeFactory<ShoppingCartSearchCriteria>.TryCreateInstance();
+
+            cartSearchCriteria.Name = request.CartName;
+            cartSearchCriteria.StoreId = request.StoreId;
+            cartSearchCriteria.CustomerId = request.UserId;
+            cartSearchCriteria.OrganizationId = request.OrganizationId;
+            cartSearchCriteria.OrganizationIdIsEmpty = string.IsNullOrEmpty(request.OrganizationId);
+            cartSearchCriteria.Currency = request.CurrencyCode;
+            cartSearchCriteria.Type = request.CartType;
+
+            return cartSearchCriteria;
+        }
+
+        protected virtual Task<CartAggregate> CreateNewCartAggregateAsync(CartCommand request)
+        {
+            var cart = AbstractTypeFactory<ShoppingCart>.TryCreateInstance();
+
+            cart.CustomerId = request.UserId;
+            cart.OrganizationId = request.OrganizationId;
+            cart.Name = request.CartName ?? "default";
+            cart.StoreId = request.StoreId;
+            cart.LanguageCode = request.CultureName;
+            cart.Type = request.CartType;
+            cart.Currency = request.CurrencyCode;
+            cart.Items = new List<LineItem>();
+            cart.Shipments = new List<Shipment>();
+            cart.Payments = new List<Payment>();
+            cart.Addresses = new List<CartModule.Core.Model.Address>();
+            cart.TaxDetails = new List<TaxDetail>();
+            cart.Coupons = new List<string>();
+            cart.Discounts = new List<Discount>();
+            cart.DynamicProperties = new List<DynamicObjectProperty>();
+            cart.SharingSettings = new List<CartSharingSetting>();
+
+            return GetCartForShoppingCartAsync(cart);
         }
     }
 }

@@ -11,7 +11,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<StringGraphType>("cultureName").Description("Culture name");
             Field<StringGraphType>("currencyCode").Description("Currency code");
 
-            Field<NonNullGraphType<StringGraphType>>("cartId").Description("Source Cart ID");
+            Field<StringGraphType>("cartId").Description("Source Cart ID");
+
             Field<NonNullGraphType<ListGraphType<StringGraphType>>>("lineItemIds").Description("Line item IDs to save for later");
         }
     }

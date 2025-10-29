@@ -23,25 +23,13 @@ namespace VirtoCommerce.XCart.Core.Commands.BaseCommands
 
         public abstract Task<CartAggregate> Handle(TCartCommand request, CancellationToken cancellationToken);
 
+        //TODO: Make obsolete and move to ICartAggregateRepository? 
         protected virtual async Task<CartAggregate> GetOrCreateCartFromCommandAsync(TCartCommand request)
         {
-            CartAggregate result;
-            if (!string.IsNullOrEmpty(request.CartId))
-            {
-                result = await GetCartById(request.CartId, request.CultureName);
-            }
-            else
-            {
-                var cartSearchCriteria = GetCartSearchCriteria(request);
-                result = await GetCart(cartSearchCriteria, request.CultureName);
-                if (result == null)
-                {
-                    result = await CreateNewCartAggregateAsync(request);
-                }
-            }
-            return result;
+            return await CartRepository.EnsureUserCartAsync(request);
         }
 
+        //TODO: Make obsolete and move to ICartAggregateRepository? 
         protected virtual ShoppingCartSearchCriteria GetCartSearchCriteria(TCartCommand request)
         {
             var cartSearchCriteria = AbstractTypeFactory<ShoppingCartSearchCriteria>.TryCreateInstance();
@@ -57,10 +45,13 @@ namespace VirtoCommerce.XCart.Core.Commands.BaseCommands
             return cartSearchCriteria;
         }
 
+        //TODO: Make obsolete and move to ICartAggregateRepository? 
         protected virtual Task<CartAggregate> GetCartById(string cartId, string language) => CartRepository.GetCartByIdAsync(cartId, language);
 
+        //TODO: Make obsolete and move to ICartAggregateRepository? 
         protected virtual Task<CartAggregate> GetCart(ShoppingCartSearchCriteria cartSearchCriteria, string language) => CartRepository.GetCartAsync(cartSearchCriteria, language);
 
+        //TODO: Make obsolete and move to ICartAggregateRepository? 
         protected virtual Task<CartAggregate> CreateNewCartAggregateAsync(TCartCommand request)
         {
             var cart = AbstractTypeFactory<ShoppingCart>.TryCreateInstance();
@@ -85,6 +76,7 @@ namespace VirtoCommerce.XCart.Core.Commands.BaseCommands
             return CartRepository.GetCartForShoppingCartAsync(cart);
         }
 
+        //TODO: Make obsolete and move to ICartAggregateRepository? 
         protected virtual async Task<CartAggregate> SaveCartAsync(CartAggregate cartAggregate)
         {
             await CartRepository.SaveAsync(cartAggregate);
