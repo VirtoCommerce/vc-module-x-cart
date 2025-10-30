@@ -1,6 +1,7 @@
 using System.Linq;
 using FluentValidation;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Validators
 {
@@ -11,6 +12,11 @@ namespace VirtoCommerce.XCart.Core.Validators
             //To support the use case for partial shipment update when user sets the address first.
             RuleFor(x => x).Custom((shipmentContext, context) =>
             {
+                if (string.IsNullOrWhiteSpace(shipmentContext.Shipment.ShipmentMethodCode))
+                {
+                    context.AddFailure(new CartValidationError(shipmentContext.Shipment, "ShipmentMethodCode is Mandatory", "SHIPMENT_METHOD_CODE_IS_MANDATORY"));
+                    return;
+                }
                 var availShippingRates = shipmentContext.AvailShippingRates;
                 var shipment = shipmentContext.Shipment;
                 if (availShippingRates != null && !string.IsNullOrEmpty(shipment.ShipmentMethodCode))
