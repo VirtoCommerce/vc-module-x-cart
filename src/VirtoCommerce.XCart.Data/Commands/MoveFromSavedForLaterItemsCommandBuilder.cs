@@ -53,8 +53,6 @@ public class MoveFromSavedForLaterItemsCommandBuilder(IMediator mediator, IAutho
         }
 
         await Authorize(context, cart.Cart, new CanAccessCartAuthorizationRequirement());
-
-        //request.Cart = cart;
     }
 
     protected override async Task AfterMediatorSend(IResolveFieldContext<object> context, MoveFromSavedForLaterItemsCommand request, CartAggregateWithList response)
