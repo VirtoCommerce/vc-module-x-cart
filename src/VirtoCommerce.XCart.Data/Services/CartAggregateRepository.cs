@@ -311,12 +311,6 @@ namespace VirtoCommerce.XCart.Data.Services
                         continue;
                     }
 
-                    await aggregate.SetItemFulfillmentCenterAsync(lineItem, cartProduct);
-                    await aggregate.UpdateVendor(lineItem, cartProduct);
-                    await aggregate.UpdateImageUrl(lineItem, cartProduct);
-                    await aggregate.UpdatePrices(lineItem, cartProduct);
-                    await aggregate.UpdateProductName(lineItem, cartProduct);
-
                     // validate price change
                     var lineItemContext = new CartLineItemPriceChangedValidationContext
                     {
@@ -330,7 +324,13 @@ namespace VirtoCommerce.XCart.Data.Services
                         aggregate.ValidationWarnings.AddRange(result.Errors);
                     }
 
-                    // update price for non-configured line items immediately 
+                    await aggregate.SetItemFulfillmentCenterAsync(lineItem, cartProduct);
+                    await aggregate.UpdateVendor(lineItem, cartProduct);
+                    await aggregate.UpdateImageUrl(lineItem, cartProduct);
+                    await aggregate.UpdatePrices(lineItem, cartProduct);
+                    await aggregate.UpdateProductName(lineItem, cartProduct);
+
+                    // update price for non-configured line items immediately
                     if (!lineItem.IsConfigured)
                     {
                         aggregate.SetLineItemTierPrice(cartProduct.Price, lineItem.Quantity, lineItem);
