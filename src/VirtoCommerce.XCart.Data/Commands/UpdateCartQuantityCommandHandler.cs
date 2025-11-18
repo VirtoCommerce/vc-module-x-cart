@@ -84,6 +84,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                 CultureName = request.CultureName,
                 StoreId = request.StoreId,
                 CurrencyCode = request.CurrencyCode,
+                UserId = request.UserId,
 
                 ProductIds = productIds,
                 ProductsIncludeFields = ["id", "name", "code"],
