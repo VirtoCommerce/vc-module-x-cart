@@ -94,7 +94,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             return products;
         }
 
-        private static List<UpdateCartQuantityItem> CombineRequestItems(UpdateCartQuantityCommand request)
+        protected static List<UpdateCartQuantityItem> CombineRequestItems(UpdateCartQuantityCommand request)
         {
             var result = new List<UpdateCartQuantityItem>();
 
