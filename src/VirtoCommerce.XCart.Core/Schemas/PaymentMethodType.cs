@@ -17,6 +17,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.LogoUrl, nullable: true).Description("Value of payment method logo absolute URL");
             Field(x => x.Priority, nullable: false).Description("Value of payment method priority");
             Field(x => x.IsAvailableForPartial, nullable: false).Description("Is payment method available for partial payments");
+            Field(x => x.AllowCartPayment, nullable: false).Description("Is payment method available for cart payment");
 
             Field<StringGraphType>("name")
                 .Resolve(context => GetLocalizedValue(context, context.Source.LocalizedName, context.Source.Name))

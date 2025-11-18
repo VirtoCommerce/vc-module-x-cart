@@ -1542,11 +1542,10 @@ namespace VirtoCommerce.XCart.Data.Schemas
                     // await CheckAuthAsync(context, command.OrderId);
 
                     var result = await _mediator.Send(command);
-                    return (InitializeCartPaymentResult)result;
+                    return result;
 
                 })
                 .FieldType);
-
         }
 
         private async Task<object> ResolveListConnectionAsync(IMediator mediator, IResolveConnectionContext<object> context)
