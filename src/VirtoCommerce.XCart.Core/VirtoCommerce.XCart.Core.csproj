@@ -15,12 +15,10 @@
     <PackageReference Include="VirtoCommerce.FileExperienceApi.Core" Version="3.904.0" />
     <PackageReference Include="VirtoCommerce.InventoryModule.Core" Version="3.805.0" />
     <PackageReference Include="VirtoCommerce.MarketingModule.Core" Version="3.820.0" />
+    <PackageReference Include="VirtoCommerce.PaymentModule.Core" Version="3.811.0-alpha.255-vcst-3387" />
     <PackageReference Include="VirtoCommerce.PricingModule.Core" Version="3.809.0" />
     <PackageReference Include="VirtoCommerce.ShippingModule.Core" Version="3.811.0" />
     <PackageReference Include="VirtoCommerce.Xapi.Core" Version="3.918.0" />
     <PackageReference Include="VirtoCommerce.XCatalog.Core" Version="3.919.0" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\vc-module-payment\src\VirtoCommerce.Payment.Core\VirtoCommerce.PaymentModule.Core.csproj" />
   </ItemGroup>
 </Project>
