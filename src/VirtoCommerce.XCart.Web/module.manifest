@@ -4,18 +4,18 @@
   <version>3.949.0</version>
   <version-tag></version-tag>
 
-  <platformVersion>3.916.0-alpha.13164-vcst-4203-cleanup</platformVersion>
+  <platformVersion>3.917.0</platformVersion>
   <dependencies>
-    <dependency id="VirtoCommerce.Catalog" version="3.904.0-alpha.2432-vcst-4203-cleanup" />
-    <dependency id="VirtoCommerce.Cart" version="3.840.0-alpha.764-vcst-4203-cleanup" />
-    <dependency id="VirtoCommerce.FileExperienceApi" version="3.906.0-alpha.58-vcst-4203-cleanup" />
-    <dependency id="VirtoCommerce.Inventory" version="3.815.0-alpha.498-vcst-4203-cleanup" />
-    <dependency id="VirtoCommerce.Marketing" version="3.824.0-alpha.902-vcst-4203-cleanup" />
-    <dependency id="VirtoCommerce.Payment" version="3.811.0-alpha.257-vcst-4203-cleanup" />
-    <dependency id="VirtoCommerce.Pricing" version="3.822.0-alpha.781-vcst-4203-cleanup" />
-    <dependency id="VirtoCommerce.Shipping" version="3.816.0-alpha.232-vcst-4203-cleanup" />
-    <dependency id="VirtoCommerce.Xapi" version="3.928.0-alpha.130-vcst-4203-cleanup" />
-    <dependency id="VirtoCommerce.XCatalog" version="3.942.0-alpha.157-vcst-4203-cleanup" />
+    <dependency id="VirtoCommerce.Catalog" version="3.904.0" />
+    <dependency id="VirtoCommerce.Cart" version="3.840.0" />
+    <dependency id="VirtoCommerce.FileExperienceApi" version="3.906.0" />
+    <dependency id="VirtoCommerce.Inventory" version="3.815.0" />
+    <dependency id="VirtoCommerce.Marketing" version="3.824.0" />
+    <dependency id="VirtoCommerce.Payment" version="3.811.0" />
+    <dependency id="VirtoCommerce.Pricing" version="3.822.0" />
+    <dependency id="VirtoCommerce.Shipping" version="3.816.0" />
+    <dependency id="VirtoCommerce.Xapi" version="3.929.0" />
+    <dependency id="VirtoCommerce.XCatalog" version="3.942.0" />
   </dependencies>
 
   <title>Cart Experience API</title>
