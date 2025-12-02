@@ -47,7 +47,7 @@ public class InitializeCartPaymentCommandHandler(
 
         if (!paymentMethod.AllowCartPayment)
         {
-            throw new InvalidOperationException($"Payment method '{payment.PaymentGatewayCode}' doesn't allowed in cart.");
+            throw new InvalidOperationException($"Cart payment is not allowed for payment method '{payment.PaymentGatewayCode}'");
         }
 
         var processPaymentRequest = await CreateProcessPaymentRequest(request, cart, payment, cancellationToken);
