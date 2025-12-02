@@ -19,7 +19,7 @@ namespace VirtoCommerce.XCart.Data.Commands;
 
 public class InitializeCartPaymentCommandHandler(
     ICartAggregateRepository cartAggregateRepository,
-    IPaymentMethodsSearchService paymentMethodsSearchService) : IRequestHandler<InitializeCartPaymentCommand, InitializeCartPaymentResult>
+    ICartAvailMethodsService cartAvailMethodsService) : IRequestHandler<InitializeCartPaymentCommand, InitializeCartPaymentResult>
 {
     public async Task<InitializeCartPaymentResult> Handle(InitializeCartPaymentCommand request, CancellationToken cancellationToken)
     {
@@ -37,8 +37,8 @@ public class InitializeCartPaymentCommandHandler(
             throw new InvalidOperationException($"Payment not found in cart '{request.CartId}'");
         }
 
-        var paymentMethods = await paymentMethodsSearchService.SearchAsync(new PaymentMethodsSearchCriteria { StoreId = cart.Store.Id });
-        var paymentMethod = paymentMethods.Results.FirstOrDefault(pm => pm.Code.EqualsIgnoreCase(payment.PaymentGatewayCode));
+        var paymentMethods = await cartAvailMethodsService.GetAvailablePaymentMethodsAsync(cart);
+        var paymentMethod = paymentMethods.FirstOrDefault(pm => pm.Code.EqualsIgnoreCase(payment.PaymentGatewayCode));
 
         if (paymentMethod == null)
         {
