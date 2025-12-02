@@ -11,6 +11,7 @@ using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.FileExperienceApi.Core.Extensions;
 using VirtoCommerce.FileExperienceApi.Core.Services;
+using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
@@ -241,6 +242,8 @@ namespace VirtoCommerce.XCart.Data.Services
             var result = await _platformMemoryCache.GetOrCreateExclusiveAsync(cacheKey, async cacheOptions =>
             {
                 cacheOptions.AddExpirationToken(GenericCachingRegion<CartAggregate>.CreateChangeTokenForKey(cart.Id));
+                cacheOptions.AddExpirationToken(GenericSearchCachingRegion<Promotion>.CreateChangeToken());
+
                 return await InnerGetCartAggregateFromCartNoCacheAsync(cart, language, productsIncludeFields, responseGroup);
             });
 
@@ -311,12 +314,6 @@ namespace VirtoCommerce.XCart.Data.Services
                         continue;
                     }
 
-                    await aggregate.SetItemFulfillmentCenterAsync(lineItem, cartProduct);
-                    await aggregate.UpdateVendor(lineItem, cartProduct);
-                    await aggregate.UpdateImageUrl(lineItem, cartProduct);
-                    await aggregate.UpdatePrices(lineItem, cartProduct);
-                    await aggregate.UpdateProductName(lineItem, cartProduct);
-
                     // validate price change
                     var lineItemContext = new CartLineItemPriceChangedValidationContext
                     {
@@ -330,7 +327,13 @@ namespace VirtoCommerce.XCart.Data.Services
                         aggregate.ValidationWarnings.AddRange(result.Errors);
                     }
 
-                    // update price for non-configured line items immediately 
+                    await aggregate.SetItemFulfillmentCenterAsync(lineItem, cartProduct);
+                    await aggregate.UpdateVendor(lineItem, cartProduct);
+                    await aggregate.UpdateImageUrl(lineItem, cartProduct);
+                    await aggregate.UpdatePrices(lineItem, cartProduct);
+                    await aggregate.UpdateProductName(lineItem, cartProduct);
+
+                    // update price for non-configured line items immediately
                     if (!lineItem.IsConfigured)
                     {
                         aggregate.SetLineItemTierPrice(cartProduct.Price, lineItem.Quantity, lineItem);

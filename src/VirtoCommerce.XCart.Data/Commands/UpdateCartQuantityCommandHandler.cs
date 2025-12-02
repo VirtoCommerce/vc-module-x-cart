@@ -84,6 +84,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                 CultureName = request.CultureName,
                 StoreId = request.StoreId,
                 CurrencyCode = request.CurrencyCode,
+                UserId = request.UserId,
 
                 ProductIds = productIds,
                 ProductsIncludeFields = ["id", "name", "code"],
@@ -93,7 +94,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             return products;
         }
 
-        private static List<UpdateCartQuantityItem> CombineRequestItems(UpdateCartQuantityCommand request)
+        protected static List<UpdateCartQuantityItem> CombineRequestItems(UpdateCartQuantityCommand request)
         {
             var result = new List<UpdateCartQuantityItem>();
 
