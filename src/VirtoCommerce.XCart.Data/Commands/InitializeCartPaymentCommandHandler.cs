@@ -25,22 +25,19 @@ public class InitializeCartPaymentCommandHandler(
     {
         var cart = await cartAggregateRepository.GetCartByIdAsync(request.CartId);
 
-        var payment = cart.Cart.Payments.FirstOrDefault(x => x.Id == request.PaymentId)
-            ?? cart.Cart.Payments.FirstOrDefault();
+        if (cart == null)
+        {
+            throw new InvalidOperationException($"Cart '{request.CartId}' not found ");
+        }
+
+        var payment = cart.Cart.Payments.FirstOrDefault(x => x.Id == request.PaymentId);
 
         if (payment == null)
         {
             throw new InvalidOperationException($"Payment not found in cart '{request.CartId}'");
         }
 
-        //var validationResult = AbstractTypeFactory<PaymentRequestValidator>.TryCreateInstance().Validate(paymentInfo);
-        //if (!validationResult.IsValid)
-        //{
-        //    return ErrorResult<InitializePaymentResult>(validationResult.Errors.FirstOrDefault()?.ErrorMessage);
-        //}
-
         var paymentMethods = await paymentMethodsSearchService.SearchAsync(new PaymentMethodsSearchCriteria { StoreId = cart.Store.Id });
-
         var paymentMethod = paymentMethods.Results.FirstOrDefault(pm => pm.Code.EqualsIgnoreCase(payment.PaymentGatewayCode));
 
         if (paymentMethod == null)

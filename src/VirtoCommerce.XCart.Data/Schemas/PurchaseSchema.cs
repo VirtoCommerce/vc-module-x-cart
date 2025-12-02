@@ -1539,7 +1539,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                     var type = GenericTypeHelper.GetActualType<InitializeCartPaymentCommand>();
 
                     var command = (InitializeCartPaymentCommand)context.GetArgument(type, SchemaConstants.CommandName);
-                    // await CheckAuthAsync(context, command.OrderId);
+                    await CheckAuthAsyncByCartId(context, command.CartId);
 
                     var result = await _mediator.Send(command);
                     return result;
