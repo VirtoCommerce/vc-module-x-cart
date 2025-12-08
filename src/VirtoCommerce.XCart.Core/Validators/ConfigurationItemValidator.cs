@@ -72,6 +72,9 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigur
                 case ConfigurationSectionTypeProduct:
                     ValidateSectionTypeProduct(configurationItem, section, context);
                     break;
+                case ConfigurationSectionTypeVariation:
+                    ValidateSectionTypeVariation(configurationItem, section, context);
+                    break;
                 case ConfigurationSectionTypeFile:
                     ValidateSectionTypeFile(configurationItem, section, context, limitOfFiles);
                     break;
@@ -139,6 +142,21 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigur
                 context.AddFailure(CartErrorDescriber.ProductUnavailableForSectionError(nameof(CatalogProduct), configurationItem.ProductId, section.Id));
             }
         }
+
+        if (configurationItem.Quantity <= 0)
+        {
+            context.AddFailure(CartErrorDescriber.ProductMinQuantityError(nameof(CatalogProduct), configurationItem.ProductId, configurationItem.Quantity, 1));
+        }
+    }
+
+    private static void ValidateSectionTypeVariation(ConfigurationItem configurationItem, ProductConfigurationSection section, ValidationContext<LineItem> context)
+    {
+        if (section != null && section.IsRequired && string.IsNullOrEmpty(configurationItem.ProductId))
+        {
+            context.AddFailure(CartErrorDescriber.SelectedProductIsRequired(section));
+        }
+
+        // Variation options come from catalog; section.Options may be empty, so skip availability check.
 
         if (configurationItem.Quantity <= 0)
         {

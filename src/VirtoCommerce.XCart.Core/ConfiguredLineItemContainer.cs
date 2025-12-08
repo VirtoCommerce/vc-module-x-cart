@@ -57,14 +57,14 @@ namespace VirtoCommerce.XCart.Core
             return lineItem;
         }
 
-        public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId)
+        public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId, string type = ConfigurationSectionTypeProduct)
         {
             var lineItem = CreateLineItem(cartProduct, quantity);
 
             _items.Add(new SectionLineItem
             {
                 SectionId = sectionId,
-                Type = ConfigurationSectionTypeProduct,
+                Type = type,
                 Item = lineItem,
             });
         }
@@ -123,14 +123,19 @@ namespace VirtoCommerce.XCart.Core
                     var subItem = AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
 
                     subItem.SectionId = x.SectionId;
+                    subItem.Type = x.Type;
+                    subItem.CatalogId = x.Item?.CatalogId;
+                    subItem.CategoryId = x.Item?.CategoryId;
                     subItem.ProductId = x.Item?.ProductId;
                     subItem.Name = x.Item?.Name;
                     subItem.Sku = x.Item?.Sku;
                     subItem.ImageUrl = x.Item?.ImageUrl;
                     subItem.Quantity = x.Item?.Quantity ?? 1;
-                    subItem.CatalogId = x.Item?.CatalogId;
-                    subItem.CategoryId = x.Item?.CategoryId;
-                    subItem.Type = x.Type;
+                    if (x.Type is ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation)
+                    {
+                        subItem.ListPrice = x.Item?.ListPrice ?? 0m;
+                        subItem.SalePrice = x.Item?.SalePrice ?? 0m;
+                    }
                     subItem.CustomText = x.CustomText;
                     subItem.Files = x.Files;
 

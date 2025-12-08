@@ -123,12 +123,12 @@ namespace VirtoCommerce.XCart.Data.Commands
 
                 foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
                 {
-                    if (configurationItem.Type == ConfigurationSectionTypeProduct)
+                    if (configurationItem.Type == ConfigurationSectionTypeProduct || configurationItem.Type == ConfigurationSectionTypeVariation)
                     {
                         var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
                         if (product != null)
                         {
-                            container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId);
+                            container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId, configurationItem.Type);
                         }
                     }
                     else if (configurationItem.Type == ConfigurationSectionTypeText)

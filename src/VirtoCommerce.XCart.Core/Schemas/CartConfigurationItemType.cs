@@ -1,6 +1,8 @@
 using GraphQL.Types;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Schemas;
+using VirtoCommerce.XCart.Core.Extensions;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
@@ -14,7 +16,19 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.ProductId, nullable: true).Description("Configuration item product ID");
             Field(x => x.Quantity, nullable: true).Description("Configuration item product quantity");
             Field(x => x.CustomText, nullable: true).Description("Custom text for 'Text' configuration item section");
-            Field(x => x.Type, nullable: false).Description("Configuration item type. Possible values: 'Product', 'Text', 'File'");
+            Field(x => x.Type, nullable: false).Description("Configuration item type. Possible values: 'Product', 'Variation', 'Text', 'File'");
+
+            Field<NonNullGraphType<MoneyType>>("listPrice")
+                .Description("List price")
+                .Resolve(context => context.Source.ListPrice.ToMoney(context.GetCart().Currency));
+
+            Field<NonNullGraphType<MoneyType>>("salePrice")
+                .Description("Sale price")
+                .Resolve(context => context.Source.SalePrice.ToMoney(context.GetCart().Currency));
+
+            Field<NonNullGraphType<MoneyType>>("extendedPrice")
+                .Description("Extended price")
+                .Resolve(context => context.Source.ExtendedPrice.ToMoney(context.GetCart().Currency));
 
             ExtendableField<ListGraphType<CartConfigurationItemFileType>>(nameof(ConfigurationItem.Files),
                 resolve: context => context.Source.Files,

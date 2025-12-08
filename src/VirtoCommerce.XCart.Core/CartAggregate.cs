@@ -1273,17 +1273,18 @@ namespace VirtoCommerce.XCart.Core
         public virtual async Task<CartAggregate> UpdateConfiguredLineItemPrice(IList<LineItem> configuredItems)
         {
             var configProductsIds = configuredItems
-                            .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
-                            .SelectMany(x => x.ConfigurationItems.Where(x => x.ProductId != null).Select(x => x.ProductId))
-                            .Distinct()
-                            .ToArray();
+                .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
+                .SelectMany(x => x.ConfigurationItems.Where(c => c.ProductId != null).Select(c => c.ProductId))
+                .Distinct()
+                .ToArray();
 
             if (configProductsIds.Length == 0)
             {
                 return this;
             }
 
-            var configProducts = await _cartProductService.GetCartProductsByIdsAsync(this, configProductsIds);
+            var configProducts = (await _cartProductService.GetCartProductsByIdsAsync(this, configProductsIds))
+                .ToDictionary(x => x.Product.Id);
 
             foreach (var configurationLineItem in configuredItems)
             {
@@ -1297,14 +1298,30 @@ namespace VirtoCommerce.XCart.Core
 
                 foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
                 {
-                    var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
-                    if (product != null)
+                    switch (configurationItem.Type)
                     {
-                        container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId);
+                        case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
+                        {
+                            if (configProducts.TryGetValue(configurationItem.ProductId, out var product))
+                            {
+                                container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId, configurationItem.Type);
+                            }
+
+                            break;
+                        }
+                        case ConfigurationSectionTypeText:
+                            container.AddTextSectionLineItem(configurationItem.CustomText, configurationItem.SectionId);
+                            break;
+                        case ConfigurationSectionTypeFile:
+                            container.AddFileSectionLineItem(configurationItem.Files, configurationItem.SectionId);
+                            break;
                     }
                 }
 
                 container.UpdatePrice(configurationLineItem);
+
+                var recalculated = container.CreateConfiguredLineItem(configurationLineItem.Quantity);
+                configurationLineItem.ConfigurationItems = recalculated.Item.ConfigurationItems?.ToList();
             }
 
             return this;
