@@ -6,8 +6,6 @@ using System.Threading.Tasks;
 using MediatR;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.PaymentModule.Core.Model;
-using VirtoCommerce.PaymentModule.Core.Model.Search;
-using VirtoCommerce.PaymentModule.Core.Services;
 using VirtoCommerce.PaymentModule.Model.Requests;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
