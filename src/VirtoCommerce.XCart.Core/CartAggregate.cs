@@ -1572,6 +1572,16 @@ namespace VirtoCommerce.XCart.Core
                         fileUrlsToDelete.AddRange(configItem.Files.Select(f => f.Url));
                     }
                 }
+                else
+                {
+                    // Configuration item not found - add validation error
+                    var productIdForError = section.Option?.ProductId ?? "N/A";
+                    var error = CartErrorDescriber.ConfigurationItemNotFound(
+                        productIdForError,
+                        section.SectionId,
+                        section.Type);
+                    OperationValidationErrors.Add(error);
+                }
             }
 
             // Delete files if any
@@ -1691,6 +1701,7 @@ namespace VirtoCommerce.XCart.Core
             {
                 var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
                 container.Currency = Currency;
+                container.Store = Store;
 
                 if (CartProducts.TryGetValue(configurationLineItem.ProductId, out var configurableProduct))
                 {
