@@ -156,8 +156,6 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigur
             context.AddFailure(CartErrorDescriber.SelectedProductIsRequired(section));
         }
 
-        // Variation options come from catalog; section.Options may be empty, so skip availability check.
-
         if (configurationItem.Quantity <= 0)
         {
             context.AddFailure(CartErrorDescriber.ProductMinQuantityError(nameof(CatalogProduct), configurationItem.ProductId, configurationItem.Quantity, 1));

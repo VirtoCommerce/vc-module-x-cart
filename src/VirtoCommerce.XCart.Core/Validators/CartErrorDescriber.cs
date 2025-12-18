@@ -369,5 +369,43 @@ namespace VirtoCommerce.XCart.Core.Validators
             var result = new CartValidationError(entity, $"Unknown type {type} of section with ID {sectionId}", "CONFIGURATION_SECTION_TYPE_MISMATCH");
             return result;
         }
+
+        public static CartValidationError LineItemNotFound(string lineItemId)
+        {
+            var result = new CartValidationError("LineItem", lineItemId, $"Line item with ID {lineItemId} not found or is not configured", "LINE_ITEM_NOT_FOUND");
+            return result;
+        }
+
+        public static CartValidationError ProductIdIsRequired()
+        {
+            var result = new CartValidationError("ConfigurationItem", null, "Product ID is required in configuration section", "PRODUCT_ID_REQUIRED");
+            return result;
+        }
+
+        public static CartValidationError QuantityMustBePositive(int quantity)
+        {
+            var result = new CartValidationError("ConfigurationItem", null, $"Quantity must be greater than 0. Provided: {quantity}", "QUANTITY_MUST_BE_POSITIVE")
+            {
+                FormattedMessagePlaceholderValues = new Dictionary<string, object>
+                {
+                    ["quantity"] = quantity,
+                },
+            };
+            return result;
+        }
+
+        public static CartValidationError ConfigurationItemNotFound(string productId, string sectionId, string type)
+        {
+            var result = new CartValidationError("ConfigurationItem", productId, $"Configuration item with productId {productId}, sectionId {sectionId}, type {type} not found", "CONFIGURATION_ITEM_NOT_FOUND")
+            {
+                FormattedMessagePlaceholderValues = new Dictionary<string, object>
+                {
+                    ["productId"] = productId,
+                    ["sectionId"] = sectionId ?? "null",
+                    ["type"] = type,
+                },
+            };
+            return result;
+        }
     }
 }

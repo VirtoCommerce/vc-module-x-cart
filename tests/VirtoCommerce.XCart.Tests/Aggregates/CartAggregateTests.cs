@@ -26,11 +26,11 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 {
     public class CartAggregateTests : XCartMoqHelper
     {
-        private readonly CartAggregate aggregate;
+        private readonly CartAggregate _aggregate;
 
         public CartAggregateTests()
         {
-            aggregate = new CartAggregate(
+            _aggregate = new CartAggregate(
                 _marketingPromoEvaluatorMock.Object,
                 _shoppingCartTotalsCalculatorMock.Object,
                 _taxProviderSearchServiceMock.Object,
@@ -48,9 +48,9 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var store = GetStore();
             var currency = GetCurrency();
 
-            aggregate.GrabCart(cart, store, member, currency);
+            _aggregate.GrabCart(cart, store, member, currency);
 
-            aggregate.RecalculateAsync().GetAwaiter().GetResult();
+            _aggregate.RecalculateAsync().GetAwaiter().GetResult();
         }
 
         #region UpdateCartComment
@@ -62,11 +62,11 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var comment = _fixture.Create<string>();
 
             // Act
-            await aggregate.UpdateCartComment(comment);
+            await _aggregate.UpdateCartComment(comment);
 
             // Assert
-            aggregate.Cart.Should().NotBeNull();
-            aggregate.Cart.Comment.Should().Be(comment);
+            _aggregate.Cart.Should().NotBeNull();
+            _aggregate.Cart.Comment.Should().Be(comment);
         }
 
         #endregion UpdateCartComment
@@ -80,7 +80,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             NewCartItem newCartItem = null;
 
             // Act
-            var action = async () => await aggregate.AddItemAsync(newCartItem);
+            var action = async () => await _aggregate.AddItemAsync(newCartItem);
 
             // Assert
             await action.Should().ThrowExactlyAsync<ArgumentNullException>("NewCartItem is null");
@@ -100,10 +100,10 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             _cartProductServiceMock
                 .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), new[] { productId }))
-                .ReturnsAsync(new List<CartProduct>() { new CartProduct(new CatalogProduct()) });
+                .ReturnsAsync(new List<CartProduct> { new(new CatalogProduct()) });
 
             // Act
-            var aggregateAfterAddItem = await aggregate.AddItemAsync(newCartItem);
+            var aggregateAfterAddItem = await _aggregate.AddItemAsync(newCartItem);
 
             // Assert
             aggregateAfterAddItem.GetValidationErrors().Should().NotBeEmpty();
@@ -125,30 +125,27 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var productId2 = _fixture.Create<string>();
             var newCartItem2 = new NewCartItem(productId2, 2);
 
-            var newCartItems = new List<NewCartItem>() { newCartItem1, newCartItem2 };
+            var newCartItems = new List<NewCartItem> { newCartItem1, newCartItem2 };
 
             _cartProductServiceMock
                 .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), new[] { productId1, productId2 }))
                 .ReturnsAsync(
-                    new List<CartProduct>()
+                    new List<CartProduct>
                     {
-                        new CartProduct(new CatalogProduct() { Id = productId1, IsActive = true, IsBuyable = true }),
-                        new CartProduct(new CatalogProduct() { Id = productId2, IsActive = true, IsBuyable = true }),
+                        new(new CatalogProduct { Id = productId1, IsActive = true, IsBuyable = true }),
+                        new(new CatalogProduct { Id = productId2, IsActive = true, IsBuyable = true }),
                     });
 
 
             _mapperMock
                 .Setup(m => m.Map(It.IsAny<CartProduct>(), It.IsAny<Action<IMappingOperationOptions<object, LineItem>>>()))
-                .Returns<CartProduct, Action<IMappingOperationOptions<object, LineItem>>>((cartProduct, options) =>
+                .Returns<CartProduct, Action<IMappingOperationOptions<object, LineItem>>>((cartProduct, options) => new LineItem
                 {
-                    return new LineItem()
-                    {
-                        ProductId = cartProduct.Id
-                    };
+                    ProductId = cartProduct.Id,
                 });
 
             var cartAggregate = GetValidCartAggregate();
-            cartAggregate.ValidationRuleSet = new string[] { "default" };
+            cartAggregate.ValidationRuleSet = ["default"];
             cartAggregate.Cart.Items = Enumerable.Empty<LineItem>().ToList();
 
             // Act
@@ -176,7 +173,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             {
                 LineItemId = _fixture.Create<string>(),
                 LineItem = _fixture.Create<LineItem>(),
-                NewPrice = _fixture.Create<decimal>()
+                NewPrice = _fixture.Create<decimal>(),
             });
 
             // Assert
@@ -197,7 +194,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             {
                 LineItem = lineItem,
                 LineItemId = lineItem.Id,
-                NewPrice = newPrice
+                NewPrice = newPrice,
             });
 
             // Assert
@@ -221,7 +218,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             {
                 LineItemId = _fixture.Create<string>(),
                 NewQuantity = 5,
-                CartProduct = _fixture.Create<CartProduct>()
+                CartProduct = _fixture.Create<CartProduct>(),
             });
 
             // Assert
@@ -726,7 +723,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             stub.Rewards.Add(new StubPromotionReward
             {
                 Coupon = coupon,
-                IsValid = true
+                IsValid = true,
             });
 
             _mapperMock.Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
@@ -766,7 +763,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var promoReward = new StubPromotionReward
             {
                 Id = _fixture.Create<string>(),
-                IsValid = true
+                IsValid = true,
             };
             promoResult.Rewards.Add(promoReward);
 
@@ -807,7 +804,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var promoReward = new StubPromotionReward
             {
                 Id = _fixture.Create<string>(),
-                IsValid = true
+                IsValid = true,
             };
             promoResult.Rewards.Add(promoReward);
 
@@ -978,5 +975,700 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         }
 
         #endregion AddCartAddressAsync
+
+        #region AddConfigurationItemAsync
+
+        [Fact]
+        public async Task AddConfigurationItemAsync_Variation_NewProduct_ShouldAddNewConfigurationItem()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem>(),
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "size",
+                Type = "Variation",
+                Option = new ConfigurableProductOption
+                {
+                    ProductId = "shirt-size-M",
+                    Quantity = 2,
+                },
+            };
+
+            var cartProduct = new CartProduct(new CatalogProduct
+            {
+                Id = "shirt-size-M",
+                Code = "SHIRT-M",
+                Name = "Shirt Size M",
+                CatalogId = "catalog1",
+                CategoryId = "category1",
+            });
+
+            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
+                .ReturnsAsync([cartProduct]);
+
+            // Act
+            await cartAggregate.AddConfigurationItemAsync(lineItem.Id, configSection);
+
+            // Assert
+            lineItem.ConfigurationItems.Should().HaveCount(1);
+            var addedItem = lineItem.ConfigurationItems.First();
+            addedItem.ProductId.Should().Be("shirt-size-M");
+            addedItem.Quantity.Should().Be(2);
+            addedItem.SectionId.Should().Be("size");
+            addedItem.Type.Should().Be("Variation");
+        }
+
+        [Fact]
+        public async Task AddConfigurationItemAsync_Variation_ExistingProduct_ShouldUpdateQuantity()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var existingConfigItem = new ConfigurationItem
+            {
+                Id = "config-1",
+                ProductId = "shirt-size-M",
+                SectionId = "size",
+                Type = "Variation",
+                Quantity = 2,
+            };
+
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { existingConfigItem },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "size",
+                Type = "Variation",
+                Option = new ConfigurableProductOption
+                {
+                    ProductId = "shirt-size-M",
+                    Quantity = 5,
+                },
+            };
+
+            var cartProduct = new CartProduct(new CatalogProduct
+            {
+                Id = "shirt-size-M",
+                Code = "SHIRT-M",
+                Name = "Shirt Size M",
+                CatalogId = "catalog1",
+                CategoryId = "category1",
+            });
+
+            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
+                .ReturnsAsync([cartProduct]);
+
+            // Act
+            await cartAggregate.AddConfigurationItemAsync(lineItem.Id, configSection);
+
+            // Assert
+            lineItem.ConfigurationItems.Should().HaveCount(1, "Should update existing item, not create new");
+            var updatedItem = lineItem.ConfigurationItems.First();
+            updatedItem.ProductId.Should().Be("shirt-size-M");
+            updatedItem.Quantity.Should().Be(5, "Quantity should be updated");
+            updatedItem.SectionId.Should().Be("size");
+            updatedItem.Type.Should().Be("Variation");
+        }
+
+        [Fact]
+        public async Task AddConfigurationItemAsync_Product_ShouldUpdateExistingConfigurationItem()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var existingConfigItem = new ConfigurationItem
+            {
+                Id = "config-1",
+                ProductId = "old-color",
+                SectionId = "color",
+                Type = "Product",
+                Quantity = 1,
+            };
+
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { existingConfigItem },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "color",
+                Type = "Product",
+                Option = new ConfigurableProductOption
+                {
+                    ProductId = "new-color",
+                    Quantity = 1,
+                },
+            };
+
+            var cartProduct = new CartProduct(new CatalogProduct
+            {
+                Id = "new-color",
+                Code = "COLOR-BLUE",
+                Name = "Blue Color",
+                CatalogId = "catalog1",
+                CategoryId = "category1",
+            });
+
+            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
+                .ReturnsAsync([cartProduct]);
+
+            // Act
+            await cartAggregate.AddConfigurationItemAsync(lineItem.Id, configSection);
+
+            // Assert
+            lineItem.ConfigurationItems.Should().HaveCount(1, "Product type should update existing item, not add new");
+            var updatedItem = lineItem.ConfigurationItems.First();
+            updatedItem.ProductId.Should().Be("new-color", "ProductId should be updated");
+            updatedItem.SectionId.Should().Be("color");
+            updatedItem.Type.Should().Be("Product");
+        }
+
+        [Fact]
+        public async Task AddConfigurationItemAsync_InvalidLineItem_ShouldAddValidationError()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "size",
+                Type = "Variation",
+                Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 1 },
+            };
+
+            // Act
+            await cartAggregate.AddConfigurationItemAsync("non-existent-line-item", configSection);
+
+            // Assert
+            cartAggregate.OperationValidationErrors.Should().HaveCountGreaterThan(0);
+            cartAggregate.OperationValidationErrors.Should().Contain(e => e.ErrorCode == "LINE_ITEM_NOT_FOUND");
+        }
+
+        #endregion AddConfigurationItemAsync
+
+        #region AddConfigurationItemsAsync
+
+        [Fact]
+        public async Task AddConfigurationItemsAsync_ShouldAddMultipleConfigurationItems()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem>(),
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configSections = new List<ProductConfigurationSection>
+            {
+                new()
+                {
+                    SectionId = "size",
+                    Type = "Variation",
+                    Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 2 },
+                },
+                new()
+                {
+                    SectionId = "size",
+                    Type = "Variation",
+                    Option = new ConfigurableProductOption { ProductId = "shirt-size-L", Quantity = 3 },
+                },
+            };
+
+            var cartProducts = new[]
+            {
+                new CartProduct(new CatalogProduct
+                {
+                    Id = "shirt-size-M",
+                    Code = "SHIRT-M",
+                    Name = "Shirt M",
+                    CatalogId = "catalog1",
+                }),
+                new CartProduct(new CatalogProduct
+                {
+                    Id = "shirt-size-L",
+                    Code = "SHIRT-L",
+                    Name = "Shirt L",
+                    CatalogId = "catalog1",
+                }),
+            };
+
+            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
+                .ReturnsAsync(cartProducts);
+
+            // Act
+            await cartAggregate.AddConfigurationItemsAsync(lineItem.Id, configSections);
+
+            // Assert
+            lineItem.ConfigurationItems.Should().HaveCount(2);
+            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-M" && ci.Quantity == 2);
+            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-L" && ci.Quantity == 3);
+        }
+
+        #endregion AddConfigurationItemsAsync
+
+        #region UpdateConfigurationItemQuantityAsync
+
+        [Fact]
+        public async Task UpdateConfigurationItemQuantityAsync_ShouldUpdateQuantity()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var configItem = new ConfigurationItem
+            {
+                Id = "config-1",
+                ProductId = "shirt-size-M",
+                SectionId = "size",
+                Type = "Variation",
+                Quantity = 2,
+            };
+
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { configItem },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "size",
+                Type = "Variation",
+                Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 5 },
+            };
+
+            // Act
+            await cartAggregate.UpdateConfigurationItemQuantityAsync(lineItem.Id, configSection);
+
+            // Assert
+            configItem.Quantity.Should().Be(5);
+        }
+
+        [Fact]
+        public async Task UpdateConfigurationItemQuantityAsync_InvalidQuantity_ShouldAddValidationError()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var configItem = new ConfigurationItem
+            {
+                Id = "config-1",
+                ProductId = "shirt-size-M",
+                SectionId = "size",
+                Type = "Variation",
+                Quantity = 2,
+            };
+
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { configItem },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "size",
+                Type = "Variation",
+                Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 0 },
+            };
+
+            // Act
+            await cartAggregate.UpdateConfigurationItemQuantityAsync(lineItem.Id, configSection);
+
+            // Assert
+            cartAggregate.OperationValidationErrors.Should().Contain(e => e.ErrorCode == "QUANTITY_MUST_BE_POSITIVE");
+        }
+
+        [Fact]
+        public async Task UpdateConfigurationItemQuantityAsync_ItemNotFound_ShouldAddValidationError()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem>(),
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "size",
+                Type = "Variation",
+                Option = new ConfigurableProductOption { ProductId = "non-existent", Quantity = 5 },
+            };
+
+            // Act
+            await cartAggregate.UpdateConfigurationItemQuantityAsync(lineItem.Id, configSection);
+
+            // Assert
+            cartAggregate.OperationValidationErrors.Should().Contain(e => e.ErrorCode == "CONFIGURATION_ITEM_NOT_FOUND");
+        }
+
+        #endregion UpdateConfigurationItemQuantityAsync
+
+        #region RemoveConfigurationItemAsync
+
+        [Fact]
+        public async Task RemoveConfigurationItemAsync_ShouldRemoveItem()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var configItem = new ConfigurationItem
+            {
+                Id = "config-1",
+                ProductId = "shirt-size-M",
+                SectionId = "size",
+                Type = "Variation",
+                Quantity = 2,
+            };
+
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { configItem },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "size",
+                Type = "Variation",
+                Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 1 },
+            };
+
+            // Act
+            await cartAggregate.RemoveConfigurationItemAsync(lineItem.Id, configSection);
+
+            // Assert
+            lineItem.ConfigurationItems.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task RemoveConfigurationItemAsync_ItemNotFound_ShouldAddValidationError()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem>(),
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "size",
+                Type = "Variation",
+                Option = new ConfigurableProductOption { ProductId = "non-existent", Quantity = 1 },
+            };
+
+            // Act
+            await cartAggregate.RemoveConfigurationItemAsync(lineItem.Id, configSection);
+
+            // Assert
+            cartAggregate.OperationValidationErrors.Should().Contain(e => e.ErrorCode == "CONFIGURATION_ITEM_NOT_FOUND");
+        }
+
+        #endregion RemoveConfigurationItemAsync
+
+        #region RemoveConfigurationItemsAsync
+
+        [Fact]
+        public async Task RemoveConfigurationItemsAsync_ShouldRemoveMultipleItems()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var configItems = new List<ConfigurationItem>
+            {
+                new()
+                {
+                    Id = "config-1",
+                    ProductId = "shirt-size-M",
+                    SectionId = "size",
+                    Type = "Variation",
+                    Quantity = 2,
+                },
+                new()
+                {
+                    Id = "config-2",
+                    ProductId = "shirt-size-L",
+                    SectionId = "size",
+                    Type = "Variation",
+                    Quantity = 3,
+                },
+                new()
+                {
+                    Id = "config-3",
+                    ProductId = "shirt-size-XL",
+                    SectionId = "size",
+                    Type = "Variation",
+                    Quantity = 1,
+                },
+            };
+
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = configItems,
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configSections = new List<ProductConfigurationSection>
+            {
+                new()
+                {
+                    SectionId = "size",
+                    Type = "Variation",
+                    Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 1 },
+                },
+                new()
+                {
+                    SectionId = "size",
+                    Type = "Variation",
+                    Option = new ConfigurableProductOption { ProductId = "shirt-size-L", Quantity = 1 },
+                },
+            };
+
+            // Act
+            await cartAggregate.RemoveConfigurationItemsAsync(lineItem.Id, configSections);
+
+            // Assert
+            lineItem.ConfigurationItems.Should().HaveCount(1);
+            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-XL");
+        }
+
+        #endregion RemoveConfigurationItemsAsync
+
+        #region ConfigurationItem Validation
+
+        [Fact]
+        public async Task AddConfigurationItemAsync_LineItemNotConfigured_ShouldAddValidationError()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "simple-product",
+                IsConfigured = false,
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "size",
+                Type = "Variation",
+                Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 1 },
+            };
+
+            // Act
+            await cartAggregate.AddConfigurationItemAsync(lineItem.Id, configSection);
+
+            // Assert
+            cartAggregate.OperationValidationErrors.Should().Contain(e => e.ErrorCode == "LINE_ITEM_NOT_FOUND");
+        }
+
+        [Fact]
+        public async Task AddConfigurationItemAsync_ProductNotAvailable_ShouldAddValidationError()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem>(),
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "size",
+                Type = "Variation",
+                Option = new ConfigurableProductOption { ProductId = "unavailable-product", Quantity = 1 },
+            };
+
+            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
+                .ReturnsAsync([]);
+
+            // Act
+            await cartAggregate.AddConfigurationItemAsync(lineItem.Id, configSection);
+
+            // Assert
+            cartAggregate.OperationValidationErrors.Should().Contain(e => e.ErrorCode == "CART_PRODUCT_UNAVAILABLE");
+        }
+
+        [Fact]
+        public async Task AddConfigurationItemAsync_Text_ShouldAddCustomText()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem>(),
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "custom-text-section",
+                Type = "Text",
+                CustomText = "Personalized message",
+            };
+
+            // Act
+            await cartAggregate.AddConfigurationItemAsync(lineItem.Id, configSection);
+
+            // Assert
+            lineItem.ConfigurationItems.Should().HaveCount(1);
+            var addedItem = lineItem.ConfigurationItems.First();
+            addedItem.Type.Should().Be("Text");
+            addedItem.CustomText.Should().Be("Personalized message");
+            addedItem.SectionId.Should().Be("custom-text-section");
+        }
+
+        [Fact]
+        public async Task AddConfigurationItemAsync_File_ShouldAddFiles()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem>(),
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "file-section",
+                Type = "File",
+                FileUrls = new List<string> { "https://example.com/file1.jpg", "https://example.com/file2.jpg" },
+            };
+
+            // Act
+            await cartAggregate.AddConfigurationItemAsync(lineItem.Id, configSection);
+
+            // Assert
+            lineItem.ConfigurationItems.Should().HaveCount(1);
+            var addedItem = lineItem.ConfigurationItems.First();
+            addedItem.Type.Should().Be("File");
+            addedItem.Files.Should().HaveCount(2);
+            addedItem.Files.Select(f => f.Url).Should().Contain("https://example.com/file1.jpg");
+            addedItem.Files.Select(f => f.Url).Should().Contain("https://example.com/file2.jpg");
+        }
+
+        [Fact]
+        public async Task UpdateConfigurationItemQuantityAsync_Text_ShouldUpdateCustomText()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var existingConfigItem = new ConfigurationItem
+            {
+                Id = "config-1",
+                SectionId = "text-section",
+                Type = "Text",
+                CustomText = "Old text",
+            };
+
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { existingConfigItem },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "text-section",
+                Type = "Text",
+                CustomText = "Updated text",
+            };
+
+            // Act
+            await cartAggregate.UpdateConfigurationItemQuantityAsync(lineItem.Id, configSection);
+
+            // Assert
+            existingConfigItem.CustomText.Should().Be("Updated text");
+        }
+
+        [Fact]
+        public async Task RemoveConfigurationItemAsync_Text_ShouldRemoveItem()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var textConfigItem = new ConfigurationItem
+            {
+                Id = "config-1",
+                SectionId = "text-section",
+                Type = "Text",
+                CustomText = "Some text",
+            };
+
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { textConfigItem },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "text-section",
+                Type = "Text",
+            };
+
+            // Act
+            await cartAggregate.RemoveConfigurationItemAsync(lineItem.Id, configSection);
+
+            // Assert
+            lineItem.ConfigurationItems.Should().BeEmpty();
+        }
+
+        #endregion ConfigurationItem Validation
     }
 }
