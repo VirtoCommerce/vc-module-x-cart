@@ -46,7 +46,9 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
         container.ConfigurableProduct = product ?? throw new InvalidOperationException($"Product with id {request.ConfigurableProductId} not found");
 
         // need to take productId and quantity from the configuration
-        var selectedProductIds = (request.ConfigurationSections ?? [])
+        var configurationSections = request.ConfigurationSections ?? [];
+
+        var selectedProductIds = configurationSections
             .Select(x => x.Option?.ProductId)
             .Where(x => !string.IsNullOrEmpty(x))
             .ToList();
@@ -57,7 +59,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
         var products = await _cartProductService.GetCartProductsAsync(productsRequest);
 
-        foreach (var section in request.ConfigurationSections)
+        foreach (var section in configurationSections)
         {
             if (section.Type == ConfigurationSectionTypeProduct && section.Option != null)
             {
