@@ -1,29 +1,17 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using VirtoCommerce.CatalogModule.Core.Search;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Models;
-using VirtoCommerce.XCart.Core.Services;
 
 namespace VirtoCommerce.XCart.Data.Commands
 {
     public class AddWishlistBulkItemCommandHandler : IRequestHandler<AddWishlistBulkItemCommand, BulkCartAggregateResult>
     {
-        private readonly ICartAggregateRepository _cartAggregateRepository;
-        private readonly IProductConfigurationSearchService _productConfigurationSearchService;
-        private readonly ICartProductService _cartProductService;
         private readonly IMediator _mediator;
 
-        public AddWishlistBulkItemCommandHandler(
-            ICartAggregateRepository cartAggregateRepository,
-            IProductConfigurationSearchService productConfigurationSearchService,
-            ICartProductService cartProductService,
-            IMediator mediator)
+        public AddWishlistBulkItemCommandHandler(IMediator mediator)
         {
-            _cartAggregateRepository = cartAggregateRepository;
-            _productConfigurationSearchService = productConfigurationSearchService;
-            _cartProductService = cartProductService;
             _mediator = mediator;
         }
 
