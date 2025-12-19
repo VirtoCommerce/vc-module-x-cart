@@ -23,7 +23,7 @@ public class ChangeCartConfiguredLineItemCommandHandler : CartCommandHandler<Cha
     public override async Task<CartAggregate> Handle(ChangeCartConfiguredLineItemCommand request, CancellationToken cancellationToken)
     {
         var cartAggregate = await GetOrCreateCartFromCommandAsync(request);
-        var lineItem = GetConfiguredLineItem(request, cartAggregate);
+        var lineItem = cartAggregate.GetConfiguredLineItem(request.LineItemId);
 
         if (lineItem != null)
         {
@@ -47,10 +47,5 @@ public class ChangeCartConfiguredLineItemCommandHandler : CartCommandHandler<Cha
         }
 
         return cartAggregate;
-    }
-
-    private static LineItem GetConfiguredLineItem(ChangeCartConfiguredLineItemCommand request, CartAggregate cartAggregate)
-    {
-        return cartAggregate.Cart.Items.FirstOrDefault(x => x.Id == request.LineItemId && x.IsConfigured);
     }
 }

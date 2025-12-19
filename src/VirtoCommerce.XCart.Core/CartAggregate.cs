@@ -1246,7 +1246,7 @@ namespace VirtoCommerce.XCart.Core
 
             EnsureCartExists();
 
-            var lineItem = Cart.Items.FirstOrDefault(x => x.Id == lineItemId && x.IsConfigured);
+            var lineItem = GetConfiguredLineItem(lineItemId);
 
             if (lineItem != null)
             {
@@ -1275,7 +1275,8 @@ namespace VirtoCommerce.XCart.Core
             ArgumentNullException.ThrowIfNull(lineItemId);
             ArgumentNullException.ThrowIfNull(configurationSection);
 
-            // Delegate to batch method
+            EnsureCartExists();
+
             return AddConfigurationItemsAsync(lineItemId, [configurationSection]);
         }
 
@@ -1286,11 +1287,10 @@ namespace VirtoCommerce.XCart.Core
 
             EnsureCartExists();
 
-            var lineItem = Cart.Items.FirstOrDefault(x => x.Id == lineItemId && x.IsConfigured);
-            if (lineItem == null)
+            var lineItem = GetConfiguredLineItem(lineItemId);
+            if (lineItem is null)
             {
-                var error = CartErrorDescriber.LineItemNotFound(lineItemId);
-                OperationValidationErrors.Add(error);
+                OperationValidationErrors.Add(CartErrorDescriber.ConfiguredLineItemNotFound(lineItemId));
                 return this;
             }
 
@@ -1299,39 +1299,29 @@ namespace VirtoCommerce.XCart.Core
             {
                 switch (section.Type)
                 {
-                    case var type when type == ConfigurationSectionTypeProduct || type == ConfigurationSectionTypeVariation:
-                        if (section.Option == null || string.IsNullOrEmpty(section.Option.ProductId))
+                    case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
+                        if (string.IsNullOrEmpty(section.Option?.ProductId))
                         {
-                            var error = CartErrorDescriber.ProductIdIsRequired();
-                            OperationValidationErrors.Add(error);
-                            continue;
-                        }
-                        if (section.Option.Quantity <= 0)
-                        {
-                            var error = CartErrorDescriber.QuantityMustBePositive(section.Option.Quantity);
-                            OperationValidationErrors.Add(error);
+                            OperationValidationErrors.Add(CartErrorDescriber.SelectedProductIsRequired(lineItem));
                         }
                         break;
 
-                    case var type when type == ConfigurationSectionTypeText:
+                    case ConfigurationSectionTypeText:
                         if (string.IsNullOrEmpty(section.CustomText))
                         {
-                            var error = CartErrorDescriber.CustomTextIsRequired(lineItem);
-                            OperationValidationErrors.Add(error);
+                            OperationValidationErrors.Add(CartErrorDescriber.CustomTextIsRequired(lineItem));
                         }
                         break;
 
-                    case var type when type == ConfigurationSectionTypeFile:
-                        if (section.FileUrls == null || !section.FileUrls.Any())
+                    case ConfigurationSectionTypeFile:
+                        if (section.FileUrls.IsNullOrEmpty())
                         {
-                            var error = CartErrorDescriber.AddingFileIsRequired(lineItem);
-                            OperationValidationErrors.Add(error);
+                            OperationValidationErrors.Add(CartErrorDescriber.AddingFileIsRequired(lineItem));
                         }
                         break;
 
                     default:
-                        var unknownError = CartErrorDescriber.ConfigurationSectionUnknownType(lineItem, section.Type, section.SectionId);
-                        OperationValidationErrors.Add(unknownError);
+                        OperationValidationErrors.Add(CartErrorDescriber.ConfigurationSectionUnknownType(lineItem, section.Type, section.SectionId));
                         break;
                 }
             }
@@ -1341,144 +1331,118 @@ namespace VirtoCommerce.XCart.Core
                 return this;
             }
 
-            // Load all products at once (batching) - only for Product and Variation types
             var productIds = configurationSections
-                .Where(s => (s.Type == ConfigurationSectionTypeProduct || s.Type == ConfigurationSectionTypeVariation) &&
-                           s.Option?.ProductId != null)
-                .Select(s => s.Option.ProductId)
+                .Where(x => x.Type is ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation && !string.IsNullOrEmpty(x.Option?.ProductId))
+                .Select(x => x.Option.ProductId)
                 .Distinct()
                 .ToArray();
 
-            var products = productIds.Any()
+            var products = productIds.Length > 0
                 ? (await _cartProductService.GetCartProductsByIdsAsync(this, productIds)).ToDictionary(x => x.Product.Id)
                 : new Dictionary<string, CartProduct>();
 
             lineItem.ConfigurationItems ??= new List<ConfigurationItem>();
 
-            // Add each configuration section
             foreach (var section in configurationSections)
             {
-                // Handle Product and Variation types
-                if (section.Type == ConfigurationSectionTypeProduct ||
-                    section.Type == ConfigurationSectionTypeVariation)
+                switch (section.Type)
                 {
-                    if (!products.TryGetValue(section.Option.ProductId, out var cartProduct))
+                    case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
                     {
-                        var error = CartErrorDescriber.ProductUnavailableError(nameof(CatalogProduct), section.Option.ProductId);
-                        OperationValidationErrors.Add(error);
-                        continue;
+                        if (!products.TryGetValue(section.Option.ProductId, out var cartProduct))
+                        {
+                            OperationValidationErrors.Add(CartErrorDescriber.ProductUnavailableError(nameof(CatalogProduct), section.Option.ProductId));
+                            continue;
+                        }
+
+                        var configurationItem = GetConfigurationItem(section);
+                        UpdateConfigurationItemForProduct(configurationItem, section, cartProduct);
+
+                        break;
                     }
 
-                    // For both Product and Variation: search for existing item and update or create new
-                    var existingItem = FindConfigurationItem(lineItem, section);
-                    if (existingItem != null)
+                    case ConfigurationSectionTypeText:
                     {
-                        // Update existing
-                        UpdateConfigurationItemFromSection(existingItem, section, cartProduct);
+                        var configurationItem = GetConfigurationItem(section);
+                        UpdateConfigurationItemForText(configurationItem, section);
+
+                        break;
                     }
-                    else
+
+                    case ConfigurationSectionTypeFile:
                     {
-                        // Create new
-                        var newItem = CreateConfigurationItemForProduct(section, cartProduct);
-                        lineItem.ConfigurationItems.Add(newItem);
-                    }
-                }
-                // Handle Text type
-                else if (section.Type == ConfigurationSectionTypeText)
-                {
-                    var existingItem = FindConfigurationItem(lineItem, section);
-                    if (existingItem != null)
-                    {
-                        existingItem.CustomText = section.CustomText;
-                    }
-                    else
-                    {
-                        var newItem = CreateConfigurationItemForText(section);
-                        lineItem.ConfigurationItems.Add(newItem);
-                    }
-                }
-                // Handle File type
-                else if (section.Type == ConfigurationSectionTypeFile)
-                {
-                    var existingItem = FindConfigurationItem(lineItem, section);
-                    if (existingItem != null)
-                    {
-                        existingItem.Files = section.FileUrls
-                            .Select(url => new ConfigurationItemFile { Url = url })
-                            .ToList();
-                    }
-                    else
-                    {
-                        var newItem = CreateConfigurationItemForFile(section);
-                        lineItem.ConfigurationItems.Add(newItem);
+                        var configurationItem = GetConfigurationItem(section);
+                        await UpdateConfigurationItemForFilesAsync(configurationItem, section);
+
+                        break;
                     }
                 }
             }
 
-            // Recalculate prices once after all items added
             await UpdateConfiguredLineItemPrice([lineItem]);
 
             return this;
+
+            ConfigurationItem GetConfigurationItem(ProductConfigurationSection section)
+            {
+                var configurationItem = FindConfigurationItem(lineItem, section);
+                if (configurationItem is null)
+                {
+                    configurationItem = CreateConfigurationItem(section);
+
+                    lineItem.ConfigurationItems ??= new List<ConfigurationItem>();
+                    lineItem.ConfigurationItems.Add(configurationItem);
+                }
+
+                return configurationItem;
+            }
         }
 
-        public virtual async Task<CartAggregate> UpdateConfigurationItemQuantityAsync(string lineItemId, ProductConfigurationSection configurationSection)
+        public virtual async Task<CartAggregate> UpdateConfigurationItemAsync(string lineItemId, ProductConfigurationSection configurationSection)
         {
             ArgumentNullException.ThrowIfNull(lineItemId);
             ArgumentNullException.ThrowIfNull(configurationSection);
 
             EnsureCartExists();
 
-            var lineItem = Cart.Items.FirstOrDefault(x => x.Id == lineItemId && x.IsConfigured);
-            if (lineItem == null)
+            var lineItem = GetConfiguredLineItem(lineItemId);
+            if (lineItem is null)
             {
-                var error = CartErrorDescriber.LineItemNotFound(lineItemId);
-                OperationValidationErrors.Add(error);
+                OperationValidationErrors.Add(CartErrorDescriber.ConfiguredLineItemNotFound(lineItemId));
                 return this;
             }
 
-            // Validate based on configuration type
             switch (configurationSection.Type)
             {
-                case var type when type == ConfigurationSectionTypeProduct || type == ConfigurationSectionTypeVariation:
-                    if (configurationSection.Option == null || string.IsNullOrEmpty(configurationSection.Option.ProductId))
+                case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
+                    if (string.IsNullOrEmpty(configurationSection.Option?.ProductId))
                     {
-                        var error = CartErrorDescriber.ProductIdIsRequired();
-                        OperationValidationErrors.Add(error);
-                        return this;
-                    }
-                    if (configurationSection.Option.Quantity <= 0)
-                    {
-                        var error = CartErrorDescriber.QuantityMustBePositive(configurationSection.Option.Quantity);
-                        OperationValidationErrors.Add(error);
+                        OperationValidationErrors.Add(CartErrorDescriber.SelectedProductIsRequired(lineItem));
                         return this;
                     }
                     break;
 
-                case var type when type == ConfigurationSectionTypeText:
+                case ConfigurationSectionTypeText:
                     if (string.IsNullOrEmpty(configurationSection.CustomText))
                     {
-                        var error = CartErrorDescriber.CustomTextIsRequired(lineItem);
-                        OperationValidationErrors.Add(error);
+                        OperationValidationErrors.Add(CartErrorDescriber.CustomTextIsRequired(lineItem));
                         return this;
                     }
                     break;
 
-                case var type when type == ConfigurationSectionTypeFile:
-                    if (configurationSection.FileUrls == null || !configurationSection.FileUrls.Any())
+                case ConfigurationSectionTypeFile:
+                    if (configurationSection.FileUrls.IsNullOrEmpty())
                     {
-                        var error = CartErrorDescriber.AddingFileIsRequired(lineItem);
-                        OperationValidationErrors.Add(error);
+                        OperationValidationErrors.Add(CartErrorDescriber.AddingFileIsRequired(lineItem));
                         return this;
                     }
                     break;
 
                 default:
-                    var unknownError = CartErrorDescriber.ConfigurationSectionUnknownType(lineItem, configurationSection.Type, configurationSection.SectionId);
-                    OperationValidationErrors.Add(unknownError);
+                    OperationValidationErrors.Add(CartErrorDescriber.ConfigurationSectionUnknownType(lineItem, configurationSection.Type, configurationSection.SectionId));
                     return this;
             }
 
-            // Find existing ConfigurationItem
             var configItem = FindConfigurationItem(lineItem, configurationSection);
             if (configItem == null)
             {
@@ -1526,7 +1490,6 @@ namespace VirtoCommerce.XCart.Core
             ArgumentNullException.ThrowIfNull(lineItemId);
             ArgumentNullException.ThrowIfNull(configurationSection);
 
-            // Delegate to batch method
             return RemoveConfigurationItemsAsync(lineItemId, [configurationSection]);
         }
 
@@ -1537,10 +1500,10 @@ namespace VirtoCommerce.XCart.Core
 
             EnsureCartExists();
 
-            var lineItem = Cart.Items.FirstOrDefault(x => x.Id == lineItemId && x.IsConfigured);
+            var lineItem = GetConfiguredLineItem(lineItemId);
             if (lineItem == null)
             {
-                var error = CartErrorDescriber.LineItemNotFound(lineItemId);
+                var error = CartErrorDescriber.ConfiguredLineItemNotFound(lineItemId);
                 OperationValidationErrors.Add(error);
                 return this;
             }
@@ -1554,10 +1517,9 @@ namespace VirtoCommerce.XCart.Core
                 // Validate ProductId for Product and Variation types
                 if ((section.Type == ConfigurationSectionTypeProduct ||
                      section.Type == ConfigurationSectionTypeVariation) &&
-                    (section.Option == null || string.IsNullOrEmpty(section.Option.ProductId)))
+                    string.IsNullOrEmpty(section.Option?.ProductId))
                 {
-                    var error = CartErrorDescriber.ProductIdIsRequired();
-                    OperationValidationErrors.Add(error);
+                    OperationValidationErrors.Add(CartErrorDescriber.SelectedProductIsRequired(lineItem));
                     continue;
                 }
 
@@ -1606,79 +1568,63 @@ namespace VirtoCommerce.XCart.Core
             return section.Type == ConfigurationSectionTypeVariation
                 // For Variation: search by Type + SectionId + ProductId (multiple variations can exist)
                 ? lineItem.ConfigurationItems?.FirstOrDefault(x => x.Type == section.Type && x.SectionId == section.SectionId && x.ProductId == section.Option?.ProductId)
-                // For Product, Text and File: search only by Type + SectionId (no ProductId)
+                // For Product, Text and File: search only by Type + SectionId
                 : lineItem.ConfigurationItems?.FirstOrDefault(x => x.Type == section.Type && x.SectionId == section.SectionId);
         }
 
-        protected virtual ConfigurationItem CreateConfigurationItemForProduct(ProductConfigurationSection section, CartProduct cartProduct)
+        protected virtual ConfigurationItem CreateConfigurationItem(ProductConfigurationSection section)
         {
-            // This method should only be called for Product and Variation types
-            if (section.Type != ConfigurationSectionTypeProduct &&
-                section.Type != ConfigurationSectionTypeVariation)
-            {
-                throw new InvalidOperationException($"CreateConfigurationItem can only be used for {ConfigurationSectionTypeProduct} or {ConfigurationSectionTypeVariation} types. Provided type: {section.Type}");
-            }
+            var item = AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
+            item.SectionId = section.SectionId;
+            item.Type = section.Type;
 
-            var configItem = AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
-            configItem.SectionId = section.SectionId;
-            configItem.Type = section.Type;
+            return item;
+        }
 
-            // Fill product-related fields only for Product and Variation types
-            configItem.ProductId = section.Option.ProductId;
-            configItem.Quantity = section.Option.Quantity;
-            configItem.Name = cartProduct.GetName(Cart.LanguageCode);
-            configItem.Sku = cartProduct.Product.Code;
-            configItem.ImageUrl = cartProduct.Product.ImgSrc;
-            configItem.CatalogId = cartProduct.Product.CatalogId;
-            configItem.CategoryId = cartProduct.Product.CategoryId;
+        protected virtual void UpdateConfigurationItemForProduct(ConfigurationItem item, ProductConfigurationSection section, CartProduct cartProduct)
+        {
+            item.ProductId = section.Option.ProductId;
+            item.Quantity = section.Option.Quantity;
+            item.Name = cartProduct.GetName(Cart.LanguageCode);
+            item.Sku = cartProduct.Product.Code;
+            item.ImageUrl = cartProduct.Product.ImgSrc;
+            item.CatalogId = cartProduct.Product.CatalogId;
+            item.CategoryId = cartProduct.Product.CategoryId;
 
-            // Set prices from product
             if (cartProduct.Price != null)
             {
                 var tierPrice = cartProduct.Price.GetTierPrice(section.Option.Quantity);
-                configItem.ListPrice = tierPrice.Price.Amount;
-                configItem.SalePrice = tierPrice.ActualPrice.Amount;
+                item.ListPrice = tierPrice.Price.Amount;
+                item.SalePrice = tierPrice.ActualPrice.Amount;
+            }
+        }
+
+        protected virtual void UpdateConfigurationItemForText(ConfigurationItem item, ProductConfigurationSection section)
+        {
+            item.CustomText = section.CustomText;
+        }
+
+        protected virtual async Task UpdateConfigurationItemForFilesAsync(ConfigurationItem item, ProductConfigurationSection section)
+        {
+            item.Files = await GetConfigurationFilesAsync(section.FileUrls);
+        }
+
+        protected virtual async Task<IList<ConfigurationItemFile>> GetConfigurationFilesAsync(IList<string> fileUrls)
+        {
+            if (fileUrls.IsNullOrEmpty())
+            {
+                return [];
             }
 
-            return configItem;
-        }
-
-        protected virtual ConfigurationItem CreateConfigurationItemForText(ProductConfigurationSection section)
-        {
-            var configItem = AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
-            configItem.SectionId = section.SectionId;
-            configItem.Type = section.Type;
-            configItem.CustomText = section.CustomText;
-            return configItem;
-        }
-
-        protected virtual ConfigurationItem CreateConfigurationItemForFile(ProductConfigurationSection section)
-        {
-            var configItem = AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
-            configItem.SectionId = section.SectionId;
-            configItem.Type = section.Type;
-            configItem.Files = section.FileUrls
-                .Select(url => new ConfigurationItemFile { Url = url })
+            return (await _fileUploadService.GetByPublicUrlAsync(fileUrls))
+                .Where(x => x.Scope == ConfigurationSectionFilesScope && (x.OwnerIsEmpty() || x.OwnerIs(Cart)))
+                .Select(x => x.ConvertToConfigurationItemFile())
                 .ToList();
-            return configItem;
         }
 
-        protected virtual void UpdateConfigurationItemFromSection(ConfigurationItem configItem, ProductConfigurationSection section, CartProduct cartProduct)
+        public virtual LineItem GetConfiguredLineItem(string lineItemId)
         {
-            configItem.ProductId = section.Option.ProductId;
-            configItem.Quantity = section.Option.Quantity;
-            configItem.Name = cartProduct.GetName(Cart.LanguageCode);
-            configItem.Sku = cartProduct.Product.Code;
-            configItem.ImageUrl = cartProduct.Product.ImgSrc;
-            configItem.CatalogId = cartProduct.Product.CatalogId;
-            configItem.CategoryId = cartProduct.Product.CategoryId;
-
-            if (cartProduct.Price != null)
-            {
-                var tierPrice = cartProduct.Price.GetTierPrice(section.Option.Quantity);
-                configItem.ListPrice = tierPrice.Price.Amount;
-                configItem.SalePrice = tierPrice.ActualPrice.Amount;
-            }
+            return Cart.Items.FirstOrDefault(x => x.Id == lineItemId && x.IsConfigured);
         }
 
         public virtual async Task<CartAggregate> UpdateConfiguredLineItemPrice(IList<LineItem> configuredItems)

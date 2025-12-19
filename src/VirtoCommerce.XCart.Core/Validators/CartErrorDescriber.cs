@@ -370,27 +370,9 @@ namespace VirtoCommerce.XCart.Core.Validators
             return result;
         }
 
-        public static CartValidationError LineItemNotFound(string lineItemId)
+        public static CartValidationError ConfiguredLineItemNotFound(string lineItemId)
         {
-            var result = new CartValidationError("LineItem", lineItemId, $"Line item with ID {lineItemId} not found or is not configured", "LINE_ITEM_NOT_FOUND");
-            return result;
-        }
-
-        public static CartValidationError ProductIdIsRequired()
-        {
-            var result = new CartValidationError("ConfigurationItem", null, "Product ID is required in configuration section", "PRODUCT_ID_REQUIRED");
-            return result;
-        }
-
-        public static CartValidationError QuantityMustBePositive(int quantity)
-        {
-            var result = new CartValidationError("ConfigurationItem", null, $"Quantity must be greater than 0. Provided: {quantity}", "QUANTITY_MUST_BE_POSITIVE")
-            {
-                FormattedMessagePlaceholderValues = new Dictionary<string, object>
-                {
-                    ["quantity"] = quantity,
-                },
-            };
+            var result = new CartValidationError("LineItem", lineItemId, $"Line item with ID {lineItemId} not found or is not configured", "CONFIGURED_LINE_ITEM_NOT_FOUND");
             return result;
         }
 

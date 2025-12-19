@@ -18,7 +18,7 @@ public class UpdateConfigurationItemCommandHandler : CartCommandHandler<UpdateCo
     {
         var cartAggregate = await GetOrCreateCartFromCommandAsync(request);
 
-        await cartAggregate.UpdateConfigurationItemQuantityAsync(request.LineItemId, request.ConfigurationSection);
+        await cartAggregate.UpdateConfigurationItemAsync(request.LineItemId, request.ConfigurationSection);
 
         return await SaveCartAsync(cartAggregate);
     }

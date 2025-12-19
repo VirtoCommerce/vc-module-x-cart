@@ -9,6 +9,7 @@ using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Currency;
+using VirtoCommerce.FileExperienceApi.Core.Models;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
@@ -1198,7 +1199,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             // Assert
             cartAggregate.OperationValidationErrors.Should().HaveCountGreaterThan(0);
-            cartAggregate.OperationValidationErrors.Should().Contain(e => e.ErrorCode == "LINE_ITEM_NOT_FOUND");
+            cartAggregate.OperationValidationErrors.Should().Contain(e => e.ErrorCode == "CONFIGURED_LINE_ITEM_NOT_FOUND");
         }
 
         #endregion AddConfigurationItemAsync
@@ -1355,47 +1356,10 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
 
             // Act
-            await cartAggregate.UpdateConfigurationItemQuantityAsync(lineItem.Id, configSection);
+            await cartAggregate.UpdateConfigurationItemAsync(lineItem.Id, configSection);
 
             // Assert
             configItem.Quantity.Should().Be(5);
-        }
-
-        [Fact]
-        public async Task UpdateConfigurationItemQuantityAsync_InvalidQuantity_ShouldAddValidationError()
-        {
-            // Arrange
-            var cartAggregate = GetValidCartAggregate();
-            var configItem = new ConfigurationItem
-            {
-                Id = "config-1",
-                ProductId = "shirt-size-M",
-                SectionId = "size",
-                Type = "Variation",
-                Quantity = 2,
-            };
-
-            var lineItem = new LineItem
-            {
-                Id = "line-item-1",
-                ProductId = "configurable-product",
-                IsConfigured = true,
-                ConfigurationItems = new List<ConfigurationItem> { configItem },
-            };
-            cartAggregate.Cart.Items.Add(lineItem);
-
-            var configSection = new ProductConfigurationSection
-            {
-                SectionId = "size",
-                Type = "Variation",
-                Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 0 },
-            };
-
-            // Act
-            await cartAggregate.UpdateConfigurationItemQuantityAsync(lineItem.Id, configSection);
-
-            // Assert
-            cartAggregate.OperationValidationErrors.Should().Contain(e => e.ErrorCode == "QUANTITY_MUST_BE_POSITIVE");
         }
 
         [Fact]
@@ -1420,7 +1384,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
 
             // Act
-            await cartAggregate.UpdateConfigurationItemQuantityAsync(lineItem.Id, configSection);
+            await cartAggregate.UpdateConfigurationItemAsync(lineItem.Id, configSection);
 
             // Assert
             cartAggregate.OperationValidationErrors.Should().Contain(e => e.ErrorCode == "CONFIGURATION_ITEM_NOT_FOUND");
@@ -1622,7 +1586,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             await cartAggregate.AddConfigurationItemAsync(lineItem.Id, configSection);
 
             // Assert
-            cartAggregate.OperationValidationErrors.Should().Contain(e => e.ErrorCode == "LINE_ITEM_NOT_FOUND");
+            cartAggregate.OperationValidationErrors.Should().Contain(e => e.ErrorCode == "CONFIGURED_LINE_ITEM_NOT_FOUND");
         }
 
         [Fact]
@@ -1692,6 +1656,36 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         public async Task AddConfigurationItemAsync_File_ShouldAddFiles()
         {
             // Arrange
+            // Setup file upload service BEFORE creating aggregate (without owner to pass OwnerIsEmpty() check)
+            var files = new List<File>
+            {
+                new()
+                {
+                    Id = "file1-id",
+                    PublicUrl = "/api/files/file1-id",
+                    Name = "file1.jpg",
+                    ContentType = "image/jpeg",
+                    Size = 1024,
+                    Scope = "product-configuration",
+                    OwnerEntityId = null,
+                    OwnerEntityType = null
+                },
+                new()
+                {
+                    Id = "file2-id",
+                    PublicUrl = "/api/files/file2-id",
+                    Name = "file2.jpg",
+                    ContentType = "image/jpeg",
+                    Size = 2048,
+                    Scope = "product-configuration",
+                    OwnerEntityId = null,
+                    OwnerEntityType = null
+                }
+            };
+            _fileUploadService.Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
+                .ReturnsAsync((IList<string> ids, string rg, bool c) => files)
+                .Verifiable();
+
             var cartAggregate = GetValidCartAggregate();
             var lineItem = new LineItem
             {
@@ -1706,7 +1700,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             {
                 SectionId = "file-section",
                 Type = "File",
-                FileUrls = new List<string> { "https://example.com/file1.jpg", "https://example.com/file2.jpg" },
+                FileUrls = new List<string> { "/api/files/file1-id", "/api/files/file2-id" },
             };
 
             // Act
@@ -1717,8 +1711,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var addedItem = lineItem.ConfigurationItems.First();
             addedItem.Type.Should().Be("File");
             addedItem.Files.Should().HaveCount(2);
-            addedItem.Files.Select(f => f.Url).Should().Contain("https://example.com/file1.jpg");
-            addedItem.Files.Select(f => f.Url).Should().Contain("https://example.com/file2.jpg");
+            addedItem.Files.Select(f => f.Url).Should().Contain("/api/files/file1-id");
+            addedItem.Files.Select(f => f.Url).Should().Contain("/api/files/file2-id");
         }
 
         [Fact]
@@ -1751,7 +1745,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
 
             // Act
-            await cartAggregate.UpdateConfigurationItemQuantityAsync(lineItem.Id, configSection);
+            await cartAggregate.UpdateConfigurationItemAsync(lineItem.Id, configSection);
 
             // Assert
             existingConfigItem.CustomText.Should().Be("Updated text");
