@@ -10,7 +10,7 @@
   <ItemGroup>
     <PackageReference Include="FluentValidation" Version="11.11.0" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-    <PackageReference Include="VirtoCommerce.CartModule.Core" Version="3.841.0-alpha.766-variation-configuration-type" />
+    <PackageReference Include="VirtoCommerce.CartModule.Core" Version="3.841.0-alpha.769-variation-configuration-type" />
     <PackageReference Include="VirtoCommerce.CatalogModule.Core" Version="3.909.0-alpha.2444-variation-configuration-type" />
     <PackageReference Include="VirtoCommerce.FileExperienceApi.Core" Version="3.906.0" />
     <PackageReference Include="VirtoCommerce.InventoryModule.Core" Version="3.815.0" />

@@ -1679,7 +1679,24 @@ namespace VirtoCommerce.XCart.Core
                 container.UpdatePrice(configurationLineItem);
 
                 var recalculated = container.CreateConfiguredLineItem(configurationLineItem.Quantity);
-                configurationLineItem.ConfigurationItems = recalculated.Item.ConfigurationItems?.ToList();
+
+                // Update prices in existing ConfigurationItems instead of replacing the collection
+                if (recalculated.Item.ConfigurationItems != null)
+                {
+                    foreach (var recalculatedItem in recalculated.Item.ConfigurationItems)
+                    {
+                        var existingItem = configurationLineItem.ConfigurationItems?.FirstOrDefault(x =>
+                            x.Type == recalculatedItem.Type &&
+                            x.SectionId == recalculatedItem.SectionId &&
+                            (recalculatedItem.Type != ConfigurationSectionTypeVariation || x.ProductId == recalculatedItem.ProductId));
+
+                        if (existingItem != null)
+                        {
+                            existingItem.ListPrice = recalculatedItem.ListPrice;
+                            existingItem.SalePrice = recalculatedItem.SalePrice;
+                        }
+                    }
+                }
             }
 
             return this;
