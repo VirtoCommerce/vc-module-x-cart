@@ -197,7 +197,11 @@ namespace VirtoCommerce.XCart.Core
             if (!validationResult.IsValid)
             {
                 OperationValidationErrors.AddRange(validationResult.Errors);
-                return this;
+
+                if (!newCartItem.IgnoreValidationErrors)
+                {
+                    return this;
+                }
             }
 
             EnsureCartExists();
