@@ -1402,10 +1402,20 @@ namespace VirtoCommerce.XCart.Core
             }
         }
 
-        public virtual async Task<CartAggregate> UpdateConfigurationItemAsync(string lineItemId, ProductConfigurationSection configurationSection)
+        public virtual Task<CartAggregate> UpdateConfigurationItemAsync(string lineItemId, ProductConfigurationSection configurationSection)
         {
             ArgumentNullException.ThrowIfNull(lineItemId);
             ArgumentNullException.ThrowIfNull(configurationSection);
+
+            EnsureCartExists();
+
+            return UpdateConfigurationItemsAsync(lineItemId, [configurationSection]);
+        }
+
+        public virtual async Task<CartAggregate> UpdateConfigurationItemsAsync(string lineItemId, IList<ProductConfigurationSection> configurationSections)
+        {
+            ArgumentNullException.ThrowIfNull(lineItemId);
+            ArgumentNullException.ThrowIfNull(configurationSections);
 
             EnsureCartExists();
 
@@ -1416,72 +1426,90 @@ namespace VirtoCommerce.XCart.Core
                 return this;
             }
 
-            switch (configurationSection.Type)
+            // Validate all sections first
+            foreach (var section in configurationSections)
             {
-                case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
-                    if (string.IsNullOrEmpty(configurationSection.Option?.ProductId))
-                    {
-                        OperationValidationErrors.Add(CartErrorDescriber.SelectedProductIsRequired(lineItem));
-                        return this;
-                    }
-                    break;
+                switch (section.Type)
+                {
+                    case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
+                        if (string.IsNullOrEmpty(section.Option?.ProductId))
+                        {
+                            OperationValidationErrors.Add(CartErrorDescriber.SelectedProductIsRequired(lineItem));
+                        }
+                        break;
 
-                case ConfigurationSectionTypeText:
-                    if (string.IsNullOrEmpty(configurationSection.CustomText))
-                    {
-                        OperationValidationErrors.Add(CartErrorDescriber.CustomTextIsRequired(lineItem));
-                        return this;
-                    }
-                    break;
+                    case ConfigurationSectionTypeText:
+                        if (string.IsNullOrEmpty(section.CustomText))
+                        {
+                            OperationValidationErrors.Add(CartErrorDescriber.CustomTextIsRequired(lineItem));
+                        }
+                        break;
 
-                case ConfigurationSectionTypeFile:
-                    if (configurationSection.FileUrls.IsNullOrEmpty())
-                    {
-                        OperationValidationErrors.Add(CartErrorDescriber.AddingFileIsRequired(lineItem));
-                        return this;
-                    }
-                    break;
+                    case ConfigurationSectionTypeFile:
+                        if (section.FileUrls.IsNullOrEmpty())
+                        {
+                            OperationValidationErrors.Add(CartErrorDescriber.AddingFileIsRequired(lineItem));
+                        }
+                        break;
 
-                default:
-                    OperationValidationErrors.Add(CartErrorDescriber.ConfigurationSectionUnknownType(lineItem, configurationSection.Type, configurationSection.SectionId));
-                    return this;
+                    default:
+                        OperationValidationErrors.Add(CartErrorDescriber.ConfigurationSectionUnknownType(lineItem, section.Type, section.SectionId));
+                        break;
+                }
             }
 
-            var configItem = FindConfigurationItem(lineItem, configurationSection);
-            if (configItem == null)
+            if (OperationValidationErrors.Any())
             {
-                var productIdForError = configurationSection.Option?.ProductId ?? "N/A";
-                var error = CartErrorDescriber.ConfigurationItemNotFound(
-                    productIdForError,
-                    configurationSection.SectionId,
-                    configurationSection.Type);
-                OperationValidationErrors.Add(error);
                 return this;
             }
 
-            // Update based on type
-            if (configurationSection.Type == ConfigurationSectionTypeProduct ||
-                configurationSection.Type == ConfigurationSectionTypeVariation)
+            var fileUrlsToDelete = new List<string>();
+
+            // Update all configuration items
+            foreach (var section in configurationSections)
             {
-                configItem.Quantity = configurationSection.Option.Quantity;
-            }
-            else if (configurationSection.Type == ConfigurationSectionTypeText)
-            {
-                configItem.CustomText = configurationSection.CustomText;
-            }
-            else if (configurationSection.Type == ConfigurationSectionTypeFile)
-            {
-                // Delete old files if any
-                if (!configItem.Files.IsNullOrEmpty())
+                var configItem = FindConfigurationItem(lineItem, section);
+                if (configItem == null)
                 {
-                    var fileUrls = configItem.Files.Select(f => f.Url).ToArray();
-                    await DeleteConfigurationFiles(fileUrls);
+                    var productIdForError = section.Option?.ProductId ?? "N/A";
+                    var error = CartErrorDescriber.ConfigurationItemNotFound(
+                        productIdForError,
+                        section.SectionId,
+                        section.Type);
+                    OperationValidationErrors.Add(error);
+                    continue;
                 }
 
-                // Set new files
-                configItem.Files = configurationSection.FileUrls
-                    .Select(url => new ConfigurationItemFile { Url = url })
-                    .ToList();
+                switch (section.Type)
+                {
+                    // Update based on type
+                    case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
+                        configItem.Quantity = section.Option.Quantity;
+                        break;
+                    case ConfigurationSectionTypeText:
+                        configItem.CustomText = section.CustomText;
+                        break;
+                    case ConfigurationSectionTypeFile:
+                    {
+                        // Collect old files for deletion
+                        if (!configItem.Files.IsNullOrEmpty())
+                        {
+                            fileUrlsToDelete.AddRange(configItem.Files.Select(f => f.Url));
+                        }
+
+                        // Set new files
+                        configItem.Files = section.FileUrls
+                            .Select(url => new ConfigurationItemFile { Url = url })
+                            .ToList();
+                        break;
+                    }
+                }
+            }
+
+            // Delete old files if any
+            if (fileUrlsToDelete.Count > 0)
+            {
+                await DeleteConfigurationFiles(fileUrlsToDelete);
             }
 
             await UpdateConfiguredLineItemPrice([lineItem]);
