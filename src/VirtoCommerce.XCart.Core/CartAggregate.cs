@@ -1618,6 +1618,7 @@ namespace VirtoCommerce.XCart.Core
         {
             item.ProductId = section.Option.ProductId;
             item.Quantity = section.Option.Quantity;
+            item.SelectedForCheckout = section.Option.SelectedForCheckout;
             item.Name = cartProduct.GetName(Cart.LanguageCode);
             item.Sku = cartProduct.Product.Code;
             item.ImageUrl = cartProduct.Product.ImgSrc;

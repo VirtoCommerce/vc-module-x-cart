@@ -1022,6 +1022,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 {
                     ProductId = "shirt-size-M",
                     Quantity = 2,
+                    SelectedForCheckout = false,
                 },
             };
 
@@ -1039,6 +1040,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             addedItem.Quantity.Should().Be(2);
             addedItem.SectionId.Should().Be("size");
             addedItem.Type.Should().Be("Variation");
+            addedItem.SelectedForCheckout.Should().BeFalse();
         }
 
         [Fact]
@@ -1093,6 +1095,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 {
                     ProductId = "shirt-size-M",
                     Quantity = 5,
+                    SelectedForCheckout = false,
                 },
             };
 
@@ -1110,6 +1113,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             updatedItem.Quantity.Should().Be(5, "Quantity should be updated");
             updatedItem.SectionId.Should().Be("size");
             updatedItem.Type.Should().Be("Variation");
+            updatedItem.SelectedForCheckout.Should().BeFalse();
         }
 
         [Fact]
@@ -1164,6 +1168,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 {
                     ProductId = "new-color",
                     Quantity = 1,
+                    SelectedForCheckout = false,
                 },
             };
 
@@ -1180,6 +1185,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             updatedItem.ProductId.Should().Be("new-color", "ProductId should be updated");
             updatedItem.SectionId.Should().Be("color");
             updatedItem.Type.Should().Be("Product");
+            updatedItem.SelectedForCheckout.Should().BeFalse();
         }
 
         [Fact]
@@ -1494,13 +1500,13 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 {
                     SectionId = "size",
                     Type = "Variation",
-                    Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 10 },
+                    Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 10, SelectedForCheckout = false },
                 },
                 new()
                 {
                     SectionId = "size",
                     Type = "Variation",
-                    Option = new ConfigurableProductOption { ProductId = "shirt-size-L", Quantity = 15 },
+                    Option = new ConfigurableProductOption { ProductId = "shirt-size-L", Quantity = 15, SelectedForCheckout = false },
                 },
                 new()
                 {
@@ -1515,8 +1521,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             // Assert
             lineItem.ConfigurationItems.Should().HaveCount(3);
-            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-M" && ci.Quantity == 10);
-            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-L" && ci.Quantity == 15);
+            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-M" && ci.Quantity == 10 && !ci.SelectedForCheckout);
+            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-L" && ci.Quantity == 15 && !ci.SelectedForCheckout);
             lineItem.ConfigurationItems.Should().Contain(ci => ci.Type == "Text" && ci.CustomText == "Updated text");
         }
 
@@ -1531,7 +1537,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 {
                     SectionId = "size",
                     Type = "Variation",
-                    Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 5 },
+                    Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 5, SelectedForCheckout = false },
                 },
             };
 
@@ -1587,6 +1593,63 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 {
                     SectionId = "size",
                     Type = "Variation",
+                    Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 5, SelectedForCheckout = false },
+                },
+            };
+
+            // Act
+            await cartAggregate.UpdateConfigurationItemsAsync(lineItem.Id, configSections);
+
+            // Assert
+            lineItem.ConfigurationItems.Should().HaveCount(1);
+            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-M" && ci.Quantity == 5 && !ci.SelectedForCheckout);
+        }
+
+        [Fact]
+        public async Task UpdateConfigurationItemsAsync_DefaultSelectedForCheckout_ShouldBeTrue()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem>(),
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var configurableProduct = new CartProduct(new CatalogProduct
+            {
+                Id = "configurable-product",
+                Code = "CONF-PROD",
+                Name = "Configurable Product",
+                CatalogId = "catalog1",
+                CategoryId = "category1",
+            });
+
+            // Add configurable product to CartProducts
+            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+
+            var cartProduct = new CartProduct(new CatalogProduct
+            {
+                Id = "shirt-size-M",
+                Code = "SHIRT-M",
+                Name = "Shirt Size M",
+                CatalogId = "catalog1",
+                CategoryId = "category1",
+            });
+
+            // Setup mock to return product
+            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
+                .ReturnsAsync((CartAggregate _, string[] ids) => ids.Contains("shirt-size-M") ? [cartProduct] : Array.Empty<CartProduct>());
+
+            var configSections = new List<ProductConfigurationSection>
+            {
+                new()
+                {
+                    SectionId = "size",
+                    Type = "Variation",
                     Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 5 },
                 },
             };
@@ -1596,7 +1659,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             // Assert
             lineItem.ConfigurationItems.Should().HaveCount(1);
-            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-M" && ci.Quantity == 5);
+            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-M" && ci.Quantity == 5 && ci.SelectedForCheckout);
         }
 
         [Fact]
@@ -1855,13 +1918,13 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 {
                     SectionId = "size",
                     Type = "Variation",
-                    Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 3 },
+                    Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 3, SelectedForCheckout = false },
                 },
                 new()
                 {
                     SectionId = "color",
                     Type = "Product",
-                    Option = new ConfigurableProductOption { ProductId = "color-blue", Quantity = 1 },
+                    Option = new ConfigurableProductOption { ProductId = "color-blue", Quantity = 1, SelectedForCheckout = false },
                 },
                 new()
                 {
@@ -1876,8 +1939,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             // Assert
             lineItem.ConfigurationItems.Should().HaveCount(3);
-            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-M" && ci.Quantity == 3 && ci.Type == "Variation");
-            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "color-blue" && ci.Quantity == 1 && ci.Type == "Product");
+            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-M" && ci.Quantity == 3 && ci.Type == "Variation" && !ci.SelectedForCheckout);
+            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "color-blue" && ci.Quantity == 1 && ci.Type == "Product" && !ci.SelectedForCheckout);
             lineItem.ConfigurationItems.Should().Contain(ci => ci.CustomText == "New custom text" && ci.Type == "Text");
         }
 
@@ -1967,13 +2030,13 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 {
                     SectionId = "size",
                     Type = "Variation",
-                    Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 10 }, // Update existing
+                    Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 10, SelectedForCheckout = false }, // Update existing
                 },
                 new()
                 {
                     SectionId = "size",
                     Type = "Variation",
-                    Option = new ConfigurableProductOption { ProductId = "shirt-size-L", Quantity = 5 }, // Create new
+                    Option = new ConfigurableProductOption { ProductId = "shirt-size-L", Quantity = 5, SelectedForCheckout = false }, // Create new
                 },
                 new()
                 {
@@ -1988,8 +2051,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             // Assert
             lineItem.ConfigurationItems.Should().HaveCount(3);
-            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-M" && ci.Quantity == 10); // Updated
-            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-L" && ci.Quantity == 5); // Created
+            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-M" && ci.Quantity == 10 && !ci.SelectedForCheckout); // Updated
+            lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-L" && ci.Quantity == 5 && !ci.SelectedForCheckout); // Created
             lineItem.ConfigurationItems.Should().Contain(ci => ci.Type == "Text" && ci.CustomText == "Updated text"); // Updated
         }
 

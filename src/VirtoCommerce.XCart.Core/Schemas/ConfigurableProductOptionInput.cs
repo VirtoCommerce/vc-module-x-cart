@@ -9,5 +9,6 @@ public class ConfigurableProductOptionInput : InputObjectGraphType<ConfigurableP
     {
         Field<NonNullGraphType<StringGraphType>>("productId").Description("Product ID");
         Field<NonNullGraphType<IntGraphType>>("quantity").Description("Quantity of product");
+        Field<BooleanGraphType>("selectedForCheckout").Description("Whether the configuration item is selected for checkout");
     }
 }

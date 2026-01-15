@@ -29,6 +29,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.ImageUrl, nullable: true).Description("Configuration item image URL");
             Field(x => x.Quantity, nullable: true).Description("Configuration item product quantity");
             Field(x => x.CustomText, nullable: true).Description("Custom text for 'Text' configuration item section");
+            Field(x => x.SelectedForCheckout, nullable: false).Description("Whether the configuration item is selected for checkout");
 
             Field<NonNullGraphType<MoneyType>>("listPrice")
                 .Description("List price")
