@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <module>
   <id>VirtoCommerce.XCart</id>
-  <version>3.952.0</version>
-  <version-tag/>
+  <version>3.953.0</version>
+  <version-tag></version-tag>
 
   <platformVersion>3.917.0</platformVersion>
   <dependencies>
-    <dependency id="VirtoCommerce.Catalog" version="3.909.0-alpha.2447-variation-configuration-type" />
-    <dependency id="VirtoCommerce.Cart" version="3.841.0-alpha.771-variation-configuration-type" />
+    <dependency id="VirtoCommerce.Catalog" version="3.904.0" />
+    <dependency id="VirtoCommerce.Cart" version="3.840.0" />
     <dependency id="VirtoCommerce.FileExperienceApi" version="3.906.0" />
     <dependency id="VirtoCommerce.Inventory" version="3.815.0" />
     <dependency id="VirtoCommerce.Marketing" version="3.824.0" />
