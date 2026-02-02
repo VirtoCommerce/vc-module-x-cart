@@ -35,6 +35,13 @@ namespace VirtoCommerce.XCart.Data.Commands
         public override async Task<CartAggregate> Handle(AddCartItemCommand request, CancellationToken cancellationToken)
         {
             var cartAggregate = await GetOrCreateCartFromCommandAsync(request);
+            await AddItemToCartAsync(request, cartAggregate, cancellationToken);
+
+            return await SaveCartAsync(cartAggregate);
+        }
+
+        protected virtual async Task AddItemToCartAsync(AddCartItemCommand request, CartAggregate cartAggregate, CancellationToken cancellationToken)
+        {
             var product = (await _cartProductService.GetCartProductsByIdsAsync(cartAggregate, [request.ProductId])).FirstOrDefault();
 
             var newItem = new NewCartItem(request.ProductId, request.Quantity)
@@ -48,7 +55,7 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             var configurations = await _productConfigurationSearchService.SearchNoCloneAsync(new ProductConfigurationSearchCriteria
             {
-                ProductId = request.ProductId
+                ProductId = request.ProductId,
             });
             var configuration = configurations.Results.FirstOrDefault();
 
@@ -73,8 +80,6 @@ namespace VirtoCommerce.XCart.Data.Commands
             {
                 await cartAggregate.AddItemAsync(newItem);
             }
-
-            return await SaveCartAsync(cartAggregate);
         }
     }
 }
