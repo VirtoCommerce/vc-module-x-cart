@@ -36,10 +36,12 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigur
             return;
         }
 
+        var itemConfiguredSectionIds = item.ConfigurationItems?.Select(x => x.SectionId) ?? Enumerable.Empty<string>();
+
         var missingRequiredSectionIds = configuration.Sections
             .Where(x => x.IsRequired)
             .Select(x => x.Id)
-            .Except(item.ConfigurationItems.Select(x => x.SectionId))
+            .Except(itemConfiguredSectionIds)
             .ToList();
 
         if (missingRequiredSectionIds.Count > 0)
@@ -47,7 +49,7 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigur
             context.AddFailure(CartErrorDescriber.MissingRequiredSections(item, missingRequiredSectionIds));
         }
 
-        if (item.ConfigurationItems.Count == 0)
+        if (item.ConfigurationItems.IsNullOrEmpty())
         {
             return;
         }
