@@ -10,5 +10,7 @@ namespace VirtoCommerce.XCart.Core.Commands
         public int? Quantity { get; set; }
 
         public IList<string> ListIds { get; set; }
+
+        public IList<ProductConfigurationSection> ConfigurationSections { get; set; }
     }
 }

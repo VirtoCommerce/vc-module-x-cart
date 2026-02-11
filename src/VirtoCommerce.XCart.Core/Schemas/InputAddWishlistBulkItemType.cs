@@ -9,6 +9,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<NonNullGraphType<ListGraphType<StringGraphType>>>("listIds").Description("Wish list ids");
             Field<NonNullGraphType<StringGraphType>>("productId").Description("Product id to add");
             Field<IntGraphType>("quantity").Description("Product quantity to add");
+            Field<ListGraphType<ConfigurationSectionInput>>("configurationSections").Description("Configurable product support. List of configurable product sections");
         }
     }
 }
