@@ -49,7 +49,7 @@ public class InitializeCartPaymentCommandHandler(
         }
 
         var processPaymentRequest = await CreateProcessPaymentRequest(request, cart, payment, cancellationToken);
-        var processPaymentResult = paymentMethod.ProcessPayment(processPaymentRequest);
+        var processPaymentResult = await paymentMethod.ProcessPaymentAsync(processPaymentRequest);
         var result = await CreateInitializeCartPaymentResult(paymentMethod, processPaymentRequest, processPaymentResult, cancellationToken);
 
         return result;
