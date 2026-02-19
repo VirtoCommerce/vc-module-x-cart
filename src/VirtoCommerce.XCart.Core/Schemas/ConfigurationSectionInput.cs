@@ -1,9 +1,10 @@
 using GraphQL.Types;
+using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Schemas;
 
-public class ConfigurationSectionInput : InputObjectGraphType<ProductConfigurationSection>
+public class ConfigurationSectionInput : ExtendableInputObjectGraphType<ProductConfigurationSection>
 {
     public ConfigurationSectionInput()
     {
