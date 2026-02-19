@@ -22,7 +22,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             };
 
             // Act
-            var result = await validator.ValidateAsync(newCartItem, options => options.IncludeRuleSets("default"));
+            var result = await validator.ValidateAsync(newCartItem, options => options.IncludeRuleSets("default"), TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeTrue();
@@ -37,7 +37,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             var newCartItem = new NewCartItem(null, 0);
 
             // Act
-            var result = await validator.ValidateAsync(newCartItem, options => options.IncludeRuleSets("default"));
+            var result = await validator.ValidateAsync(newCartItem, options => options.IncludeRuleSets("default"), TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeFalse();
@@ -61,7 +61,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             var validator = new NewCartItemValidator();
 
             // Act
-            var result = await validator.ValidateAsync(newCartItem, options => options.IncludeRuleSets("strict"));
+            var result = await validator.ValidateAsync(newCartItem, options => options.IncludeRuleSets("strict"), TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeTrue();
@@ -80,7 +80,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             var newCartItem = BuildNewCartItem(productId, quantity, newCartItemPrice, isActive: true, isBuyable: true, trackInventory: true);
 
             // Act
-            var result = await validator.ValidateAsync(newCartItem, options => options.IncludeRuleSets("strict"));
+            var result = await validator.ValidateAsync(newCartItem, options => options.IncludeRuleSets("strict"), TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeFalse();
@@ -103,7 +103,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             var validator = new NewCartItemValidator();
 
             // Act
-            var result = await validator.ValidateAsync(newCartItem, options => options.IncludeRuleSets("strict"));
+            var result = await validator.ValidateAsync(newCartItem, options => options.IncludeRuleSets("strict"), TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeFalse();

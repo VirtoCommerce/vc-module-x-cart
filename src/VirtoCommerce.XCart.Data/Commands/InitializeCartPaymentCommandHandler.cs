@@ -49,7 +49,7 @@ public class InitializeCartPaymentCommandHandler(
         }
 
         var processPaymentRequest = await CreateProcessPaymentRequest(request, cart, payment, cancellationToken);
-        var processPaymentResult = paymentMethod.ProcessPayment(processPaymentRequest);
+        var processPaymentResult = await paymentMethod.ProcessPaymentAsync(processPaymentRequest, cancellationToken);
         var result = await CreateInitializeCartPaymentResult(paymentMethod, processPaymentRequest, processPaymentResult, cancellationToken);
 
         return result;
@@ -70,7 +70,7 @@ public class InitializeCartPaymentCommandHandler(
         return Task.FromResult(result);
     }
 
-    protected virtual async Task<InitializeCartPaymentResult> CreateInitializeCartPaymentResult(PaymentMethod paymentMethod, ProcessPaymentRequest processPaymentRequest, ProcessPaymentRequestResult processPaymentResult, CancellationToken cancellationToken)
+    protected virtual Task<InitializeCartPaymentResult> CreateInitializeCartPaymentResult(PaymentMethod paymentMethod, ProcessPaymentRequest processPaymentRequest, ProcessPaymentRequestResult processPaymentResult, CancellationToken cancellationToken)
     {
         var result = AbstractTypeFactory<InitializeCartPaymentResult>.TryCreateInstance();
 
@@ -84,6 +84,6 @@ public class InitializeCartPaymentCommandHandler(
         result.PaymentMethodCode = paymentMethod.Code;
         result.PaymentActionType = paymentMethod.PaymentMethodType.ToString();
 
-        return await Task.FromResult(result);
+        return Task.FromResult(result);
     }
 }
