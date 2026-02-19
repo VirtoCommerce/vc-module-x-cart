@@ -44,7 +44,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             {
                 Shipment = shipment,
                 AvailShippingRates = _context.AvailShippingRates
-            });
+            }, TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeTrue();
@@ -66,7 +66,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             {
                 Shipment = shipment,
                 AvailShippingRates = _context.AvailShippingRates
-            });
+            }, TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeTrue();
@@ -88,7 +88,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             {
                 Shipment = shipment,
                 AvailShippingRates = _context.AvailShippingRates
-            });
+            }, TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeFalse();
@@ -115,7 +115,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             {
                 Shipment = shipment,
                 AvailShippingRates = _context.AvailShippingRates
-            });
+            }, TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeFalse();

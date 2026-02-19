@@ -26,7 +26,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             var validator = new ChangeCartItemPriceValidator();
 
             // Act
-            var result = await validator.ValidateAsync(newItemPriceAdjustment, options => options.IncludeRuleSets("default"));
+            var result = await validator.ValidateAsync(newItemPriceAdjustment, options => options.IncludeRuleSets("default"), TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeTrue();
@@ -43,7 +43,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
 
             // Act
             var validator = new ChangeCartItemPriceValidator();
-            var result = await validator.ValidateAsync(newItemPrice, options => options.IncludeRuleSets("default"));
+            var result = await validator.ValidateAsync(newItemPrice, options => options.IncludeRuleSets("default"), TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeFalse();
@@ -71,7 +71,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             var validator = new ChangeCartItemPriceValidator();
 
             // Act
-            var result = await validator.ValidateAsync(newItemPrice, options => options.IncludeRuleSets("strict"));
+            var result = await validator.ValidateAsync(newItemPrice, options => options.IncludeRuleSets("strict"), TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeTrue();
@@ -96,7 +96,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             var validator = new ChangeCartItemPriceValidator();
 
             // Act
-            var result = await validator.ValidateAsync(newItemPrice, options => options.IncludeRuleSets("strict"));
+            var result = await validator.ValidateAsync(newItemPrice, options => options.IncludeRuleSets("strict"), TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeFalse();
