@@ -1311,17 +1311,7 @@ namespace VirtoCommerce.XCart.Core
                         break;
 
                     case ConfigurationSectionTypeText:
-                        if (section.IsRequired && string.IsNullOrEmpty(section.CustomText))
-                        {
-                            OperationValidationErrors.Add(CartErrorDescriber.CustomTextIsRequired(lineItem));
-                        }
-                        break;
-
                     case ConfigurationSectionTypeFile:
-                        if (section.IsRequired && section.FileUrls.IsNullOrEmpty())
-                        {
-                            OperationValidationErrors.Add(CartErrorDescriber.AddingFileIsRequired(lineItem));
-                        }
                         break;
 
                     default:
@@ -1425,17 +1415,7 @@ namespace VirtoCommerce.XCart.Core
                         break;
 
                     case ConfigurationSectionTypeText:
-                        if (section.IsRequired && string.IsNullOrEmpty(section.CustomText))
-                        {
-                            OperationValidationErrors.Add(CartErrorDescriber.CustomTextIsRequired(lineItem));
-                        }
-                        break;
-
                     case ConfigurationSectionTypeFile:
-                        if (section.IsRequired && section.FileUrls.IsNullOrEmpty())
-                        {
-                            OperationValidationErrors.Add(CartErrorDescriber.AddingFileIsRequired(lineItem));
-                        }
                         break;
 
                     default:
