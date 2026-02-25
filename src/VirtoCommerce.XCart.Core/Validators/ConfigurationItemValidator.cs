@@ -36,7 +36,7 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigur
             return;
         }
 
-        var itemConfiguredSectionIds = item.ConfigurationItems?.Select(x => x.SectionId) ?? Enumerable.Empty<string>();
+        var itemConfiguredSectionIds = item.ConfigurationItems?.Select(x => x.SectionId) ?? [];
 
         var missingRequiredSectionIds = configuration.Sections
             .Where(x => x.IsRequired)
@@ -95,7 +95,8 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigur
         var searchCriteria = new ProductConfigurationSearchCriteria
         {
             ProductIds = [item.ProductId],
-            IsActive = true
+            IsActive = true,
+            Take = 1,
         };
 
         var searchResult = await _productConfigurationService.SearchNoCloneAsync(searchCriteria);
