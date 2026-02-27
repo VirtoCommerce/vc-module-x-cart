@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture;
 using AutoMapper;
@@ -1302,6 +1303,85 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             lineItem.ConfigurationItems.Should().Contain(ci => ci.ProductId == "shirt-size-L" && ci.Quantity == 3);
         }
 
+        [Fact]
+        public async Task AddConfigurationItemsAsync_ValidationFails_ShouldNotModifyOriginalLineItem()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var originalItems = new List<ConfigurationItem>
+            {
+                new() { SectionId = "section-1", Type = "Product", ProductId = "existing-product" }
+            };
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = originalItems,
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var sections = new List<ProductConfigurationSection>
+            {
+                new()
+                {
+                    SectionId = "section-2",
+                    Type = "Text",
+                    CustomText = "test text",
+                }
+            };
+
+            _configurationItemValidatorMock
+                .Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), CancellationToken.None))
+                .ReturnsAsync(new FluentValidation.Results.ValidationResult(
+                    [new FluentValidation.Results.ValidationFailure("ConfigurationItems", "Invalid configuration")]));
+
+            // Act
+            await cartAggregate.AddConfigurationItemsAsync(lineItem.Id, sections);
+
+            // Assert
+            cartAggregate.OperationValidationErrors.Should().NotBeEmpty();
+            lineItem.ConfigurationItems.Should().BeSameAs(originalItems, "original list reference must not change on validation failure");
+            lineItem.ConfigurationItems.Should().HaveCount(1);
+        }
+
+        [Fact]
+        public async Task AddConfigurationItemsAsync_ValidationPasses_ShouldCommitClonedConfigurationItems()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var originalItems = new List<ConfigurationItem>();
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = originalItems,
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var sections = new List<ProductConfigurationSection>
+            {
+                new()
+                {
+                    SectionId = "section-1",
+                    Type = "Text",
+                    CustomText = "hello",
+                }
+            };
+
+            // Default validator mock returns valid (empty ValidationResult)
+
+            // Act
+            await cartAggregate.AddConfigurationItemsAsync(lineItem.Id, sections);
+
+            // Assert
+            cartAggregate.OperationValidationErrors.Should().BeEmpty();
+            lineItem.ConfigurationItems.Should().NotBeSameAs(originalItems, "ConfigurationItems should be replaced with clone's list");
+            lineItem.ConfigurationItems.Should().HaveCount(1);
+            lineItem.ConfigurationItems.First().CustomText.Should().Be("hello");
+        }
+
         #endregion AddConfigurationItemsAsync
 
         #region UpdateConfigurationItemQuantityAsync
@@ -1365,7 +1445,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             await cartAggregate.UpdateConfigurationItemAsync(lineItem.Id, configSection);
 
             // Assert
-            configItem.Quantity.Should().Be(5);
+            lineItem.ConfigurationItems.Should().HaveCount(1);
+            lineItem.ConfigurationItems.Should().Contain(x => x.ProductId == "shirt-size-M" && x.Quantity == 5);
         }
 
         [Fact]
@@ -1801,11 +1882,13 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             await cartAggregate.UpdateConfigurationItemsAsync(lineItem.Id, configSections);
 
             // Assert
-            configItem.Files.Should().HaveCount(2);
-            configItem.Files.Select(f => f.Url).Should().Contain("/api/files/new-file1-id");
-            configItem.Files.Select(f => f.Url).Should().Contain("/api/files/new-file2-id");
-            configItem.Files.Select(f => f.Url).Should().NotContain("/api/files/old-file1-id");
-            configItem.Files.Select(f => f.Url).Should().NotContain("/api/files/old-file2-id");
+            lineItem.ConfigurationItems.Should().HaveCount(1);
+            var updatedItem = lineItem.ConfigurationItems.First();
+            updatedItem.Files.Should().HaveCount(2);
+            updatedItem.Files.Select(x => x.Url).Should().Contain("/api/files/new-file1-id");
+            updatedItem.Files.Select(x => x.Url).Should().Contain("/api/files/new-file2-id");
+            updatedItem.Files.Select(x => x.Url).Should().NotContain("/api/files/old-file1-id");
+            updatedItem.Files.Select(x => x.Url).Should().NotContain("/api/files/old-file2-id");
         }
 
         [Fact]
@@ -2056,6 +2139,54 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             lineItem.ConfigurationItems.Should().Contain(ci => ci.Type == "Text" && ci.CustomText == "Updated text"); // Updated
         }
 
+        [Fact]
+        public async Task UpdateConfigurationItemsAsync_ValidationFails_ShouldNotModifyOriginalAndNotDeleteFiles()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem>
+                {
+                    new()
+                    {
+                        SectionId = "section-1",
+                        Type = "File",
+                        Files = [new ConfigurationItemFile { Url = "/api/files/old-file-id" }],
+                    }
+                },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var sections = new List<ProductConfigurationSection>
+            {
+                new()
+                {
+                    SectionId = "section-1",
+                    Type = "File",
+                    FileUrls = ["/api/files/new-file-id"],
+                }
+            };
+
+            _configurationItemValidatorMock
+                .Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), CancellationToken.None))
+                .ReturnsAsync(new FluentValidation.Results.ValidationResult(
+                    [new FluentValidation.Results.ValidationFailure("ConfigurationItems", "Invalid configuration")]));
+
+            // Act
+            await cartAggregate.UpdateConfigurationItemsAsync(lineItem.Id, sections);
+
+            // Assert
+            cartAggregate.OperationValidationErrors.Should().NotBeEmpty();
+            lineItem.ConfigurationItems.First().Files.Should().HaveCount(1);
+            lineItem.ConfigurationItems.First().Files.First().Url.Should().Be("/api/files/old-file-id");
+            // DeleteAsync should not have been called (deferred deletion skipped on validation failure)
+            _fileUploadService.Verify(x => x.DeleteAsync(It.IsAny<IList<string>>(), It.IsAny<bool>()), Times.Never);
+        }
+
         #endregion UpdateConfigurationItemsAsync
 
         #region RemoveConfigurationItemAsync
@@ -2272,6 +2403,48 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             lineItem.ConfigurationItems.Should().BeEmpty();
         }
 
+        [Fact]
+        public async Task RemoveConfigurationItemsAsync_ValidationFails_ShouldNotRemoveItems()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var originalItems = new List<ConfigurationItem>
+            {
+                new() { SectionId = "section-1", Type = "Text", CustomText = "keep me" }
+            };
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = originalItems,
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            var sections = new List<ProductConfigurationSection>
+            {
+                new()
+                {
+                    SectionId = "section-1",
+                    Type = "Text",
+                }
+            };
+
+            _configurationItemValidatorMock
+                .Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), CancellationToken.None))
+                .ReturnsAsync(new FluentValidation.Results.ValidationResult(
+                    [new FluentValidation.Results.ValidationFailure("ConfigurationItems", "Required section missing")]));
+
+            // Act
+            await cartAggregate.RemoveConfigurationItemsAsync(lineItem.Id, sections);
+
+            // Assert
+            cartAggregate.OperationValidationErrors.Should().NotBeEmpty();
+            lineItem.ConfigurationItems.Should().BeSameAs(originalItems, "original list reference must not change on validation failure");
+            lineItem.ConfigurationItems.Should().HaveCount(1);
+            lineItem.ConfigurationItems.First().CustomText.Should().Be("keep me");
+        }
+
         #endregion RemoveConfigurationItemsAsync
 
         #region ConfigurationItem Validation
@@ -2462,7 +2635,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             await cartAggregate.UpdateConfigurationItemAsync(lineItem.Id, configSection);
 
             // Assert
-            existingConfigItem.CustomText.Should().Be("Updated text");
+            lineItem.ConfigurationItems.Should().HaveCount(1);
+            lineItem.ConfigurationItems.Should().Contain(x => x.SectionId == "text-section" && x.CustomText == "Updated text");
         }
 
         [Fact]
