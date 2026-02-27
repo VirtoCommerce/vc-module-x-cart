@@ -1292,8 +1292,20 @@ namespace VirtoCommerce.XCart.Core
 
             EnsureCartExists();
 
-            var lineItem = GetValidatedConfiguredLineItem(lineItemId, configurationSections);
+            var lineItem = GetConfiguredLineItem(lineItemId);
             if (lineItem is null)
+            {
+                OperationValidationErrors.Add(CartErrorDescriber.ConfiguredLineItemNotFound(lineItemId));
+                return this;
+            }
+
+            return await AddConfigurationItemsAsync(lineItem, configurationSections);
+        }
+
+        protected virtual async Task<CartAggregate> AddConfigurationItemsAsync(LineItem lineItem, IList<ProductConfigurationSection> configurationSections)
+        {
+            ValidateConfigurationSections(lineItem, configurationSections);
+            if (OperationValidationErrors.Any())
             {
                 return this;
             }
@@ -1383,8 +1395,20 @@ namespace VirtoCommerce.XCart.Core
 
             EnsureCartExists();
 
-            var lineItem = GetValidatedConfiguredLineItem(lineItemId, configurationSections);
+            var lineItem = GetConfiguredLineItem(lineItemId);
             if (lineItem is null)
+            {
+                OperationValidationErrors.Add(CartErrorDescriber.ConfiguredLineItemNotFound(lineItemId));
+                return this;
+            }
+
+            return await UpdateConfigurationItemsAsync(lineItem, configurationSections);
+        }
+
+        protected virtual async Task<CartAggregate> UpdateConfigurationItemsAsync(LineItem lineItem, IList<ProductConfigurationSection> configurationSections)
+        {
+            ValidateConfigurationSections(lineItem, configurationSections);
+            if (OperationValidationErrors.Any())
             {
                 return this;
             }
@@ -1486,8 +1510,20 @@ namespace VirtoCommerce.XCart.Core
 
             EnsureCartExists();
 
-            var lineItem = GetValidatedConfiguredLineItem(lineItemId, configurationSections);
+            var lineItem = GetConfiguredLineItem(lineItemId);
             if (lineItem is null)
+            {
+                OperationValidationErrors.Add(CartErrorDescriber.ConfiguredLineItemNotFound(lineItemId));
+                return this;
+            }
+
+            return await RemoveConfigurationItemsAsync(lineItem, configurationSections);
+        }
+
+        protected virtual async Task<CartAggregate> RemoveConfigurationItemsAsync(LineItem lineItem, IList<ProductConfigurationSection> configurationSections)
+        {
+            ValidateConfigurationSections(lineItem, configurationSections);
+            if (OperationValidationErrors.Any())
             {
                 return this;
             }
@@ -1533,20 +1569,6 @@ namespace VirtoCommerce.XCart.Core
             await UpdateConfiguredLineItemPrice([lineItem]);
 
             return this;
-        }
-
-        protected virtual LineItem GetValidatedConfiguredLineItem(string lineItemId, IList<ProductConfigurationSection> configurationSections)
-        {
-            var lineItem = GetConfiguredLineItem(lineItemId);
-            if (lineItem is null)
-            {
-                OperationValidationErrors.Add(CartErrorDescriber.ConfiguredLineItemNotFound(lineItemId));
-                return null;
-            }
-
-            ValidateConfigurationSections(lineItem, configurationSections);
-
-            return OperationValidationErrors.Any() ? null : lineItem;
         }
 
         protected virtual void ValidateConfigurationSections(LineItem lineItem, IList<ProductConfigurationSection> configurationSections)
