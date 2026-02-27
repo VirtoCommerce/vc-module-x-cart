@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <module>
   <id>VirtoCommerce.XCart</id>
-  <version>3.1000.0</version>
+  <version>3.1001.0</version>
   <version-tag></version-tag>
 
   <platformVersion>3.1002.0</platformVersion>
@@ -50,7 +50,7 @@
   <moduleType>VirtoCommerce.XCart.Web.Module, VirtoCommerce.XCart.Web</moduleType>
 
   <releaseNotes>First version.</releaseNotes>
-  <copyright>Copyright © 2024–2025 VirtoCommerce. All rights reserved</copyright>
+  <copyright>Copyright © 2024–2026 VirtoCommerce. All rights reserved</copyright>
   <tags>extension module</tags>
   <useFullTypeNameInSwagger>false</useFullTypeNameInSwagger>
 </module>
