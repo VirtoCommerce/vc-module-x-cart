@@ -1,4 +1,5 @@
 using GraphQL.Types;
+using VirtoCommerce.Xapi.Core.Helpers;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
@@ -6,8 +7,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public InputAddOrUpdateCartShipmentType()
         {
-            Field<NonNullGraphType<InputShipmentType>>("shipment")
-                .Description("Shipment");
+            Field("shipment", GraphTypeExtensionHelper.GetActualComplexType<NonNullGraphType<InputShipmentType>>()).Description("Shipment");
         }
     }
 }
