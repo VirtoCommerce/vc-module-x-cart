@@ -1,10 +1,11 @@
 using GraphQL.Types;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
-    public class InputAddressType : InputObjectGraphType<ExpCartAddress>
+    public class InputAddressType : ExtendableInputObjectGraphType<ExpCartAddress>
     {
         public InputAddressType()
         {
