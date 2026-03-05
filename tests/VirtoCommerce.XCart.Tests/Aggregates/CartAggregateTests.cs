@@ -180,6 +180,44 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 .Which.ErrorCode.Should().Be("CART_PRODUCT_UNAVAILABLE");
         }
 
+        [Fact]
+        public async Task AddItemsAsync_PreservesAllNewCartItemFields()
+        {
+            // Arrange
+            var targetDate = new DateTime(2025, 6, 15, 12, 0, 0, DateTimeKind.Utc);
+            var newCartItem = new NewCartItem("prod-1", 3)
+            {
+                Comment = "test-comment",
+                Price = 42.50m,
+                CreatedDate = targetDate,
+                OverrideQuantity = true,
+            };
+
+            var product = new CartProduct(new CatalogProduct { Id = "prod-1", IsActive = true, IsBuyable = true });
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
+                .ReturnsAsync(new List<CartProduct> { product });
+
+            _mapperMock
+                .Setup(m => m.Map(It.IsAny<CartProduct>(), It.IsAny<Action<IMappingOperationOptions<object, LineItem>>>()))
+                .Returns<CartProduct, Action<IMappingOperationOptions<object, LineItem>>>((cp, _) => new LineItem { ProductId = cp.Id });
+
+            var cartAggregate = GetValidCartAggregate();
+            cartAggregate.ValidationRuleSet = ["default"];
+            cartAggregate.Cart.Items = new List<LineItem>();
+
+            // Act
+            await cartAggregate.AddItemsAsync(new List<NewCartItem> { newCartItem });
+
+            // Assert
+            var addedItem = cartAggregate.Cart.Items.Should().ContainSingle().Subject;
+            addedItem.ProductId.Should().Be("prod-1");
+            addedItem.Note.Should().Be("test-comment");
+            addedItem.Quantity.Should().Be(3);
+            addedItem.ListPrice.Should().Be(42.50m);
+            addedItem.CreatedDate.Should().Be(targetDate);
+        }
+
         #endregion AddItemsAsync
 
         #region ChangeItemPriceAsync

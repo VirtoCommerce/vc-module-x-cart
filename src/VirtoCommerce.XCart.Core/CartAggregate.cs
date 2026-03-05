@@ -315,6 +315,9 @@ namespace VirtoCommerce.XCart.Core
                         IsSelectedForCheckout = item.IsSelectedForCheckout,
                         CartProduct = product,
                         IgnoreValidationErrors = item.IgnoreValidationErrors,
+                        CreatedDate = item.CreatedDate,
+                        OverrideQuantity = item.OverrideQuantity,
+                        ConfigurationSections = item.ConfigurationSections,
                     });
                 }
                 else
