@@ -158,6 +158,28 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             cartAggregate.Cart.Items.Should().Contain(x => x.ProductId == newCartItem2.ProductId);
         }
 
+        [Fact]
+        public async Task AddItemsAsync_ProductNotFound_AddsValidationError()
+        {
+            // Arrange
+            var newCartItems = new List<NewCartItem> { new("missing-product", 1) };
+
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
+                .ReturnsAsync(new List<CartProduct>());
+
+            var cartAggregate = GetValidCartAggregate();
+            cartAggregate.ValidationRuleSet = ["default"];
+            cartAggregate.Cart.Items = new List<LineItem>();
+
+            // Act
+            await cartAggregate.AddItemsAsync(newCartItems);
+
+            // Assert
+            cartAggregate.OperationValidationErrors.Should().ContainSingle()
+                .Which.ErrorCode.Should().Be("CART_PRODUCT_UNAVAILABLE");
+        }
+
         #endregion AddItemsAsync
 
         #region ChangeItemPriceAsync
