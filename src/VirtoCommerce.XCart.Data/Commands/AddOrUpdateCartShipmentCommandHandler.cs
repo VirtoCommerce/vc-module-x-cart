@@ -123,7 +123,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                 }
                 else
                 {
-                    var deserializeType = AbstractTypeFactory<ExpCartAddress>.AllTypeInfos.FirstOrDefault()?.Type ?? typeof(ExpCartAddress);
+                    var deserializeType = AbstractTypeFactory<ExpCartAddress>.TryCreateInstance().GetType();
                     var address = JsonConvert.DeserializeObject(savedValue, deserializeType) as ExpCartAddress;
                     shipment.DeliveryAddress = AbstractTypeFactory<Address>.TryCreateInstance();
                     address.MapTo(shipment.DeliveryAddress);
