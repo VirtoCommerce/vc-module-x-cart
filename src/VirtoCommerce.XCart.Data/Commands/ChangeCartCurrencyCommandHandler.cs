@@ -119,7 +119,13 @@ namespace VirtoCommerce.XCart.Data.Commands
                 container.Currency = newCurrencyCartAggregate.Currency;
                 container.Store = newCurrencyCartAggregate.Store;
 
-                container.ConfigurableProduct = configProducts.FirstOrDefault(x => x.Product.Id == configurationLineItem.ProductId);
+                var configurableProduct = configProducts.FirstOrDefault(x => x.Product.Id == configurationLineItem.ProductId);
+                if (configurableProduct is null)
+                {
+                    continue;
+                }
+
+                container.ConfigurableProduct = configurableProduct;
 
                 foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
                 {

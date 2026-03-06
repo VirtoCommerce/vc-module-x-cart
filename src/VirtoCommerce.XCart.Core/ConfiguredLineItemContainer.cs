@@ -100,21 +100,24 @@ namespace VirtoCommerce.XCart.Core
             lineItem.TaxDetails = [];
             lineItem.DynamicProperties = [];
 
-            lineItem.ProductId = ConfigurableProduct.Product.Id;
-            lineItem.Sku = $"Configuration-{ConfigurableProduct.Product.Code}";
+            if (ConfigurableProduct?.Product is { } product)
+            {
+                lineItem.ProductId = product.Id;
+                lineItem.Sku = $"Configuration-{product.Code}";
 
-            lineItem.CatalogId = ConfigurableProduct.Product.CatalogId;
-            lineItem.CategoryId = ConfigurableProduct.Product.CategoryId;
+                lineItem.CatalogId = product.CatalogId;
+                lineItem.CategoryId = product.CategoryId;
 
-            lineItem.Name = ConfigurableProduct.GetName(CultureName);
-            lineItem.ImageUrl = ConfigurableProduct.Product.ImgSrc;
-            lineItem.ProductOuterId = ConfigurableProduct.Product.OuterId;
-            lineItem.ProductType = ConfigurableProduct.Product.ProductType;
-            lineItem.TaxType = ConfigurableProduct.Product.TaxType;
+                lineItem.Name = ConfigurableProduct.GetName(CultureName);
+                lineItem.ImageUrl = product.ImgSrc;
+                lineItem.ProductOuterId = product.OuterId;
+                lineItem.ProductType = product.ProductType;
+                lineItem.TaxType = product.TaxType;
 
-            lineItem.FulfillmentCenterId = ConfigurableProduct.Inventory?.FulfillmentCenterId;
-            lineItem.FulfillmentCenterName = ConfigurableProduct.Inventory?.FulfillmentCenterName;
-            lineItem.VendorId = ConfigurableProduct.Product.Vendor;
+                lineItem.FulfillmentCenterId = ConfigurableProduct.Inventory?.FulfillmentCenterId;
+                lineItem.FulfillmentCenterName = ConfigurableProduct.Inventory?.FulfillmentCenterName;
+                lineItem.VendorId = product.Vendor;
+            }
 
             // create sub items
             lineItem.ConfigurationItems = Items
