@@ -1,29 +1,20 @@
-using System.Threading.Tasks;
-using GraphQL;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using VirtoCommerce.Xapi.Core.BaseQueries;
-using VirtoCommerce.Xapi.Core.Extensions;
-using VirtoCommerce.XCart.Core;
+using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Schemas;
+using VirtoCommerce.XCart.Core.Services;
+using VirtoCommerce.XCart.Data.Commands.BaseCommands;
 
 namespace VirtoCommerce.XCart.Data.Commands;
 
-public class AddConfigurationItemsCommandBuilder : CommandBuilder<AddConfigurationItemsCommand, CartAggregate, InputAddConfigurationItemsType, CartType>
+public class AddConfigurationItemsCommandBuilder(
+    IMediator mediator,
+    IAuthorizationService authorizationService,
+    IDistributedLockService distributedLockService,
+    ICartAggregateRepository cartRepository)
+    : CartCommandBuilder<AddConfigurationItemsCommand, InputAddConfigurationItemsType>(
+        mediator, authorizationService, distributedLockService, cartRepository)
 {
-    public AddConfigurationItemsCommandBuilder(IMediator mediator, IAuthorizationService authorizationService)
-        : base(mediator, authorizationService)
-    {
-    }
-
     protected override string Name => "addConfigurationItems";
-
-    protected override Task BeforeMediatorSend(IResolveFieldContext<object> context, AddConfigurationItemsCommand request)
-    {
-        request.UserId = context.GetCurrentUserId();
-        request.OrganizationId = context.GetCurrentOrganizationId();
-
-        return base.BeforeMediatorSend(context, request);
-    }
 }
