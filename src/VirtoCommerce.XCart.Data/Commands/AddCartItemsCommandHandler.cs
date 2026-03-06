@@ -42,35 +42,29 @@ namespace VirtoCommerce.XCart.Data.Commands
             return await SaveCartAsync(cartAggregate);
         }
 
-        protected virtual async Task AddItemsToCartAsync(
-            AddCartItemsCommand request,
-            CartAggregate cartAggregate,
-            CancellationToken cancellationToken)
+        protected virtual async Task AddItemsToCartAsync(AddCartItemsCommand request, CartAggregate cartAggregate, CancellationToken cancellationToken)
         {
-            var cartItems = request.CartItems;
-            if (cartItems is not { Length: > 0 })
+            if (request.CartItems.IsNullOrEmpty())
             {
                 return;
             }
 
-            // Batch-fetch products
-            var productIds = cartItems.Select(x => x.ProductId).Distinct().ToArray();
-            var productsByIds = (await _cartProductService.GetCartProductsByIdsAsync(cartAggregate, productIds))
-                .ToDictionary(x => x.Id);
+            var productIds = request.CartItems.Select(x => x.ProductId).Distinct().ToArray();
 
-            // Batch-fetch product configurations
-            var configurations = await _productConfigurationSearchService.SearchNoCloneAsync(
+            var productsTask = _cartProductService.GetCartProductsByIdsAsync(cartAggregate, productIds);
+            var configurationsTask = _productConfigurationSearchService.SearchAllNoCloneAsync(
                 new ProductConfigurationSearchCriteria
                 {
                     ProductIds = productIds,
                     IsActive = true,
                 });
-            // Only need to know if a product is configurable; actual configuration is resolved by CreateConfiguredLineItemCommand
-            var activeConfigByProductId = configurations.Results
-                .DistinctBy(x => x.ProductId)
-                .ToDictionary(x => x.ProductId);
 
-            foreach (var item in cartItems)
+            await Task.WhenAll(productsTask, configurationsTask);
+
+            var productsByIds = productsTask.Result.ToDictionary(x => x.Id);
+            var activeConfigByProductId = configurationsTask.Result.DistinctBy(x => x.ProductId).ToDictionary(x => x.ProductId);
+
+            foreach (var item in request.CartItems)
             {
                 if (!productsByIds.TryGetValue(item.ProductId, out var product))
                 {
@@ -92,11 +86,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             }
         }
 
-        protected virtual async Task AddConfiguredItemAsync(
-            AddCartItemsCommand request,
-            NewCartItem item,
-            CartAggregate cartAggregate,
-            CancellationToken cancellationToken)
+        protected virtual async Task AddConfiguredItemAsync(AddCartItemsCommand request, NewCartItem item, CartAggregate cartAggregate, CancellationToken cancellationToken)
         {
             var command = new CreateConfiguredLineItemCommand
             {
@@ -111,6 +101,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             };
 
             var result = await _mediator.Send(command, cancellationToken);
+
             await cartAggregate.AddConfiguredItemAsync(item, result.Item);
         }
     }

@@ -297,33 +297,19 @@ namespace VirtoCommerce.XCart.Core
             EnsureCartExists();
 
             var productIds = newCartItems.Select(x => x.ProductId).Distinct().ToArray();
-
-            var productsByIds =
-                (await _cartProductService.GetCartProductsByIdsAsync(this, productIds))
-                .ToDictionary(x => x.Id);
+            var productsByIds = (await _cartProductService.GetCartProductsByIdsAsync(this, productIds)).ToDictionary(x => x.Id);
 
             foreach (var item in newCartItems)
             {
-                if (productsByIds.TryGetValue(item.ProductId, out var product))
-                {
-                    await AddItemAsync(new NewCartItem(item.ProductId, item.Quantity)
-                    {
-                        Comment = item.Comment,
-                        DynamicProperties = item.DynamicProperties,
-                        Price = item.Price,
-                        IsWishlist = item.IsWishlist,
-                        IsSelectedForCheckout = item.IsSelectedForCheckout,
-                        CartProduct = product,
-                        IgnoreValidationErrors = item.IgnoreValidationErrors,
-                        CreatedDate = item.CreatedDate,
-                        OverrideQuantity = item.OverrideQuantity,
-                        ConfigurationSections = item.ConfigurationSections,
-                    });
-                }
-                else
+                if (!productsByIds.TryGetValue(item.ProductId, out var product))
                 {
                     var error = CartErrorDescriber.ProductUnavailableError(nameof(CatalogProduct), item.ProductId);
                     OperationValidationErrors.Add(error);
+                }
+                else
+                {
+                    item.CartProduct = product;
+                    await AddItemAsync(item);
                 }
             }
 
