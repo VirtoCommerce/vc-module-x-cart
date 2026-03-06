@@ -22,7 +22,7 @@ namespace VirtoCommerce.XCart.Core
 
         public CartProduct ConfigurableProduct { get; set; }
 
-        private readonly List<SectionLineItem> _items = [];
+        protected List<SectionLineItem> Items { get; } = [];
 
         public virtual LineItem CreateLineItem(CartProduct cartProduct, int quantity)
         {
@@ -61,7 +61,7 @@ namespace VirtoCommerce.XCart.Core
         {
             var lineItem = CreateLineItem(cartProduct, quantity);
 
-            _items.Add(new SectionLineItem
+            Items.Add(new SectionLineItem
             {
                 SectionId = sectionId,
                 Type = type,
@@ -71,7 +71,7 @@ namespace VirtoCommerce.XCart.Core
 
         public virtual void AddTextSectionLineItem(string customText, string sectionId)
         {
-            _items.Add(new SectionLineItem
+            Items.Add(new SectionLineItem
             {
                 SectionId = sectionId,
                 Type = ConfigurationSectionTypeText,
@@ -81,7 +81,7 @@ namespace VirtoCommerce.XCart.Core
 
         public virtual void AddFileSectionLineItem(IList<ConfigurationItemFile> files, string sectionId)
         {
-            _items.Add(new SectionLineItem
+            Items.Add(new SectionLineItem
             {
                 SectionId = sectionId,
                 Type = ConfigurationSectionTypeFile,
@@ -117,7 +117,7 @@ namespace VirtoCommerce.XCart.Core
             lineItem.VendorId = ConfigurableProduct.Product.Vendor;
 
             // create sub items
-            lineItem.ConfigurationItems = _items
+            lineItem.ConfigurationItems = Items
                 .Select(x =>
                 {
                     var subItem = AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
@@ -163,7 +163,7 @@ namespace VirtoCommerce.XCart.Core
         public virtual void UpdatePrice(LineItem lineItem)
         {
             var configurableProductPrice = ConfigurableProduct?.Price ?? new Xapi.Core.Models.ProductPrice(Currency);
-            var items = _items.Where(x => x.Item != null).Select(x => x.Item).ToArray();
+            var items = Items.Where(x => x.Item != null).Select(x => x.Item).ToArray();
 
             lineItem.ListPrice = items.Sum(x => x.ListPrice * x.Quantity) + configurableProductPrice.ListPrice.Amount;
             lineItem.SalePrice = items.Sum(x => x.SalePrice * x.Quantity) + configurableProductPrice.SalePrice.Amount;
@@ -190,7 +190,7 @@ namespace VirtoCommerce.XCart.Core
             return MemberwiseClone();
         }
 
-        private sealed class SectionLineItem
+        protected class SectionLineItem
         {
             public string SectionId { get; set; }
             public LineItem Item { get; set; }
