@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -22,6 +23,8 @@ namespace VirtoCommerce.XCart.Data.Commands
         private readonly ICartAvailMethodsService _cartAvailMethodService;
         private readonly ICustomerPreferenceService _customerPreferenceService;
         private readonly IPickupLocationService _pickupLocationService;
+
+        protected static readonly Type ExpCartAddressType = AbstractTypeFactory<ExpCartAddress>.TryCreateInstance().GetType();
 
         public AddOrUpdateCartShipmentCommandHandler(
             ICartAggregateRepository cartAggregateRepository,
@@ -123,10 +126,9 @@ namespace VirtoCommerce.XCart.Data.Commands
                 }
                 else
                 {
-                    var deserializeType = AbstractTypeFactory<ExpCartAddress>.TryCreateInstance().GetType();
-                    var address = JsonConvert.DeserializeObject(savedValue, deserializeType) as ExpCartAddress;
+                    var address = (ExpCartAddress)JsonConvert.DeserializeObject(savedValue, ExpCartAddressType);
                     shipment.DeliveryAddress = AbstractTypeFactory<Address>.TryCreateInstance();
-                    address.MapTo(shipment.DeliveryAddress);
+                    address?.MapTo(shipment.DeliveryAddress);
                 }
             }
             else
