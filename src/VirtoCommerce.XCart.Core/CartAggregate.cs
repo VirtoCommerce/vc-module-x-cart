@@ -1670,13 +1670,9 @@ namespace VirtoCommerce.XCart.Core
                 .Distinct()
                 .ToArray();
 
-            if (configProductsIds.Length == 0)
-            {
-                return this;
-            }
-
-            var configProducts = (await _cartProductService.GetCartProductsByIdsAsync(this, configProductsIds))
-                .ToDictionary(x => x.Product.Id);
+            var configProducts = configProductsIds.Length > 0
+                ? (await _cartProductService.GetCartProductsByIdsAsync(this, configProductsIds)).ToDictionary(x => x.Id)
+                : new Dictionary<string, CartProduct>();
 
             foreach (var configurationLineItem in configuredItems)
             {
