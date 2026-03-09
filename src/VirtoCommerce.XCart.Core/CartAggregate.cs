@@ -1680,61 +1680,72 @@ namespace VirtoCommerce.XCart.Core
 
             foreach (var configurationLineItem in configuredItems)
             {
-                var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
-                container.Currency = Currency;
-                container.Store = Store;
-
-                if (CartProducts.TryGetValue(configurationLineItem.ProductId, out var configurableProduct))
-                {
-                    container.ConfigurableProduct = configurableProduct;
-                }
-
-                foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
-                {
-                    switch (configurationItem.Type)
-                    {
-                        case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
-                        {
-                            if (configProducts.TryGetValue(configurationItem.ProductId, out var product))
-                            {
-                                container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId, configurationItem.Type);
-                            }
-
-                            break;
-                        }
-                        case ConfigurationSectionTypeText:
-                            container.AddTextSectionLineItem(configurationItem.CustomText, configurationItem.SectionId);
-                            break;
-                        case ConfigurationSectionTypeFile:
-                            container.AddFileSectionLineItem(configurationItem.Files, configurationItem.SectionId);
-                            break;
-                    }
-                }
-
+                var container = CreateConfiguredLineItemContainer(configurationLineItem, configProducts);
                 container.UpdatePrice(configurationLineItem);
 
                 var recalculated = container.CreateConfiguredLineItem(configurationLineItem.Quantity);
-
-                // Update prices in existing ConfigurationItems instead of replacing the collection
-                if (recalculated.Item.ConfigurationItems != null)
-                {
-                    foreach (var recalculatedItem in recalculated.Item.ConfigurationItems)
-                    {
-                        var existingItem = configurationLineItem.ConfigurationItems?.FirstOrDefault(x =>
-                            x.Type == recalculatedItem.Type &&
-                            x.SectionId == recalculatedItem.SectionId &&
-                            (recalculatedItem.Type != ConfigurationSectionTypeVariation || x.ProductId == recalculatedItem.ProductId));
-
-                        if (existingItem != null)
-                        {
-                            existingItem.ListPrice = recalculatedItem.ListPrice;
-                            existingItem.SalePrice = recalculatedItem.SalePrice;
-                        }
-                    }
-                }
+                SyncConfigurationItemPrices(configurationLineItem, recalculated);
             }
 
             return this;
+        }
+
+        protected virtual ConfiguredLineItemContainer CreateConfiguredLineItemContainer(LineItem configurationLineItem, Dictionary<string, CartProduct> configProducts)
+        {
+            var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
+            container.Currency = Currency;
+            container.Store = Store;
+
+            if (CartProducts.TryGetValue(configurationLineItem.ProductId, out var configurableProduct))
+            {
+                container.ConfigurableProduct = configurableProduct;
+            }
+
+            foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
+            {
+                switch (configurationItem.Type)
+                {
+                    case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
+                    {
+                        if (configProducts.TryGetValue(configurationItem.ProductId, out var product))
+                        {
+                            container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId, configurationItem.Type);
+                        }
+
+                        break;
+                    }
+                    case ConfigurationSectionTypeText:
+                        container.AddTextSectionLineItem(configurationItem.CustomText, configurationItem.SectionId);
+                        break;
+                    case ConfigurationSectionTypeFile:
+                        container.AddFileSectionLineItem(configurationItem.Files, configurationItem.SectionId);
+                        break;
+                }
+            }
+
+            return container;
+        }
+
+        protected virtual void SyncConfigurationItemPrices(LineItem configurationLineItem, ExpConfigurationLineItem recalculated)
+        {
+            if (recalculated.Item?.ConfigurationItems.IsNullOrEmpty() != false)
+            {
+                return;
+            }
+
+            foreach (var recalculatedItem in recalculated.Item.ConfigurationItems)
+            {
+                var existingItem = configurationLineItem.ConfigurationItems?.FirstOrDefault(x =>
+                    x.Type == recalculatedItem.Type &&
+                    x.SectionId == recalculatedItem.SectionId &&
+                    (recalculatedItem.Type != ConfigurationSectionTypeVariation || x.ProductId == recalculatedItem.ProductId));
+
+                if (existingItem != null)
+                {
+                    existingItem.ListPrice = recalculatedItem.ListPrice;
+                    existingItem.SalePrice = recalculatedItem.SalePrice;
+                }
+            }
         }
 
         protected virtual Task DeleteConfigurationFiles()
