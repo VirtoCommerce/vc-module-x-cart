@@ -87,6 +87,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
     {
         var criteria = AbstractTypeFactory<ProductConfigurationSearchCriteria>.TryCreateInstance();
         criteria.ProductId = request.ConfigurableProductId;
+        criteria.IsActive = true;
 
         var configurationsResult = await _productConfigurationSearchService.SearchNoCloneAsync(criteria);
         return configurationsResult.Results.FirstOrDefault();
