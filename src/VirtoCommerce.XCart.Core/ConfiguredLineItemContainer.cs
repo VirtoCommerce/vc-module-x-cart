@@ -22,7 +22,7 @@ namespace VirtoCommerce.XCart.Core
 
         public CartProduct ConfigurableProduct { get; set; }
 
-        private readonly List<SectionLineItem> _items = [];
+        protected List<SectionLineItem> Items { get; } = [];
 
         public virtual LineItem CreateLineItem(CartProduct cartProduct, int quantity)
         {
@@ -57,21 +57,21 @@ namespace VirtoCommerce.XCart.Core
             return lineItem;
         }
 
-        public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId)
+        public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId, string type = ConfigurationSectionTypeProduct)
         {
             var lineItem = CreateLineItem(cartProduct, quantity);
 
-            _items.Add(new SectionLineItem
+            Items.Add(new SectionLineItem
             {
                 SectionId = sectionId,
-                Type = ConfigurationSectionTypeProduct,
+                Type = type,
                 Item = lineItem,
             });
         }
 
         public virtual void AddTextSectionLineItem(string customText, string sectionId)
         {
-            _items.Add(new SectionLineItem
+            Items.Add(new SectionLineItem
             {
                 SectionId = sectionId,
                 Type = ConfigurationSectionTypeText,
@@ -81,7 +81,7 @@ namespace VirtoCommerce.XCart.Core
 
         public virtual void AddFileSectionLineItem(IList<ConfigurationItemFile> files, string sectionId)
         {
-            _items.Add(new SectionLineItem
+            Items.Add(new SectionLineItem
             {
                 SectionId = sectionId,
                 Type = ConfigurationSectionTypeFile,
@@ -100,37 +100,45 @@ namespace VirtoCommerce.XCart.Core
             lineItem.TaxDetails = [];
             lineItem.DynamicProperties = [];
 
-            lineItem.ProductId = ConfigurableProduct.Product.Id;
-            lineItem.Sku = $"Configuration-{ConfigurableProduct.Product.Code}";
+            if (ConfigurableProduct?.Product is { } product)
+            {
+                lineItem.ProductId = product.Id;
+                lineItem.Sku = $"Configuration-{product.Code}";
 
-            lineItem.CatalogId = ConfigurableProduct.Product.CatalogId;
-            lineItem.CategoryId = ConfigurableProduct.Product.CategoryId;
+                lineItem.CatalogId = product.CatalogId;
+                lineItem.CategoryId = product.CategoryId;
 
-            lineItem.Name = ConfigurableProduct.GetName(CultureName);
-            lineItem.ImageUrl = ConfigurableProduct.Product.ImgSrc;
-            lineItem.ProductOuterId = ConfigurableProduct.Product.OuterId;
-            lineItem.ProductType = ConfigurableProduct.Product.ProductType;
-            lineItem.TaxType = ConfigurableProduct.Product.TaxType;
+                lineItem.Name = ConfigurableProduct.GetName(CultureName);
+                lineItem.ImageUrl = product.ImgSrc;
+                lineItem.ProductOuterId = product.OuterId;
+                lineItem.ProductType = product.ProductType;
+                lineItem.TaxType = product.TaxType;
 
-            lineItem.FulfillmentCenterId = ConfigurableProduct.Inventory?.FulfillmentCenterId;
-            lineItem.FulfillmentCenterName = ConfigurableProduct.Inventory?.FulfillmentCenterName;
-            lineItem.VendorId = ConfigurableProduct.Product.Vendor;
+                lineItem.FulfillmentCenterId = ConfigurableProduct.Inventory?.FulfillmentCenterId;
+                lineItem.FulfillmentCenterName = ConfigurableProduct.Inventory?.FulfillmentCenterName;
+                lineItem.VendorId = product.Vendor;
+            }
 
             // create sub items
-            lineItem.ConfigurationItems = _items
+            lineItem.ConfigurationItems = Items
                 .Select(x =>
                 {
                     var subItem = AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
 
                     subItem.SectionId = x.SectionId;
+                    subItem.Type = x.Type;
+                    subItem.CatalogId = x.Item?.CatalogId;
+                    subItem.CategoryId = x.Item?.CategoryId;
                     subItem.ProductId = x.Item?.ProductId;
                     subItem.Name = x.Item?.Name;
                     subItem.Sku = x.Item?.Sku;
                     subItem.ImageUrl = x.Item?.ImageUrl;
                     subItem.Quantity = x.Item?.Quantity ?? 1;
-                    subItem.CatalogId = x.Item?.CatalogId;
-                    subItem.CategoryId = x.Item?.CategoryId;
-                    subItem.Type = x.Type;
+                    if (x.Type is ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation)
+                    {
+                        subItem.ListPrice = x.Item?.ListPrice ?? 0m;
+                        subItem.SalePrice = x.Item?.SalePrice ?? 0m;
+                    }
                     subItem.CustomText = x.CustomText;
                     subItem.Files = x.Files;
 
@@ -158,7 +166,7 @@ namespace VirtoCommerce.XCart.Core
         public virtual void UpdatePrice(LineItem lineItem)
         {
             var configurableProductPrice = ConfigurableProduct?.Price ?? new Xapi.Core.Models.ProductPrice(Currency);
-            var items = _items.Where(x => x.Item != null).Select(x => x.Item).ToArray();
+            var items = Items.Where(x => x.Item != null).Select(x => x.Item).ToArray();
 
             lineItem.ListPrice = items.Sum(x => x.ListPrice * x.Quantity) + configurableProductPrice.ListPrice.Amount;
             lineItem.SalePrice = items.Sum(x => x.SalePrice * x.Quantity) + configurableProductPrice.SalePrice.Amount;
@@ -185,7 +193,7 @@ namespace VirtoCommerce.XCart.Core
             return MemberwiseClone();
         }
 
-        private sealed class SectionLineItem
+        protected class SectionLineItem
         {
             public string SectionId { get; set; }
             public LineItem Item { get; set; }

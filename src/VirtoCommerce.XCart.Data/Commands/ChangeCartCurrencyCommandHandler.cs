@@ -111,35 +111,15 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             configProductsIds.AddRange(configuredItems.Select(x => x.ProductId));
 
-            var configProducts = await _cartProductService.GetCartProductsByIdsAsync(newCurrencyCartAggregate, configProductsIds);
+            var configProducts = (await _cartProductService.GetCartProductsByIdsAsync(newCurrencyCartAggregate, configProductsIds))
+                .ToDictionary(x => x.Id);
 
             foreach (var configurationLineItem in configuredItems)
             {
-                var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
-                container.Currency = newCurrencyCartAggregate.Currency;
-                container.Store = newCurrencyCartAggregate.Store;
-
-                container.ConfigurableProduct = configProducts.FirstOrDefault(x => x.Product.Id == configurationLineItem.ProductId);
-
-                foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
+                var container = await CreateConfiguredLineItemContainerAsync(configurationLineItem, configProducts, currentCurrencyCartAggregate, newCurrencyCartAggregate);
+                if (container is null)
                 {
-                    if (configurationItem.Type == ConfigurationSectionTypeProduct)
-                    {
-                        var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
-                        if (product != null)
-                        {
-                            container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId);
-                        }
-                    }
-                    else if (configurationItem.Type == ConfigurationSectionTypeText)
-                    {
-                        container.AddTextSectionLineItem(configurationItem.CustomText, configurationItem.SectionId);
-                    }
-                    else if (configurationItem.Type == ConfigurationSectionTypeFile)
-                    {
-                        var files = await CopyConfigurationFiles(configurationItem, currentCurrencyCartAggregate.Cart);
-                        container.AddFileSectionLineItem(files, configurationItem.SectionId);
-                    }
+                    continue;
                 }
 
                 var expItem = container.CreateConfiguredLineItem(configurationLineItem.Quantity);
@@ -159,6 +139,50 @@ namespace VirtoCommerce.XCart.Data.Commands
                     })).ToArray(),
                 }, expItem.Item);
             }
+        }
+
+        protected virtual async Task<ConfiguredLineItemContainer> CreateConfiguredLineItemContainerAsync(
+            LineItem configurationLineItem,
+            Dictionary<string, CartProduct> configProducts,
+            CartAggregate currentCurrencyCartAggregate,
+            CartAggregate newCurrencyCartAggregate)
+        {
+            if (!configProducts.TryGetValue(configurationLineItem.ProductId, out var configurableProduct))
+            {
+                return null;
+            }
+
+            var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
+            container.Currency = newCurrencyCartAggregate.Currency;
+            container.Store = newCurrencyCartAggregate.Store;
+            container.ConfigurableProduct = configurableProduct;
+
+            foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
+            {
+                switch (configurationItem.Type)
+                {
+                    case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
+                    {
+                        if (configProducts.TryGetValue(configurationItem.ProductId, out var product))
+                        {
+                            container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId, configurationItem.Type);
+                        }
+
+                        break;
+                    }
+                    case ConfigurationSectionTypeText:
+                        container.AddTextSectionLineItem(configurationItem.CustomText, configurationItem.SectionId);
+                        break;
+                    case ConfigurationSectionTypeFile:
+                    {
+                        var files = await CopyConfigurationFiles(configurationItem, currentCurrencyCartAggregate.Cart);
+                        container.AddFileSectionLineItem(files, configurationItem.SectionId);
+                        break;
+                    }
+                }
+            }
+
+            return container;
         }
 
         private async Task<IList<ConfigurationItemFile>> CopyConfigurationFiles(ConfigurationItem configurationItem, ShoppingCart cart)

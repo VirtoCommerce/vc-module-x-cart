@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -23,6 +24,8 @@ namespace VirtoCommerce.XCart.Data.Commands
         private readonly ICustomerPreferenceService _customerPreferenceService;
         private readonly IPickupLocationService _pickupLocationService;
 
+        protected static readonly Type ExpCartAddressType = AbstractTypeFactory<ExpCartAddress>.TryCreateInstance().GetType();
+
         public AddOrUpdateCartShipmentCommandHandler(
             ICartAggregateRepository cartAggregateRepository,
             ICartAvailMethodsService cartAvailMethodService,
@@ -40,9 +43,9 @@ namespace VirtoCommerce.XCart.Data.Commands
             var cartAggregate = await GetOrCreateCartFromCommandAsync(request);
 
             var shipmentId = request.Shipment.Id?.Value;
-            var shipment = cartAggregate.Cart.Shipments.FirstOrDefault(s => shipmentId != null && s.Id == shipmentId);
-            var previousShipmentCode = shipment?.ShipmentMethodCode;
-            shipment = request.Shipment.MapTo(shipment);
+            var existingShipment = cartAggregate.Cart.Shipments.FirstOrDefault(s => shipmentId != null && s.Id == shipmentId);
+            var previousShipmentCode = existingShipment?.ShipmentMethodCode;
+            var shipment = request.Shipment.MapTo(existingShipment);
 
             ClearAddressInfo(request, shipment, previousShipmentCode);
 
@@ -58,6 +61,11 @@ namespace VirtoCommerce.XCart.Data.Commands
                 await LoadAddressFromPreferencesAsync(request.UserId, preferenceKey, shipment, cartAggregate, cancellationToken);
             }
 
+            if (existingShipment == null)
+            {
+                await InitializeNewShipmentAsync(shipment, request, cartAggregate, cancellationToken);
+            }
+
             await SetPickupLocationAddressAsync(shipment, cartAggregate, cancellationToken);
 
             await cartAggregate.AddShipmentAsync(shipment, await _cartAvailMethodService.GetAvailableShippingRatesAsync(cartAggregate));
@@ -69,6 +77,15 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             cartAggregate = await SaveCartAsync(cartAggregate);
             return await GetCartById(cartAggregate.Cart.Id, request.CultureName);
+        }
+
+        protected virtual Task InitializeNewShipmentAsync(
+            Shipment shipment,
+            AddOrUpdateCartShipmentCommand request,
+            CartAggregate cartAggregate,
+            CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
         }
 
         protected virtual async Task SetPickupLocationAddressAsync(Shipment shipment, CartAggregate cartAggregate, CancellationToken cancellationToken = default)
@@ -109,9 +126,9 @@ namespace VirtoCommerce.XCart.Data.Commands
                 }
                 else
                 {
-                    var address = JsonConvert.DeserializeObject<ExpCartAddress>(savedValue);
+                    var address = (ExpCartAddress)JsonConvert.DeserializeObject(savedValue, ExpCartAddressType);
                     shipment.DeliveryAddress = AbstractTypeFactory<Address>.TryCreateInstance();
-                    address.MapTo(shipment.DeliveryAddress);
+                    address?.MapTo(shipment.DeliveryAddress);
                 }
             }
             else
