@@ -76,11 +76,14 @@ namespace VirtoCommerce.XCart.Data.Commands
                         CreatedDate = x.CreatedDate,
                         Comment = x.Note,
                         IsSelectedForCheckout = x.SelectedForCheckout,
-                        DynamicProperties = x.DynamicProperties.SelectMany(x => x.Values.Select(y => new DynamicPropertyValue()
+                        DynamicProperties = x.DynamicProperties.SelectMany(p => p.Values.Select(v =>
                         {
-                            Name = x.Name,
-                            Value = y.Value,
-                            Locale = y.Locale,
+                            var value = AbstractTypeFactory<DynamicPropertyValue>.TryCreateInstance();
+                            value.Name = p.Name;
+                            value.Value = v.Value;
+                            value.Locale = v.Locale;
+
+                            return value;
                         })).ToArray(),
                     })
                     .ToArray();
@@ -131,11 +134,14 @@ namespace VirtoCommerce.XCart.Data.Commands
                     CreatedDate = configurationLineItem.CreatedDate,
                     Comment = configurationLineItem.Note,
                     IsSelectedForCheckout = configurationLineItem.SelectedForCheckout,
-                    DynamicProperties = configurationLineItem.DynamicProperties.SelectMany(x => x.Values.Select(y => new DynamicPropertyValue()
+                    DynamicProperties = configurationLineItem.DynamicProperties.SelectMany(x => x.Values.Select(y =>
                     {
-                        Name = x.Name,
-                        Value = y.Value,
-                        Locale = y.Locale,
+                        var value = AbstractTypeFactory<DynamicPropertyValue>.TryCreateInstance();
+                        value.Name = x.Name;
+                        value.Value = y.Value;
+                        value.Locale = y.Locale;
+
+                        return value;
                     })).ToArray(),
                 }, expItem.Item);
             }

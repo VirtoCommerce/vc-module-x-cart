@@ -412,14 +412,15 @@ namespace VirtoCommerce.XCart.Core
                     giftItem.Id = null;
                     giftItem.IsGift = true;
                     giftItem.Discounts ??= new List<Discount>();
-                    giftItem.Discounts.Add(new Discount
-                    {
-                        Coupon = availableGift.Coupon,
-                        PromotionId = availableGift.Promotion.Id,
-                        Name = availableGift.Promotion.Name,
-                        Description = availableGift.Promotion.Description,
-                        Currency = Cart.Currency,
-                    });
+
+                    var item = AbstractTypeFactory<Discount>.TryCreateInstance();
+                    item.Coupon = availableGift.Coupon;
+                    item.PromotionId = availableGift.Promotion.Id;
+                    item.Name = availableGift.Promotion.Name;
+                    item.Description = availableGift.Promotion.Description;
+                    item.Currency = Cart.Currency;
+
+                    giftItem.Discounts.Add(item);
                     giftItem.CatalogId ??= "";
                     giftItem.ProductId ??= "";
                     giftItem.Sku ??= "";

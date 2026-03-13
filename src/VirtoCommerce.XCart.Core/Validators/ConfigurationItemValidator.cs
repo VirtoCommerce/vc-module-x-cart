@@ -92,12 +92,10 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigur
 
     private async Task<ProductConfiguration> ValidateConfiguration(LineItem item, ValidationContext<LineItem> context)
     {
-        var searchCriteria = new ProductConfigurationSearchCriteria
-        {
-            ProductIds = [item.ProductId],
-            IsActive = true,
-            Take = 1,
-        };
+        var searchCriteria = AbstractTypeFactory<ProductConfigurationSearchCriteria>.TryCreateInstance();
+        searchCriteria.ProductId = item.ProductId;
+        searchCriteria.IsActive = true;
+        searchCriteria.Take = 1;
 
         var searchResult = await _productConfigurationService.SearchNoCloneAsync(searchCriteria);
         var configuration = searchResult.Results.FirstOrDefault();

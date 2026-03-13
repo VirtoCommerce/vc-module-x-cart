@@ -60,12 +60,10 @@ namespace VirtoCommerce.XCart.Data.Services
             //Request available shipping rates
             var shippingEvaluationContext = new ShippingEvaluationContext(cartAggregate.Cart);
 
-            var criteria = new ShippingMethodsSearchCriteria
-            {
-                IsActive = true,
-                Take = _takeOnSearch,
-                StoreId = cartAggregate.Store?.Id
-            };
+            var criteria = AbstractTypeFactory<ShippingMethodsSearchCriteria>.TryCreateInstance();
+            criteria.IsActive = true;
+            criteria.Take = _takeOnSearch;
+            criteria.StoreId = cartAggregate.Store?.Id;
 
             var activeAvailableShippingMethods = (await _shippingMethodsSearchService.SearchAsync(criteria)).Results;
 
@@ -122,12 +120,10 @@ namespace VirtoCommerce.XCart.Data.Services
                 return [];
             }
 
-            var criteria = new PaymentMethodsSearchCriteria
-            {
-                IsActive = true,
-                Take = _takeOnSearch,
-                StoreId = cartAggregate.Store?.Id,
-            };
+            var criteria = AbstractTypeFactory<PaymentMethodsSearchCriteria>.TryCreateInstance();
+            criteria.IsActive = true;
+            criteria.Take = _takeOnSearch;
+            criteria.StoreId = cartAggregate.Store?.Id;
 
             var result = await _paymentMethodsSearchService.SearchAsync(criteria);
             if (result.Results.IsNullOrEmpty())

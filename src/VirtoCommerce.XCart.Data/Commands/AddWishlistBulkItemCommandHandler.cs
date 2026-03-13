@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Models;
 
@@ -17,7 +18,7 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         public virtual async Task<BulkCartAggregateResult> Handle(AddWishlistBulkItemCommand request, CancellationToken cancellationToken)
         {
-            var result = new BulkCartAggregateResult();
+            var result = AbstractTypeFactory<BulkCartAggregateResult>.TryCreateInstance();
 
             foreach (var listId in request.ListIds)
             {

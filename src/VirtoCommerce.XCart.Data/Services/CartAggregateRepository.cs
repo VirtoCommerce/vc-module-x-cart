@@ -118,18 +118,15 @@ namespace VirtoCommerce.XCart.Data.Services
                 return cartAggregate;
             }
 
-            var criteria = new ShoppingCartSearchCriteria
-            {
-                StoreId = cartRequest.StoreId,
-                // IMPORTANT! Need to specify customerId, otherwise any user cart could be returned while we expect anonymous in this case.
-                CustomerId = cartRequest.UserId ?? AnonymousUser.UserName,
-                OrganizationId = cartRequest.OrganizationId,
-                OrganizationIdIsEmpty = string.IsNullOrEmpty(cartRequest.OrganizationId),
-                Name = cartRequest.CartName,
-                Currency = cartRequest.CurrencyCode,
-                Type = cartRequest.CartType,
-                ResponseGroup = EnumUtility.SafeParseFlags(responseGroup, CartResponseGroup.Full).ToString()
-            };
+            var criteria = AbstractTypeFactory<ShoppingCartSearchCriteria>.TryCreateInstance();
+            criteria.StoreId = cartRequest.StoreId; // IMPORTANT! Need to specify customerId, otherwise any user cart could be returned while we expect anonymous in this case.
+            criteria.CustomerId = cartRequest.UserId ?? AnonymousUser.UserName;
+            criteria.OrganizationId = cartRequest.OrganizationId;
+            criteria.OrganizationIdIsEmpty = string.IsNullOrEmpty(cartRequest.OrganizationId);
+            criteria.Name = cartRequest.CartName;
+            criteria.Currency = cartRequest.CurrencyCode;
+            criteria.Type = cartRequest.CartType;
+            criteria.ResponseGroup = EnumUtility.SafeParseFlags(responseGroup, CartResponseGroup.Full).ToString();
 
             var cartSearchResult = await _shoppingCartSearchService.SearchAsync(criteria);
             //The null value for the Type parameter should be interpreted as a valuable parameter, and we must return a cart object with Type property that has null exactly set.
