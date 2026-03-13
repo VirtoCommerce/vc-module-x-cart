@@ -34,7 +34,7 @@ namespace VirtoCommerce.XCart.Data.Services
 
         private readonly IMapper _mapper;
 
-        private readonly int _takeOnSearch = 20;
+        protected virtual int TakeOnSearch => 20;
 
         public CartAvailMethodsService(
             IPaymentMethodsSearchService paymentMethodsSearchService,
@@ -62,7 +62,7 @@ namespace VirtoCommerce.XCart.Data.Services
 
             var criteria = AbstractTypeFactory<ShippingMethodsSearchCriteria>.TryCreateInstance();
             criteria.IsActive = true;
-            criteria.Take = _takeOnSearch;
+            criteria.Take = TakeOnSearch;
             criteria.StoreId = cartAggregate.Store?.Id;
 
             var activeAvailableShippingMethods = (await _shippingMethodsSearchService.SearchAsync(criteria)).Results;
@@ -122,7 +122,7 @@ namespace VirtoCommerce.XCart.Data.Services
 
             var criteria = AbstractTypeFactory<PaymentMethodsSearchCriteria>.TryCreateInstance();
             criteria.IsActive = true;
-            criteria.Take = _takeOnSearch;
+            criteria.Take = TakeOnSearch;
             criteria.StoreId = cartAggregate.Store?.Id;
 
             var result = await _paymentMethodsSearchService.SearchAsync(criteria);
