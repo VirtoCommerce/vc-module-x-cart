@@ -34,7 +34,7 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         public virtual async Task<BulkCartResult> Handle(AddCartItemsBulkCommand request, CancellationToken cancellationToken)
         {
-            var result = new BulkCartResult();
+            var result = AbstractTypeFactory<BulkCartResult>.TryCreateInstance();
             var cartItemsToAdd = new List<NewCartItem>();
             var requestedItems = request.CartItems.ToList();
 
@@ -99,15 +99,13 @@ namespace VirtoCommerce.XCart.Data.Commands
             long totalCount;
             var result = new List<CatalogProduct>();
 
-            var indexedSearchCriteria = new ProductIndexedSearchCriteria
-            {
-                StoreId = request.StoreId,
-                CatalogId = await GetCatalogId(request.StoreId),
-                Terms = [new TermFilter { FieldName = "code", Values = productSkus }.ToString()],
-                SearchInVariations = true,
-                ResponseGroup = ItemResponseGroup.ItemInfo.ToString(),
-                Take = 20
-            };
+            var indexedSearchCriteria = AbstractTypeFactory<ProductIndexedSearchCriteria>.TryCreateInstance();
+            indexedSearchCriteria.StoreId = request.StoreId;
+            indexedSearchCriteria.CatalogId = await GetCatalogId(request.StoreId);
+            indexedSearchCriteria.Terms = [new TermFilter { FieldName = "code", Values = productSkus }.ToString()];
+            indexedSearchCriteria.SearchInVariations = true;
+            indexedSearchCriteria.ResponseGroup = nameof(ItemResponseGroup.ItemInfo);
+            indexedSearchCriteria.Take = 20;
 
             do
             {

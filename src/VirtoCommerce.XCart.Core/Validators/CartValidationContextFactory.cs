@@ -74,11 +74,9 @@ namespace VirtoCommerce.XCart.Core.Validators
                 return null;
             }
 
-            var criteria = new ProductConfigurationSearchCriteria
-            {
-                ProductIds = configuredProductIds,
-                IsActive = true,
-            };
+            var criteria = AbstractTypeFactory<ProductConfigurationSearchCriteria>.TryCreateInstance();
+            criteria.ProductIds = configuredProductIds;
+            criteria.IsActive = true;
 
             var configurations = await _productConfigurationSearchService.SearchAllNoCloneAsync(criteria);
 
