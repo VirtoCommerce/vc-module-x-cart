@@ -61,32 +61,32 @@ namespace VirtoCommerce.XCart.Core
         {
             var lineItem = CreateLineItem(cartProduct, quantity);
 
-            Items.Add(new SectionLineItem
-            {
-                SectionId = sectionId,
-                Type = type,
-                Item = lineItem,
-            });
+            var item = AbstractTypeFactory<SectionLineItem>.TryCreateInstance();
+            item.SectionId = sectionId;
+            item.Type = type;
+            item.Item = lineItem;
+
+            Items.Add(item);
         }
 
         public virtual void AddTextSectionLineItem(string customText, string sectionId)
         {
-            Items.Add(new SectionLineItem
-            {
-                SectionId = sectionId,
-                Type = ConfigurationSectionTypeText,
-                CustomText = customText,
-            });
+            var item = AbstractTypeFactory<SectionLineItem>.TryCreateInstance();
+            item.SectionId = sectionId;
+            item.Type = ConfigurationSectionTypeText;
+            item.CustomText = customText;
+
+            Items.Add(item);
         }
 
         public virtual void AddFileSectionLineItem(IList<ConfigurationItemFile> files, string sectionId)
         {
-            Items.Add(new SectionLineItem
-            {
-                SectionId = sectionId,
-                Type = ConfigurationSectionTypeFile,
-                Files = files,
-            });
+            var item = AbstractTypeFactory<SectionLineItem>.TryCreateInstance();
+            item.SectionId = sectionId;
+            item.Type = ConfigurationSectionTypeFile;
+            item.Files = files;
+
+            Items.Add(item);
         }
 
         public virtual ExpConfigurationLineItem CreateConfiguredLineItem(int quantity)
@@ -151,16 +151,16 @@ namespace VirtoCommerce.XCart.Core
 
             UpdatePrice(lineItem);
 
-            return new ExpConfigurationLineItem
-            {
-                Id = lineItem.Id,
-                Quantity = lineItem.Quantity,
-                Item = lineItem,
-                Currency = Currency,
-                CultureName = CultureName,
-                UserId = UserId,
-                StoreId = Store.Id,
-            };
+            var result = AbstractTypeFactory<ExpConfigurationLineItem>.TryCreateInstance();
+            result.Id = lineItem.Id;
+            result.Quantity = lineItem.Quantity;
+            result.Item = lineItem;
+            result.Currency = Currency;
+            result.CultureName = CultureName;
+            result.UserId = UserId;
+            result.StoreId = Store.Id;
+
+            return result;
         }
 
         public virtual void UpdatePrice(LineItem lineItem)

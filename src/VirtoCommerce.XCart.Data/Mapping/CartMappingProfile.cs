@@ -79,46 +79,36 @@ namespace VirtoCommerce.XCart.Data.Mapping
 
             CreateMap<LineItem, IEnumerable<TaxLine>>().ConvertUsing((lineItem, taxLines, context) =>
             {
-                return new[]
-                {
-                    new TaxLine
-                    {
-                        Id = lineItem.Id,
-                        Code = lineItem.Sku,
-                        Name = lineItem.Name,
-                        TaxType = lineItem.TaxType,
-                        //Special case when product have 100% discount and need to calculate tax for old value
-                        Amount =  lineItem.ListPrice > 0 ? lineItem.ListPrice : lineItem.SalePrice
-                    }
-                };
+                var taxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
+                taxLine.Id = lineItem.Id;
+                taxLine.Code = lineItem.Sku;
+                taxLine.Name = lineItem.Name;
+                taxLine.TaxType = lineItem.TaxType; //Special case when product have 100% discount and need to calculate tax for old value
+                taxLine.Amount = lineItem.ListPrice > 0 ? lineItem.ListPrice : lineItem.SalePrice;
+
+                return [taxLine];
             });
 
             CreateMap<ShippingRate, IEnumerable<TaxLine>>().ConvertUsing((shipmentRate, taxLines, context) =>
             {
-                return new[]
-                {
-                    new TaxLine
-                    {
-                        Id = string.Join("&", shipmentRate.ShippingMethod.Code, shipmentRate.OptionName),
-                        Code = shipmentRate.ShippingMethod.Code,
-                        TaxType = shipmentRate.ShippingMethod.TaxType,
-                        Amount = shipmentRate.DiscountAmount > 0 ? shipmentRate.DiscountAmount : shipmentRate.Rate
-                    }
-                };
+                var taxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
+                taxLine.Id = string.Join("&", shipmentRate.ShippingMethod.Code, shipmentRate.OptionName);
+                taxLine.Code = shipmentRate.ShippingMethod.Code;
+                taxLine.TaxType = shipmentRate.ShippingMethod.TaxType;
+                taxLine.Amount = shipmentRate.DiscountAmount > 0 ? shipmentRate.DiscountAmount : shipmentRate.Rate;
+
+                return [taxLine];
             });
 
             CreateMap<PaymentMethod, IEnumerable<TaxLine>>().ConvertUsing((paymentMethod, taxLines, context) =>
             {
-                return new[]
-                {
-                    new TaxLine
-                    {
-                        Id = paymentMethod.Code,
-                        Code = paymentMethod.Code,
-                        TaxType = paymentMethod.TaxType,
-                        Amount = paymentMethod.Total > 0 ? paymentMethod.Total : paymentMethod.Price
-                    }
-                };
+                var taxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
+                taxLine.Id = paymentMethod.Code;
+                taxLine.Code = paymentMethod.Code;
+                taxLine.TaxType = paymentMethod.TaxType;
+                taxLine.Amount = paymentMethod.Total > 0 ? paymentMethod.Total : paymentMethod.Price;
+
+                return [taxLine];
             });
 
             CreateMap<CartAggregate, PriceEvaluationContext>().ConvertUsing((cartAggr, priceEvalContext, context) =>
@@ -274,32 +264,27 @@ namespace VirtoCommerce.XCart.Data.Mapping
 
                 foreach (var lineItem in cartAggr.SelectedLineItems)
                 {
-                    taxEvalcontext.Lines.Add(new TaxLine()
-                    {
-                        Id = lineItem.Id,
-                        Code = lineItem.Sku,
-                        Name = lineItem.Name,
-                        TaxType = lineItem.TaxType,
-                        //Special case when product have 100% discount and need to calculate tax for old value
-                        Amount = lineItem.ExtendedPrice > 0 ? lineItem.ExtendedPrice : lineItem.SalePrice,
-                        Quantity = lineItem.Quantity,
-                        Price = lineItem.PlacedPrice,
-                        TypeName = "item"
-                    });
+                    var taxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
+                    taxLine.Id = lineItem.Id;
+                    taxLine.Code = lineItem.Sku;
+                    taxLine.Name = lineItem.Name;
+                    taxLine.TaxType = lineItem.TaxType; //Special case when product have 100% discount and need to calculate tax for old value
+                    taxLine.Amount = lineItem.ExtendedPrice > 0 ? lineItem.ExtendedPrice : lineItem.SalePrice;
+                    taxLine.Quantity = lineItem.Quantity;
+                    taxLine.Price = lineItem.PlacedPrice;
+                    taxLine.TypeName = "item";
+                    taxEvalcontext.Lines.Add(taxLine);
                 }
 
                 foreach (var shipment in cartAggr.Cart.Shipments ?? Array.Empty<Shipment>())
                 {
-                    var totalTaxLine = new TaxLine
-                    {
-                        Id = shipment.Id,
-                        Code = shipment.ShipmentMethodCode,
-                        Name = shipment.ShipmentMethodOption,
-                        TaxType = shipment.TaxType,
-                        //Special case when shipment have 100% discount and need to calculate tax for old value
-                        Amount = shipment.Total > 0 ? shipment.Total : shipment.Price,
-                        TypeName = "shipment"
-                    };
+                    var totalTaxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
+                    totalTaxLine.Id = shipment.Id;
+                    totalTaxLine.Code = shipment.ShipmentMethodCode;
+                    totalTaxLine.Name = shipment.ShipmentMethodOption;
+                    totalTaxLine.TaxType = shipment.TaxType; //Special case when shipment have 100% discount and need to calculate tax for old value
+                    totalTaxLine.Amount = shipment.Total > 0 ? shipment.Total : shipment.Price;
+                    totalTaxLine.TypeName = "shipment";
                     taxEvalcontext.Lines.Add(totalTaxLine);
 
                     if (shipment.DeliveryAddress != null)
@@ -311,16 +296,13 @@ namespace VirtoCommerce.XCart.Data.Mapping
 
                 foreach (var payment in cartAggr.Cart.Payments ?? Array.Empty<Payment>())
                 {
-                    var totalTaxLine = new TaxLine
-                    {
-                        Id = payment.Id,
-                        Code = payment.PaymentGatewayCode,
-                        Name = payment.PaymentGatewayCode,
-                        TaxType = payment.TaxType,
-                        //Special case when shipment have 100% discount and need to calculate tax for old value
-                        Amount = payment.Total > 0 ? payment.Total : payment.Price,
-                        TypeName = "payment"
-                    };
+                    var totalTaxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
+                    totalTaxLine.Id = payment.Id;
+                    totalTaxLine.Code = payment.PaymentGatewayCode;
+                    totalTaxLine.Name = payment.PaymentGatewayCode;
+                    totalTaxLine.TaxType = payment.TaxType; //Special case when shipment have 100% discount and need to calculate tax for old value
+                    totalTaxLine.Amount = payment.Total > 0 ? payment.Total : payment.Price;
+                    totalTaxLine.TypeName = "payment";
                     taxEvalcontext.Lines.Add(totalTaxLine);
                 }
                 return taxEvalcontext;

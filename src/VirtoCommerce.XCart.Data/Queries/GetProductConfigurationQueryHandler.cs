@@ -90,6 +90,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         criteria.IsActive = true;
 
         var configurationsResult = await _productConfigurationSearchService.SearchNoCloneAsync(criteria);
+
         return configurationsResult.Results.FirstOrDefault();
     }
 
@@ -103,16 +104,14 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
                 {
                     var item = container.CreateLineItem(cartProduct, option.Quantity);
 
-                    var expConfigurationLineItem = new ExpConfigurationLineItem
-                    {
-                        Id = option.Id,
-                        Quantity = option.Quantity,
-                        Item = item,
-                        Currency = container.Currency,
-                        CultureName = container.CultureName,
-                        UserId = container.UserId,
-                        StoreId = container.Store.Id,
-                    };
+                    var expConfigurationLineItem = AbstractTypeFactory<ExpConfigurationLineItem>.TryCreateInstance();
+                    expConfigurationLineItem.Id = option.Id;
+                    expConfigurationLineItem.Quantity = option.Quantity;
+                    expConfigurationLineItem.Item = item;
+                    expConfigurationLineItem.Currency = container.Currency;
+                    expConfigurationLineItem.CultureName = container.CultureName;
+                    expConfigurationLineItem.UserId = container.UserId;
+                    expConfigurationLineItem.StoreId = container.Store.Id;
 
                     configurationSection.Options.Add(expConfigurationLineItem);
                 }
@@ -126,11 +125,9 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         {
             foreach (var option in section.Options)
             {
-                var expConfigurationLineItem = new ExpConfigurationLineItem
-                {
-                    Id = option.Id,
-                    Text = option.Text,
-                };
+                var expConfigurationLineItem = AbstractTypeFactory<ExpConfigurationLineItem>.TryCreateInstance();
+                expConfigurationLineItem.Id = option.Id;
+                expConfigurationLineItem.Text = option.Text;
 
                 configurationSection.Options.Add(expConfigurationLineItem);
             }

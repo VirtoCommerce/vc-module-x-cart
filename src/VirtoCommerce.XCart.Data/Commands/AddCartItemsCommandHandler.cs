@@ -52,12 +52,12 @@ namespace VirtoCommerce.XCart.Data.Commands
             var productIds = request.CartItems.Select(x => x.ProductId).Distinct().ToArray();
 
             var productsTask = _cartProductService.GetCartProductsByIdsAsync(cartAggregate, productIds);
-            var configurationsTask = _productConfigurationSearchService.SearchAllNoCloneAsync(
-                new ProductConfigurationSearchCriteria
-                {
-                    ProductIds = productIds,
-                    IsActive = true,
-                });
+
+            var criteria = AbstractTypeFactory<ProductConfigurationSearchCriteria>.TryCreateInstance();
+            criteria.ProductIds = productIds;
+            criteria.IsActive = true;
+
+            var configurationsTask = _productConfigurationSearchService.SearchAllNoCloneAsync(criteria);
 
             await Task.WhenAll(productsTask, configurationsTask);
 

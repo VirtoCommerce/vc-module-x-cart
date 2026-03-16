@@ -64,15 +64,13 @@ namespace VirtoCommerce.XCart.Core.Extensions
 
             foreach (var reward in lineItemRewards)
             {
-                var discount = new Discount
-                {
-                    Coupon = reward.Coupon,
-                    Currency = currency.Code,
-                    PromotionId = reward.PromotionId ?? reward.Promotion?.Id,
-                    Name = reward.Promotion?.Name,
-                    Description = reward.Promotion?.Description,
-                    DiscountAmount = reward.GetAmountPerItem(lineItem.ListPrice - lineItem.DiscountAmount, lineItem.Quantity, currency),
-                };
+                var discount = AbstractTypeFactory<Discount>.TryCreateInstance();
+                discount.Coupon = reward.Coupon;
+                discount.Currency = currency.Code;
+                discount.PromotionId = reward.PromotionId ?? reward.Promotion?.Id;
+                discount.Name = reward.Promotion?.Name;
+                discount.Description = reward.Promotion?.Description;
+                discount.DiscountAmount = reward.GetAmountPerItem(lineItem.ListPrice - lineItem.DiscountAmount, lineItem.Quantity, currency);
 
                 // Skip invalid discounts
                 if (discount.DiscountAmount <= 0)
@@ -98,15 +96,13 @@ namespace VirtoCommerce.XCart.Core.Extensions
 
             foreach (var reward in shipmentRewards)
             {
-                var discount = new Discount
-                {
-                    Coupon = reward.Coupon,
-                    Currency = currency.Code,
-                    PromotionId = reward.PromotionId ?? reward.Promotion?.Id,
-                    Name = reward.Promotion?.Name,
-                    Description = reward.Promotion?.Description,
-                    DiscountAmount = reward.GetTotalAmount(shipment.Price - shipment.DiscountAmount, 1, currency),
-                };
+                var discount = AbstractTypeFactory<Discount>.TryCreateInstance();
+                discount.Coupon = reward.Coupon;
+                discount.Currency = currency.Code;
+                discount.PromotionId = reward.PromotionId ?? reward.Promotion?.Id;
+                discount.Name = reward.Promotion?.Name;
+                discount.Description = reward.Promotion?.Description;
+                discount.DiscountAmount = reward.GetTotalAmount(shipment.Price - shipment.DiscountAmount, 1, currency);
 
                 // Pass invalid discounts
                 if (discount.DiscountAmount <= 0)
@@ -130,15 +126,13 @@ namespace VirtoCommerce.XCart.Core.Extensions
 
             foreach (var reward in paymentRewards)
             {
-                var discount = new Discount
-                {
-                    Coupon = reward.Coupon,
-                    Currency = currency.Code,
-                    PromotionId = reward.PromotionId ?? reward.Promotion?.Id,
-                    Name = reward.Promotion?.Name,
-                    Description = reward.Promotion?.Description,
-                    DiscountAmount = reward.GetTotalAmount(payment.Price - payment.DiscountAmount, 1, currency),
-                };
+                var discount = AbstractTypeFactory<Discount>.TryCreateInstance();
+                discount.Coupon = reward.Coupon;
+                discount.Currency = currency.Code;
+                discount.PromotionId = reward.PromotionId ?? reward.Promotion?.Id;
+                discount.Name = reward.Promotion?.Name;
+                discount.Description = reward.Promotion?.Description;
+                discount.DiscountAmount = reward.GetTotalAmount(payment.Price - payment.DiscountAmount, 1, currency);
 
                 // Pass invalid discounts
                 if (discount.DiscountAmount <= 0)
@@ -212,15 +206,13 @@ namespace VirtoCommerce.XCart.Core.Extensions
                 //When a discount is applied to the cart subtotal, the tax calculation has already been applied, and is reflected in the tax subtotal.
                 //Therefore, a discount applying to the cart subtotal will occur after tax.
                 //For instance, if the cart subtotal is $100, and $15 is the tax subtotal, a cart - wide discount of 10 % will yield a total of $105($100 subtotal – $10 discount + $15 tax on the original $100).
-                var discount = new Discount
-                {
-                    Coupon = reward.Coupon,
-                    Currency = shoppingCart.Currency,
-                    PromotionId = reward.PromotionId ?? reward.Promotion?.Id,
-                    Name = reward.Promotion?.Name,
-                    Description = reward.Promotion?.Description,
-                    DiscountAmount = reward.GetTotalAmount(subTotalExcludeDiscount, 1, aggregate.Currency),
-                };
+                var discount = AbstractTypeFactory<Discount>.TryCreateInstance();
+                discount.Coupon = reward.Coupon;
+                discount.Currency = shoppingCart.Currency;
+                discount.PromotionId = reward.PromotionId ?? reward.Promotion?.Id;
+                discount.Name = reward.Promotion?.Name;
+                discount.Description = reward.Promotion?.Description;
+                discount.DiscountAmount = reward.GetTotalAmount(subTotalExcludeDiscount, 1, aggregate.Currency);
 
                 shoppingCart.Discounts ??= new List<Discount>();
                 shoppingCart.Discounts.Add(discount);
