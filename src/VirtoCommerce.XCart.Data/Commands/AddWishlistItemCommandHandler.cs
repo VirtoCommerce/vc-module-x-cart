@@ -76,7 +76,6 @@ namespace VirtoCommerce.XCart.Data.Commands
         {
             var criteria = AbstractTypeFactory<ProductConfigurationSearchCriteria>.TryCreateInstance();
             criteria.ProductId = request.ProductId;
-            criteria.IsActive = true;
 
             var configurations = await _productConfigurationSearchService.SearchNoCloneAsync(criteria);
 
