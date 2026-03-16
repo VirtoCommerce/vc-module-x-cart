@@ -264,7 +264,7 @@ namespace VirtoCommerce.XCart.Data.Mapping
 
                 foreach (var lineItem in cartAggr.SelectedLineItems)
                 {
-                    var taxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();;
+                    var taxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
                     taxLine.Id = lineItem.Id;
                     taxLine.Code = lineItem.Sku;
                     taxLine.Name = lineItem.Name;
@@ -296,7 +296,7 @@ namespace VirtoCommerce.XCart.Data.Mapping
 
                 foreach (var payment in cartAggr.Cart.Payments ?? Array.Empty<Payment>())
                 {
-                    var totalTaxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();;
+                    var totalTaxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
                     totalTaxLine.Id = payment.Id;
                     totalTaxLine.Code = payment.PaymentGatewayCode;
                     totalTaxLine.Name = payment.PaymentGatewayCode;
