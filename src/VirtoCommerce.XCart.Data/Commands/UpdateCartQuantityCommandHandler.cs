@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model.Search;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
@@ -75,23 +76,30 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         private async Task<IList<CartProduct>> LoadCartProductsAsync(UpdateCartQuantityCommand request, string[] productIds)
         {
-            var productRequest = new CartProductsRequest
-            {
-                LoadPrice = false,
-                LoadInventory = false,
-                EvaluatePromotions = false,
-
-                CultureName = request.CultureName,
-                StoreId = request.StoreId,
-                CurrencyCode = request.CurrencyCode,
-                UserId = request.UserId,
-
-                ProductIds = productIds,
-                ProductsIncludeFields = ["id", "name", "code"],
-            };
+            var productRequest = GetCartProductsRequest(request, productIds);
 
             var products = await _cartProductsLoaderService.GetCartProductsAsync(productRequest);
             return products;
+        }
+
+        protected virtual CartProductsRequest GetCartProductsRequest(UpdateCartQuantityCommand request, string[] productIds)
+        {
+            var productRequest = AbstractTypeFactory<CartProductsRequest>.TryCreateInstance();
+
+            productRequest.LoadPrice = false;
+            productRequest.LoadInventory = false;
+            productRequest.EvaluatePromotions = false;
+
+            productRequest.StoreId = request.StoreId;
+            productRequest.UserId = request.UserId;
+            productRequest.OrganizationId = request.OrganizationId;
+            productRequest.CultureName = request.CultureName;
+            productRequest.CurrencyCode = request.CurrencyCode;
+
+            productRequest.ProductIds = productIds;
+            productRequest.ProductsIncludeFields = ["id", "name", "code"];
+
+            return productRequest;
         }
 
         protected static List<UpdateCartQuantityItem> CombineRequestItems(UpdateCartQuantityCommand request)
