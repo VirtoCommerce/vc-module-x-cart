@@ -57,21 +57,45 @@ namespace VirtoCommerce.XCart.Core
             return lineItem;
         }
 
+        /// <summary>
+        /// Creates a <see cref="LineItem"/> for a configuration item product.
+        /// Override to customize pricing — e.g. use a pre-computed price from
+        /// <paramref name="configurationItem"/> instead of the catalog product price.
+        /// </summary>
+        public virtual LineItem CreateLineItem(CartProduct cartProduct, ConfigurationItem configurationItem)
+        {
+            var lineItem = CreateLineItem(cartProduct, configurationItem.Quantity);
+            lineItem.SelectedForCheckout = configurationItem.SelectedForCheckout;
+
+            return lineItem;
+        }
+
+        /// <summary>
+        /// Adds a product section line item for a new configuration item (e.g. from a GraphQL mutation).
+        /// Prices are loaded from the catalog product.
+        /// </summary>
         public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId, string type = ConfigurationSectionTypeProduct)
         {
-            AddProductSectionLineItem(cartProduct, quantity, sectionId, type, selectedForCheckout: true);
+            var lineItem = CreateLineItem(cartProduct, quantity);
+
+            AddProductSectionLineItem(lineItem, sectionId, type);
         }
 
+        /// <summary>
+        /// Adds a product section line item for an existing configuration item (e.g. during price recalculation).
+        /// Propagates <see cref="ConfigurationItem.SelectedForCheckout"/> and uses
+        /// <see cref="CreateLineItem(CartProduct, ConfigurationItem)"/> for pricing — override
+        /// to inject pre-computed prices instead of catalog prices.
+        /// </summary>
         public virtual void AddProductSectionLineItem(CartProduct cartProduct, ConfigurationItem configurationItem)
         {
-            AddProductSectionLineItem(cartProduct, configurationItem.Quantity, configurationItem.SectionId, configurationItem.Type, configurationItem.SelectedForCheckout);
+            var lineItem = CreateLineItem(cartProduct, configurationItem);
+
+            AddProductSectionLineItem(lineItem, configurationItem.SectionId, configurationItem.Type);
         }
 
-        protected virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId, string type, bool selectedForCheckout)
+        protected virtual void AddProductSectionLineItem(LineItem lineItem, string sectionId, string type)
         {
-            var lineItem = CreateLineItem(cartProduct, quantity);
-            lineItem.SelectedForCheckout = selectedForCheckout;
-
             var item = AbstractTypeFactory<SectionLineItem>.TryCreateInstance();
             item.SectionId = sectionId;
             item.Type = type;
@@ -199,6 +223,34 @@ namespace VirtoCommerce.XCart.Core
             return request;
         }
 
+        /// <summary>
+        /// Syncs adjusted prices from the container's internal items back to the
+        /// original <see cref="ConfigurationItem"/> objects on the line item.
+        /// Matches by Type + SectionId, and additionally by ProductId for Product/Variation sections
+        /// (required for multi-product sections with multiple items in the same section).
+        /// </summary>
+        public virtual void SyncConfigurationPrices(LineItem lineItem)
+        {
+            if (lineItem.ConfigurationItems.IsNullOrEmpty())
+            {
+                return;
+            }
+
+            foreach (var sectionLineItem in Items.Where(x => x.Item is not null))
+            {
+                var configurationItem = lineItem.ConfigurationItems.FirstOrDefault(x =>
+                    x.SectionId == sectionLineItem.SectionId &&
+                    x.Type == sectionLineItem.Type &&
+                    (x.Type is not (ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation) || x.ProductId == sectionLineItem.Item.ProductId));
+
+                if (configurationItem is not null)
+                {
+                    configurationItem.ListPrice = sectionLineItem.Item.ListPrice;
+                    configurationItem.SalePrice = sectionLineItem.Item.SalePrice;
+                }
+            }
+        }
+
         public object Clone()
         {
             return MemberwiseClone();
@@ -207,9 +259,9 @@ namespace VirtoCommerce.XCart.Core
         protected class SectionLineItem
         {
             public string SectionId { get; set; }
+            public string Type { get; set; }
             public LineItem Item { get; set; }
             public string CustomText { get; set; }
-            public string Type { get; set; }
             public IList<ConfigurationItemFile> Files { get; set; } = [];
         }
     }
