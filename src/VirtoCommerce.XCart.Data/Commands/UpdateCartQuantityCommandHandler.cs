@@ -74,7 +74,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             return await SaveCartAsync(cartAggregate);
         }
 
-        private async Task<IList<CartProduct>> LoadCartProductsAsync(UpdateCartQuantityCommand request, string[] productIds)
+        protected virtual async Task<IList<CartProduct>> LoadCartProductsAsync(UpdateCartQuantityCommand request, string[] productIds)
         {
             var productRequest = GetCartProductsRequest(request, productIds);
 
