@@ -1687,7 +1687,7 @@ namespace VirtoCommerce.XCart.Core
                     {
                         if (configProducts.TryGetValue(configurationItem.ProductId, out var product))
                         {
-                            container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId, configurationItem.Type);
+                            container.AddProductSectionLineItem(product, configurationItem);
                         }
 
                         break;

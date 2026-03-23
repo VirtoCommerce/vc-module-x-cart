@@ -59,7 +59,18 @@ namespace VirtoCommerce.XCart.Core
 
         public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId, string type = ConfigurationSectionTypeProduct)
         {
+            AddProductSectionLineItem(cartProduct, quantity, sectionId, type, selectedForCheckout: true);
+        }
+
+        public virtual void AddProductSectionLineItem(CartProduct cartProduct, ConfigurationItem configurationItem)
+        {
+            AddProductSectionLineItem(cartProduct, configurationItem.Quantity, configurationItem.SectionId, configurationItem.Type, configurationItem.SelectedForCheckout);
+        }
+
+        protected virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId, string type, bool selectedForCheckout)
+        {
             var lineItem = CreateLineItem(cartProduct, quantity);
+            lineItem.SelectedForCheckout = selectedForCheckout;
 
             var item = AbstractTypeFactory<SectionLineItem>.TryCreateInstance();
             item.SectionId = sectionId;
@@ -166,7 +177,7 @@ namespace VirtoCommerce.XCart.Core
         public virtual void UpdatePrice(LineItem lineItem)
         {
             var configurableProductPrice = ConfigurableProduct?.Price ?? new Xapi.Core.Models.ProductPrice(Currency);
-            var items = Items.Where(x => x.Item != null).Select(x => x.Item).ToArray();
+            var items = Items.Where(x => x.Item is { SelectedForCheckout: true }).Select(x => x.Item).ToArray();
 
             lineItem.ListPrice = items.Sum(x => x.ListPrice * x.Quantity) + configurableProductPrice.ListPrice.Amount;
             lineItem.SalePrice = items.Sum(x => x.SalePrice * x.Quantity) + configurableProductPrice.SalePrice.Amount;
