@@ -124,8 +124,7 @@ public class CartValidatorTests : XCartMoqHelper
         };
 
         // Act
-        var result = await _validator.ValidateAsync(context,
-            options => options.IncludeRuleSets("orderCreate"), TestContext.Current.CancellationToken);
+        var result = await _validator.ValidateAsync(context, options => options.IncludeRuleSets("orderCreate"), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsValid.Should().BeTrue();
@@ -170,8 +169,7 @@ public class CartValidatorTests : XCartMoqHelper
         };
 
         // Act
-        var result = await _validator.ValidateAsync(context,
-            options => options.IncludeRuleSets("orderCreate"), TestContext.Current.CancellationToken);
+        var result = await _validator.ValidateAsync(context, options => options.IncludeRuleSets("orderCreate"), TestContext.Current.CancellationToken);
 
         // Assert: Section B is now required because its parent (Section A) was selected
         result.IsValid.Should().BeFalse();
