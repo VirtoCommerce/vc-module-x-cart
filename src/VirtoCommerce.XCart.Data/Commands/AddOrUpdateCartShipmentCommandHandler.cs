@@ -62,7 +62,10 @@ namespace VirtoCommerce.XCart.Data.Commands
                 await LoadAddressFromPreferencesAsync(request.UserId, preferenceKey, shipment, cartAggregate, cancellationToken);
 
                 // always use the same delivery address key/id because it's a one to one relationship between a shipment and an address
-                shipment.DeliveryAddress.Key = previousDeliveryAddressKey;
+                if (shipment.DeliveryAddress != null)
+                {
+                    shipment.DeliveryAddress.Key = previousDeliveryAddressKey;
+                }
             }
 
             if (existingShipment == null)
