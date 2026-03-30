@@ -138,7 +138,7 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigur
                 context.AddFailure(CartErrorDescriber.SelectedProductIsRequired(section));
             }
 
-            if (section.Options.All(x => x.ProductId != configurationItem.ProductId))
+            if (section.Options.Count > 0 && section.Options.All(x => x.ProductId != configurationItem.ProductId))
             {
                 context.AddFailure(CartErrorDescriber.ProductUnavailableForSectionError(nameof(CatalogProduct), configurationItem.ProductId, section.Id));
             }

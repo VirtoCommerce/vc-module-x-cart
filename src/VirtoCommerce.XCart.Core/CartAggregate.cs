@@ -1668,9 +1668,7 @@ namespace VirtoCommerce.XCart.Core
             {
                 var container = CreateConfiguredLineItemContainer(configurationLineItem, configProducts);
                 container.UpdatePrice(configurationLineItem);
-
-                var recalculated = container.CreateConfiguredLineItem(configurationLineItem.Quantity);
-                SyncConfigurationItemPrices(configurationLineItem, recalculated);
+                container.SyncConfigurationPrices(configurationLineItem);
             }
 
             return this;
@@ -1695,7 +1693,7 @@ namespace VirtoCommerce.XCart.Core
                         {
                             if (configProducts.TryGetValue(configurationItem.ProductId, out var product))
                             {
-                                container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId, configurationItem.Type);
+                                container.AddProductSectionLineItem(product, configurationItem);
                             }
 
                             break;
@@ -1712,6 +1710,7 @@ namespace VirtoCommerce.XCart.Core
             return container;
         }
 
+        [Obsolete("Use ConfiguredLineItemContainer.SyncConfigurationPrices instead.", DiagnosticId = "VC0010")]
         protected virtual void SyncConfigurationItemPrices(LineItem configurationLineItem, ExpConfigurationLineItem recalculated)
         {
             if (recalculated.Item?.ConfigurationItems.IsNullOrEmpty() != false)
