@@ -45,6 +45,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             var shipmentId = request.Shipment.Id?.Value;
             var existingShipment = cartAggregate.Cart.Shipments.FirstOrDefault(s => shipmentId != null && s.Id == shipmentId);
             var previousShipmentCode = existingShipment?.ShipmentMethodCode;
+            var previousDeliveryAddressKey = existingShipment?.DeliveryAddress?.Key;
             var shipment = request.Shipment.MapTo(existingShipment);
 
             ClearAddressInfo(request, shipment, previousShipmentCode);
@@ -59,6 +60,9 @@ namespace VirtoCommerce.XCart.Data.Commands
                 }
 
                 await LoadAddressFromPreferencesAsync(request.UserId, preferenceKey, shipment, cartAggregate, cancellationToken);
+
+                // always use the same delivery address key/id because it's a one to one relationship between a shipment and an address
+                shipment.DeliveryAddress.Key = previousDeliveryAddressKey;
             }
 
             if (existingShipment == null)
