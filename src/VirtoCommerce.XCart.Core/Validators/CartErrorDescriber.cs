@@ -321,6 +321,12 @@ namespace VirtoCommerce.XCart.Core.Validators
             return result;
         }
 
+        public static CartValidationError CustomTextMaxLengthExceeded(IEntity entity, int maxLength)
+        {
+            var result = new CartValidationError(entity, $"Configuration section CustomText exceeds the maximum allowed length of {maxLength} characters", "CONFIGURATION_SECTION_CUSTOM_TEXT_MAX_LENGTH_EXCEEDED");
+            return result;
+        }
+
         public static CartValidationError AddingFileIsRequired(IEntity entity)
         {
             var result = new CartValidationError(entity, "Configuration section requires to add at list one file", "CONFIGURATION_SECTION_FILES_REQUIRED");
