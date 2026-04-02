@@ -9,7 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FluentValidation" Version="12.1.1" />
-    <PackageReference Include="VirtoCommerce.CatalogModule.Core" Version="3.1009.0" />
+    <PackageReference Include="VirtoCommerce.CatalogModule.Core" Version="3.1012.0-alpha.2489-vcst-4713-conditional-sections" />
     <PackageReference Include="VirtoCommerce.CartModule.Core" Version="3.1002.0" />
     <PackageReference Include="VirtoCommerce.FileExperienceApi.Core" Version="3.1000.0" />
     <PackageReference Include="VirtoCommerce.InventoryModule.Core" Version="3.1000.0" />

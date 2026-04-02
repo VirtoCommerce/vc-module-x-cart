@@ -36,10 +36,11 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigur
             return;
         }
 
-        var itemConfiguredSectionIds = item.ConfigurationItems?.Select(x => x.SectionId) ?? [];
+        var itemConfiguredSectionIds = item.ConfigurationItems?.Select(x => x.SectionId).ToHashSet() ?? [];
 
         var missingRequiredSectionIds = configuration.Sections
             .Where(x => x.IsRequired)
+            .Where(x => string.IsNullOrEmpty(x.DependsOnSectionId) || itemConfiguredSectionIds.Contains(x.DependsOnSectionId))
             .Select(x => x.Id)
             .Except(itemConfiguredSectionIds)
             .ToList();

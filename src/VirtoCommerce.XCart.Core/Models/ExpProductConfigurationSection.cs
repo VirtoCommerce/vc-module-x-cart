@@ -12,6 +12,7 @@ public class ExpProductConfigurationSection
     public bool AllowCustomText { get; set; }
     public bool AllowTextOptions { get; set; }
     public int? MaxLength { get; set; }
+    public string DependsOnSectionId { get; set; }
 
     public IList<ExpConfigurationLineItem> Options { get; set; } = [];
 }
