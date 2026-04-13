@@ -20,7 +20,6 @@ using VirtoCommerce.MarketingModule.Core.Services;
 using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Domain;
-using VirtoCommerce.Platform.Core.Extensions;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.ShippingModule.Core.Model;
@@ -638,15 +637,24 @@ namespace VirtoCommerce.XCart.Core
             };
             await AbstractTypeFactory<CartShipmentValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(ValidationRuleSet).ThrowOnFailures());
 
-            await RemoveExistingShipmentAsync(shipment);
-
             shipment.Currency = Cart.Currency;
             if (shipment.DeliveryAddress != null)
             {
-                //Reset address key because it can equal a customer address from profile and if not do that it may cause
-                //address primary key duplication error for multiple carts with the same address
-                shipment.DeliveryAddress.Key = null;
+                // Reset address key only if it doesn't belong to an existing shipment in this cart
+                // This prevents PK duplication when using customer profile addresses across carts,
+                // while preserving the key for addresses already associated with this cart's shipments
+                var existingShipmentAddressKeys = Cart.Shipments
+                    .Where(s => s.DeliveryAddress?.Key != null)
+                    .Select(s => s.DeliveryAddress.Key)
+                    .ToHashSet();
+
+                if (!existingShipmentAddressKeys.Contains(shipment.DeliveryAddress.Key))
+                {
+                    shipment.DeliveryAddress.Key = null;
+                }
             }
+
+            await RemoveExistingShipmentAsync(shipment);
             Cart.Shipments.Add(shipment);
 
             if (availRates != null && !string.IsNullOrEmpty(shipment.ShipmentMethodCode) && !Cart.IsTransient())
@@ -1427,42 +1435,42 @@ namespace VirtoCommerce.XCart.Core
             switch (section.Type)
             {
                 case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
-                {
-                    if (products?.TryGetValue(section.Option.ProductId, out var cartProduct) != true)
                     {
-                        OperationValidationErrors.Add(CartErrorDescriber.ProductUnavailableError(nameof(CatalogProduct), section.Option.ProductId));
-                        return;
+                        if (products?.TryGetValue(section.Option.ProductId, out var cartProduct) != true)
+                        {
+                            OperationValidationErrors.Add(CartErrorDescriber.ProductUnavailableError(nameof(CatalogProduct), section.Option.ProductId));
+                            return;
+                        }
+
+                        var configurationItem = GetOrCreateConfigurationItem(lineItem, section);
+                        UpdateConfigurationItemForProduct(configurationItem, section, cartProduct);
+
+                        break;
                     }
-
-                    var configurationItem = GetOrCreateConfigurationItem(lineItem, section);
-                    UpdateConfigurationItemForProduct(configurationItem, section, cartProduct);
-
-                    break;
-                }
 
                 case ConfigurationSectionTypeText:
-                {
-                    var configurationItem = GetOrCreateConfigurationItem(lineItem, section);
-                    UpdateConfigurationItemForText(configurationItem, section);
-
-                    break;
-                }
-
-                case ConfigurationSectionTypeFile:
-                {
-                    var configurationItem = GetOrCreateConfigurationItem(lineItem, section);
-                    if (fileUrlsToDelete != null && !configurationItem.Files.IsNullOrEmpty())
                     {
-                        foreach (var url in configurationItem.Files.Select(x => x.Url).Except(section.FileUrls))
-                        {
-                            fileUrlsToDelete.Add(url);
-                        }
+                        var configurationItem = GetOrCreateConfigurationItem(lineItem, section);
+                        UpdateConfigurationItemForText(configurationItem, section);
+
+                        break;
                     }
 
-                    await UpdateConfigurationItemForFilesAsync(configurationItem, section);
+                case ConfigurationSectionTypeFile:
+                    {
+                        var configurationItem = GetOrCreateConfigurationItem(lineItem, section);
+                        if (fileUrlsToDelete != null && !configurationItem.Files.IsNullOrEmpty())
+                        {
+                            foreach (var url in configurationItem.Files.Select(x => x.Url).Except(section.FileUrls))
+                            {
+                                fileUrlsToDelete.Add(url);
+                            }
+                        }
 
-                    break;
-                }
+                        await UpdateConfigurationItemForFilesAsync(configurationItem, section);
+
+                        break;
+                    }
             }
         }
 
@@ -1682,14 +1690,14 @@ namespace VirtoCommerce.XCart.Core
                 switch (configurationItem.Type)
                 {
                     case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
-                    {
-                        if (configProducts.TryGetValue(configurationItem.ProductId, out var product))
                         {
-                            container.AddProductSectionLineItem(product, configurationItem);
-                        }
+                            if (configProducts.TryGetValue(configurationItem.ProductId, out var product))
+                            {
+                                container.AddProductSectionLineItem(product, configurationItem);
+                            }
 
-                        break;
-                    }
+                            break;
+                        }
                     case ConfigurationSectionTypeText:
                         container.AddTextSectionLineItem(configurationItem.CustomText, configurationItem.SectionId);
                         break;
