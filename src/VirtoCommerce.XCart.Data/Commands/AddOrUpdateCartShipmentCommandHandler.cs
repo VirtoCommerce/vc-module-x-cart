@@ -45,6 +45,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             var shipmentId = request.Shipment.Id?.Value;
             var existingShipment = cartAggregate.Cart.Shipments.FirstOrDefault(s => shipmentId != null && s.Id == shipmentId);
             var previousShipmentCode = existingShipment?.ShipmentMethodCode;
+            var previousDeliveryAddressKey = existingShipment?.DeliveryAddress?.Key;
             var shipment = request.Shipment.MapTo(existingShipment);
 
             ClearAddressInfo(request, shipment, previousShipmentCode);
@@ -68,6 +69,10 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             await SetPickupLocationAddressAsync(shipment, cartAggregate, cancellationToken);
 
+            // Always reuse the existing DeliveryAddress Id/Key to preserve the one-to-one relationship
+            // between Shipment and DeliveryAddress. The incoming request Id/Key is ignored because
+            // the domain model enforces a single address per shipment
+            shipment.DeliveryAddress?.Key = previousDeliveryAddressKey;
             await cartAggregate.AddShipmentAsync(shipment, await _cartAvailMethodService.GetAvailableShippingRatesAsync(cartAggregate));
 
             if (!request.Shipment.DynamicProperties.IsNullOrEmpty())
