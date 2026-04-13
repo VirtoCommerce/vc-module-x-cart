@@ -7,4 +7,6 @@ public class InitializeCartPaymentCommand : ICommand<InitializeCartPaymentResult
 {
     public string CartId { get; set; }
     public string PaymentId { get; set; }
+    public string StoreId { get; set; }
+    public string CultureName { get; set; }
 }

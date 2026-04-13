@@ -8,5 +8,7 @@ public class InputInitializeCartPaymentType : InputObjectGraphType
     {
         Field<NonNullGraphType<StringGraphType>>("cartId");
         Field<NonNullGraphType<StringGraphType>>("paymentId").Description("Payment Id");
+        Field<StringGraphType>("storeId").Description("Store Id");
+        Field<StringGraphType>("cultureName").Description("Culture name");
     }
 }
