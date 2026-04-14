@@ -69,7 +69,7 @@ public class InitializeCartPaymentCommandHandler(
         result.Store = cart.Store;
         result.CultureName = !string.IsNullOrEmpty(request.CultureName)
             ? request.CultureName
-            : cart.Cart.LanguageCode;
+            : cart.Store?.DefaultLanguage;
         result.Parameters = new()
         {
             ["CartId"] = request.CartId,
