@@ -11,7 +11,7 @@
     <dependency id="VirtoCommerce.FileExperienceApi" version="3.1000.0" />
     <dependency id="VirtoCommerce.Inventory" version="3.1000.0" />
     <dependency id="VirtoCommerce.Marketing" version="3.1000.0" />
-    <dependency id="VirtoCommerce.Payment" version="3.1002.0-alpha.272-vcst-4893-payment-localization" />
+    <dependency id="VirtoCommerce.Payment" version="3.1002.0" />
     <dependency id="VirtoCommerce.Pricing" version="3.1000.0" />
     <dependency id="VirtoCommerce.Shipping" version="3.1000.0" />
     <dependency id="VirtoCommerce.Xapi" version="3.1001.0" />
