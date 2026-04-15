@@ -32,13 +32,13 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         _cartProductService = cartProductService;
     }
 
-    public async Task<ProductConfigurationQueryResponse> Handle(GetProductConfigurationQuery request, CancellationToken cancellationToken)
+    public virtual async Task<ProductConfigurationQueryResponse> Handle(GetProductConfigurationQuery request, CancellationToken cancellationToken)
     {
-        var result = new ProductConfigurationQueryResponse();
+        var result = AbstractTypeFactory<ProductConfigurationQueryResponse>.TryCreateInstance();
 
         var configuration = await GetConfiguration(request);
 
-        if (configuration == null)
+        if (configuration is null)
         {
             return result;
         }
@@ -56,16 +56,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
 
         foreach (var section in configuration.Sections.OrderBy(x => x.DisplayOrder))
         {
-            var configurationSection = new ExpProductConfigurationSection
-            {
-                Id = section.Id,
-                Name = section.Name,
-                IsRequired = section.IsRequired,
-                Description = section.Description,
-                Type = section.Type,
-                AllowCustomText = section.AllowCustomText,
-                AllowTextOptions = section.AllowPredefinedOptions,
-            };
+            var configurationSection = CreateConfigurationSection(section);
 
             result.ConfigurationSections.Add(configurationSection);
 
@@ -76,16 +67,34 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         return result;
     }
 
-    private async Task<ProductConfiguration> GetConfiguration(GetProductConfigurationQuery request)
+    protected virtual ExpProductConfigurationSection CreateConfigurationSection(CatalogProductConfigurationSection section)
+    {
+        var result = AbstractTypeFactory<ExpProductConfigurationSection>.TryCreateInstance();
+
+        result.Id = section.Id;
+        result.Name = section.Name;
+        result.IsRequired = section.IsRequired;
+        result.Description = section.Description;
+        result.Type = section.Type;
+        result.AllowCustomText = section.AllowCustomText;
+        result.AllowTextOptions = section.AllowPredefinedOptions;
+        result.MaxLength = section.MaxLength;
+
+        return result;
+    }
+
+    protected virtual async Task<ProductConfiguration> GetConfiguration(GetProductConfigurationQuery request)
     {
         var criteria = AbstractTypeFactory<ProductConfigurationSearchCriteria>.TryCreateInstance();
         criteria.ProductId = request.ConfigurableProductId;
+        criteria.IsActive = true;
 
         var configurationsResult = await _productConfigurationSearchService.SearchNoCloneAsync(criteria);
+
         return configurationsResult.Results.FirstOrDefault();
     }
 
-    private static void AddProductOptions(CatalogProductConfigurationSection section, ExpProductConfigurationSection configurationSection, ConfiguredLineItemContainer container, Dictionary<string, CartProduct> productByIds)
+    protected virtual void AddProductOptions(CatalogProductConfigurationSection section, ExpProductConfigurationSection configurationSection, ConfiguredLineItemContainer container, Dictionary<string, CartProduct> productByIds)
     {
         if (section.Type == ConfigurationSectionTypeProduct && !section.Options.IsNullOrEmpty())
         {
@@ -95,16 +104,14 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
                 {
                     var item = container.CreateLineItem(cartProduct, option.Quantity);
 
-                    var expConfigurationLineItem = new ExpConfigurationLineItem
-                    {
-                        Id = option.Id,
-                        Quantity = option.Quantity,
-                        Item = item,
-                        Currency = container.Currency,
-                        CultureName = container.CultureName,
-                        UserId = container.UserId,
-                        StoreId = container.Store.Id,
-                    };
+                    var expConfigurationLineItem = AbstractTypeFactory<ExpConfigurationLineItem>.TryCreateInstance();
+                    expConfigurationLineItem.Id = option.Id;
+                    expConfigurationLineItem.Quantity = option.Quantity;
+                    expConfigurationLineItem.Item = item;
+                    expConfigurationLineItem.Currency = container.Currency;
+                    expConfigurationLineItem.CultureName = container.CultureName;
+                    expConfigurationLineItem.UserId = container.UserId;
+                    expConfigurationLineItem.StoreId = container.Store.Id;
 
                     configurationSection.Options.Add(expConfigurationLineItem);
                 }
@@ -112,17 +119,15 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         }
     }
 
-    private static void AddTextOptions(CatalogProductConfigurationSection section, ExpProductConfigurationSection configurationSection)
+    protected virtual void AddTextOptions(CatalogProductConfigurationSection section, ExpProductConfigurationSection configurationSection)
     {
         if (section.Type == ConfigurationSectionTypeText && section.AllowPredefinedOptions && !section.Options.IsNullOrEmpty())
         {
             foreach (var option in section.Options)
             {
-                var expConfigurationLineItem = new ExpConfigurationLineItem
-                {
-                    Id = option.Id,
-                    Text = option.Text,
-                };
+                var expConfigurationLineItem = AbstractTypeFactory<ExpConfigurationLineItem>.TryCreateInstance();
+                expConfigurationLineItem.Id = option.Id;
+                expConfigurationLineItem.Text = option.Text;
 
                 configurationSection.Options.Add(expConfigurationLineItem);
             }

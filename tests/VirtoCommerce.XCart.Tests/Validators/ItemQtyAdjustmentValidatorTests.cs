@@ -25,7 +25,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             var validator = new ItemQtyAdjustmentValidator();
 
             // Act
-            var result = await validator.ValidateAsync(item);
+            var result = await validator.ValidateAsync(item, TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeFalse();
@@ -42,7 +42,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             var validator = new ItemQtyAdjustmentValidator();
 
             // Act
-            var result = await validator.ValidateAsync(item);
+            var result = await validator.ValidateAsync(item, TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeFalse();
@@ -59,7 +59,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             var validator = new ItemQtyAdjustmentValidator();
 
             // Act
-            var result = await validator.ValidateAsync(item);
+            var result = await validator.ValidateAsync(item, TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeFalse();
@@ -75,7 +75,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             var validator = new ItemQtyAdjustmentValidator();
 
             // Act
-            var result = await validator.ValidateAsync(item, options => options.IncludeRuleSets("strict"));
+            var result = await validator.ValidateAsync(item, options => options.IncludeRuleSets("strict"), TestContext.Current.CancellationToken);
             var expected = CartErrorDescriber.LineItemWithGivenIdNotFound(new LineItem
             {
                 Id = item.LineItemId
@@ -109,7 +109,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             var validator = new ItemQtyAdjustmentValidator();
 
             // Act
-            var result = await validator.ValidateAsync(item, options => options.IncludeRuleSets("strict"));
+            var result = await validator.ValidateAsync(item, options => options.IncludeRuleSets("strict"), TestContext.Current.CancellationToken);
             var expected = CartErrorDescriber.LineItemIsReadOnly(lineItem);
 
             // Assert
@@ -136,7 +136,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             var validator = new ItemQtyAdjustmentValidator();
 
             // Act
-            var result = await validator.ValidateAsync(item, options => options.IncludeRuleSets("strict"));
+            var result = await validator.ValidateAsync(item, options => options.IncludeRuleSets("strict"), TestContext.Current.CancellationToken);
             var expected = CartErrorDescriber.ProductQtyInsufficientError(
                 item.CartProduct,
                 item.NewQuantity,
@@ -168,7 +168,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             var validator = new ItemQtyAdjustmentValidator();
 
             // Act
-            var result = await validator.ValidateAsync(item);
+            var result = await validator.ValidateAsync(item, TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeTrue();

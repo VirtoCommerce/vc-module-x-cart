@@ -155,6 +155,7 @@ namespace VirtoCommerce.XCart.Data.Services
 
             var response = await _mediator.Send(productsQuery);
             var result = response.Products.Select(x => new CartProduct(x)).ToList();
+
             return result;
         }
 

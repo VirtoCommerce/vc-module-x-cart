@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using VirtoCommerce.CatalogModule.Core.Model.Configuration;
 using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.ShippingModule.Core.Model;
 using VirtoCommerce.XCart.Core.Models;
@@ -12,5 +13,6 @@ namespace VirtoCommerce.XCart.Core.Validators
         public IEnumerable<CartProduct> AllCartProducts { get; set; } = Enumerable.Empty<CartProduct>();
         public IEnumerable<PaymentMethod> AvailPaymentMethods { get; set; } = Enumerable.Empty<PaymentMethod>();
         public IEnumerable<ShippingRate> AvailShippingRates { get; set; } = Enumerable.Empty<ShippingRate>();
+        public IDictionary<string, ProductConfiguration> ProductConfigurations { get; set; }
     }
 }

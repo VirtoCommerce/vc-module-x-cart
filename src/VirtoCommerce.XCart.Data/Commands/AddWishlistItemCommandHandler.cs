@@ -74,10 +74,10 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         protected virtual async Task<ProductConfiguration> GetProductConfiguration(AddWishlistItemCommand request)
         {
-            var configurations = await _productConfigurationSearchService.SearchNoCloneAsync(new ProductConfigurationSearchCriteria
-            {
-                ProductId = request.ProductId
-            });
+            var criteria = AbstractTypeFactory<ProductConfigurationSearchCriteria>.TryCreateInstance();
+            criteria.ProductId = request.ProductId;
+
+            var configurations = await _productConfigurationSearchService.SearchNoCloneAsync(criteria);
 
             return configurations.Results.FirstOrDefault();
         }

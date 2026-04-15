@@ -1,7 +1,5 @@
-using System.Collections.Generic;
 using System.Linq;
 using AutoMapper;
-using GraphQL;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
 using GraphQL.Types;
@@ -16,7 +14,6 @@ using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCatalog.Core.Models;
-using VirtoCommerce.XCatalog.Core.Queries;
 using VirtoCommerce.XCatalog.Core.Schemas;
 
 namespace VirtoCommerce.XCart.Core.Schemas
@@ -35,40 +32,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 Name = "product",
                 Type = GraphTypeExtensionHelper.GetActualType<ProductType>(),
                 Resolver = new FuncFieldResolver<LineItem, IDataLoaderResult<ExpProduct>>(context =>
-                {
-                    var includeFields = context.SubFields.Values.GetAllNodesPaths(context).ToArray();
-                    var loader = dataLoader.Context.GetOrAddBatchLoader<string, ExpProduct>("cart_lineItems_products", async (ids) =>
-                    {
-                        //Get currencies and store only from one cart.
-                        //We intentionally ignore the case when there are ma be the carts with the different currencies and stores in the resulting set
-                        var cartAggregate = context.GetValueForSource<CartAggregate>();
-                        var cart = cartAggregate.Cart;
-                        var userId = context.GetArgumentOrValue<string>("userId") ?? cart.CustomerId;
-
-                        var request = new LoadProductsQuery
-                        {
-                            StoreId = cart.StoreId,
-                            CurrencyCode = cart.Currency,
-                            ObjectIds = ids.ToArray(),
-                            IncludeFields = includeFields.ToArray(),
-                            UserId = userId,
-                            OrganizationId = context.GetCurrentOrganizationId(),
-                        };
-
-                        var allCurrencies = await currencyService.GetAllCurrenciesAsync();
-                        var cultureName = context.GetArgumentOrValue<string>("cultureName") ?? cart.LanguageCode;
-                        context.SetCurrencies(allCurrencies, cultureName);
-                        context.UserContext.TryAdd("currencyCode", cart.Currency);
-                        context.UserContext.TryAdd("storeId", cart.StoreId);
-                        context.UserContext.TryAdd("store", cartAggregate.Store);
-                        context.UserContext.TryAdd("cultureName", cultureName);
-
-                        var response = await mediator.Send(request);
-
-                        return response.Products.ToDictionary(x => x.Id);
-                    });
-                    return loader.LoadAsync(context.Source.ProductId);
-                })
+                    dataLoader.LoadCartProduct(context, mediator, currencyService, "cart_lineItems_products", context.Source.ProductId)),
             };
             AddField(productField);
 

@@ -10,8 +10,15 @@ namespace VirtoCommerce.XCart.Core.Schemas
         {
             Field(x => x.ProductId, nullable: false).Description("Product Id");
             Field(x => x.Quantity, nullable: true).Description("Product quantity");
+            Field<DecimalGraphType>("price").Description("Price");
+            Field<StringGraphType>("comment").Description("Comment");
+            Field<DateTimeGraphType>("createdDate")
+                .Description("Line item created date override");
 
             Field<ListGraphType<InputDynamicPropertyValueType>>("dynamicProperties");
+
+            Field<ListGraphType<ConfigurationSectionInput>>("configurationSections")
+                .Description("Configurable product sections");
         }
     }
 }

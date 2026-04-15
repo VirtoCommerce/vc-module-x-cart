@@ -48,5 +48,10 @@ namespace VirtoCommerce.XCart.Core.Models
         /// Overrride quantity for existing line item instead of increasing it
         /// </summary>
         public bool OverrideQuantity { get; set; }
+
+        /// <summary>
+        /// Configurable product sections
+        /// </summary>
+        public IList<ProductConfigurationSection> ConfigurationSections { get; set; }
     }
 }

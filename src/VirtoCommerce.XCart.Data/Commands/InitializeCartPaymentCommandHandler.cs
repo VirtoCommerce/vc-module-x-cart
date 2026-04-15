@@ -28,6 +28,12 @@ public class InitializeCartPaymentCommandHandler(
             throw new InvalidOperationException($"Cart '{request.CartId}' not found ");
         }
 
+        if (!string.IsNullOrEmpty(request.StoreId) &&
+            !string.Equals(request.StoreId, cart.Store?.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Store '{request.StoreId}' does not match cart store '{cart.Store?.Id}'.");
+        }
+
         var payment = cart.Cart.Payments.FirstOrDefault(x => x.Id == request.PaymentId);
 
         if (payment == null)
@@ -49,7 +55,7 @@ public class InitializeCartPaymentCommandHandler(
         }
 
         var processPaymentRequest = await CreateProcessPaymentRequest(request, cart, payment, cancellationToken);
-        var processPaymentResult = paymentMethod.ProcessPayment(processPaymentRequest);
+        var processPaymentResult = await paymentMethod.ProcessPaymentAsync(processPaymentRequest, cancellationToken);
         var result = await CreateInitializeCartPaymentResult(paymentMethod, processPaymentRequest, processPaymentResult, cancellationToken);
 
         return result;
@@ -61,6 +67,9 @@ public class InitializeCartPaymentCommandHandler(
         result.PaymentId = payment.Id;
         result.StoreId = cart.Store.Id;
         result.Store = cart.Store;
+        result.CultureName = !string.IsNullOrEmpty(request.CultureName)
+            ? request.CultureName
+            : cart.Store?.DefaultLanguage;
         result.Parameters = new()
         {
             ["CartId"] = request.CartId,
@@ -70,7 +79,7 @@ public class InitializeCartPaymentCommandHandler(
         return Task.FromResult(result);
     }
 
-    protected virtual async Task<InitializeCartPaymentResult> CreateInitializeCartPaymentResult(PaymentMethod paymentMethod, ProcessPaymentRequest processPaymentRequest, ProcessPaymentRequestResult processPaymentResult, CancellationToken cancellationToken)
+    protected virtual Task<InitializeCartPaymentResult> CreateInitializeCartPaymentResult(PaymentMethod paymentMethod, ProcessPaymentRequest processPaymentRequest, ProcessPaymentRequestResult processPaymentResult, CancellationToken cancellationToken)
     {
         var result = AbstractTypeFactory<InitializeCartPaymentResult>.TryCreateInstance();
 
@@ -84,6 +93,6 @@ public class InitializeCartPaymentCommandHandler(
         result.PaymentMethodCode = paymentMethod.Code;
         result.PaymentActionType = paymentMethod.PaymentMethodType.ToString();
 
-        return await Task.FromResult(result);
+        return Task.FromResult(result);
     }
 }

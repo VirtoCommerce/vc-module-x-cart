@@ -37,7 +37,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             {
                 AllCartProducts = _context.AllCartProducts,
                 LineItem = item
-            }, options => options.IncludeRuleSets("strict"));
+            }, options => options.IncludeRuleSets("strict"), TestContext.Current.CancellationToken);
 
             // Assert
             result.Errors.Should().BeEmpty();
@@ -82,7 +82,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             {
                 LineItem = item,
                 AllCartProducts = _context.AllCartProducts
-            });
+            }, TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeFalse();
@@ -106,7 +106,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             {
                 LineItem = item,
                 AllCartProducts = _context.AllCartProducts
-            });
+            }, TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeFalse();
@@ -129,7 +129,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             {
                 LineItem = item,
                 CartProducts = _context.AllCartProducts.ToDictionary(x => x.Id)
-            });
+            }, TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeFalse();
@@ -155,7 +155,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             {
                 LineItem = item,
                 AllCartProducts = _context.AllCartProducts
-            });
+            }, TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeFalse();
@@ -180,7 +180,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             {
                 LineItem = item,
                 AllCartProducts = _context.AllCartProducts
-            });
+            }, TestContext.Current.CancellationToken);
 
             // Assert
             result.IsValid.Should().BeFalse();

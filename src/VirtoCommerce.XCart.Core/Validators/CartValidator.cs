@@ -95,6 +95,41 @@ namespace VirtoCommerce.XCart.Core.Validators
             {
                 context.AddFailure(CartErrorDescriber.AllLineItemsUnselected(cartContext.CartAggregate.Cart));
             }
+
+            ValidateConfiguredLineItems(cartContext, context);
+        }
+
+        protected virtual void ValidateConfiguredLineItems(CartValidationContext cartContext, ValidationContext<CartValidationContext> context)
+        {
+            if (cartContext.ProductConfigurations.IsNullOrEmpty())
+            {
+                return;
+            }
+
+            foreach (var lineItem in cartContext.CartAggregate.SelectedLineItems.Where(x => x.IsConfigured))
+            {
+                if (!cartContext.ProductConfigurations.TryGetValue(lineItem.ProductId, out var configuration)
+                    || configuration.Sections.IsNullOrEmpty())
+                {
+                    continue;
+                }
+
+                var selectedSectionIds = lineItem.ConfigurationItems?
+                    .Where(x => x.SelectedForCheckout)
+                    .Select(x => x.SectionId)
+                    .ToHashSet() ?? [];
+
+                var missingRequiredSectionIds = configuration.Sections
+                    .Where(x => x.IsRequired)
+                    .Select(x => x.Id)
+                    .Where(x => !selectedSectionIds.Contains(x))
+                    .ToList();
+
+                if (missingRequiredSectionIds.Count > 0)
+                {
+                    context.AddFailure(CartErrorDescriber.MissingRequiredSections(lineItem, missingRequiredSectionIds));
+                }
+            }
         }
     }
 }

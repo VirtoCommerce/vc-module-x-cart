@@ -15,6 +15,7 @@ public class ConfigurationSectionType : ExtendableGraphType<ExpProductConfigurat
         Field(x => x.Type, nullable: false).Description("Configuration section type. Possible values: 'Product', 'Text', 'File'");
         Field(x => x.AllowCustomText, nullable: false).Description("Is custom text allowed for Text-type section");
         Field(x => x.AllowTextOptions, nullable: false).Description("Is predefined text options allowed for Text-type section");
+        Field(x => x.MaxLength, nullable: true).Description("Maximum text length for Text-type section");
 
         ExtendableField<ListGraphType<ConfigurationLineItemType>>(
             nameof(ExpProductConfigurationSection.Options),

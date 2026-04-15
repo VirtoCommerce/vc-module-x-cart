@@ -369,5 +369,25 @@ namespace VirtoCommerce.XCart.Core.Validators
             var result = new CartValidationError(entity, $"Unknown type {type} of section with ID {sectionId}", "CONFIGURATION_SECTION_TYPE_MISMATCH");
             return result;
         }
+
+        public static CartValidationError ConfiguredLineItemNotFound(string lineItemId)
+        {
+            var result = new CartValidationError("LineItem", lineItemId, $"Line item with ID {lineItemId} not found or is not configured", "CONFIGURED_LINE_ITEM_NOT_FOUND");
+            return result;
+        }
+
+        public static CartValidationError ConfigurationItemNotFound(string productId, string sectionId, string type)
+        {
+            var result = new CartValidationError("ConfigurationItem", productId, $"Configuration item with productId {productId}, sectionId {sectionId}, type {type} not found", "CONFIGURATION_ITEM_NOT_FOUND")
+            {
+                FormattedMessagePlaceholderValues = new Dictionary<string, object>
+                {
+                    ["productId"] = productId,
+                    ["sectionId"] = sectionId ?? "null",
+                    ["type"] = type,
+                },
+            };
+            return result;
+        }
     }
 }

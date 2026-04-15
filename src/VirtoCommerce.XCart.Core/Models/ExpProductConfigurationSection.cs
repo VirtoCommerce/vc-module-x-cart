@@ -11,6 +11,7 @@ public class ExpProductConfigurationSection
     public string Type { get; set; }
     public bool AllowCustomText { get; set; }
     public bool AllowTextOptions { get; set; }
+    public int? MaxLength { get; set; }
 
     public IList<ExpConfigurationLineItem> Options { get; set; } = [];
 }
