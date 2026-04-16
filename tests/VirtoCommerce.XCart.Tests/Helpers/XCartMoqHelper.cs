@@ -231,8 +231,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 {
                     ProductId = catalogProductId,
                     PricelistId = _fixture.Create<string>(),
-                    List = _fixture.Create<decimal>(),
-                    MinQuantity = _fixture.Create<int>(),
+                    List = productPrice,
+                    MinQuantity = 1,
                 }
             }, GetCurrency());
 

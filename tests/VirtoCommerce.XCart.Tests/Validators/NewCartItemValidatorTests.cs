@@ -95,11 +95,13 @@ namespace VirtoCommerce.XCart.Tests.Validators
         [Fact]
         public async Task ValidateAddItem_RuleSetStrict_PriceError()
         {
-            // Arrange
-            var productPrice = Rand.Decimal();
+            // Arrange — cart item price is explicitly lower than the product list price
+            var listPrice = 100m;
             var productId = Rand.Guid().ToString();
             var quantity = Rand.Int(1, InStockQuantity);
-            var newCartItem = BuildNewCartItem(productId, quantity, productPrice, true, true);
+            var newCartItem = BuildNewCartItem(productId, quantity, listPrice, true, true);
+            newCartItem.Price = listPrice - 1; // below list price → triggers UNABLE_SET_LESS_PRICE
+            newCartItem.CartProduct.Product.TrackInventory = false;
             var validator = new NewCartItemValidator();
 
             // Act
