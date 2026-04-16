@@ -187,6 +187,15 @@ namespace VirtoCommerce.XCart.Core
         public bool IsSelectedForCheckout => Store.Settings?.GetValue<bool>(XCartSetting.IsSelectedForCheckout) ?? true;
 
         /// <summary>
+        /// Clears all cached validation results. Called after saving the cart
+        /// so the mutation response and subsequent queries re-validate against the updated state.
+        /// </summary>
+        public void ClearValidationCache()
+        {
+            ValidationErrorsByRuleSet.Clear();
+        }
+
+        /// <summary>
         /// Returns all cached validation errors across all rulesets that have been validated,
         /// combined with <see cref="OperationValidationErrors"/>. Does not trigger validation.
         /// </summary>

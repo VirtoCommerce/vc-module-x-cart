@@ -72,7 +72,11 @@ namespace VirtoCommerce.XCart.Data.Services
 
             await UpdateConfigurationFiles(cartAggregate.Cart);
 
-            // Clear cache
+            // Clear validation cache — cart state changed, cached results are stale.
+            // This ensures the mutation response re-validates against the updated cart.
+            cartAggregate.ClearValidationCache();
+
+            // Clear aggregate cache
             GenericCachingRegion<CartAggregate>.ExpireTokenForKey(cartAggregate.Id);
         }
 
