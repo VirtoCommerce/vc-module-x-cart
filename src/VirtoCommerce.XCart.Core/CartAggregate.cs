@@ -58,6 +58,8 @@ namespace VirtoCommerce.XCart.Core
         private readonly ICartSharingService _cartSharingService;
         private readonly ICartValidationContextFactory _cartValidationContextFactory;
 
+        private const char RuleSetSeparator = ',';
+
         [Obsolete("Use the constructor that accepts ICartValidationContextFactory.", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         public CartAggregate(
             IMarketingPromoEvaluator marketingEvaluator,
@@ -890,7 +892,7 @@ namespace VirtoCommerce.XCart.Core
             var validationContext = await _cartValidationContextFactory.CreateValidationContextAsync(this);
             validationContext.CartAggregate = this;
 
-            var rules = ruleSet?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var rules = ruleSet?.Split(RuleSetSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var result = await AbstractTypeFactory<CartValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
 
             ValidationErrorsByRuleSet[key] = result.Errors;
@@ -913,7 +915,7 @@ namespace VirtoCommerce.XCart.Core
             validationContext.CartAggregate = this;
 
             EnsureCartExists();
-            var rules = ruleSet?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var rules = ruleSet?.Split(RuleSetSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var result = await AbstractTypeFactory<CartValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
 
             ValidationErrorsByRuleSet[key] = result.Errors;
@@ -1314,17 +1316,29 @@ namespace VirtoCommerce.XCart.Core
                 return "default";
             }
 
-            var parts = ruleSet.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-            // "*" subsumes all other rulesets
-            if (parts.Contains("*", StringComparer.OrdinalIgnoreCase))
+            // "*" subsumes all other rulesets — no need to split
+            if (ruleSet.Contains('*'))
             {
                 return "*";
             }
 
+            // Single token (no comma): no normalization needed.
+            // The dictionary comparer is OrdinalIgnoreCase, so case collapses at lookup time.
+            if (ruleSet.IndexOf(RuleSetSeparator) < 0)
+            {
+                return ruleSet;
+            }
+
+            var parts = ruleSet.Split(RuleSetSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            if (parts.Length == 1)
+            {
+                return parts[0];
+            }
+
             // Sort for consistent cache keys: "shipments,default" == "default,shipments"
             Array.Sort(parts, StringComparer.OrdinalIgnoreCase);
-            return string.Join(",", parts);
+            return string.Join(RuleSetSeparator, parts);
         }
 
         protected virtual async Task<TaxProvider> GetActiveTaxProviderAsync()
