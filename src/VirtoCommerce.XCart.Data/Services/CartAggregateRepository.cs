@@ -131,10 +131,10 @@ namespace VirtoCommerce.XCart.Data.Services
                 ResponseGroup = EnumUtility.SafeParseFlags(responseGroup, CartResponseGroup.Full).ToString()
             };
 
-            var cartSearchResult = await _shoppingCartSearchService.SearchAsync(criteria);
+            var cartSearchResult = await _shoppingCartSearchService.SearchAllAsync(criteria);
             //The null value for the Type parameter should be interpreted as a valuable parameter, and we must return a cart object with Type property that has null exactly set.
             //otherwise, for the case where the system contains carts with different Types, the resulting cart may be a random result.
-            var cart = cartSearchResult.Results.FirstOrDefault(x => cartRequest.CartType != null || x.Type == null);
+            var cart = cartSearchResult.FirstOrDefault(x => cartRequest.CartType != null || x.Type == null);
             if (cart != null)
             {
                 return await InnerGetCartAggregateFromCartAsync(cart.Clone() as ShoppingCart, cartRequest.CultureName, criteria.ResponseGroup);
@@ -153,10 +153,10 @@ namespace VirtoCommerce.XCart.Data.Services
             criteria = criteria.CloneTyped();
             criteria.CustomerId ??= AnonymousUser.UserName;
 
-            var cartSearchResult = await _shoppingCartSearchService.SearchAsync(criteria);
+            var cartSearchResult = await _shoppingCartSearchService.SearchAllAsync(criteria);
             //The null value for the Type parameter should be interpreted as a valuable parameter, and we must return a cart object with Type property that has null exactly set.
             //otherwise, for the case where the system contains carts with different Types, the resulting cart may be a random result.
-            var cart = cartSearchResult.Results.FirstOrDefault(x => criteria.Type != null || x.Type == null);
+            var cart = cartSearchResult.FirstOrDefault(x => criteria.Type != null || x.Type == null);
             if (cart != null)
             {
                 return await InnerGetCartAggregateFromCartAsync(cart.Clone() as ShoppingCart, cultureName ?? Language.InvariantLanguage.CultureName, criteria.ResponseGroup);
@@ -175,10 +175,10 @@ namespace VirtoCommerce.XCart.Data.Services
             criteria = criteria.CloneTyped();
             criteria.CustomerId ??= AnonymousUser.UserName;
 
-            var cartSearchResult = await _shoppingCartSearchService.SearchAsync(criteria);
+            var cartSearchResult = await _shoppingCartSearchService.SearchAllAsync(criteria);
             //The null value for the Type parameter should be interpreted as a valuable parameter, and we must return a cart object with Type property that has null exactly set.
             //otherwise, for the case where the system contains carts with different Types, the resulting cart may be a random result.
-            var cart = cartSearchResult.Results.FirstOrDefault(x => criteria.Type != null || x.Type == null);
+            var cart = cartSearchResult.FirstOrDefault(x => criteria.Type != null || x.Type == null);
             if (cart != null)
             {
                 return await InnerGetCartAggregateFromCartAsync(cart.Clone() as ShoppingCart, cultureName ?? Language.InvariantLanguage.CultureName, productsIncludeFields, criteria.ResponseGroup);
