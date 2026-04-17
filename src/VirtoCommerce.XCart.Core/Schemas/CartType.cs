@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using GraphQL;
 using GraphQL.Types;
@@ -12,21 +11,11 @@ using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Specifications;
-using VirtoCommerce.XCart.Core.Validators;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
     public class CartType : ExtendableGraphType<CartAggregate>
     {
-        [Obsolete("Use the constructor without ICartValidationContextFactory.", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
-        public CartType(
-            ICartAvailMethodsService cartAvailMethods,
-            IDynamicPropertyResolverService dynamicPropertyResolverService,
-            ICartValidationContextFactory cartValidationContextFactory)
-            : this(cartAvailMethods, dynamicPropertyResolverService)
-        {
-        }
-
         public CartType(
             ICartAvailMethodsService cartAvailMethods,
             IDynamicPropertyResolverService dynamicPropertyResolverService)

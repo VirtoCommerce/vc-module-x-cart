@@ -60,25 +60,6 @@ namespace VirtoCommerce.XCart.Core
 
         private const char RuleSetSeparator = ',';
 
-        [Obsolete("Use the constructor that accepts ICartValidationContextFactory.", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
-        public CartAggregate(
-            IMarketingPromoEvaluator marketingEvaluator,
-            IShoppingCartTotalsCalculator cartTotalsCalculator,
-            IOptionalDependency<ITaxProviderSearchService> taxProviderSearchService,
-            ICartProductService cartProductService,
-            IDynamicPropertyUpdaterService dynamicPropertyUpdaterService,
-            IMapper mapper,
-            IMemberService memberService,
-            IGenericPipelineLauncher pipeline,
-            IConfigurationItemValidator configurationItemValidator,
-            IFileUploadService fileUploadService,
-            ICartSharingService cartSharingService)
-            : this(marketingEvaluator, cartTotalsCalculator, taxProviderSearchService, cartProductService,
-                dynamicPropertyUpdaterService, mapper, memberService, pipeline,
-                configurationItemValidator, fileUploadService, cartSharingService, null)
-        {
-        }
-
         public CartAggregate(
             IMarketingPromoEvaluator marketingEvaluator,
             IShoppingCartTotalsCalculator cartTotalsCalculator,
