@@ -155,7 +155,7 @@ namespace VirtoCommerce.XCart.Core
         /// Per-ruleSet validation results cache. Populated by <see cref="ValidateAsync(CartValidationContext, string)"/>
         /// and <see cref="GetValidationErrorsAsync"/>. Cleared by <see cref="ClearValidationCache"/>.
         /// </summary>
-        protected ConcurrentDictionary<string, IList<ValidationFailure>> ValidationErrorsByRuleSet { get; } = new(StringComparer.OrdinalIgnoreCase);
+        protected ConcurrentDictionary<string, IList<ValidationFailure>> ValidationErrorsByRuleSet { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
 
         public bool IsValid => ValidationErrorsByRuleSet.IsEmpty || ValidationErrorsByRuleSet.Values.All(x => x.Count == 0);
 
@@ -1894,6 +1894,12 @@ namespace VirtoCommerce.XCart.Core
             result.Currency = Currency.CloneTyped();
             result.Member = Member?.CloneTyped();
             result.Store = Store.CloneTyped();
+
+            // Re-create mutable collections so the clone doesn't share references with the original.
+            // MemberwiseClone copies references — writes/clears on one instance would leak to the other.
+            result.ValidationErrorsByRuleSet = new ConcurrentDictionary<string, IList<ValidationFailure>>(ValidationErrorsByRuleSet, StringComparer.OrdinalIgnoreCase);
+            result.OperationValidationErrors = new List<ValidationFailure>(OperationValidationErrors);
+            result.ValidationWarnings = new List<ValidationFailure>(ValidationWarnings);
 
             return result;
         }
