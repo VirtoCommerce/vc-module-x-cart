@@ -28,6 +28,12 @@ public class InitializeCartPaymentCommandHandler(
             throw new InvalidOperationException($"Cart '{request.CartId}' not found ");
         }
 
+        if (!string.IsNullOrEmpty(request.StoreId) &&
+            !string.Equals(request.StoreId, cart.Store?.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException($"Store '{request.StoreId}' does not match cart store '{cart.Store?.Id}'.");
+        }
+
         var payment = cart.Cart.Payments.FirstOrDefault(x => x.Id == request.PaymentId);
 
         if (payment == null)
@@ -61,6 +67,9 @@ public class InitializeCartPaymentCommandHandler(
         result.PaymentId = payment.Id;
         result.StoreId = cart.Store.Id;
         result.Store = cart.Store;
+        result.CultureName = !string.IsNullOrEmpty(request.CultureName)
+            ? request.CultureName
+            : cart.Store?.DefaultLanguage;
         result.Parameters = new()
         {
             ["CartId"] = request.CartId,
