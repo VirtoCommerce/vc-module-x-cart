@@ -132,7 +132,7 @@ namespace VirtoCommerce.XCart.Core
         /// FluentValidation RuleSets allow you to group validation rules together which can be executed together as a group. You can set exists rule set name to evaluate default.
         /// <see cref="CartValidator"/>
         /// </summary>
-        public string[] ValidationRuleSet { get; set; } = { "default", "strict" };
+        public string[] ValidationRuleSet { get; set; } = { ModuleConstants.ValidationRuleSets.Default, ModuleConstants.ValidationRuleSets.Strict };
 
         /// <summary>
         /// Per-ruleSet validation results cache. Populated by <see cref="ValidateAsync(CartValidationContext, string)"/>
@@ -1294,7 +1294,7 @@ namespace VirtoCommerce.XCart.Core
         {
             if (string.IsNullOrEmpty(ruleSet))
             {
-                return "default";
+                return ModuleConstants.ValidationRuleSets.Default;
             }
 
             // "*" subsumes all other rulesets — no need to split

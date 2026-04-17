@@ -21,25 +21,25 @@ namespace VirtoCommerce.XCart.Core.Validators
             RuleFor(x => x.CartAggregate.Cart.Currency).NotEmpty();
             RuleFor(x => x.CartAggregate.Cart.CustomerId).NotEmpty();
 
-            RuleSet("items", () =>
+            RuleSet(ModuleConstants.ValidationRuleSets.Items, () =>
                 RuleFor(x => x).Custom((cartContext, context) =>
                 {
                     ApplyRuleForItems(cartContext, context);
                 }));
 
-            RuleSet("shipments", () =>
+            RuleSet(ModuleConstants.ValidationRuleSets.Shipments, () =>
                 RuleFor(x => x).Custom((cartContext, context) =>
                 {
                     ApplyRuleForShipments(cartContext, context);
                 }));
 
-            RuleSet("payments", () =>
+            RuleSet(ModuleConstants.ValidationRuleSets.Payments, () =>
                 RuleFor(x => x).Custom((cartContext, context) =>
                 {
                     ApplyRuleForPayments(cartContext, context);
                 }));
 
-            RuleSet("orderCreate", () =>
+            RuleSet(ModuleConstants.ValidationRuleSets.OrderCreate, () =>
                 RuleFor(x => x).Custom((cartContext, context) =>
                 {
                     ApplyRuleForOrderCreate(cartContext, context);
