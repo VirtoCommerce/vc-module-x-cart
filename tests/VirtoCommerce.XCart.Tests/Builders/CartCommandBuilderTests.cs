@@ -10,13 +10,11 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
-using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Security.Authorization;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Services;
-using VirtoCommerce.XCart.Data.Authorization;
 using VirtoCommerce.XCart.Data.Commands.BaseCommands;
 using Xunit;
 
@@ -55,7 +53,7 @@ public class CartCommandBuilderTests
     private static CartAggregate CreateCartAggregate(string cartId = "cart-1")
     {
         var mock = new Mock<CartAggregate>(
-            MockBehavior.Loose, null, null, null, null, null, null, null, null, null, null, null, null);
+            MockBehavior.Loose, null, null, null, null, null, null, null, null, null, null, null);
 
         var cartProperty = typeof(CartAggregate).GetProperty(nameof(CartAggregate.Cart));
         cartProperty!.SetValue(mock.Object, new ShoppingCart { Id = cartId });

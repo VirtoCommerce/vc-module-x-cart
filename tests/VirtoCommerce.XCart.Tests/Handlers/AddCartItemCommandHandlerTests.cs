@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -10,7 +8,6 @@ using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Model.Configuration;
 using VirtoCommerce.CatalogModule.Core.Model.Search;
 using VirtoCommerce.CatalogModule.Core.Search;
-using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Models;
@@ -39,7 +36,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
         private static Mock<CartAggregate> CreateCartAggregateMock()
         {
             var mock = new Mock<CartAggregate>(
-                MockBehavior.Loose, null, null, null, null, null, null, null, null, null, null, null, null);
+                MockBehavior.Loose, null, null, null, null, null, null, null, null, null, null, null);
 
             // Cart property has a protected setter and is non-virtual, so we set it via reflection
             var cartProperty = typeof(CartAggregate).GetProperty(nameof(CartAggregate.Cart));

@@ -56,7 +56,6 @@ namespace VirtoCommerce.XCart.Core
         private readonly IConfigurationItemValidator _configurationItemValidator;
         private readonly IFileUploadService _fileUploadService;
         private readonly ICartSharingService _cartSharingService;
-        private readonly ICartValidationContextFactory _cartValidationContextFactory;
 
         private const char RuleSetSeparator = ',';
 
@@ -71,8 +70,7 @@ namespace VirtoCommerce.XCart.Core
             IGenericPipelineLauncher pipeline,
             IConfigurationItemValidator configurationItemValidator,
             IFileUploadService fileUploadService,
-            ICartSharingService cartSharingService,
-            ICartValidationContextFactory cartValidationContextFactory)
+            ICartSharingService cartSharingService)
         {
             _cartTotalsCalculator = cartTotalsCalculator;
             _marketingEvaluator = marketingEvaluator;
@@ -85,7 +83,6 @@ namespace VirtoCommerce.XCart.Core
             _configurationItemValidator = configurationItemValidator;
             _fileUploadService = fileUploadService;
             _cartSharingService = cartSharingService;
-            _cartValidationContextFactory = cartValidationContextFactory;
         }
 
         public Store Store { get; protected set; }
@@ -852,36 +849,6 @@ namespace VirtoCommerce.XCart.Core
         /// per ruleSet in <see cref="ValidationErrorsByRuleSet"/> — subsequent calls with the same
         /// ruleSet return cached results without re-running validation.
         /// </summary>
-        public virtual async Task<IList<ValidationFailure>> ValidateAsync(string ruleSet)
-        {
-            var key = NormalizeRuleSet(ruleSet);
-
-            if (ValidationErrorsByRuleSet.TryGetValue(key, out var cached))
-            {
-                return cached;
-            }
-
-            if (_cartValidationContextFactory == null)
-            {
-                throw new InvalidOperationException(
-                    $"Cannot validate: {nameof(ICartValidationContextFactory)} is not available. " +
-                    $"Use the {nameof(CartAggregate)} constructor that accepts it.");
-            }
-
-            EnsureCartExists();
-
-            var validationContext = await _cartValidationContextFactory.CreateValidationContextAsync(this);
-            validationContext.CartAggregate = this;
-
-            var rules = ruleSet?.Split(RuleSetSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var result = await AbstractTypeFactory<CartValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
-
-            ValidationErrorsByRuleSet[key] = result.Errors;
-
-            return result.Errors;
-        }
-
-        [Obsolete("Use ValidateAsync(string ruleSet). The context is now created internally.", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         public virtual async Task<IList<ValidationFailure>> ValidateAsync(CartValidationContext validationContext, string ruleSet)
         {
             ArgumentNullException.ThrowIfNull(validationContext);
@@ -893,17 +860,14 @@ namespace VirtoCommerce.XCart.Core
                 return cached;
             }
 
+            EnsureCartExists();
+
             validationContext.CartAggregate = this;
 
-            EnsureCartExists();
             var rules = ruleSet?.Split(RuleSetSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var result = await AbstractTypeFactory<CartValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
 
             ValidationErrorsByRuleSet[key] = result.Errors;
-
-            // Backward compatibility: keep obsolete properties in sync
-            CartValidationErrors = result.Errors;
-            IsValidated = true;
 
             return result.Errors;
         }

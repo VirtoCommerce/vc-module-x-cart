@@ -11,6 +11,7 @@ using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Specifications;
+using VirtoCommerce.XCart.Core.Validators;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
@@ -18,7 +19,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
     {
         public CartType(
             ICartAvailMethodsService cartAvailMethods,
-            IDynamicPropertyResolverService dynamicPropertyResolverService)
+            IDynamicPropertyResolverService dynamicPropertyResolverService,
+            ICartValidationContextFactory cartValidationContextFactory)
         {
             Field(x => x.Cart.Id, nullable: false).Description("Shopping cart ID");
             Field(x => x.Cart.Name, nullable: false).Description("Shopping cart name");
@@ -208,8 +210,9 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 .Arguments(QueryArgumentPresets.GetArgumentsForCartValidator())
                 .ResolveAsync(async context =>
                 {
+                    var cartValidationContext = await cartValidationContextFactory.CreateValidationContextAsync(context.Source);
                     var ruleSet = context.GetArgumentOrValue<string>("ruleSet");
-                    var errors = await context.Source.ValidateAsync(ruleSet);
+                    var errors = await context.Source.ValidateAsync(cartValidationContext, ruleSet);
                     return errors.Concat(context.Source.OperationValidationErrors).OfType<CartValidationError>();
                 });
 
