@@ -144,10 +144,9 @@ namespace VirtoCommerce.XCart.Core
 
         public IList<ValidationFailure> OperationValidationErrors { get; protected set; } = new List<ValidationFailure>();
 
-        [Obsolete("Use GetValidationErrorsAsync(ruleSet) or ValidationErrorsByRuleSet instead.", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
-        public IList<ValidationFailure> CartValidationErrors { get; protected set; } = new List<ValidationFailure>();
+        public IList<ValidationFailure> CartValidationErrors => ValidationErrorsByRuleSet.Values.SelectMany(x => x).ToList();
 
-        [Obsolete("Use GetValidationErrorsAsync(ruleSet). The boolean flag does not track which ruleSet was validated.", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
+        [Obsolete("Use GetValidationErrorsAsync(ruleSet). The boolean flag does not track which ruleSet was validated.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         public bool IsValidated { get; private set; }
 
         public IList<ValidationFailure> ValidationWarnings { get; protected set; } = new List<ValidationFailure>();
@@ -181,8 +180,7 @@ namespace VirtoCommerce.XCart.Core
         /// </summary>
         public virtual IList<ValidationFailure> GetValidationErrors()
         {
-            return ValidationErrorsByRuleSet.Values
-                .SelectMany(x => x)
+            return CartValidationErrors
                 .Concat(OperationValidationErrors)
                 .ToList();
         }
