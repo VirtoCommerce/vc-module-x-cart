@@ -79,6 +79,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         result.AllowCustomText = section.AllowCustomText;
         result.AllowTextOptions = section.AllowPredefinedOptions;
         result.MaxLength = section.MaxLength;
+        result.DependsOnSectionId = section.DependsOnSectionId;
 
         return result;
     }
