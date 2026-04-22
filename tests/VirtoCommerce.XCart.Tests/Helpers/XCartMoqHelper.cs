@@ -258,7 +258,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 _genericPipelineLauncherMock.Object,
                 _configurationItemValidatorMock.Object,
                 _fileUploadService.Object,
-                _cartSharingService.Object);
+                _cartSharingService.Object,
+                _cartValidationContextFactoryMock.Object);
 
             aggregate.GrabCart(cart ?? GetCart(), new Store(), null, currency ?? GetCurrency());
 
@@ -278,7 +279,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 _genericPipelineLauncherMock.Object,
                 _configurationItemValidatorMock.Object,
                 _fileUploadService.Object,
-                _cartSharingService.Object);
+                _cartSharingService.Object,
+                _cartValidationContextFactoryMock.Object);
 
             aggregate.GrabCart(cart ?? GetCart(), new Store(), GetMember(), currency ?? GetCurrency());
 

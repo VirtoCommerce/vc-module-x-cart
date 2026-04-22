@@ -43,7 +43,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 _genericPipelineLauncherMock.Object,
                 _configurationItemValidatorMock.Object,
                 _fileUploadService.Object,
-                _cartSharingService.Object);
+                _cartSharingService.Object,
+                _cartValidationContextFactoryMock.Object);
 
             var cart = GetCart();
             var member = GetMember();
@@ -755,10 +756,12 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         {
             // Arrange
             var cartAggregate = GetValidCartAggregate();
-            var context = new CartValidationContext();
+            _cartValidationContextFactoryMock
+                .Setup(x => x.CreateValidationContextAsync(cartAggregate))
+                .ReturnsAsync(new CartValidationContext());
 
             // Act
-            var errors = await cartAggregate.ValidateAsync(context, "default");
+            var errors = await cartAggregate.ValidateAsync("default");
 
             // Assert
             errors.Should().BeEmpty();
