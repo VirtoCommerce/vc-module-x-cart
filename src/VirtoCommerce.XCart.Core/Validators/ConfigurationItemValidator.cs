@@ -36,10 +36,11 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigur
             return;
         }
 
-        var itemConfiguredSectionIds = item.ConfigurationItems?.Select(x => x.SectionId) ?? [];
+        var itemConfiguredSectionIds = item.ConfigurationItems?.Select(x => x.SectionId).ToHashSet() ?? [];
 
         var missingRequiredSectionIds = configuration.Sections
             .Where(x => x.IsRequired)
+            .Where(x => string.IsNullOrEmpty(x.DependsOnSectionId) || itemConfiguredSectionIds.Contains(x.DependsOnSectionId))
             .Select(x => x.Id)
             .Except(itemConfiguredSectionIds)
             .ToList();
@@ -123,9 +124,19 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigur
 
     private static void ValidateSectionTypeText(ConfigurationItem configurationItem, ProductConfigurationSection section, ValidationContext<LineItem> context)
     {
-        if (section != null && section.IsRequired && string.IsNullOrEmpty(configurationItem.CustomText))
+        if (section == null)
+        {
+            return;
+        }
+
+        if (section.IsRequired && string.IsNullOrEmpty(configurationItem.CustomText))
         {
             context.AddFailure(CartErrorDescriber.CustomTextIsRequired(section));
+        }
+
+        if (section.MaxLength.HasValue && !string.IsNullOrEmpty(configurationItem.CustomText) && configurationItem.CustomText.Length > section.MaxLength.Value)
+        {
+            context.AddFailure(CartErrorDescriber.CustomTextMaxLengthExceeded(section, section.MaxLength.Value));
         }
     }
 
