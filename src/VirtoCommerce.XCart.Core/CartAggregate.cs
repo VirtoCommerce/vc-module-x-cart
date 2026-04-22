@@ -147,7 +147,8 @@ namespace VirtoCommerce.XCart.Core
 
         public IList<ValidationFailure> OperationValidationErrors { get; protected set; } = new List<ValidationFailure>();
 
-        public IList<ValidationFailure> CartValidationErrors => ValidationErrorsByRuleSet.Values.SelectMany(x => x).ToList();
+        [Obsolete("Use GetValidationErrorsAsync(ruleSet) or ValidationErrorsByRuleSet instead. This property only contains the last ValidateAsync call's results.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
+        public IList<ValidationFailure> CartValidationErrors { get; protected set; } = new List<ValidationFailure>();
 
         [Obsolete("Use GetValidationErrorsAsync(ruleSet). The boolean flag does not track which ruleSet was validated.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         public bool IsValidated { get; private set; }
@@ -175,6 +176,9 @@ namespace VirtoCommerce.XCart.Core
         public void ClearValidationCache()
         {
             ValidationErrorsByRuleSet.Clear();
+#pragma warning disable VC0015 // Obsolete: maintained for backward compatibility
+            CartValidationErrors = new List<ValidationFailure>();
+#pragma warning restore VC0015
         }
 
         /// <summary>
@@ -183,9 +187,11 @@ namespace VirtoCommerce.XCart.Core
         /// </summary>
         public virtual IList<ValidationFailure> GetValidationErrors()
         {
+#pragma warning disable VC0015 // Obsolete: maintained for backward compatibility
             return CartValidationErrors
                 .Concat(OperationValidationErrors)
                 .ToList();
+#pragma warning restore VC0015
         }
 
         public virtual CartAggregate GrabCart(ShoppingCart cart, Store store, Member member, Currency currency)
@@ -875,6 +881,9 @@ namespace VirtoCommerce.XCart.Core
             var result = await AbstractTypeFactory<CartValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
 
             ValidationErrorsByRuleSet[key] = result.Errors;
+#pragma warning disable VC0015 // Obsolete: maintained for backward compatibility
+            CartValidationErrors = result.Errors;
+#pragma warning restore VC0015
 
             return result.Errors;
         }
@@ -899,8 +908,9 @@ namespace VirtoCommerce.XCart.Core
             var result = await AbstractTypeFactory<CartValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
 
             ValidationErrorsByRuleSet[key] = result.Errors;
+            CartValidationErrors = result.Errors;
 
-            // Backward compatibility: keep obsolete properties in sync 
+            // Backward compatibility: keep obsolete flag in sync
             IsValidated = true;
 
             return result.Errors;
@@ -1891,6 +1901,9 @@ namespace VirtoCommerce.XCart.Core
             // Re-create mutable collections so the clone doesn't share references with the original.
             // MemberwiseClone copies references — writes/clears on one instance would leak to the other.
             result.ValidationErrorsByRuleSet = new ConcurrentDictionary<string, IList<ValidationFailure>>(ValidationErrorsByRuleSet, StringComparer.OrdinalIgnoreCase);
+#pragma warning disable VC0015 // Obsolete: maintained for backward compatibility
+            result.CartValidationErrors = new List<ValidationFailure>(CartValidationErrors);
+#pragma warning restore VC0015
             result.OperationValidationErrors = new List<ValidationFailure>(OperationValidationErrors);
             result.ValidationWarnings = new List<ValidationFailure>(ValidationWarnings);
 
