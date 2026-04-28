@@ -32,7 +32,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
         _fileUploadService = fileUploadService;
     }
 
-    public async Task<ExpConfigurationLineItem> Handle(CreateConfiguredLineItemCommand request, CancellationToken cancellationToken)
+    public virtual async Task<ExpConfigurationLineItem> Handle(CreateConfiguredLineItemCommand request, CancellationToken cancellationToken)
     {
         var container = await _configuredLineItemContainerService.CreateContainerAsync(request);
         var productsRequest = container.GetCartProductsRequest();

@@ -88,17 +88,15 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         protected virtual async Task AddConfiguredItemAsync(AddCartItemsCommand request, NewCartItem item, CartAggregate cartAggregate, CancellationToken cancellationToken)
         {
-            var command = new CreateConfiguredLineItemCommand
-            {
-                StoreId = request.StoreId,
-                UserId = request.UserId,
-                OrganizationId = request.OrganizationId,
-                CultureName = request.CultureName,
-                CurrencyCode = request.CurrencyCode,
-                ConfigurableProductId = item.ProductId,
-                ConfigurationSections = item.ConfigurationSections,
-                CartId = cartAggregate.Cart.Id,
-            };
+            var command = AbstractTypeFactory<CreateConfiguredLineItemCommand>.TryCreateInstance();
+            command.StoreId = request.StoreId;
+            command.UserId = request.UserId;
+            command.OrganizationId = request.OrganizationId;
+            command.CultureName = request.CultureName;
+            command.CurrencyCode = request.CurrencyCode;
+            command.ConfigurableProductId = item.ProductId;
+            command.ConfigurationSections = item.ConfigurationSections;
+            command.CartId = cartAggregate.Cart.Id;
 
             var result = await _mediator.Send(command, cancellationToken);
 
