@@ -61,17 +61,15 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             if (configuration?.IsActive == true)
             {
-                var createConfigurableProductCommand = new CreateConfiguredLineItemCommand
-                {
-                    StoreId = request.StoreId,
-                    UserId = request.UserId,
-                    OrganizationId = request.OrganizationId,
-                    CultureName = request.CultureName,
-                    CurrencyCode = request.CurrencyCode,
-                    ConfigurableProductId = request.ProductId,
-                    ConfigurationSections = request.ConfigurationSections,
-                    CartId = cartAggregate.Cart.Id,
-                };
+                var createConfigurableProductCommand = AbstractTypeFactory<CreateConfiguredLineItemCommand>.TryCreateInstance();
+                createConfigurableProductCommand.StoreId = request.StoreId;
+                createConfigurableProductCommand.UserId = request.UserId;
+                createConfigurableProductCommand.OrganizationId = request.OrganizationId;
+                createConfigurableProductCommand.CultureName = request.CultureName;
+                createConfigurableProductCommand.CurrencyCode = request.CurrencyCode;
+                createConfigurableProductCommand.ConfigurableProductId = request.ProductId;
+                createConfigurableProductCommand.ConfigurationSections = request.ConfigurationSections;
+                createConfigurableProductCommand.CartId = cartAggregate.Cart.Id;
 
                 var mediatorResult = await _mediator.Send(createConfigurableProductCommand, cancellationToken);
                 await cartAggregate.AddConfiguredItemAsync(newItem, mediatorResult.Item);

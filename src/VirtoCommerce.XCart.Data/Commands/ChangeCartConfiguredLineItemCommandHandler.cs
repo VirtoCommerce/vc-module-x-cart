@@ -1,8 +1,7 @@
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
@@ -27,18 +26,16 @@ public class ChangeCartConfiguredLineItemCommandHandler : CartCommandHandler<Cha
 
         if (lineItem != null)
         {
-            var command = new CreateConfiguredLineItemCommand
-            {
-                StoreId = request.StoreId,
-                UserId = request.UserId,
-                OrganizationId = request.OrganizationId,
-                CultureName = request.CultureName,
-                CurrencyCode = request.CurrencyCode,
-                ConfigurableProductId = lineItem.ProductId,
-                ConfigurationSections = request.ConfigurationSections,
-                Quantity = request.Quantity ?? lineItem.Quantity,
-                CartId = cartAggregate.Cart.Id,
-            };
+            var command = AbstractTypeFactory<CreateConfiguredLineItemCommand>.TryCreateInstance();
+            command.StoreId = request.StoreId;
+            command.UserId = request.UserId;
+            command.OrganizationId = request.OrganizationId;
+            command.CultureName = request.CultureName;
+            command.CurrencyCode = request.CurrencyCode;
+            command.ConfigurableProductId = lineItem.ProductId;
+            command.ConfigurationSections = request.ConfigurationSections;
+            command.Quantity = request.Quantity ?? lineItem.Quantity;
+            command.CartId = cartAggregate.Cart.Id;
 
             var mediatorResult = await _mediator.Send(command, cancellationToken);
             await cartAggregate.UpdateConfiguredLineItemAsync(lineItem.Id, mediatorResult.Item);
