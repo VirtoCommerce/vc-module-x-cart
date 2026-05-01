@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -129,15 +130,25 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigur
             return;
         }
 
-        if (section.IsRequired && string.IsNullOrEmpty(configurationItem.CustomText))
+        var hasCustomText = !string.IsNullOrEmpty(configurationItem.CustomText);
+        var isPredefinedTextOption = hasCustomText && IsPredefinedTextOptionSelected(configurationItem, section);
+
+        if (section.IsRequired && !hasCustomText)
         {
             context.AddFailure(CartErrorDescriber.CustomTextIsRequired(section));
         }
 
-        if (section.MaxLength.HasValue && !string.IsNullOrEmpty(configurationItem.CustomText) && configurationItem.CustomText.Length > section.MaxLength.Value)
+        if (!isPredefinedTextOption && section.MaxLength.HasValue && hasCustomText && configurationItem.CustomText.Length > section.MaxLength.Value)
         {
             context.AddFailure(CartErrorDescriber.CustomTextMaxLengthExceeded(section, section.MaxLength.Value));
         }
+    }
+
+    private static bool IsPredefinedTextOptionSelected(ConfigurationItem configurationItem, ProductConfigurationSection section)
+    {
+        return section.AllowPredefinedOptions
+            && !section.Options.IsNullOrEmpty()
+            && section.Options.Any(x => !string.IsNullOrEmpty(x.Text) && string.Equals(x.Text, configurationItem.CustomText, StringComparison.Ordinal));
     }
 
     private static void ValidateSectionTypeProduct(ConfigurationItem configurationItem, ProductConfigurationSection section, ValidationContext<LineItem> context)

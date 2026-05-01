@@ -1378,6 +1378,13 @@ namespace VirtoCommerce.XCart.Core
 
             if (lineItem != null)
             {
+                var validationResult = await _configurationItemValidator.ValidateAsync(configuredItem);
+                if (!validationResult.IsValid)
+                {
+                    OperationValidationErrors.AddRange(validationResult.Errors);
+                    return this;
+                }
+
                 lineItem.Quantity = configuredItem.Quantity;
                 lineItem.ListPrice = configuredItem.ListPrice;
                 lineItem.SalePrice = configuredItem.SalePrice;
