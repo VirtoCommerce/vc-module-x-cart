@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -55,6 +56,9 @@ namespace VirtoCommerce.XCart.Core
         private readonly IConfigurationItemValidator _configurationItemValidator;
         private readonly IFileUploadService _fileUploadService;
         private readonly ICartSharingService _cartSharingService;
+        private readonly ICartValidationContextFactory _cartValidationContextFactory;
+
+        private const char RuleSetSeparator = ',';
 
         public CartAggregate(
             IMarketingPromoEvaluator marketingEvaluator,
@@ -67,7 +71,8 @@ namespace VirtoCommerce.XCart.Core
             IGenericPipelineLauncher pipeline,
             IConfigurationItemValidator configurationItemValidator,
             IFileUploadService fileUploadService,
-            ICartSharingService cartSharingService)
+            ICartSharingService cartSharingService,
+            ICartValidationContextFactory cartValidationContextFactory)
         {
             _cartTotalsCalculator = cartTotalsCalculator;
             _marketingEvaluator = marketingEvaluator;
@@ -80,6 +85,7 @@ namespace VirtoCommerce.XCart.Core
             _configurationItemValidator = configurationItemValidator;
             _fileUploadService = fileUploadService;
             _cartSharingService = cartSharingService;
+            _cartValidationContextFactory = cartValidationContextFactory;
         }
 
         public Store Store { get; protected set; }
@@ -126,16 +132,25 @@ namespace VirtoCommerce.XCart.Core
         /// FluentValidation RuleSets allow you to group validation rules together which can be executed together as a group. You can set exists rule set name to evaluate default.
         /// <see cref="CartValidator"/>
         /// </summary>
-        public string[] ValidationRuleSet { get; set; } = { "default", "strict" };
+        public string[] ValidationRuleSet { get; set; } = { ModuleConstants.ValidationRuleSets.Default, ModuleConstants.ValidationRuleSets.Strict };
 
-        public bool IsValid => !GetValidationErrors().Any();
+        /// <summary>
+        /// Per-ruleSet validation results cache. Populated by <see cref="ValidateAsync(CartValidationContext, string)"/>
+        /// and <see cref="GetValidationErrorsAsync"/>. Cleared by <see cref="ClearValidationCache"/>.
+        /// </summary>
+        protected ConcurrentDictionary<string, IList<ValidationFailure>> ValidationErrorsByRuleSet { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
+
+        public bool IsValid => ValidationErrorsByRuleSet.IsEmpty || ValidationErrorsByRuleSet.Values.All(x => x.Count == 0);
 
         [Obsolete("Use GetValidationErrors().", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         public IList<ValidationFailure> ValidationErrors { get; protected set; } = new List<ValidationFailure>();
 
         public IList<ValidationFailure> OperationValidationErrors { get; protected set; } = new List<ValidationFailure>();
+
+        [Obsolete("Use GetValidationErrorsAsync(ruleSet) or ValidationErrorsByRuleSet instead. This property only contains the last ValidateAsync call's results.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         public IList<ValidationFailure> CartValidationErrors { get; protected set; } = new List<ValidationFailure>();
 
+        [Obsolete("Use GetValidationErrorsAsync(ruleSet). The boolean flag does not track which ruleSet was validated.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         public bool IsValidated { get; private set; }
 
         public IList<ValidationFailure> ValidationWarnings { get; protected set; } = new List<ValidationFailure>();
@@ -154,9 +169,29 @@ namespace VirtoCommerce.XCart.Core
 
         public bool IsSelectedForCheckout => Store.Settings?.GetValue<bool>(XCartSetting.IsSelectedForCheckout) ?? true;
 
+        /// <summary>
+        /// Clears all cached validation results. Called after saving the cart
+        /// so the mutation response and subsequent queries re-validate against the updated state.
+        /// </summary>
+        public void ClearValidationCache()
+        {
+            ValidationErrorsByRuleSet.Clear();
+#pragma warning disable VC0015 // Obsolete: maintained for backward compatibility
+            CartValidationErrors = new List<ValidationFailure>();
+#pragma warning restore VC0015
+        }
+
+        /// <summary>
+        /// Returns all cached validation errors across all rulesets that have been validated,
+        /// combined with <see cref="OperationValidationErrors"/>. Does not trigger validation.
+        /// </summary>
         public virtual IList<ValidationFailure> GetValidationErrors()
         {
-            return CartValidationErrors.Concat(OperationValidationErrors).ToList();
+#pragma warning disable VC0015 // Obsolete: maintained for backward compatibility
+            return CartValidationErrors
+                .Concat(OperationValidationErrors)
+                .ToList();
+#pragma warning restore VC0015
         }
 
         public virtual CartAggregate GrabCart(ShoppingCart cart, Store store, Member member, Currency currency)
@@ -816,20 +851,68 @@ namespace VirtoCommerce.XCart.Core
             }
         }
 
+        /// <summary>
+        /// Validates the cart with the specified <paramref name="ruleSet"/>. Results are cached
+        /// per ruleSet in <see cref="ValidationErrorsByRuleSet"/> — subsequent calls with the same
+        /// ruleSet return cached results without re-running validation.
+        /// </summary>
+        public virtual async Task<IList<ValidationFailure>> ValidateAsync(string ruleSet)
+        {
+            var key = NormalizeRuleSet(ruleSet);
+
+            if (ValidationErrorsByRuleSet.TryGetValue(key, out var cached))
+            {
+                return cached;
+            }
+
+            if (_cartValidationContextFactory == null)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot validate: {nameof(ICartValidationContextFactory)} is not available. " +
+                    $"Use the {nameof(CartAggregate)} constructor that accepts it.");
+            }
+
+            EnsureCartExists();
+
+            var validationContext = await _cartValidationContextFactory.CreateValidationContextAsync(this);
+            validationContext.CartAggregate = this;
+
+            var rules = ruleSet?.Split(RuleSetSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var result = await AbstractTypeFactory<CartValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
+
+            ValidationErrorsByRuleSet[key] = result.Errors;
+#pragma warning disable VC0015 // Obsolete: maintained for backward compatibility
+            CartValidationErrors = result.Errors;
+#pragma warning restore VC0015
+
+            return result.Errors;
+        }
+
+        [Obsolete("Use ValidateAsync(string ruleSet). The context is now created internally.", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         public virtual async Task<IList<ValidationFailure>> ValidateAsync(CartValidationContext validationContext, string ruleSet)
         {
             ArgumentNullException.ThrowIfNull(validationContext);
 
-            validationContext.CartAggregate = this;
+            var key = NormalizeRuleSet(ruleSet);
+
+            if (ValidationErrorsByRuleSet.TryGetValue(key, out var cached))
+            {
+                return cached;
+            }
 
             EnsureCartExists();
-            var rules = ruleSet?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            validationContext.CartAggregate = this;
+
+            var rules = ruleSet?.Split(RuleSetSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var result = await AbstractTypeFactory<CartValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
-            if (!result.IsValid)
-            {
-                CartValidationErrors = result.Errors;
-            }
+
+            ValidationErrorsByRuleSet[key] = result.Errors;
+            CartValidationErrors = result.Errors;
+
+            // Backward compatibility: keep obsolete flag in sync
             IsValidated = true;
+
             return result.Errors;
         }
 
@@ -1203,6 +1286,48 @@ namespace VirtoCommerce.XCart.Core
             {
                 throw new OperationCanceledException("Cart not loaded.");
             }
+        }
+
+        /// <summary>
+        /// Normalizes a ruleSet string into a consistent cache key for <see cref="ValidationErrorsByRuleSet"/>.
+        /// Sorts composite rulesets ("shipments,default" → "default,shipments") and collapses "*" variants.
+        /// <para>
+        /// Note: composite keys like "default,shipments" and standalone "default" are cached separately
+        /// even though the composite result is a superset. This is a deliberate design decision —
+        /// resolving subset/superset relationships between rulesets would add complexity
+        /// without meaningful performance benefit in practice.
+        /// </para>
+        /// </summary>
+        private static string NormalizeRuleSet(string ruleSet)
+        {
+            if (string.IsNullOrEmpty(ruleSet))
+            {
+                return ModuleConstants.ValidationRuleSets.Default;
+            }
+
+            // "*" subsumes all other rulesets — no need to split
+            if (ruleSet.Contains('*'))
+            {
+                return "*";
+            }
+
+            // Single token (no comma): no normalization needed.
+            // The dictionary comparer is OrdinalIgnoreCase, so case collapses at lookup time.
+            if (ruleSet.IndexOf(RuleSetSeparator) < 0)
+            {
+                return ruleSet;
+            }
+
+            var parts = ruleSet.Split(RuleSetSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            if (parts.Length == 1)
+            {
+                return parts[0];
+            }
+
+            // Sort for consistent cache keys: "shipments,default" == "default,shipments"
+            Array.Sort(parts, StringComparer.OrdinalIgnoreCase);
+            return string.Join(RuleSetSeparator, parts);
         }
 
         protected virtual async Task<TaxProvider> GetActiveTaxProviderAsync()
@@ -1779,6 +1904,15 @@ namespace VirtoCommerce.XCart.Core
             result.Currency = Currency.CloneTyped();
             result.Member = Member?.CloneTyped();
             result.Store = Store.CloneTyped();
+
+            // Re-create mutable collections so the clone doesn't share references with the original.
+            // MemberwiseClone copies references — writes/clears on one instance would leak to the other.
+            result.ValidationErrorsByRuleSet = new ConcurrentDictionary<string, IList<ValidationFailure>>(ValidationErrorsByRuleSet, StringComparer.OrdinalIgnoreCase);
+#pragma warning disable VC0015 // Obsolete: maintained for backward compatibility
+            result.CartValidationErrors = new List<ValidationFailure>(CartValidationErrors);
+#pragma warning restore VC0015
+            result.OperationValidationErrors = new List<ValidationFailure>(OperationValidationErrors);
+            result.ValidationWarnings = new List<ValidationFailure>(ValidationWarnings);
 
             return result;
         }

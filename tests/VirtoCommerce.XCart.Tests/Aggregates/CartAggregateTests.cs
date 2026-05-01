@@ -43,7 +43,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 _genericPipelineLauncherMock.Object,
                 _configurationItemValidatorMock.Object,
                 _fileUploadService.Object,
-                _cartSharingService.Object);
+                _cartSharingService.Object,
+                _cartValidationContextFactoryMock.Object);
 
             var cart = GetCart();
             var member = GetMember();
@@ -751,17 +752,20 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         #region ValidateAsync
 
         [Fact]
-        public async Task ValidateAsync_CartValid_CartValidated()
+        public async Task ValidateAsync_CartValid_ResultsCached()
         {
             // Arrange
             var cartAggregate = GetValidCartAggregate();
-            var context = new CartValidationContext();
+            _cartValidationContextFactoryMock
+                .Setup(x => x.CreateValidationContextAsync(cartAggregate))
+                .ReturnsAsync(new CartValidationContext());
 
             // Act
-            await cartAggregate.ValidateAsync(context, "default");
+            var errors = await cartAggregate.ValidateAsync("default");
 
             // Assert
-            cartAggregate.IsValidated.Should().BeTrue();
+            errors.Should().BeEmpty();
+            cartAggregate.GetValidationErrors().Should().BeEmpty();
         }
 
         #endregion ValidateAsync

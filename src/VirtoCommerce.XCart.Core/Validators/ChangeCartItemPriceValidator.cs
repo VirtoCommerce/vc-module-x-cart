@@ -9,7 +9,7 @@ namespace VirtoCommerce.XCart.Core.Validators
         {
             RuleFor(x => x.NewPrice).GreaterThanOrEqualTo(0);
             RuleFor(x => x.LineItemId).NotNull().NotEmpty();
-            RuleSet("strict", () =>
+            RuleSet(ModuleConstants.ValidationRuleSets.Strict, () =>
             {
                 RuleFor(x => x).Custom((newPriceRequest, context) =>
                 {

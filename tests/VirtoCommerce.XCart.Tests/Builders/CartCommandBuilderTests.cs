@@ -55,7 +55,7 @@ public class CartCommandBuilderTests
     private static CartAggregate CreateCartAggregate(string cartId = "cart-1")
     {
         var mock = new Mock<CartAggregate>(
-            MockBehavior.Loose, null, null, null, null, null, null, null, null, null, null, null);
+            MockBehavior.Loose, null, null, null, null, null, null, null, null, null, null, null, null);
 
         var cartProperty = typeof(CartAggregate).GetProperty(nameof(CartAggregate.Cart));
         cartProperty!.SetValue(mock.Object, new ShoppingCart { Id = cartId });

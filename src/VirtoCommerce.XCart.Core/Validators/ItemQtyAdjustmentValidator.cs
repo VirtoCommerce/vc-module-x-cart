@@ -13,7 +13,7 @@ namespace VirtoCommerce.XCart.Core.Validators
             RuleFor(x => x.LineItemId).NotNull();
             RuleFor(x => x.CartProduct).NotNull();
 
-            RuleSet("strict", () =>
+            RuleSet(ModuleConstants.ValidationRuleSets.Strict, () =>
             {
                 RuleFor(x => x).Custom((qtyAdjust, context) =>
                 {

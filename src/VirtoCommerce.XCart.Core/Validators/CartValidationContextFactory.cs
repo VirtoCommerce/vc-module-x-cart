@@ -34,14 +34,13 @@ namespace VirtoCommerce.XCart.Core.Validators
             var configurationsTask = LoadProductConfigurationsAsync(cartAggregate);
             await Task.WhenAll(availPaymentsTask, availShippingRatesTask, cartProductsTask, configurationsTask);
 
-            return new CartValidationContext
-            {
-                CartAggregate = cartAggregate,
-                AllCartProducts = cartProductsTask.Result,
-                AvailPaymentMethods = availPaymentsTask.Result,
-                AvailShippingRates = availShippingRatesTask.Result,
-                ProductConfigurations = configurationsTask.Result,
-            };
+            var context = AbstractTypeFactory<CartValidationContext>.TryCreateInstance();
+            context.CartAggregate = cartAggregate;
+            context.AllCartProducts = cartProductsTask.Result;
+            context.AvailPaymentMethods = availPaymentsTask.Result;
+            context.AvailShippingRates = availShippingRatesTask.Result;
+            context.ProductConfigurations = configurationsTask.Result;
+            return context;
         }
 
         public async Task<CartValidationContext> CreateValidationContextAsync(CartAggregate cartAggregate, IList<CartProduct> products)
@@ -51,14 +50,13 @@ namespace VirtoCommerce.XCart.Core.Validators
             var configurationsTask = LoadProductConfigurationsAsync(cartAggregate);
             await Task.WhenAll(availPaymentsTask, availShippingRatesTask, configurationsTask);
 
-            return new CartValidationContext
-            {
-                CartAggregate = cartAggregate,
-                AllCartProducts = products,
-                AvailPaymentMethods = availPaymentsTask.Result,
-                AvailShippingRates = availShippingRatesTask.Result,
-                ProductConfigurations = configurationsTask.Result,
-            };
+            var context = AbstractTypeFactory<CartValidationContext>.TryCreateInstance();
+            context.CartAggregate = cartAggregate;
+            context.AllCartProducts = products;
+            context.AvailPaymentMethods = availPaymentsTask.Result;
+            context.AvailShippingRates = availShippingRatesTask.Result;
+            context.ProductConfigurations = configurationsTask.Result;
+            return context;
         }
 
         protected virtual async Task<IDictionary<string, ProductConfiguration>> LoadProductConfigurationsAsync(CartAggregate cartAggregate)
