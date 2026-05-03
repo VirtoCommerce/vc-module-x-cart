@@ -2739,5 +2739,305 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         }
 
         #endregion ConfigurationItem Validation
+
+        #region ChangeConfigurationItemSelected
+
+        private static ProductConfigurationSection VariationSectionRef(string sectionId, string productId)
+        {
+            return new ProductConfigurationSection
+            {
+                SectionId = sectionId,
+                Type = "Variation",
+                Option = new ConfigurableProductOption { ProductId = productId },
+            };
+        }
+
+        [Fact]
+        public async Task ChangeConfigurationItemSelectedAsync_NullLineItemId_ShouldThrow()
+        {
+            var cartAggregate = GetValidCartAggregate();
+
+            var action = async () => await cartAggregate.ChangeConfigurationItemSelectedAsync(null, VariationSectionRef("section-1", "p1"), true);
+
+            await action.Should().ThrowExactlyAsync<ArgumentNullException>();
+        }
+
+        [Fact]
+        public async Task ChangeConfigurationItemSelectedAsync_NullConfigurationSection_ShouldThrow()
+        {
+            var cartAggregate = GetValidCartAggregate();
+
+            var action = async () => await cartAggregate.ChangeConfigurationItemSelectedAsync("line-item-1", null, true);
+
+            await action.Should().ThrowExactlyAsync<ArgumentNullException>();
+        }
+
+        [Fact]
+        public async Task ChangeConfigurationItemSelectedAsync_ShouldFlipFlag_OnMatchingConfigItem()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var configItem = new ConfigurationItem { Id = "config-1", SectionId = "size", Type = "Variation", ProductId = "p1", SelectedForCheckout = true };
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { configItem },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
+                .ReturnsAsync([]);
+
+            // Act
+            await cartAggregate.ChangeConfigurationItemSelectedAsync(lineItem.Id, VariationSectionRef("size", "p1"), false);
+
+            // Assert
+            configItem.SelectedForCheckout.Should().BeFalse();
+            _cartProductServiceMock.Verify(x => x.GetCartProductsByIdsAsync(cartAggregate, It.IsAny<IList<string>>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task ChangeConfigurationItemSelectedAsync_ShouldFlipFlag_OnTextSection()
+        {
+            // Arrange — Text/File sections are unique by (Type, SectionId); Option.ProductId is irrelevant.
+            var cartAggregate = GetValidCartAggregate();
+            var textConfigItem = new ConfigurationItem { Id = "text-1", SectionId = "label", Type = "Text", CustomText = "hello", SelectedForCheckout = true };
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { textConfigItem },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
+                .ReturnsAsync([]);
+
+            var textSection = new ProductConfigurationSection { SectionId = "label", Type = "Text" };
+
+            // Act
+            await cartAggregate.ChangeConfigurationItemSelectedAsync(lineItem.Id, textSection, false);
+
+            // Assert
+            textConfigItem.SelectedForCheckout.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task ChangeConfigurationItemsSelectedAsync_ShouldFlipFlagsForMatching_LeavingOthersUnchanged()
+        {
+            // Arrange — three Variation items in one section, discriminated by ProductId.
+            var cartAggregate = GetValidCartAggregate();
+            var configA = new ConfigurationItem { Id = "config-a", SectionId = "size", Type = "Variation", ProductId = "pa", SelectedForCheckout = true };
+            var configB = new ConfigurationItem { Id = "config-b", SectionId = "size", Type = "Variation", ProductId = "pb", SelectedForCheckout = true };
+            var configC = new ConfigurationItem { Id = "config-c", SectionId = "size", Type = "Variation", ProductId = "pc", SelectedForCheckout = true };
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { configA, configB, configC },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
+                .ReturnsAsync([]);
+
+            // Act
+            await cartAggregate.ChangeConfigurationItemsSelectedAsync(
+                lineItem.Id,
+                [VariationSectionRef("size", "pa"), VariationSectionRef("size", "pc")],
+                false);
+
+            // Assert
+            configA.SelectedForCheckout.Should().BeFalse();
+            configB.SelectedForCheckout.Should().BeTrue("pb was not in the selection list");
+            configC.SelectedForCheckout.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task ChangeConfigurationItemsSelectedAsync_OtherLineItemConfigItems_AreUntouched()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var configInTarget = new ConfigurationItem { Id = "config-1", SectionId = "size", Type = "Variation", ProductId = "p1", SelectedForCheckout = true };
+            var configInOther = new ConfigurationItem { Id = "config-2", SectionId = "size", Type = "Variation", ProductId = "p1", SelectedForCheckout = true };
+            cartAggregate.Cart.Items.Add(new LineItem
+            {
+                Id = "target-line",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { configInTarget },
+            });
+            cartAggregate.Cart.Items.Add(new LineItem
+            {
+                Id = "other-line",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { configInOther },
+            });
+
+            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
+                .ReturnsAsync([]);
+
+            // Act — section ref matches both lineItems' configItems, but lineItemId scopes the lookup.
+            await cartAggregate.ChangeConfigurationItemsSelectedAsync("target-line", [VariationSectionRef("size", "p1")], false);
+
+            // Assert
+            configInTarget.SelectedForCheckout.Should().BeFalse();
+            configInOther.SelectedForCheckout.Should().BeTrue("the other lineItem's configItem must not be touched");
+        }
+
+        [Fact]
+        public async Task ChangeConfigurationItemsSelectedAsync_LineItemNotFound_ShouldAddValidationError_AndNotReprice()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+
+            // Act
+            await cartAggregate.ChangeConfigurationItemsSelectedAsync("missing-line-item", [VariationSectionRef("size", "p1")], false);
+
+            // Assert
+            cartAggregate.OperationValidationErrors.Should().Contain(x => x.ErrorCode == "CONFIGURED_LINE_ITEM_NOT_FOUND");
+            _cartProductServiceMock.Verify(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task ChangeConfigurationItemsSelectedAsync_NoChange_ShouldNotReprice()
+        {
+            // Arrange — config item already at desired state.
+            var cartAggregate = GetValidCartAggregate();
+            var configItem = new ConfigurationItem { Id = "config-1", SectionId = "size", Type = "Variation", ProductId = "p1", SelectedForCheckout = false };
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { configItem },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            // Act
+            await cartAggregate.ChangeConfigurationItemsSelectedAsync(lineItem.Id, [VariationSectionRef("size", "p1")], false);
+
+            // Assert
+            configItem.SelectedForCheckout.Should().BeFalse();
+            _cartProductServiceMock.Verify(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task ChangeConfigurationItemsSelectedAsync_UnmatchedSection_ShouldNoOp()
+        {
+            // Arrange — section ref points at a non-existent (sectionId, productId).
+            var cartAggregate = GetValidCartAggregate();
+            var configItem = new ConfigurationItem { Id = "config-1", SectionId = "size", Type = "Variation", ProductId = "p1", SelectedForCheckout = true };
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { configItem },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            // Act
+            await cartAggregate.ChangeConfigurationItemsSelectedAsync(lineItem.Id, [VariationSectionRef("size", "non-existent")], false);
+
+            // Assert
+            configItem.SelectedForCheckout.Should().BeTrue("no item matched, nothing should change");
+            _cartProductServiceMock.Verify(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task ChangeConfigurationItemsSelectedAsync_EmptySectionList_ShouldNoOp()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var configItem = new ConfigurationItem { Id = "config-1", SectionId = "size", Type = "Variation", ProductId = "p1", SelectedForCheckout = true };
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { configItem },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            // Act
+            await cartAggregate.ChangeConfigurationItemsSelectedAsync(lineItem.Id, [], false);
+
+            // Assert
+            configItem.SelectedForCheckout.Should().BeTrue("empty section list must not flip anything");
+            _cartProductServiceMock.Verify(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task ChangeAllConfigurationItemsSelectedAsync_ShouldFlipAllConfigItems()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var configA = new ConfigurationItem { Id = "config-a", ProductId = "pa", SelectedForCheckout = true };
+            var configB = new ConfigurationItem { Id = "config-b", ProductId = "pb", SelectedForCheckout = true };
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { configA, configB },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
+                .ReturnsAsync([]);
+
+            // Act
+            await cartAggregate.ChangeAllConfigurationItemsSelectedAsync(lineItem.Id, false);
+
+            // Assert
+            configA.SelectedForCheckout.Should().BeFalse();
+            configB.SelectedForCheckout.Should().BeFalse();
+            _cartProductServiceMock.Verify(x => x.GetCartProductsByIdsAsync(cartAggregate, It.IsAny<IList<string>>()), Times.Once);
+        }
+
+        [Fact]
+        public async Task ChangeAllConfigurationItemsSelectedAsync_LineItemNotFound_ShouldAddValidationError()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+
+            // Act
+            await cartAggregate.ChangeAllConfigurationItemsSelectedAsync("missing-line-item", false);
+
+            // Assert
+            cartAggregate.OperationValidationErrors.Should().Contain(x => x.ErrorCode == "CONFIGURED_LINE_ITEM_NOT_FOUND");
+            _cartProductServiceMock.Verify(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task ChangeAllConfigurationItemsSelectedAsync_AlreadyAtDesiredState_ShouldNotReprice()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var configA = new ConfigurationItem { Id = "config-a", ProductId = "pa", SelectedForCheckout = false };
+            var configB = new ConfigurationItem { Id = "config-b", ProductId = "pb", SelectedForCheckout = false };
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { configA, configB },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            // Act
+            await cartAggregate.ChangeAllConfigurationItemsSelectedAsync(lineItem.Id, false);
+
+            // Assert
+            _cartProductServiceMock.Verify(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()), Times.Never);
+        }
+
+        #endregion ChangeConfigurationItemSelected
     }
 }
