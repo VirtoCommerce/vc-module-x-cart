@@ -201,7 +201,7 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             if (fileUrls.IsNullOrEmpty())
             {
-                return null;
+                return [];
             }
 
             return (await _fileUploadService.GetByPublicUrlAsync(fileUrls))
