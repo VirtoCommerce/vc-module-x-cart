@@ -1929,10 +1929,10 @@ namespace VirtoCommerce.XCart.Core
                             break;
                         }
                     case ConfigurationSectionTypeText:
-                        container.AddTextSectionLineItem(configurationItem.CustomText, configurationItem.SectionId);
+                        container.AddTextSectionLineItem(configurationItem);
                         break;
                     case ConfigurationSectionTypeFile:
-                        container.AddFileSectionLineItem(configurationItem.Files, configurationItem.SectionId);
+                        container.AddFileSectionLineItem(configurationItem);
                         break;
                 }
             }

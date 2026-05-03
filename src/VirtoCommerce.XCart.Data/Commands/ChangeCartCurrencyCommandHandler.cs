@@ -177,12 +177,12 @@ namespace VirtoCommerce.XCart.Data.Commands
                         break;
                     }
                     case ConfigurationSectionTypeText:
-                        container.AddTextSectionLineItem(configurationItem.CustomText, configurationItem.SectionId);
+                        container.AddTextSectionLineItem(configurationItem);
                         break;
                     case ConfigurationSectionTypeFile:
                     {
                         var files = await CopyConfigurationFiles(configurationItem, currentCurrencyCartAggregate.Cart);
-                        container.AddFileSectionLineItem(files, configurationItem.SectionId);
+                        container.AddFileSectionLineItem(configurationItem, files);
                         break;
                     }
                 }
