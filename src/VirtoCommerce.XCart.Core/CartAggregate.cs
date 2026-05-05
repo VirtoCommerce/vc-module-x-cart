@@ -1241,7 +1241,9 @@ namespace VirtoCommerce.XCart.Core
 
         protected virtual async Task<CartAggregate> InnerAddLineItemAsync(LineItem newLineItem, bool overrideQuantity, CartProduct product = null, IList<DynamicPropertyValue> dynamicProperties = null)
         {
-            var existingLineItem = FindExistingLineItemBeforeAdd(newLineItem.ProductId, product, dynamicProperties);
+            var existingLineItem = newLineItem.IsConfigured
+                ? null
+                : FindExistingLineItemBeforeAdd(newLineItem.ProductId, product, dynamicProperties);
 
             if (existingLineItem != null)
             {
@@ -1277,7 +1279,7 @@ namespace VirtoCommerce.XCart.Core
         /// <returns></returns>
         protected virtual LineItem FindExistingLineItemBeforeAdd(string newProductId, CartProduct newProduct, IList<DynamicPropertyValue> newDynamicProperties)
         {
-            return LineItems.FirstOrDefault(x => x.ProductId == newProductId);
+            return LineItems.FirstOrDefault(x => x.ProductId == newProductId && !x.IsConfigured);
         }
 
         protected virtual void EnsureCartExists()
