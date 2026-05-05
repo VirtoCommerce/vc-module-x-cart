@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"C:\\\\Source\\\\vc-modules\\\\vc-module-x-cart\\\\tests\"\" 2>/dev/null || echo \"no tests dir \")",
+      "Bash(dotnet test:*)"
+    ]
+  }
+}
