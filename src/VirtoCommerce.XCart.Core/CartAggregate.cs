@@ -1214,7 +1214,9 @@ namespace VirtoCommerce.XCart.Core
         [Obsolete("Use InnerAddLineItemAsync(LineItem newLineItem, bool overrideQuantity) instead", DiagnosticId = "VC0011", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
         protected virtual async Task<CartAggregate> InnerAddLineItemAsync(LineItem newLineItem, CartProduct product = null, IList<DynamicPropertyValue> dynamicProperties = null)
         {
-            var existingLineItem = FindExistingLineItemBeforeAdd(newLineItem.ProductId, product, dynamicProperties);
+            var existingLineItem = newLineItem.IsConfigured
+                ? null
+                : FindExistingLineItemBeforeAdd(newLineItem.ProductId, product, dynamicProperties);
 
             if (existingLineItem != null)
             {
