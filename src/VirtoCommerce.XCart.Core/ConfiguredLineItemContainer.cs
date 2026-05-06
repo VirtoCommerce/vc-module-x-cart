@@ -174,16 +174,19 @@ namespace VirtoCommerce.XCart.Core
 
         /// <summary>
         /// Creates an empty <see cref="SectionLineItem"/> with the given identifying fields.
-        /// Used by both creation-path and source-aware overloads as the single point of
-        /// <see cref="AbstractTypeFactory{T}"/> construction.
+        /// Used by both creation-path and source-aware overloads. Override to return a
+        /// derived <see cref="SectionLineItem"/> type — <see cref="SectionLineItem"/> is
+        /// nested-protected, so external <see cref="AbstractTypeFactory{T}"/> registration
+        /// is not reachable; subclassing <see cref="ConfiguredLineItemContainer"/> is the
+        /// supported extension point.
         /// </summary>
         protected virtual SectionLineItem CreateSectionLineItem(string sectionId, string type)
         {
-            var item = AbstractTypeFactory<SectionLineItem>.TryCreateInstance();
-            item.SectionId = sectionId;
-            item.Type = type;
-
-            return item;
+            return new SectionLineItem
+            {
+                SectionId = sectionId,
+                Type = type,
+            };
         }
 
         public virtual ExpConfigurationLineItem CreateConfiguredLineItem(int quantity)
