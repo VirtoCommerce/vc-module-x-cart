@@ -1419,7 +1419,7 @@ namespace VirtoCommerce.XCart.Core
             return AddConfigurationItemsAsync(lineItemId, [configurationSection]);
         }
 
-        public virtual async Task<CartAggregate> AddConfigurationItemsAsync(string lineItemId, IList<ProductConfigurationSection> configurationSections)
+        public virtual Task<CartAggregate> AddConfigurationItemsAsync(string lineItemId, IList<ProductConfigurationSection> configurationSections)
         {
             ArgumentNullException.ThrowIfNull(lineItemId);
             ArgumentNullException.ThrowIfNull(configurationSections);
@@ -1430,10 +1430,11 @@ namespace VirtoCommerce.XCart.Core
             if (lineItem is null)
             {
                 OperationValidationErrors.Add(CartErrorDescriber.ConfiguredLineItemNotFound(lineItemId));
-                return this;
+
+                return Task.FromResult(this);
             }
 
-            return await AddConfigurationItemsAsync(lineItem, configurationSections);
+            return AddConfigurationItemsAsync(lineItem, configurationSections);
         }
 
         protected virtual async Task<CartAggregate> AddConfigurationItemsAsync(LineItem lineItem, IList<ProductConfigurationSection> configurationSections)
@@ -1491,7 +1492,7 @@ namespace VirtoCommerce.XCart.Core
             return UpdateConfigurationItemsAsync(lineItemId, [configurationSection]);
         }
 
-        public virtual async Task<CartAggregate> UpdateConfigurationItemsAsync(string lineItemId, IList<ProductConfigurationSection> configurationSections)
+        public virtual Task<CartAggregate> UpdateConfigurationItemsAsync(string lineItemId, IList<ProductConfigurationSection> configurationSections)
         {
             ArgumentNullException.ThrowIfNull(lineItemId);
             ArgumentNullException.ThrowIfNull(configurationSections);
@@ -1502,10 +1503,11 @@ namespace VirtoCommerce.XCart.Core
             if (lineItem is null)
             {
                 OperationValidationErrors.Add(CartErrorDescriber.ConfiguredLineItemNotFound(lineItemId));
-                return this;
+
+                return Task.FromResult(this);
             }
 
-            return await UpdateConfigurationItemsAsync(lineItem, configurationSections);
+            return UpdateConfigurationItemsAsync(lineItem, configurationSections);
         }
 
         protected virtual async Task<CartAggregate> UpdateConfigurationItemsAsync(LineItem lineItem, IList<ProductConfigurationSection> configurationSections)
@@ -1608,6 +1610,102 @@ namespace VirtoCommerce.XCart.Core
                         break;
                     }
             }
+        }
+
+        public virtual Task<CartAggregate> ChangeConfigurationItemSelectedAsync(string lineItemId, ProductConfigurationSection configurationSection, bool selectedForCheckout)
+        {
+            ArgumentNullException.ThrowIfNull(lineItemId);
+            ArgumentNullException.ThrowIfNull(configurationSection);
+
+            EnsureCartExists();
+
+            return ChangeConfigurationItemsSelectedAsync(lineItemId, [configurationSection], selectedForCheckout);
+        }
+
+        public virtual Task<CartAggregate> ChangeConfigurationItemsSelectedAsync(string lineItemId, IList<ProductConfigurationSection> configurationSections, bool selectedForCheckout)
+        {
+            ArgumentNullException.ThrowIfNull(lineItemId);
+            ArgumentNullException.ThrowIfNull(configurationSections);
+
+            EnsureCartExists();
+
+            var lineItem = GetConfiguredLineItem(lineItemId);
+            if (lineItem is null)
+            {
+                OperationValidationErrors.Add(CartErrorDescriber.ConfiguredLineItemNotFound(lineItemId));
+
+                return Task.FromResult(this);
+            }
+
+            return ChangeConfigurationItemsSelectedAsync(lineItem, configurationSections, selectedForCheckout);
+        }
+
+        protected virtual async Task<CartAggregate> ChangeConfigurationItemsSelectedAsync(LineItem lineItem, IList<ProductConfigurationSection> configurationSections, bool selectedForCheckout)
+        {
+            if (lineItem.ConfigurationItems.IsNullOrEmpty() || configurationSections.IsNullOrEmpty())
+            {
+                return this;
+            }
+
+            var changed = false;
+            foreach (var section in configurationSections)
+            {
+                var configurationItem = FindConfigurationItem(lineItem, section);
+                if (configurationItem is not null && configurationItem.SelectedForCheckout != selectedForCheckout)
+                {
+                    configurationItem.SelectedForCheckout = selectedForCheckout;
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                await UpdateConfiguredLineItemPrice([lineItem]);
+            }
+
+            return this;
+        }
+
+        public virtual Task<CartAggregate> ChangeAllConfigurationItemsSelectedAsync(string lineItemId, bool selectedForCheckout)
+        {
+            ArgumentNullException.ThrowIfNull(lineItemId);
+
+            EnsureCartExists();
+
+            var lineItem = GetConfiguredLineItem(lineItemId);
+            if (lineItem is null)
+            {
+                OperationValidationErrors.Add(CartErrorDescriber.ConfiguredLineItemNotFound(lineItemId));
+
+                return Task.FromResult(this);
+            }
+
+            return ChangeAllConfigurationItemsSelectedAsync(lineItem, selectedForCheckout);
+        }
+
+        protected virtual async Task<CartAggregate> ChangeAllConfigurationItemsSelectedAsync(LineItem lineItem, bool selectedForCheckout)
+        {
+            if (lineItem.ConfigurationItems.IsNullOrEmpty())
+            {
+                return this;
+            }
+
+            var changed = false;
+            foreach (var configurationItem in lineItem.ConfigurationItems)
+            {
+                if (configurationItem.SelectedForCheckout != selectedForCheckout)
+                {
+                    configurationItem.SelectedForCheckout = selectedForCheckout;
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                await UpdateConfiguredLineItemPrice([lineItem]);
+            }
+
+            return this;
         }
 
         public virtual Task<CartAggregate> RemoveConfigurationItemAsync(string lineItemId, ProductConfigurationSection configurationSection)
@@ -1835,10 +1933,10 @@ namespace VirtoCommerce.XCart.Core
                             break;
                         }
                     case ConfigurationSectionTypeText:
-                        container.AddTextSectionLineItem(configurationItem.CustomText, configurationItem.SectionId);
+                        container.AddTextSectionLineItem(configurationItem);
                         break;
                     case ConfigurationSectionTypeFile:
-                        container.AddFileSectionLineItem(configurationItem.Files, configurationItem.SectionId);
+                        container.AddFileSectionLineItem(configurationItem);
                         break;
                 }
             }
