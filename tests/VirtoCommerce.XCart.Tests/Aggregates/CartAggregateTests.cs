@@ -586,9 +586,11 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var sourceLineItem1 = _fixture.Create<LineItem>();
             sourceLineItem1.ProductId = sourceProduct1.Id;
+            sourceLineItem1.IsConfigured = false;
 
             var sourceLineItem2 = _fixture.Create<LineItem>();
             sourceLineItem2.ProductId = sourceProduct2.Id;
+            sourceLineItem2.IsConfigured = false;
 
             sourceAggregate.Cart.Items = new List<LineItem> { sourceLineItem1, sourceLineItem2 };
 
@@ -599,9 +601,11 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var destinationLineItem1 = _fixture.Create<LineItem>();
             destinationLineItem1.ProductId = destinationProduct1.Id;
+            destinationLineItem1.IsConfigured = false;
 
             var destinationLineItem2 = _fixture.Create<LineItem>();
             destinationLineItem2.ProductId = sourceProduct2.Id;
+            destinationLineItem2.IsConfigured = false;
             var quantity = destinationLineItem2.Quantity;
 
             destinationAggregate.Cart.Items = new List<LineItem> { destinationLineItem1, destinationLineItem2 };
@@ -745,6 +749,149 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             // Assert
             destinationAggregate.Cart.Payments.Should().HaveCount(1);
             destinationAggregate.Cart.Payments.Should().Contain(sourcePayment);
+        }
+
+        [Fact]
+        public async Task MergeWithCartAsync_ConfiguredItemsSameProduct_KeptSeparate()
+        {
+            // Arrange
+            var sourceAggregate = GetValidCartAggregate();
+            sourceAggregate.Cart.Coupons = Enumerable.Empty<string>().ToList();
+            sourceAggregate.Cart.Shipments = Enumerable.Empty<Shipment>().ToList();
+            sourceAggregate.Cart.Payments = Enumerable.Empty<Payment>().ToList();
+
+            var sharedProduct = _fixture.Create<CartProduct>();
+            sharedProduct.Id = "shared-product";
+            sourceAggregate.CartProducts.Add(sharedProduct.Id, sharedProduct);
+
+            var sourceConfiguredItem = _fixture.Create<LineItem>();
+            sourceConfiguredItem.ProductId = sharedProduct.Id;
+            sourceConfiguredItem.IsConfigured = true;
+            sourceConfiguredItem.ConfigurationItems = new List<ConfigurationItem>
+            {
+                new() { SectionId = "section-A", ProductId = "component-A" },
+            };
+            var sourceQuantity = sourceConfiguredItem.Quantity;
+
+            sourceAggregate.Cart.Items = new List<LineItem> { sourceConfiguredItem };
+
+            var destinationAggregate = GetValidCartAggregate();
+
+            var destinationConfiguredItem = _fixture.Create<LineItem>();
+            destinationConfiguredItem.ProductId = sharedProduct.Id;
+            destinationConfiguredItem.IsConfigured = true;
+            destinationConfiguredItem.ConfigurationItems = new List<ConfigurationItem>
+            {
+                new() { SectionId = "section-B", ProductId = "component-B" },
+            };
+            var destinationQuantity = destinationConfiguredItem.Quantity;
+
+            destinationAggregate.Cart.Items = new List<LineItem> { destinationConfiguredItem };
+
+            // Act
+            await destinationAggregate.MergeWithCartAsync(sourceAggregate);
+
+            // Assert
+            destinationAggregate.Cart.Items.Should().HaveCount(2);
+            destinationAggregate.Cart.Items.Should().OnlyContain(x => x.IsConfigured && x.ProductId == sharedProduct.Id);
+            destinationAggregate.Cart.Items.Should().Contain(x => x.Quantity == destinationQuantity
+                && x.ConfigurationItems.Any(c => c.SectionId == "section-B"));
+            destinationAggregate.Cart.Items.Should().Contain(x => x.Quantity == sourceQuantity
+                && x.ConfigurationItems.Any(c => c.SectionId == "section-A"));
+        }
+
+        [Fact]
+        public async Task MergeWithCartAsync_NewConfiguredAndExistingSimple_KeptSeparate()
+        {
+            // Arrange
+            var sourceAggregate = GetValidCartAggregate();
+            sourceAggregate.Cart.Coupons = Enumerable.Empty<string>().ToList();
+            sourceAggregate.Cart.Shipments = Enumerable.Empty<Shipment>().ToList();
+            sourceAggregate.Cart.Payments = Enumerable.Empty<Payment>().ToList();
+
+            var sharedProduct = _fixture.Create<CartProduct>();
+            sharedProduct.Id = "shared-product";
+            sourceAggregate.CartProducts.Add(sharedProduct.Id, sharedProduct);
+
+            var sourceConfiguredItem = _fixture.Create<LineItem>();
+            sourceConfiguredItem.ProductId = sharedProduct.Id;
+            sourceConfiguredItem.IsConfigured = true;
+            sourceConfiguredItem.ConfigurationItems = new List<ConfigurationItem>
+            {
+                new() { SectionId = "section-A", ProductId = "component-A" },
+            };
+            var sourceQuantity = sourceConfiguredItem.Quantity;
+
+            sourceAggregate.Cart.Items = new List<LineItem> { sourceConfiguredItem };
+
+            var destinationAggregate = GetValidCartAggregate();
+
+            var destinationSimpleItem = _fixture.Create<LineItem>();
+            destinationSimpleItem.ProductId = sharedProduct.Id;
+            destinationSimpleItem.IsConfigured = false;
+            destinationSimpleItem.ConfigurationItems = null;
+            var destinationQuantity = destinationSimpleItem.Quantity;
+
+            destinationAggregate.Cart.Items = new List<LineItem> { destinationSimpleItem };
+
+            // Act
+            await destinationAggregate.MergeWithCartAsync(sourceAggregate);
+
+            // Assert
+            destinationAggregate.Cart.Items.Should().HaveCount(2);
+            destinationAggregate.Cart.Items.Should().Contain(x => !x.IsConfigured
+                && x.ProductId == sharedProduct.Id
+                && x.Quantity == destinationQuantity);
+            destinationAggregate.Cart.Items.Should().Contain(x => x.IsConfigured
+                && x.ProductId == sharedProduct.Id
+                && x.Quantity == sourceQuantity);
+        }
+
+        [Fact]
+        public async Task MergeWithCartAsync_NewSimpleAndExistingConfigured_KeptSeparate()
+        {
+            // Arrange
+            var sourceAggregate = GetValidCartAggregate();
+            sourceAggregate.Cart.Coupons = Enumerable.Empty<string>().ToList();
+            sourceAggregate.Cart.Shipments = Enumerable.Empty<Shipment>().ToList();
+            sourceAggregate.Cart.Payments = Enumerable.Empty<Payment>().ToList();
+
+            var sharedProduct = _fixture.Create<CartProduct>();
+            sharedProduct.Id = "shared-product";
+            sourceAggregate.CartProducts.Add(sharedProduct.Id, sharedProduct);
+
+            var sourceSimpleItem = _fixture.Create<LineItem>();
+            sourceSimpleItem.ProductId = sharedProduct.Id;
+            sourceSimpleItem.IsConfigured = false;
+            sourceSimpleItem.ConfigurationItems = null;
+            var sourceQuantity = sourceSimpleItem.Quantity;
+
+            sourceAggregate.Cart.Items = new List<LineItem> { sourceSimpleItem };
+
+            var destinationAggregate = GetValidCartAggregate();
+
+            var destinationConfiguredItem = _fixture.Create<LineItem>();
+            destinationConfiguredItem.ProductId = sharedProduct.Id;
+            destinationConfiguredItem.IsConfigured = true;
+            destinationConfiguredItem.ConfigurationItems = new List<ConfigurationItem>
+            {
+                new() { SectionId = "section-A", ProductId = "component-A" },
+            };
+            var destinationQuantity = destinationConfiguredItem.Quantity;
+
+            destinationAggregate.Cart.Items = new List<LineItem> { destinationConfiguredItem };
+
+            // Act
+            await destinationAggregate.MergeWithCartAsync(sourceAggregate);
+
+            // Assert
+            destinationAggregate.Cart.Items.Should().HaveCount(2);
+            destinationAggregate.Cart.Items.Should().Contain(x => x.IsConfigured
+                && x.ProductId == sharedProduct.Id
+                && x.Quantity == destinationQuantity);
+            destinationAggregate.Cart.Items.Should().Contain(x => !x.IsConfigured
+                && x.ProductId == sharedProduct.Id
+                && x.Quantity == sourceQuantity);
         }
 
         #endregion MergeWithCartAsync
