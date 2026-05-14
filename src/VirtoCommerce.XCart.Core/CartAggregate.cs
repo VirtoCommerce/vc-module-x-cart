@@ -562,14 +562,8 @@ namespace VirtoCommerce.XCart.Core
                 if (lineItem != null)
                 {
                     lineItem.SelectedForCheckout = selectedForCheckout;
+                    SetConfigurationItemsSelectedForCheckout(lineItem, selectedForCheckout);
 
-                    if (lineItem.IsConfigured && lineItem.ConfigurationItems != null)
-                    {
-                        foreach (var configurationItem in lineItem.ConfigurationItems)
-                        {
-                            configurationItem.SelectedForCheckout = selectedForCheckout;
-                        }
-                    }
                 }
             }
 
@@ -2000,6 +1994,19 @@ namespace VirtoCommerce.XCart.Core
             {
                 var fileIds = files.Select(x => x.Id).ToArray();
                 await _fileUploadService.DeleteAsync(fileIds);
+            }
+        }
+
+        protected static void SetConfigurationItemsSelectedForCheckout(LineItem lineItem, bool selectedForCheckout)
+        {
+            if (!lineItem.IsConfigured || lineItem.ConfigurationItems == null)
+            {
+                return;
+            }
+
+            foreach (var configurationItem in lineItem.ConfigurationItems)
+            {
+                configurationItem.SelectedForCheckout = selectedForCheckout;
             }
         }
 
