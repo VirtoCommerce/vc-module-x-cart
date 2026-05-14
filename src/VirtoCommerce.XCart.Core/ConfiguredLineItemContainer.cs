@@ -81,24 +81,27 @@ namespace VirtoCommerce.XCart.Core
             AddProductSectionLineItem(lineItem, sectionId, type);
         }
 
+        protected virtual void AddProductSectionLineItem(LineItem lineItem, string sectionId, string type)
+        {
+            var item = CreateSectionLineItem(sectionId, type);
+            item.Item = lineItem;
+
+            Items.Add(item);
+        }
+
         /// <summary>
         /// Adds a product section line item for an existing configuration item (e.g. during price recalculation).
         /// Propagates <see cref="ConfigurationItem.SelectedForCheckout"/> and uses
         /// <see cref="CreateLineItem(CartProduct, ConfigurationItem)"/> for pricing — override
-        /// to inject pre-computed prices instead of catalog prices.
+        /// to inject pre-computed prices instead of catalog prices. Stores
+        /// <paramref name="configurationItem"/> on <see cref="SectionLineItem.Source"/>
+        /// for downstream consumers.
         /// </summary>
         public virtual void AddProductSectionLineItem(CartProduct cartProduct, ConfigurationItem configurationItem)
         {
             var lineItem = CreateLineItem(cartProduct, configurationItem);
 
-            AddProductSectionLineItem(lineItem, configurationItem.SectionId, configurationItem.Type);
-        }
-
-        protected virtual void AddProductSectionLineItem(LineItem lineItem, string sectionId, string type)
-        {
-            var item = AbstractTypeFactory<SectionLineItem>.TryCreateInstance();
-            item.SectionId = sectionId;
-            item.Type = type;
+            var item = CreateSectionLineItem(configurationItem);
             item.Item = lineItem;
 
             Items.Add(item);
@@ -106,22 +109,84 @@ namespace VirtoCommerce.XCart.Core
 
         public virtual void AddTextSectionLineItem(string customText, string sectionId)
         {
-            var item = AbstractTypeFactory<SectionLineItem>.TryCreateInstance();
-            item.SectionId = sectionId;
-            item.Type = ConfigurationSectionTypeText;
+            var item = CreateSectionLineItem(sectionId, ConfigurationSectionTypeText);
             item.CustomText = customText;
+
+            Items.Add(item);
+        }
+
+        /// <summary>
+        /// Adds a text section line item for an existing configuration item. Stores
+        /// <paramref name="configurationItem"/> on <see cref="SectionLineItem.Source"/>
+        /// for downstream consumers.
+        /// </summary>
+        public virtual void AddTextSectionLineItem(ConfigurationItem configurationItem)
+        {
+            var item = CreateSectionLineItem(configurationItem);
 
             Items.Add(item);
         }
 
         public virtual void AddFileSectionLineItem(IList<ConfigurationItemFile> files, string sectionId)
         {
-            var item = AbstractTypeFactory<SectionLineItem>.TryCreateInstance();
-            item.SectionId = sectionId;
-            item.Type = ConfigurationSectionTypeFile;
+            var item = CreateSectionLineItem(sectionId, ConfigurationSectionTypeFile);
             item.Files = files;
 
             Items.Add(item);
+        }
+
+        /// <summary>
+        /// Adds a file section line item for an existing configuration item. Stores
+        /// <paramref name="configurationItem"/> on <see cref="SectionLineItem.Source"/>
+        /// for downstream consumers.
+        /// </summary>
+        /// <param name="configurationItem">Source configuration item; its
+        /// <see cref="ConfigurationItem.Files"/> are used by default.</param>
+        /// <param name="files">Optional override for the file list. Pass a non-null value
+        /// when the files must be transformed before being added (e.g. duplicated for a
+        /// different currency context). When <c>null</c>, <c>configurationItem.Files</c>
+        /// is used.</param>
+        public virtual void AddFileSectionLineItem(ConfigurationItem configurationItem, IList<ConfigurationItemFile> files = null)
+        {
+            var item = CreateSectionLineItem(configurationItem);
+            if (files is not null)
+            {
+                item.Files = files;
+            }
+
+            Items.Add(item);
+        }
+
+        /// <summary>
+        /// Creates a <see cref="SectionLineItem"/> initialized from <paramref name="configurationItem"/>.
+        /// Override to populate additional fields from a derived <see cref="ConfigurationItem"/> type.
+        /// </summary>
+        protected virtual SectionLineItem CreateSectionLineItem(ConfigurationItem configurationItem)
+        {
+            var item = CreateSectionLineItem(configurationItem.SectionId, configurationItem.Type);
+
+            item.CustomText = configurationItem.CustomText;
+            item.Files = configurationItem.Files ?? [];
+            item.Source = configurationItem;
+
+            return item;
+        }
+
+        /// <summary>
+        /// Creates an empty <see cref="SectionLineItem"/> with the given identifying fields.
+        /// Used by both creation-path and source-aware overloads. Override to return a
+        /// derived <see cref="SectionLineItem"/> type — <see cref="SectionLineItem"/> is
+        /// nested-protected, so external <see cref="AbstractTypeFactory{T}"/> registration
+        /// is not reachable; subclassing <see cref="ConfiguredLineItemContainer"/> is the
+        /// supported extension point.
+        /// </summary>
+        protected virtual SectionLineItem CreateSectionLineItem(string sectionId, string type)
+        {
+            return new SectionLineItem
+            {
+                SectionId = sectionId,
+                Type = type,
+            };
         }
 
         public virtual ExpConfigurationLineItem CreateConfiguredLineItem(int quantity)
@@ -263,6 +328,15 @@ namespace VirtoCommerce.XCart.Core
             public LineItem Item { get; set; }
             public string CustomText { get; set; }
             public IList<ConfigurationItemFile> Files { get; set; } = [];
+
+            /// <summary>
+            /// Reference to the source <see cref="ConfigurationItem"/> from which this section line
+            /// item was built, when one exists. <c>null</c> for items added via creation-path
+            /// overloads (e.g. <see cref="AddTextSectionLineItem(string, string)"/>) where the
+            /// configuration item does not yet exist; non-null for items added via the source-aware
+            /// overloads (e.g. <see cref="AddTextSectionLineItem(ConfigurationItem)"/>).
+            /// </summary>
+            public ConfigurationItem Source { get; set; }
         }
     }
 }
