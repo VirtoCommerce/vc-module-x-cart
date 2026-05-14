@@ -1,9 +1,11 @@
 using System.Collections.Generic;
+using System.Linq;
 using FluentAssertions;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
+using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using Xunit;
@@ -29,6 +31,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             {
                 Currency = new Currency(new Language("en-US"), "USD"),
                 CultureName = "en-US",
+                Store = new Store { Id = "test-store" },
             };
         }
 
@@ -116,6 +119,56 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             _container.FilesAt(0).Should().BeSameAs(files);
         }
 
+        [Fact]
+        public void AddProductSectionLineItem_CreationPath_FalseSelectedForCheckout_StoresOnInnerLineItem()
+        {
+            _container.ConfigurableProduct = NewCartProduct();
+
+            _container.AddProductSectionLineItem(NewCartProduct(), quantity: 1, sectionId: "sec-1", type: ConfigurationSectionTypeProduct, selectedForCheckout: false);
+
+            _container.InnerLineItemSelectedForCheckoutAt(0).Should().BeFalse(
+                "creation-path overload must propagate selectedForCheckout to the synthetic LineItem so that CreateConfiguredLineItem can read it back");
+        }
+
+        [Fact]
+        public void AddProductSectionLineItem_CreationPath_DefaultsToTrue()
+        {
+            _container.ConfigurableProduct = NewCartProduct();
+
+            _container.AddProductSectionLineItem(NewCartProduct(), quantity: 1, sectionId: "sec-1", type: ConfigurationSectionTypeProduct);
+
+            _container.InnerLineItemSelectedForCheckoutAt(0).Should().BeTrue(
+                "default for the optional parameter must keep the existing behavior — item participates in checkout");
+        }
+
+        [Fact]
+        public void CreateConfiguredLineItem_PropagatesSelectedForCheckoutFromInnerLineItem()
+        {
+            _container.ConfigurableProduct = NewCartProduct();
+
+            _container.AddProductSectionLineItem(NewCartProduct(), quantity: 1, sectionId: "sec-1", type: ConfigurationSectionTypeProduct, selectedForCheckout: false);
+
+            var result = _container.CreateConfiguredLineItem(quantity: 1);
+
+            result.Item.ConfigurationItems.Should().HaveCount(1);
+            result.Item.ConfigurationItems.Single().SelectedForCheckout.Should().BeFalse(
+                "ConfigurationItem.SelectedForCheckout must reflect the value supplied in the mutation input");
+        }
+
+        [Fact]
+        public void CreateConfiguredLineItem_DefaultsConfigurationItemToSelected_WhenInnerLineItemMissing()
+        {
+            _container.ConfigurableProduct = NewCartProduct();
+
+            _container.AddTextSectionLineItem("ENGRAVING", "sec-text");
+
+            var result = _container.CreateConfiguredLineItem(quantity: 1);
+
+            result.Item.ConfigurationItems.Should().HaveCount(1);
+            result.Item.ConfigurationItems.Single().SelectedForCheckout.Should().BeTrue(
+                "sections without an inner LineItem (text/file) must default to selected, matching ConfigurableProductOption.SelectedForCheckout = true");
+        }
+
         private static ConfigurationItem NewConfigurationItem(string sectionId, string type)
         {
             return new ConfigurationItem
@@ -148,6 +201,14 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             public string CustomTextAt(int index) => Items[index].CustomText;
 
             public IList<ConfigurationItemFile> FilesAt(int index) => Items[index].Files;
+
+            public bool? InnerLineItemSelectedForCheckoutAt(int index) => Items[index].Item?.SelectedForCheckout;
+
+            // Pricing is out of scope for these tests and requires fully constructed
+            // ProductPrice/Money graphs to avoid NREs from UpdatePrice. Bypass it.
+            public override void UpdatePrice(LineItem lineItem)
+            {
+            }
         }
     }
 }

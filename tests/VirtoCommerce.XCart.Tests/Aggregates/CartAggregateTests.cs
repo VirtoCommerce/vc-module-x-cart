@@ -3186,5 +3186,103 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         }
 
         #endregion ChangeConfigurationItemSelected
+
+        #region ChangeItemsSelectedAsync
+
+        [Fact]
+        public async Task ChangeItemsSelectedAsync_ConfiguredLineItem_CascadesDeselectToConfigurationItems()
+        {
+            // Arrange — configured line item with selected children, all flagged true initially.
+            var cartAggregate = GetValidCartAggregate();
+            var configItem1 = new ConfigurationItem { Id = "ci-1", SectionId = "s1", Type = "Product", ProductId = "p1", SelectedForCheckout = true };
+            var configItem2 = new ConfigurationItem { Id = "ci-2", SectionId = "s2", Type = "Variation", ProductId = "p2", SelectedForCheckout = true };
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                SelectedForCheckout = true,
+                ConfigurationItems = [configItem1, configItem2],
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            // Act
+            await cartAggregate.ChangeItemsSelectedAsync([lineItem.Id], selectedForCheckout: false);
+
+            // Assert
+            lineItem.SelectedForCheckout.Should().BeFalse();
+            lineItem.ConfigurationItems.Should().OnlyContain(ci => !ci.SelectedForCheckout,
+                "deselecting the parent configured line item must cascade to all configuration items to avoid an inconsistent state at checkout");
+        }
+
+        [Fact]
+        public async Task ChangeItemsSelectedAsync_ConfiguredLineItem_CascadesReselectToConfigurationItems()
+        {
+            // Arrange — symmetric case: previously deselected, now reselecting.
+            var cartAggregate = GetValidCartAggregate();
+            var configItem = new ConfigurationItem { Id = "ci-1", SectionId = "s1", Type = "Product", ProductId = "p1", SelectedForCheckout = false };
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                SelectedForCheckout = false,
+                ConfigurationItems = [configItem],
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            // Act
+            await cartAggregate.ChangeItemsSelectedAsync([lineItem.Id], selectedForCheckout: true);
+
+            // Assert
+            lineItem.SelectedForCheckout.Should().BeTrue();
+            configItem.SelectedForCheckout.Should().BeTrue(
+                "reselecting the parent must propagate to the children so the configured line item is fully back in checkout");
+        }
+
+        [Fact]
+        public async Task ChangeItemsSelectedAsync_RegularLineItem_DoesNotThrowOnNullOrEmptyConfigurationItems()
+        {
+            // Arrange — non-configured line item; ConfigurationItems is empty (typical for plain products).
+            var cartAggregate = GetValidCartAggregate();
+            var lineItem = new LineItem
+            {
+                Id = "line-item-2",
+                ProductId = "regular-product",
+                IsConfigured = false,
+                SelectedForCheckout = true,
+                ConfigurationItems = [],
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            // Act
+            await cartAggregate.ChangeItemsSelectedAsync([lineItem.Id], selectedForCheckout: false);
+
+            // Assert
+            lineItem.SelectedForCheckout.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task ChangeItemsSelectedAsync_UnknownLineItemId_IsNoop()
+        {
+            // Arrange — line item not in cart; method must skip it silently.
+            var cartAggregate = GetValidCartAggregate();
+            var existingItem = new LineItem
+            {
+                Id = "line-item-existing",
+                ProductId = "regular-product",
+                IsConfigured = false,
+                SelectedForCheckout = true,
+            };
+            cartAggregate.Cart.Items.Add(existingItem);
+
+            // Act
+            await cartAggregate.ChangeItemsSelectedAsync(["does-not-exist"], selectedForCheckout: false);
+
+            // Assert
+            existingItem.SelectedForCheckout.Should().BeTrue();
+        }
+
+        #endregion ChangeItemsSelectedAsync
     }
 }

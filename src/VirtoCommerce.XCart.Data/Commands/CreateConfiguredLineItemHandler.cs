@@ -66,7 +66,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
                 var productOption = section.Option;
                 var selectedProduct = products.FirstOrDefault(x => x.Product.Id == productOption.ProductId) ?? throw new InvalidOperationException($"Product with id {productOption.ProductId} not found");
 
-                container.AddProductSectionLineItem(selectedProduct, productOption.Quantity, section.SectionId, section.Type);
+                container.AddProductSectionLineItem(selectedProduct, productOption.Quantity, section.SectionId, section.Type, productOption.SelectedForCheckout);
             }
             else if (section.Type == ConfigurationSectionTypeText)
             {

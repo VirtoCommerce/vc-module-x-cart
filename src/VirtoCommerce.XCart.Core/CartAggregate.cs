@@ -562,6 +562,14 @@ namespace VirtoCommerce.XCart.Core
                 if (lineItem != null)
                 {
                     lineItem.SelectedForCheckout = selectedForCheckout;
+
+                    if (lineItem.IsConfigured && lineItem.ConfigurationItems != null)
+                    {
+                        foreach (var configurationItem in lineItem.ConfigurationItems)
+                        {
+                            configurationItem.SelectedForCheckout = selectedForCheckout;
+                        }
+                    }
                 }
             }
 
