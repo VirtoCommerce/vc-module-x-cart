@@ -3206,6 +3206,10 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
+                .ReturnsAsync([]);
+
             // Act
             await cartAggregate.ChangeItemsSelectedAsync([lineItem.Id], selectedForCheckout: false);
 
@@ -3213,6 +3217,10 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             lineItem.SelectedForCheckout.Should().BeFalse();
             lineItem.ConfigurationItems.Should().OnlyContain(ci => !ci.SelectedForCheckout,
                 "deselecting the parent configured line item must cascade to all configuration items to avoid an inconsistent state at checkout");
+            _cartProductServiceMock.Verify(
+                x => x.GetCartProductsByIdsAsync(cartAggregate, It.IsAny<IList<string>>()),
+                Times.Once,
+                "configured line item must be repriced after children change selection");
         }
 
         [Fact]
@@ -3231,6 +3239,10 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
+                .ReturnsAsync([]);
+
             // Act
             await cartAggregate.ChangeItemsSelectedAsync([lineItem.Id], selectedForCheckout: true);
 
@@ -3238,6 +3250,38 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             lineItem.SelectedForCheckout.Should().BeTrue();
             configItem.SelectedForCheckout.Should().BeTrue(
                 "reselecting the parent must propagate to the children so the configured line item is fully back in checkout");
+            _cartProductServiceMock.Verify(
+                x => x.GetCartProductsByIdsAsync(cartAggregate, It.IsAny<IList<string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task ChangeItemsSelectedAsync_NoChildChange_SkipsReprice()
+        {
+            // Arrange — children are already at the target state; cascade is a no-op,
+            // so the parent must NOT be repriced (matches ChangeAllConfigurationItemsSelectedAsync semantics).
+            var cartAggregate = GetValidCartAggregate();
+            var configItem = new ConfigurationItem { Id = "ci-1", SectionId = "s1", Type = "Product", ProductId = "p1", SelectedForCheckout = false };
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                SelectedForCheckout = true,
+                ConfigurationItems = [configItem],
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+
+            // Act
+            await cartAggregate.ChangeItemsSelectedAsync([lineItem.Id], selectedForCheckout: false);
+
+            // Assert
+            lineItem.SelectedForCheckout.Should().BeFalse();
+            configItem.SelectedForCheckout.Should().BeFalse();
+            _cartProductServiceMock.Verify(
+                x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()),
+                Times.Never,
+                "no child flag actually changed, so the configured line item should not be repriced");
         }
 
         [Fact]

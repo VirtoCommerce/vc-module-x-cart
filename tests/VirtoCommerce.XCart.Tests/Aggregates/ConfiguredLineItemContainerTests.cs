@@ -5,6 +5,7 @@ using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
@@ -128,6 +129,14 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             _container.InnerLineItemSelectedForCheckoutAt(0).Should().BeFalse(
                 "creation-path overload must propagate selectedForCheckout to the synthetic LineItem so that CreateConfiguredLineItem can read it back");
+        }
+
+        [Fact]
+        public void LineItemFactoryDefault_SelectedForCheckout_IsTrue_NoRegressionForLegacyOverload()
+        {
+            var lineItem = AbstractTypeFactory<LineItem>.TryCreateInstance();
+
+            lineItem.SelectedForCheckout.Should().BeTrue();
         }
 
         [Fact]

@@ -72,9 +72,20 @@ namespace VirtoCommerce.XCart.Core
 
         /// <summary>
         /// Adds a product section line item for a new configuration item (e.g. from a GraphQL mutation).
-        /// Prices are loaded from the catalog product.
+        /// Prices are loaded from the catalog product. 
         /// </summary>
-        public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId, string type = ConfigurationSectionTypeProduct, bool selectedForCheckout = true)
+        public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId, string type = ConfigurationSectionTypeProduct)
+        {
+            AddProductSectionLineItem(cartProduct, quantity, sectionId, type, selectedForCheckout: true);
+        }
+
+        /// <summary>
+        /// Adds a product section line item for a new configuration item and propagates
+        /// <paramref name="selectedForCheckout"/> onto the synthetic <see cref="LineItem"/>,
+        /// from which <see cref="CreateConfiguredLineItem"/> copies it onto the
+        /// resulting <see cref="ConfigurationItem"/>.
+        /// </summary>
+        public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId, string type, bool selectedForCheckout)
         {
             var lineItem = CreateLineItem(cartProduct, quantity);
             lineItem.SelectedForCheckout = selectedForCheckout;

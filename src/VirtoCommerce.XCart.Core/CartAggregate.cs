@@ -552,22 +552,34 @@ namespace VirtoCommerce.XCart.Core
             return Task.FromResult(this);
         }
 
-        public virtual Task<CartAggregate> ChangeItemsSelectedAsync(IList<string> lineItemIds, bool selectedForCheckout)
+        public virtual async Task<CartAggregate> ChangeItemsSelectedAsync(IList<string> lineItemIds, bool selectedForCheckout)
         {
             EnsureCartExists();
+
+            var lineItemsToReprice = new List<LineItem>();
 
             foreach (var lineItemId in lineItemIds)
             {
                 var lineItem = Cart.Items.FirstOrDefault(x => x.Id == lineItemId);
-                if (lineItem != null)
+                if (lineItem == null)
                 {
-                    lineItem.SelectedForCheckout = selectedForCheckout;
-                    SetConfigurationItemsSelectedForCheckout(lineItem, selectedForCheckout);
+                    continue;
+                }
 
+                lineItem.SelectedForCheckout = selectedForCheckout;
+
+                if (SetConfigurationItemsSelectedForCheckout(lineItem, selectedForCheckout))
+                {
+                    lineItemsToReprice.Add(lineItem);
                 }
             }
 
-            return Task.FromResult(this);
+            if (lineItemsToReprice.Count > 0)
+            {
+                await UpdateConfiguredLineItemPrice(lineItemsToReprice);
+            }
+
+            return this;
         }
 
         public virtual Task<CartAggregate> RemoveItemAsync(string lineItemId)
@@ -1997,17 +2009,24 @@ namespace VirtoCommerce.XCart.Core
             }
         }
 
-        protected static void SetConfigurationItemsSelectedForCheckout(LineItem lineItem, bool selectedForCheckout)
+        protected static bool SetConfigurationItemsSelectedForCheckout(LineItem lineItem, bool selectedForCheckout)
         {
+            var changed = false;
             if (!lineItem.IsConfigured || lineItem.ConfigurationItems == null)
             {
-                return;
+                return changed;
             }
 
             foreach (var configurationItem in lineItem.ConfigurationItems)
             {
-                configurationItem.SelectedForCheckout = selectedForCheckout;
+                if (configurationItem.SelectedForCheckout != selectedForCheckout)
+                {
+                    configurationItem.SelectedForCheckout = selectedForCheckout;
+                    changed = true;
+                }
             }
+
+            return changed;
         }
 
         #region ICloneable
