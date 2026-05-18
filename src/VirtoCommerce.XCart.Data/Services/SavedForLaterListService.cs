@@ -136,7 +136,7 @@ public class SavedForLaterListService(
         await cartAggregateRepository.SaveAsync(to);
     }
 
-    protected async Task CopyOrdinaryItemsAsync(IList<LineItem> sourceItems, CartAggregate to)
+    protected static async Task CopyOrdinaryItemsAsync(IList<LineItem> sourceItems, CartAggregate to)
     {
         var ordinaryItems = sourceItems.Where(x => !x.IsConfigured).ToArray();
 
@@ -275,7 +275,7 @@ public class SavedForLaterListService(
            .ToArray();
     }
 
-    private static IList<DynamicPropertyValue> MapDynamicProperties(ICollection<DynamicObjectProperty> dynamicProperties)
+    private static DynamicPropertyValue[] MapDynamicProperties(ICollection<DynamicObjectProperty> dynamicProperties)
     {
         if (dynamicProperties.IsNullOrEmpty())
         {
