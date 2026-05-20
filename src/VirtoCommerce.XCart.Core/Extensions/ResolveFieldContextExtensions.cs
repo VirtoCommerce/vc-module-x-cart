@@ -34,17 +34,6 @@ namespace VirtoCommerce.XCart.Core.Extensions
             return cart.ItemCurrencies?.FirstOrDefault(x => x.Code.EqualsIgnoreCase(context.Source.Currency)) ?? cart.Currency;
         }
 
-        /// <summary>
-        /// Returns the currency that matches the cart total's <see cref="CartTotal.CurrencyCode"/>,
-        /// looked up in the cart's <see cref="CartAggregate.ItemCurrencies"/>.
-        /// Falls back to <see cref="CartAggregate.Currency"/> when no match is found.
-        /// </summary>
-        public static Currency GetCartTotalCurrency(this IResolveFieldContext<CartTotal> context, CartAggregate cartAggregate)
-        {
-            var cart = context.GetCart();
-            return cart.ItemCurrencies?.FirstOrDefault(x => x.Code.EqualsIgnoreCase(context.Source.CurrencyCode)) ?? cart.Currency;
-        }
-
         public static Money GetTotal(this IResolveFieldContext<CartAggregate> context, decimal number)
         {
             return context.Source.HasSelectedLineItems
