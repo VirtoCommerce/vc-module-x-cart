@@ -575,14 +575,13 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             sourceAggregate.Cart.Shipments = Enumerable.Empty<Shipment>().ToList();
             sourceAggregate.Cart.Payments = Enumerable.Empty<Payment>().ToList();
 
+            var currencyCode = "CommonCurrencyCode";
+
             var sourceProduct1 = _fixture.Create<CartProduct>();
             var sourceProduct2 = _fixture.Create<CartProduct>();
 
             sourceProduct1.Id = "source1";
             sourceProduct2.Id = "source2";
-
-            sourceAggregate.CartProducts.Add(sourceProduct1.Id, sourceProduct1);
-            sourceAggregate.CartProducts.Add(sourceProduct2.Id, sourceProduct2);
 
             var sourceLineItem1 = _fixture.Create<LineItem>();
             sourceLineItem1.ProductId = sourceProduct1.Id;
@@ -592,7 +591,12 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             sourceLineItem2.ProductId = sourceProduct2.Id;
             sourceLineItem2.IsConfigured = false;
 
+            sourceLineItem1.Currency = sourceLineItem2.Currency = currencyCode;
+
             sourceAggregate.Cart.Items = new List<LineItem> { sourceLineItem1, sourceLineItem2 };
+
+            sourceAggregate.CartProducts.Add(sourceAggregate.GetCartProductKey(sourceLineItem1), sourceProduct1);
+            sourceAggregate.CartProducts.Add(sourceAggregate.GetCartProductKey(sourceLineItem2), sourceProduct2);
 
             var destinationAggregate = GetValidCartAggregate();
 
@@ -607,6 +611,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             destinationLineItem2.ProductId = sourceProduct2.Id;
             destinationLineItem2.IsConfigured = false;
             var quantity = destinationLineItem2.Quantity;
+
+            destinationLineItem1.Currency = destinationLineItem2.Currency = currencyCode;
 
             destinationAggregate.Cart.Items = new List<LineItem> { destinationLineItem1, destinationLineItem2 };
 
@@ -762,7 +768,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var sharedProduct = _fixture.Create<CartProduct>();
             sharedProduct.Id = "shared-product";
-            sourceAggregate.CartProducts.Add(sharedProduct.Id, sharedProduct);
 
             var sourceConfiguredItem = _fixture.Create<LineItem>();
             sourceConfiguredItem.ProductId = sharedProduct.Id;
@@ -774,6 +779,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var sourceQuantity = sourceConfiguredItem.Quantity;
 
             sourceAggregate.Cart.Items = new List<LineItem> { sourceConfiguredItem };
+            sourceAggregate.CartProducts.Add(sourceAggregate.GetCartProductKey(sourceConfiguredItem), sharedProduct);
 
             var destinationAggregate = GetValidCartAggregate();
 
@@ -811,7 +817,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var sharedProduct = _fixture.Create<CartProduct>();
             sharedProduct.Id = "shared-product";
-            sourceAggregate.CartProducts.Add(sharedProduct.Id, sharedProduct);
 
             var sourceConfiguredItem = _fixture.Create<LineItem>();
             sourceConfiguredItem.ProductId = sharedProduct.Id;
@@ -823,6 +828,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var sourceQuantity = sourceConfiguredItem.Quantity;
 
             sourceAggregate.Cart.Items = new List<LineItem> { sourceConfiguredItem };
+            sourceAggregate.CartProducts.Add(sourceAggregate.GetCartProductKey(sourceConfiguredItem), sharedProduct);
 
             var destinationAggregate = GetValidCartAggregate();
 
@@ -858,7 +864,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var sharedProduct = _fixture.Create<CartProduct>();
             sharedProduct.Id = "shared-product";
-            sourceAggregate.CartProducts.Add(sharedProduct.Id, sharedProduct);
 
             var sourceSimpleItem = _fixture.Create<LineItem>();
             sourceSimpleItem.ProductId = sharedProduct.Id;
@@ -867,6 +872,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var sourceQuantity = sourceSimpleItem.Quantity;
 
             sourceAggregate.Cart.Items = new List<LineItem> { sourceSimpleItem };
+            sourceAggregate.CartProducts.Add(sourceAggregate.GetCartProductKey(sourceSimpleItem), sharedProduct);
 
             var destinationAggregate = GetValidCartAggregate();
 
@@ -1224,7 +1230,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var configSection = new ProductConfigurationSection
             {
@@ -1297,7 +1303,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var configSection = new ProductConfigurationSection
             {
@@ -1370,7 +1376,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var configSection = new ProductConfigurationSection
             {
@@ -1448,7 +1454,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var configSections = new List<ProductConfigurationSection>
             {
@@ -1485,7 +1491,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             // Setup mock to return products when requested
             _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
@@ -1639,7 +1645,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             // Setup mock to return product when requested
             _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
@@ -1748,7 +1754,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var cartProducts = new[]
             {
@@ -1864,7 +1870,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var cartProduct = new CartProduct(new CatalogProduct
             {
@@ -1921,7 +1927,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var cartProduct = new CartProduct(new CatalogProduct
             {
@@ -2077,7 +2083,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var configSections = new List<ProductConfigurationSection>
             {
@@ -2169,7 +2175,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var cartProducts = new[]
             {
@@ -2281,7 +2287,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var cartProducts = new[]
             {
@@ -2524,7 +2530,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var configSections = new List<ProductConfigurationSection>
             {
@@ -2596,7 +2602,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var configSection = new ProductConfigurationSection
             {

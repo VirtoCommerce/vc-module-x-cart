@@ -92,6 +92,24 @@ namespace VirtoCommerce.XCart.Core
         public Currency Currency { get; protected set; }
         public Member Member { get; protected set; }
 
+        public IList<Currency> ItemCurrencies { get; set; }
+
+        public IList<CartTotalAggregate> CartTotals
+        {
+            get
+            {
+                var cartTotals = Cart.CartTotals.Select(x => new CartTotalAggregate() { CartTotal = x }).ToList();
+
+                foreach (var item in cartTotals)
+                {
+                    item.IsDefaultTotalCurrency = Cart.Currency.EqualsIgnoreCase(item.CartTotal.CurrencyCode);
+                    item.Currency = ItemCurrencies.FirstOrDefault(x => x.Code.EqualsIgnoreCase(item.CartTotal.CurrencyCode));
+                }
+
+                return cartTotals;
+            }
+        }
+
         public IEnumerable<CartCoupon> Coupons
         {
             get
@@ -123,9 +141,29 @@ namespace VirtoCommerce.XCart.Core
         public bool HasSelectedLineItems => SelectedLineItems.Any();
 
         /// <summary>
-        /// Represents the dictionary of all CartProducts data for each  existing cart line item
+        /// Represents the dictionary of all CartProducts data for each  existing cart line item.
+        /// Key is a composite "{productId}:{CURRENCYCODE}" — built via <see cref="GetCartProductKey(string, string)"/>.
+        /// This allows storing the same product under different currencies in the same cart.
         /// </summary>
         public IDictionary<string, CartProduct> CartProducts { get; protected set; } = new Dictionary<string, CartProduct>().WithDefaultValue(null);
+
+        /// <summary>
+        /// Builds a CartProducts dictionary key from product id and currency code.
+        /// </summary>
+        public static string GetCartProductKey(string productId, string currencyCode)
+        {
+            return $"{productId}:{currencyCode?.ToUpperInvariant()}";
+        }
+
+        /// <summary>
+        /// Builds a CartProducts dictionary key for the specified line item.
+        /// Falls back to <see cref="ShoppingCart.Currency"/> when the line item has no currency set.
+        /// </summary>
+        public virtual string GetCartProductKey(LineItem lineItem)
+        {
+            var currencyCode = !string.IsNullOrEmpty(lineItem?.Currency) ? lineItem.Currency : Cart?.Currency;
+            return GetCartProductKey(lineItem?.ProductId, currencyCode);
+        }
 
         /// <summary>
         /// Contains a new of validation rule set that will be executed each time the basket is changed.
@@ -246,7 +284,7 @@ namespace VirtoCommerce.XCart.Core
                 return this;
             }
 
-            CartProducts[newCartItem.CartProduct.Id] = newCartItem.CartProduct;
+            CartProducts[GetCartProductKey(newConfiguredItem)] = newCartItem.CartProduct;
 
             newConfiguredItem.Id = null;
             newConfiguredItem.SelectedForCheckout = IsSelectedForCheckout;
@@ -295,7 +333,15 @@ namespace VirtoCommerce.XCart.Core
                 newCartItem.CartProduct.Price = new ProductPrice(Currency);
             }
 
-            var lineItem = _mapper.Map<LineItem>(newCartItem.CartProduct, options => options.Items.TryAdd("cultureName", Cart.LanguageCode));
+            var lineItem = _mapper.Map<LineItem>(newCartItem.CartProduct, options =>
+            {
+                options.Items.TryAdd("cultureName", Cart.LanguageCode);
+
+                if (!newCartItem.CurrencyCode.IsNullOrEmpty())
+                {
+                    options.Items.TryAdd("currencyCode", newCartItem.CurrencyCode);
+                }
+            });
 
             lineItem.Currency ??= Currency.Code;
             lineItem.SelectedForCheckout = newCartItem.IsSelectedForCheckout ?? IsSelectedForCheckout;
@@ -318,7 +364,7 @@ namespace VirtoCommerce.XCart.Core
                 lineItem.Note = newCartItem.Comment;
             }
 
-            CartProducts[newCartItem.CartProduct.Id] = newCartItem.CartProduct;
+            CartProducts[GetCartProductKey(lineItem)] = newCartItem.CartProduct;
             await SetItemFulfillmentCenterAsync(lineItem, newCartItem.CartProduct);
             await UpdateVendor(lineItem, newCartItem.CartProduct);
             await InnerAddLineItemAsync(lineItem, newCartItem.OverrideQuantity, newCartItem.CartProduct, newCartItem.DynamicProperties);
@@ -607,6 +653,19 @@ namespace VirtoCommerce.XCart.Core
             return Task.FromResult(this);
         }
 
+        public virtual Task<CartAggregate> RemoveItemsByProductIdAndCurrencyAsync(string productId, string currencyCode)
+        {
+            EnsureCartExists();
+
+            var lineItems = LineItems.Where(x => x.ProductId == productId && x.Currency.EqualsIgnoreCase(currencyCode)).ToList();
+            if (lineItems.Count != 0)
+            {
+                lineItems.ForEach(x => Cart.Items.Remove(x));
+            }
+
+            return Task.FromResult(this);
+        }
+
         public virtual Task<CartAggregate> AddCouponAsync(string couponCode)
         {
             EnsureCartExists();
@@ -809,7 +868,7 @@ namespace VirtoCommerce.XCart.Core
         {
             foreach (var lineItem in otherCart.Cart.Items.ToList())
             {
-                await InnerAddLineItemAsync(lineItem, overrideQuantity: false, product: otherCart.CartProducts[lineItem.ProductId]);
+                await InnerAddLineItemAsync(lineItem, overrideQuantity: false, product: otherCart.CartProducts[otherCart.GetCartProductKey(lineItem)]);
             }
         }
 
@@ -1245,7 +1304,7 @@ namespace VirtoCommerce.XCart.Core
         {
             var existingLineItem = newLineItem.IsConfigured
                 ? null
-                : FindExistingLineItemBeforeAdd(newLineItem.ProductId, product, dynamicProperties);
+                : FindExistingLineItemBeforeAdd(newLineItem, product, dynamicProperties);
 
             if (existingLineItem != null)
             {
@@ -1279,9 +1338,23 @@ namespace VirtoCommerce.XCart.Core
         /// <param name="newProduct">new product object</param>
         /// <param name="newDynamicProperties">new dynamuc properties that should be added/updated in cart line item</param>
         /// <returns></returns>
+        [Obsolete]
         protected virtual LineItem FindExistingLineItemBeforeAdd(string newProductId, CartProduct newProduct, IList<DynamicPropertyValue> newDynamicProperties)
         {
             return LineItems.FirstOrDefault(x => x.ProductId == newProductId && !x.IsConfigured);
+        }
+
+        /// <summary>
+        /// Responsible for finding an existing line item before adding a new one.
+        /// If method returns line item, it means that the new line item should be merged with the existing one.
+        /// </summary>
+        /// <param name="newLineItem">new line item</param>
+        /// <param name="newProduct">new product object</param>
+        /// <param name="newDynamicProperties">new dynamuc properties that should be added/updated in cart line item</param>
+        /// <returns></returns>
+        protected virtual LineItem FindExistingLineItemBeforeAdd(LineItem newLineItem, CartProduct newProduct, IList<DynamicPropertyValue> newDynamicProperties)
+        {
+            return LineItems.FirstOrDefault(x => x.ProductId == newLineItem.ProductId && x.Currency.EqualsIgnoreCase(newLineItem.Currency) && !x.IsConfigured);
         }
 
         protected virtual void EnsureCartExists()
@@ -1914,7 +1987,7 @@ namespace VirtoCommerce.XCart.Core
             container.Currency = Currency;
             container.Store = Store;
 
-            if (CartProducts.TryGetValue(configurationLineItem.ProductId, out var configurableProduct))
+            if (CartProducts.TryGetValue(GetCartProductKey(configurationLineItem), out var configurableProduct))
             {
                 container.ConfigurableProduct = configurableProduct;
             }
@@ -2021,4 +2094,13 @@ namespace VirtoCommerce.XCart.Core
 
         #endregion ICloneable
     }
+}
+
+public class CartTotalAggregate
+{
+    public bool IsDefaultTotalCurrency { get; set; }
+
+    public Currency Currency { get; set; }
+
+    public CartTotal CartTotal { get; set; }
 }

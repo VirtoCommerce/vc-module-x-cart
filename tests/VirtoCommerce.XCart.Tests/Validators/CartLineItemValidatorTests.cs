@@ -6,6 +6,7 @@ using AutoFixture;
 using FluentAssertions;
 using FluentValidation;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Validators;
 using VirtoCommerce.XCart.Tests.Helpers;
@@ -128,7 +129,7 @@ namespace VirtoCommerce.XCart.Tests.Validators
             var result = await validator.ValidateAsync(new CartLineItemPriceChangedValidationContext
             {
                 LineItem = item,
-                CartProducts = _context.AllCartProducts.ToDictionary(x => x.Id)
+                CartProducts = _context.AllCartProducts.ToDictionary(x => CartAggregate.GetCartProductKey(x.Id, item.Currency))
             }, TestContext.Current.CancellationToken);
 
             // Assert

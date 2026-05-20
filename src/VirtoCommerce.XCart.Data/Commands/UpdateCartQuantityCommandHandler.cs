@@ -34,35 +34,64 @@ namespace VirtoCommerce.XCart.Data.Commands
         public override async Task<CartAggregate> Handle(UpdateCartQuantityCommand request, CancellationToken cancellationToken)
         {
             var requestItems = CombineRequestItems(request);
-            var nonZeroQuantityProductIds = requestItems
-                .Where(x => x.Quantity > 0)
-                .Select(x => x.ProductId)
-                .ToArray();
 
-            var productsTask = LoadCartProductsAsync(request, nonZeroQuantityProductIds);
+            var requestItemsByCurrency = requestItems
+                .GroupBy(x => x.CurrencyCode)
+                .ToDictionary(x => x.Key, x => x.ToArray());
+
+            var productTasks = new List<Task>();
+            foreach (var currencyRequestItemsPair in requestItemsByCurrency)
+            {
+                var nonZeroQuantityProductIdsByCurrency = currencyRequestItemsPair.Value
+                    .Where(x => x.Quantity > 0)
+                    .Select(x => x.ProductId)
+                    .ToArray();
+
+                var currencyRequest = (UpdateCartQuantityCommand)request.Clone();
+                currencyRequest.CurrencyCode = currencyRequestItemsPair.Key;
+                var currencyProductTask = LoadCartProductsAsync(currencyRequest, nonZeroQuantityProductIdsByCurrency);
+
+                productTasks.Add(currencyProductTask);
+            }
+
             var cartAggregateTask = GetOrCreateCartFromCommandAsync(request);
-            await Task.WhenAll(productsTask, cartAggregateTask);
+
+            var allTasks = new List<Task>(productTasks) { cartAggregateTask };
+            await Task.WhenAll(allTasks);
 
             var cartAggregate = cartAggregateTask.Result;
-            var products = productsTask.Result;
+
+            //// set default cart currency to all products without explicitly defined currency
+            //foreach (var requestItem in requestItems.Where(x => x.CurrencyCode.IsNullOrEmpty()))
+            //{
+            //    requestItem.CurrencyCode = cartAggregate.Currency.Code;
+            //}
 
             foreach (var requestItem in requestItems.Where(x => x.Quantity == 0))
             {
-                await cartAggregate.RemoveItemsByProductIdAsync(requestItem.ProductId);
+                //await cartAggregate.RemoveItemsByProductIdAsync(requestItem.ProductId); // also need to account currencyCode
+                await cartAggregate.RemoveItemsByProductIdAndCurrencyAsync(requestItem.ProductId, requestItem.CurrencyCode);
             }
 
             var newCartItems = new List<NewCartItem>();
-            foreach (var product in products)
+
+            foreach (var task in productTasks.OfType<Task<ProductsByCurrencyResult>>())
             {
-                var requestItem = requestItems.FirstOrDefault(x => x.ProductId == product.Id);
-                if (requestItem != null)
+                var productsByCurrency = task.Result;
+
+                foreach (var product in productsByCurrency.Products)
                 {
-                    newCartItems.Add(new NewCartItem(product.Id, requestItem.Quantity)
+                    var requestItem = requestItems.FirstOrDefault(x => x.ProductId == product.Id && x.CurrencyCode.EqualsIgnoreCase(productsByCurrency.CurrencyCode));
+                    if (requestItem != null)
                     {
-                        CartProduct = product,
-                        IgnoreValidationErrors = true,
-                        OverrideQuantity = true,
-                    });
+                        newCartItems.Add(new NewCartItem(product.Id, requestItem.Quantity)
+                        {
+                            CartProduct = product,
+                            CurrencyCode = productsByCurrency.CurrencyCode,
+                            IgnoreValidationErrors = true,
+                            OverrideQuantity = true,
+                        });
+                    }
                 }
             }
 
@@ -74,12 +103,17 @@ namespace VirtoCommerce.XCart.Data.Commands
             return await SaveCartAsync(cartAggregate);
         }
 
-        protected virtual async Task<IList<CartProduct>> LoadCartProductsAsync(UpdateCartQuantityCommand request, string[] productIds)
+        protected virtual async Task<ProductsByCurrencyResult> LoadCartProductsAsync(UpdateCartQuantityCommand request, string[] productIds)
         {
             var productRequest = GetCartProductsRequest(request, productIds);
 
             var products = await _cartProductsLoaderService.GetCartProductsAsync(productRequest);
-            return products;
+
+            return new ProductsByCurrencyResult
+            {
+                CurrencyCode = productRequest.CurrencyCode,
+                Products = products,
+            };
         }
 
         protected virtual CartProductsRequest GetCartProductsRequest(UpdateCartQuantityCommand request, string[] productIds)
@@ -108,6 +142,11 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             foreach (var item in request.Items)
             {
+                if (item.CurrencyCode.IsNullOrEmpty())
+                {
+                    item.CurrencyCode = request.CurrencyCode;
+                }
+
                 var a = result.FirstOrDefault(x => x.ProductId == item.ProductId);
                 if (a != null)
                 {
@@ -118,12 +157,20 @@ namespace VirtoCommerce.XCart.Data.Commands
                     result.Add(new UpdateCartQuantityItem
                     {
                         ProductId = item.ProductId,
-                        Quantity = item.Quantity
+                        Quantity = item.Quantity,
+                        CurrencyCode = item.CurrencyCode,
                     });
                 }
             }
 
             return result;
+        }
+
+        public class ProductsByCurrencyResult
+        {
+            public string CurrencyCode { get; set; }
+
+            public IList<CartProduct> Products { get; set; }
         }
     }
 }

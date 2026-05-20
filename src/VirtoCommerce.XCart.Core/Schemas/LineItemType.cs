@@ -38,10 +38,18 @@ namespace VirtoCommerce.XCart.Core.Schemas
 
             Field<NonNullGraphType<IntGraphType>>("inStockQuantity")
                 .Description("In stock quantity")
-                .Resolve(context => context.GetCart().CartProducts[context.Source.ProductId]?.AvailableQuantity ?? 0);
+                .Resolve(context =>
+                {
+                    var cart = context.GetCart();
+                    return cart.CartProducts[cart.GetCartProductKey(context.Source)]?.AvailableQuantity ?? 0;
+                });
             Field<StringGraphType>("warehouseLocation")
                 .Description("Warehouse location")
-                .Resolve(context => context.GetCart().CartProducts[context.Source.ProductId]?.Inventory?.FulfillmentCenter?.Address?.ToString());
+                .Resolve(context =>
+                {
+                    var cart = context.GetCart();
+                    return cart.CartProducts[cart.GetCartProductKey(context.Source)]?.Inventory?.FulfillmentCenter?.Address?.ToString();
+                });
 
             Field<NonNullGraphType<BooleanGraphType>>("IsValid")
                 .Description("Shows whether this is valid")
@@ -90,52 +98,52 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 .Resolve(context => context.Source.TaxDetails ?? []);
             Field<NonNullGraphType<MoneyType>>("discountAmount")
                 .Description("Discount amount")
-                .Resolve(context => context.Source.DiscountAmount.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.DiscountAmount.ToMoney(context.GetLineItemCurrency()));
             Field<NonNullGraphType<MoneyType>>("discountAmountWithTax")
                 .Description("Discount amount with tax")
-                .Resolve(context => context.Source.DiscountAmountWithTax.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.DiscountAmountWithTax.ToMoney(context.GetLineItemCurrency()));
             Field<NonNullGraphType<MoneyType>>("discountTotal")
                 .Description("Total discount")
-                .Resolve(context => context.Source.DiscountTotal.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.DiscountTotal.ToMoney(context.GetLineItemCurrency()));
             Field<NonNullGraphType<MoneyType>>("discountTotalWithTax")
                 .Description("Total discount with tax")
-                .Resolve(context => context.Source.DiscountTotalWithTax.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.DiscountTotalWithTax.ToMoney(context.GetLineItemCurrency()));
             Field<NonNullGraphType<MoneyType>>("extendedPrice")
                 .Description("Extended price")
-                .Resolve(context => context.Source.ExtendedPrice.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.ExtendedPrice.ToMoney(context.GetLineItemCurrency()));
             Field<NonNullGraphType<MoneyType>>("extendedPriceWithTax")
                 .Description("Extended price with tax")
-                .Resolve(context => context.Source.ExtendedPriceWithTax.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.ExtendedPriceWithTax.ToMoney(context.GetLineItemCurrency()));
             Field<NonNullGraphType<MoneyType>>("listPrice")
                 .Description("List price")
-                .Resolve(context => context.Source.ListPrice.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.ListPrice.ToMoney(context.GetLineItemCurrency()));
             Field<NonNullGraphType<MoneyType>>("listPriceWithTax")
                 .Description("List price with tax")
-                .Resolve(context => context.Source.ListPriceWithTax.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.ListPriceWithTax.ToMoney(context.GetLineItemCurrency()));
             Field<NonNullGraphType<MoneyType>>("listTotal")
                 .Description("List total")
-                .Resolve(context => context.Source.ListTotal.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.ListTotal.ToMoney(context.GetLineItemCurrency()));
             Field<NonNullGraphType<MoneyType>>("listTotalWithTax")
                 .Description("List total with tax")
-                .Resolve(context => context.Source.ListTotalWithTax.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.ListTotalWithTax.ToMoney(context.GetLineItemCurrency()));
             Field<NonNullGraphType<BooleanGraphType>>("showPlacedPrice")
                 .Description("Indicates whether the PlacedPrice should be visible to the customer")
                 .Resolve(context => context.Source.IsDiscountAmountRounded);
             Field<NonNullGraphType<MoneyType>>("placedPrice")
                 .Description("Placed price")
-                .Resolve(context => context.Source.PlacedPrice.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.PlacedPrice.ToMoney(context.GetLineItemCurrency()));
             Field<NonNullGraphType<MoneyType>>("placedPriceWithTax")
                 .Description("Placed price with tax")
-                .Resolve(context => context.Source.PlacedPriceWithTax.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.PlacedPriceWithTax.ToMoney(context.GetLineItemCurrency()));
             Field<NonNullGraphType<MoneyType>>("salePrice")
                 .Description("Sale price")
-                .Resolve(context => context.Source.SalePrice.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.SalePrice.ToMoney(context.GetLineItemCurrency()));
             Field<NonNullGraphType<MoneyType>>("salePriceWithTax")
                 .Description("Sale price with tax")
-                .Resolve(context => context.Source.SalePriceWithTax.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.SalePriceWithTax.ToMoney(context.GetLineItemCurrency()));
             Field<NonNullGraphType<MoneyType>>("taxTotal")
                 .Description("Tax total")
-                .Resolve(context => context.Source.TaxTotal.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.TaxTotal.ToMoney(context.GetLineItemCurrency()));
 
             ExtendableFieldAsync<ListGraphType<DynamicPropertyValueType>>(
                 "dynamicProperties",

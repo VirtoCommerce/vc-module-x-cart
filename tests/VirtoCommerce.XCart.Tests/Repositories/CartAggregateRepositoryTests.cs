@@ -163,7 +163,7 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                  _currencyService.Object,
                  _memberResolver.Object,
                  _storeService.Object,
-                 _cartProductServiceMock.Object,
+                 _cartProductsLoaderServiceMock.Object,
                  _platformMemoryCache,
                  _fileUploadService.Object);
 
@@ -186,8 +186,8 @@ namespace VirtoCommerce.XCart.Tests.Repositories
             _memberResolver.Setup(x => x.ResolveMemberByIdAsync(It.Is<string>(x => x == shoppingCart.CustomerId)))
                 .ReturnsAsync(customer);
 
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.Is<CartAggregate>(x => x == cartAggregate), It.IsAny<IList<string>>()))
-                .ReturnsAsync(new List<CartProduct>());
+            _cartProductsLoaderServiceMock.Setup(x => x.GetCartProductsAsync(It.IsAny<CartProductsRequest>()))
+                .ReturnsAsync([]);
 
             // Act
             var result = await repository.GetCartForShoppingCartAsync(shoppingCart);
@@ -213,7 +213,7 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                  _currencyService.Object,
                  _memberResolver.Object,
                  _storeService.Object,
-                 _cartProductServiceMock.Object,
+                 _cartProductsLoaderServiceMock.Object,
                  _platformMemoryCache,
                  _fileUploadService.Object);
 
@@ -238,15 +238,13 @@ namespace VirtoCommerce.XCart.Tests.Repositories
             _memberResolver.Setup(x => x.ResolveMemberByIdAsync(It.Is<string>(x => x == shoppingCart.CustomerId)))
                 .ReturnsAsync(customer);
 
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.Is<CartAggregate>(x => x == cartAggregate), It.IsAny<IList<string>>()))
-                .ReturnsAsync(() =>
-                {
-                    var product = _fixture.Create<CartProduct>();
-                    product.Id = lineItem.ProductId;
+            var product = _fixture.Create<CartProduct>();
+            product.Id = lineItem.ProductId;
 
-                    //change price
-                    product.ApplyPrices(new List<Price>()
-                    {
+            lineItem.Currency = currencies.First().Code;
+
+            product.ApplyPrices(
+                    [
                         new Price
                         {
                             ProductId = product.Id,
@@ -254,10 +252,13 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                             List = 1,
                             MinQuantity = 1,
                         }
-                    }, GetCurrency());
+                    ], currencies.First());
 
-                    return new List<CartProduct>() { product };
-                });
+            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
+                .ReturnsAsync([product]);
+
+            _cartProductsLoaderServiceMock.Setup(x => x.GetCartProductsAsync(It.IsAny<CartProductsRequest>()))
+                .ReturnsAsync([product]);
 
             // Act
             var result = await repository.GetCartForShoppingCartAsync(shoppingCart);

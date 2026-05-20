@@ -218,6 +218,10 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<NonNullGraphType<ListGraphType<NonNullGraphType<ValidationErrorType>>>>("warnings")
                 .Description("A set of temporary warnings for a cart user")
                 .Resolve(context => context.Source.ValidationWarnings);
+
+            ExtendableField<ListGraphType<CartTotalType>>("cartTotals",
+                "Cart totals",
+                resolve: context => context.Source.CartTotals);
         }
     }
 }

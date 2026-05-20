@@ -41,6 +41,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         protected readonly CartValidationContext _context = new CartValidationContext();
 
         protected readonly Mock<ICartProductService> _cartProductServiceMock;
+        protected readonly Mock<ICartProductsLoaderService> _cartProductsLoaderServiceMock;
         protected readonly Mock<ICurrencyService> _currencyServiceMock;
         protected readonly Mock<IMarketingPromoEvaluator> _marketingPromoEvaluatorMock;
         protected readonly Mock<IPaymentMethodsSearchService> _paymentMethodsSearchServiceMock;
@@ -155,6 +156,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                .Create());
 
             _cartProductServiceMock = new Mock<ICartProductService>();
+            _cartProductsLoaderServiceMock = new Mock<ICartProductsLoaderService>();
 
             _currencyServiceMock = new Mock<ICurrencyService>();
             _currencyServiceMock

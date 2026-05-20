@@ -24,6 +24,11 @@ namespace VirtoCommerce.XCart.Core.Models
         public decimal? Price { get; set; }
 
         /// <summary>
+        /// Overrride currency (can be different from the base cart currency)
+        /// </summary>
+        public string CurrencyCode { get; set; }
+
+        /// <summary>
         /// Comment
         /// </summary>
         public string Comment { get; set; }

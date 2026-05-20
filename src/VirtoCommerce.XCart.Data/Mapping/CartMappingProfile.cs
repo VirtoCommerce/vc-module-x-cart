@@ -42,6 +42,11 @@ namespace VirtoCommerce.XCart.Data.Mapping
                 }
                 lineItem.Name = cartProduct.GetName(cultureName);
 
+                if (context.Items.TryGetValue("currencyCode", out var currencyCodeValue))
+                {
+                    lineItem.Currency = currencyCodeValue as string;
+                }
+
                 lineItem.CatalogId = cartProduct.Product.CatalogId;
                 lineItem.CategoryId = cartProduct.Product.CategoryId;
                 lineItem.DynamicProperties = [];
@@ -208,7 +213,7 @@ namespace VirtoCommerce.XCart.Data.Mapping
                 foreach (var lineItem in cartAggr.SelectedLineItems)
                 {
                     var promoEntry = context.Mapper.Map<ProductPromoEntry>(lineItem);
-                    var cartProduct = cartAggr.CartProducts[lineItem.ProductId];
+                    var cartProduct = cartAggr.CartProducts[cartAggr.GetCartProductKey(lineItem)];
                     if (cartProduct != null)
                     {
                         promoEntry.InStockQuantity = (int)(cartProduct.Inventory?.InStockQuantity ?? 0);

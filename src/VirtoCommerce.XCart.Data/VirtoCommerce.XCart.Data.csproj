@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -9,7 +9,7 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.1002.0" />
+    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.1007.10" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VirtoCommerce.XCart.Core\VirtoCommerce.XCart.Core.csproj" />
