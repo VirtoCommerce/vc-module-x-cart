@@ -336,11 +336,7 @@ namespace VirtoCommerce.XCart.Core
             var lineItem = _mapper.Map<LineItem>(newCartItem.CartProduct, options =>
             {
                 options.Items.TryAdd("cultureName", Cart.LanguageCode);
-
-                if (!newCartItem.CurrencyCode.IsNullOrEmpty())
-                {
-                    options.Items.TryAdd("currencyCode", newCartItem.CurrencyCode);
-                }
+                options.Items.TryAdd("currencyCode", newCartItem.CurrencyCode);
             });
 
             lineItem.Currency ??= Currency.Code;
@@ -1338,7 +1334,7 @@ namespace VirtoCommerce.XCart.Core
         /// <param name="newProduct">new product object</param>
         /// <param name="newDynamicProperties">new dynamuc properties that should be added/updated in cart line item</param>
         /// <returns></returns>
-        [Obsolete]
+        [Obsolete("Use FindExistingLineItemBeforeAdd.FindExistingLineItemBeforeAdd(LineItem newLineItem...) instead.", DiagnosticId = "VC0014")]
         protected virtual LineItem FindExistingLineItemBeforeAdd(string newProductId, CartProduct newProduct, IList<DynamicPropertyValue> newDynamicProperties)
         {
             return LineItems.FirstOrDefault(x => x.ProductId == newProductId && !x.IsConfigured);
@@ -2094,13 +2090,4 @@ namespace VirtoCommerce.XCart.Core
 
         #endregion ICloneable
     }
-}
-
-public class CartTotalAggregate
-{
-    public bool IsDefaultTotalCurrency { get; set; }
-
-    public Currency Currency { get; set; }
-
-    public CartTotal CartTotal { get; set; }
 }

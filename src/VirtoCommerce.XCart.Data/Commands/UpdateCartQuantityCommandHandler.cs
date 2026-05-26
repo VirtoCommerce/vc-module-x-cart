@@ -61,15 +61,8 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             var cartAggregate = cartAggregateTask.Result;
 
-            //// set default cart currency to all products without explicitly defined currency
-            //foreach (var requestItem in requestItems.Where(x => x.CurrencyCode.IsNullOrEmpty()))
-            //{
-            //    requestItem.CurrencyCode = cartAggregate.Currency.Code;
-            //}
-
             foreach (var requestItem in requestItems.Where(x => x.Quantity == 0))
             {
-                //await cartAggregate.RemoveItemsByProductIdAsync(requestItem.ProductId); // also need to account currencyCode
                 await cartAggregate.RemoveItemsByProductIdAndCurrencyAsync(requestItem.ProductId, requestItem.CurrencyCode);
             }
 
@@ -147,10 +140,10 @@ namespace VirtoCommerce.XCart.Data.Commands
                     item.CurrencyCode = request.CurrencyCode;
                 }
 
-                var a = result.FirstOrDefault(x => x.ProductId == item.ProductId);
-                if (a != null)
+                var resultItem = result.FirstOrDefault(x => x.ProductId == item.ProductId && x.CurrencyCode.EqualsIgnoreCase(item.CurrencyCode));
+                if (resultItem != null)
                 {
-                    a.Quantity += item.Quantity;
+                    resultItem.Quantity += item.Quantity;
                 }
                 else
                 {

@@ -284,7 +284,6 @@ namespace VirtoCommerce.XCart.Data.Services
             var currency = allCurrencies.GetCurrencyForLanguage(cart.Currency, language);
 
             // find all cart currencies
-            //var itemCurrencies = new List<Currency>();
             var itemCurrencyCodes = cart.Items?.Select(x => x.Currency).Where(x => !x.EqualsIgnoreCase(cart.Currency)).ToArray();
             var itemCurrencies = itemCurrencyCodes?.Select(x => allCurrencies.GetCurrencyForLanguage(x, language)).ToList();
             itemCurrencies ??= new List<Currency>();
