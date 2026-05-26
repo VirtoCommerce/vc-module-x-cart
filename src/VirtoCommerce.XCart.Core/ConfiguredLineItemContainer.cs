@@ -76,7 +76,13 @@ namespace VirtoCommerce.XCart.Core
         /// </summary>
         public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId, string type = ConfigurationSectionTypeProduct)
         {
+            AddProductSectionLineItem(cartProduct, quantity, selectedForCheckout: true, sectionId, type);
+        }
+
+        public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, bool selectedForCheckout, string sectionId, string type = ConfigurationSectionTypeProduct)
+        {
             var lineItem = CreateLineItem(cartProduct, quantity);
+            lineItem.SelectedForCheckout = selectedForCheckout;
 
             AddProductSectionLineItem(lineItem, sectionId, type);
         }
@@ -238,6 +244,7 @@ namespace VirtoCommerce.XCart.Core
                     {
                         subItem.ListPrice = x.Item?.ListPrice ?? 0m;
                         subItem.SalePrice = x.Item?.SalePrice ?? 0m;
+                        subItem.SelectedForCheckout = x.Item?.SelectedForCheckout ?? true;
                     }
                     subItem.CustomText = x.CustomText;
                     subItem.Files = x.Files;
