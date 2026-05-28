@@ -109,7 +109,7 @@ namespace VirtoCommerce.XCart.Data.Services
                 }
 
                 //Populate aggregate.CartProducts with the products data, keyed by productId + currency
-                foreach (var cartProduct in cartProducts ?? [])
+                foreach (var cartProduct in cartProducts)
                 {
                     result[CartAggregate.GetCartProductKey(cartProduct.Id, currencyCode)] = cartProduct;
                 }

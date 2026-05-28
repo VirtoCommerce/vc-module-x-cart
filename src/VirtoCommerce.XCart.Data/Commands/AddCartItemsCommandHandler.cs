@@ -92,11 +92,6 @@ namespace VirtoCommerce.XCart.Data.Commands
             }
         }
 
-        private static string GetNewItemCurrencyCode(NewCartItem item, CartAggregate cartAggregate)
-        {
-            return !item.CurrencyCode.IsNullOrEmpty() ? item.CurrencyCode : cartAggregate.Currency.Code;
-        }
-
         protected virtual async Task AddConfiguredItemAsync(AddCartItemsCommand request, NewCartItem item, CartAggregate cartAggregate, CancellationToken cancellationToken)
         {
             var command = AbstractTypeFactory<CreateConfiguredLineItemCommand>.TryCreateInstance();
@@ -104,7 +99,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             command.UserId = request.UserId;
             command.OrganizationId = request.OrganizationId;
             command.CultureName = request.CultureName;
-            command.CurrencyCode = request.CurrencyCode;
+            command.CurrencyCode = GetNewItemCurrencyCode(item, cartAggregate);
             command.ConfigurableProductId = item.ProductId;
             command.ConfigurationSections = item.ConfigurationSections;
             command.CartId = cartAggregate.Cart.Id;
@@ -112,6 +107,11 @@ namespace VirtoCommerce.XCart.Data.Commands
             var result = await _mediator.Send(command, cancellationToken);
 
             await cartAggregate.AddConfiguredItemAsync(item, result.Item);
+        }
+
+        private static string GetNewItemCurrencyCode(NewCartItem item, CartAggregate cartAggregate)
+        {
+            return !item.CurrencyCode.IsNullOrEmpty() ? item.CurrencyCode : cartAggregate.Currency.Code;
         }
     }
 }

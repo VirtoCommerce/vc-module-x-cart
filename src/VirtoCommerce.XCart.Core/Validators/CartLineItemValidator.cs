@@ -16,9 +16,7 @@ namespace VirtoCommerce.XCart.Core.Validators
             {
                 var lineItem = lineItemContext.LineItem;
                 var allCartProducts = lineItemContext.AllCartProducts;
-                // The same product may appear in several currencies, so match by currency first and fall back to id-only.
-                var cartProduct = allCartProducts.FirstOrDefault(x => x.Id.EqualsIgnoreCase(lineItem.ProductId) && x.Price?.Currency?.Code.EqualsIgnoreCase(lineItem.Currency) == true)
-                    ?? allCartProducts.FirstOrDefault(x => x.Id.EqualsIgnoreCase(lineItem.ProductId));
+                var cartProduct = GetCartProduct(lineItem, allCartProducts);
 
                 var minQuantity = cartProduct?.GetMinQuantity();
 
@@ -47,6 +45,13 @@ namespace VirtoCommerce.XCart.Core.Validators
                     ValidateMinMaxQuantity(context, lineItem, cartProduct);
                 }
             });
+        }
+
+        private static CartProduct GetCartProduct(LineItem lineItem, System.Collections.Generic.IEnumerable<CartProduct> allCartProducts)
+        {
+            // The same product may appear in several currencies, so match by currency first and fall back to id-only.
+            return allCartProducts.FirstOrDefault(x => x.Id.EqualsIgnoreCase(lineItem.ProductId) && x.Price?.Currency?.Code.EqualsIgnoreCase(lineItem.Currency) == true)
+                ?? allCartProducts.FirstOrDefault(x => x.Id.EqualsIgnoreCase(lineItem.ProductId));
         }
 
         private void ValidateMinMaxQuantity(ValidationContext<LineItemValidationContext> context, LineItem lineItem, CartProduct cartProduct)

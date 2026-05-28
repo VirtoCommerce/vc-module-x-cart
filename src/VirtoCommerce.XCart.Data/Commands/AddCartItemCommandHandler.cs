@@ -52,6 +52,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                 Price = request.Price,
                 CartProduct = product,
                 CreatedDate = request.CreatedDate,
+                CurrencyCode = itemCurrencyCode,
             };
 
             var configurations = await _productConfigurationSearchService.SearchNoCloneAsync(new ProductConfigurationSearchCriteria
@@ -67,7 +68,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                 createConfigurableProductCommand.UserId = request.UserId;
                 createConfigurableProductCommand.OrganizationId = request.OrganizationId;
                 createConfigurableProductCommand.CultureName = request.CultureName;
-                createConfigurableProductCommand.CurrencyCode = request.CurrencyCode;
+                createConfigurableProductCommand.CurrencyCode = itemCurrencyCode;
                 createConfigurableProductCommand.ConfigurableProductId = request.ProductId;
                 createConfigurableProductCommand.ConfigurationSections = request.ConfigurationSections;
                 createConfigurableProductCommand.CartId = cartAggregate.Cart.Id;

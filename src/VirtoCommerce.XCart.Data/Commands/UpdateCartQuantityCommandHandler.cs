@@ -68,10 +68,8 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             var newCartItems = new List<NewCartItem>();
 
-            foreach (var task in productTasks.OfType<Task<ProductsByCurrencyResult>>())
+            foreach (var productsByCurrency in productTasks.OfType<Task<ProductsByCurrencyResult>>().Select(x => x.Result))
             {
-                var productsByCurrency = task.Result;
-
                 foreach (var product in productsByCurrency.Products)
                 {
                     var requestItem = requestItems.FirstOrDefault(x => x.ProductId == product.Id && x.CurrencyCode.EqualsIgnoreCase(productsByCurrency.CurrencyCode));
