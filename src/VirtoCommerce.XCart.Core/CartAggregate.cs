@@ -103,7 +103,7 @@ namespace VirtoCommerce.XCart.Core
                 foreach (var item in cartTotals)
                 {
                     item.IsDefaultTotalCurrency = Cart.Currency.EqualsIgnoreCase(item.CartTotal.CurrencyCode);
-                    item.Currency = ItemCurrencies?.FirstOrDefault(x => x.Code.EqualsIgnoreCase(item.CartTotal.CurrencyCode));
+                    item.Currency = ItemCurrencies?.FirstOrDefault(x => x.Code.EqualsIgnoreCase(item.CartTotal.CurrencyCode)) ?? Currency;
                 }
 
                 return cartTotals;
