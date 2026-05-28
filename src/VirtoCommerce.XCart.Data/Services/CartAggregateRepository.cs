@@ -325,6 +325,7 @@ namespace VirtoCommerce.XCart.Data.Services
                     var lineItemContext = new CartLineItemPriceChangedValidationContext
                     {
                         LineItem = lineItem,
+                        CartAggregate = aggregate,
                         CartProducts = aggregate.CartProducts,
                     };
 

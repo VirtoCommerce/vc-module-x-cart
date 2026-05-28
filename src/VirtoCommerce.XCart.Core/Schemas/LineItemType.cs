@@ -90,6 +90,9 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.Width, nullable: true).Description("Width value");
             Field(x => x.FulfillmentCenterId, nullable: true).Description("Line item fulfillment center ID value");
             Field(x => x.FulfillmentCenterName, nullable: true).Description("Line item fulfillment center name value");
+            Field<StringGraphType>("currencyCode")
+                .Description("Line item currency code")
+                .Resolve(context => context.Source.Currency);
             Field<NonNullGraphType<ListGraphType<NonNullGraphType<DiscountType>>>>("discounts")
                 .Description("Discounts")
                 .Resolve(context => context.Source.Discounts ?? []);

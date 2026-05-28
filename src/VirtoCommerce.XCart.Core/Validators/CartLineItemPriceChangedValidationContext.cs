@@ -7,6 +7,7 @@ namespace VirtoCommerce.XCart.Core.Validators
     public class CartLineItemPriceChangedValidationContext
     {
         public LineItem LineItem { get; set; }
+        public CartAggregate CartAggregate { get; set; }
         public IDictionary<string, CartProduct> CartProducts { get; set; } = new Dictionary<string, CartProduct>();
     }
 }
