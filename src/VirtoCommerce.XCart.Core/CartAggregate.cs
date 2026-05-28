@@ -98,7 +98,7 @@ namespace VirtoCommerce.XCart.Core
         {
             get
             {
-                var cartTotals = Cart.CartTotals.Select(x => new CartTotalAggregate() { CartTotal = x }).ToList();
+                var cartTotals = Cart.CartTotals?.Select(x => new CartTotalAggregate() { CartTotal = x }).ToList() ?? [];
 
                 foreach (var item in cartTotals)
                 {
