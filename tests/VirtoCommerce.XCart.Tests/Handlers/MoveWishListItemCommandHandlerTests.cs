@@ -76,8 +76,16 @@ namespace VirtoCommerce.XCart.Tests.Handlers
 
             var productId = lineItem.ProductId;
             _cartProductServiceMock
-                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), new[] { productId }))
-                .ReturnsAsync(new List<CartProduct> { new CartProduct(new CatalogProduct { Id = productId }) });
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
+                {
+                    var cartProduct = new CartProduct(new CatalogProduct { Id = productId, });
+
+                    return new Dictionary<string, CartProduct>
+                    {
+                        { CartAggregate.GetCartProductKey(productId, lineItem.Currency), cartProduct },
+                    };
+                });
 
             _mapperMock
                 .Setup(m => m.Map(It.IsAny<CartProduct>(), It.IsAny<Action<IMappingOperationOptions<object, LineItem>>>()))

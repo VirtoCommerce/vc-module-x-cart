@@ -16,7 +16,9 @@ namespace VirtoCommerce.XCart.Core.Validators
             {
                 var lineItem = lineItemContext.LineItem;
                 var allCartProducts = lineItemContext.AllCartProducts;
-                var cartProduct = allCartProducts.FirstOrDefault(x => x.Id.EqualsIgnoreCase(lineItem.ProductId));
+                // The same product may appear in several currencies, so match by currency first and fall back to id-only.
+                var cartProduct = allCartProducts.FirstOrDefault(x => x.Id.EqualsIgnoreCase(lineItem.ProductId) && x.Price?.Currency?.Code.EqualsIgnoreCase(lineItem.Currency) == true)
+                    ?? allCartProducts.FirstOrDefault(x => x.Id.EqualsIgnoreCase(lineItem.ProductId));
 
                 var minQuantity = cartProduct?.GetMinQuantity();
 

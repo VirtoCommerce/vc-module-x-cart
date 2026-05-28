@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.FileExperienceApi.Core.Extensions;
 using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
@@ -72,6 +73,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                 var newCartItems = ordinaryItems
                     .Select(x => new NewCartItem(x.ProductId, x.Quantity)
                     {
+                        CurrencyCode = ResolveTargetCurrency(x.Currency, currentCurrencyCartAggregate, newCurrencyCartAggregate).Code,
                         IgnoreValidationErrors = true,
                         CreatedDate = x.CreatedDate,
                         Comment = x.Note,
@@ -94,6 +96,18 @@ namespace VirtoCommerce.XCart.Data.Commands
             await CopyConfiguredItems(currentCurrencyCartAggregate, newCurrencyCartAggregate);
         }
 
+        /// <summary>
+        /// Resolves the target currency for a copied line item.
+        /// Items in the source cart's base currency are converted to the new cart's currency;
+        /// items in their own (non-base) currency keep it.
+        /// </summary>
+        protected virtual Currency ResolveTargetCurrency(string itemCurrencyCode, CartAggregate currentCurrencyCartAggregate, CartAggregate newCurrencyCartAggregate)
+        {
+            return itemCurrencyCode.EqualsIgnoreCase(currentCurrencyCartAggregate.Cart.Currency)
+                ? newCurrencyCartAggregate.Currency
+                : currentCurrencyCartAggregate.GetCurrencyByCode(itemCurrencyCode);
+        }
+
         protected virtual async Task CopyConfiguredItems(CartAggregate currentCurrencyCartAggregate, CartAggregate newCurrencyCartAggregate)
         {
             var configuredItems = currentCurrencyCartAggregate.LineItems
@@ -105,17 +119,21 @@ namespace VirtoCommerce.XCart.Data.Commands
                 return;
             }
 
-            var configProductsIds = configuredItems
-                            .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
-                            .SelectMany(x => x.ConfigurationItems.Select(y => y.ProductId))
-                            .Where(x => !string.IsNullOrEmpty(x))
-                            .Distinct()
-                            .ToList();
+            var configProductPairs = configuredItems
+                .SelectMany(item =>
+                {
+                    var targetCurrencyCode = ResolveTargetCurrency(item.Currency, currentCurrencyCartAggregate, newCurrencyCartAggregate).Code;
+                    var productIds = (item.ConfigurationItems ?? [])
+                        .Select(c => c.ProductId)
+                        .Where(id => !string.IsNullOrEmpty(id))
+                        .Append(item.ProductId);
 
-            configProductsIds.AddRange(configuredItems.Select(x => x.ProductId));
+                    return productIds.Select(id => (targetCurrencyCode, id));
+                })
+                .Distinct()
+                .ToList();
 
-            var configProducts = (await _cartProductService.GetCartProductsByIdsAsync(newCurrencyCartAggregate, configProductsIds))
-                .ToDictionary(x => x.Id);
+            var configProducts = await _cartProductService.GetCartProductsAsync(newCurrencyCartAggregate, configProductPairs);
 
             foreach (var configurationLineItem in configuredItems)
             {
@@ -149,17 +167,19 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         protected virtual async Task<ConfiguredLineItemContainer> CreateConfiguredLineItemContainerAsync(
             LineItem configurationLineItem,
-            Dictionary<string, CartProduct> configProducts,
+            IDictionary<string, CartProduct> configProducts,
             CartAggregate currentCurrencyCartAggregate,
             CartAggregate newCurrencyCartAggregate)
         {
-            if (!configProducts.TryGetValue(configurationLineItem.ProductId, out var configurableProduct))
+            var targetCurrency = ResolveTargetCurrency(configurationLineItem.Currency, currentCurrencyCartAggregate, newCurrencyCartAggregate);
+
+            if (!configProducts.TryGetValue(CartAggregate.GetCartProductKey(configurationLineItem.ProductId, targetCurrency.Code), out var configurableProduct))
             {
                 return null;
             }
 
             var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
-            container.Currency = newCurrencyCartAggregate.Currency;
+            container.Currency = targetCurrency;
             container.Store = newCurrencyCartAggregate.Store;
             container.ConfigurableProduct = configurableProduct;
 
@@ -169,7 +189,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                 {
                     case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
                     {
-                        if (configProducts.TryGetValue(configurationItem.ProductId, out var product))
+                        if (configProducts.TryGetValue(CartAggregate.GetCartProductKey(configurationItem.ProductId, targetCurrency.Code), out var product))
                         {
                             container.AddProductSectionLineItem(product, configurationItem);
                         }

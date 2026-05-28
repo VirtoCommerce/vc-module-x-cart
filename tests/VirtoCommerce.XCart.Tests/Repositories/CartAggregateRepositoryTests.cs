@@ -163,7 +163,7 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                  _currencyService.Object,
                  _memberResolver.Object,
                  _storeService.Object,
-                 _cartProductsLoaderServiceMock.Object,
+                 _cartProductServiceMock.Object,
                  _platformMemoryCache,
                  _fileUploadService.Object);
 
@@ -186,8 +186,9 @@ namespace VirtoCommerce.XCart.Tests.Repositories
             _memberResolver.Setup(x => x.ResolveMemberByIdAsync(It.Is<string>(x => x == shoppingCart.CustomerId)))
                 .ReturnsAsync(customer);
 
-            _cartProductsLoaderServiceMock.Setup(x => x.GetCartProductsAsync(It.IsAny<CartProductsRequest>()))
-                .ReturnsAsync([]);
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync(new Dictionary<string, CartProduct>());
 
             // Act
             var result = await repository.GetCartForShoppingCartAsync(shoppingCart);
@@ -213,7 +214,7 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                  _currencyService.Object,
                  _memberResolver.Object,
                  _storeService.Object,
-                 _cartProductsLoaderServiceMock.Object,
+                 _cartProductServiceMock.Object,
                  _platformMemoryCache,
                  _fileUploadService.Object);
 
@@ -254,11 +255,12 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                         }
                     ], currencies.First());
 
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
-                .ReturnsAsync([product]);
-
-            _cartProductsLoaderServiceMock.Setup(x => x.GetCartProductsAsync(It.IsAny<CartProductsRequest>()))
-                .ReturnsAsync([product]);
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync(new Dictionary<string, CartProduct>()
+                {
+                    { CartAggregate.GetCartProductKey(product.Id, "USD"), product },
+                });
 
             // Act
             var result = await repository.GetCartForShoppingCartAsync(shoppingCart);

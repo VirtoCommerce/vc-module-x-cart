@@ -47,14 +47,12 @@ namespace VirtoCommerce.XCart.Data.Commands
             }
 
             // load products for line items
-            var productIds = quantityAdjustments.Select(x => x.LineItem.ProductId).ToArray();
-            var productsByIds =
-                (await _cartProductService.GetCartProductsByIdsAsync(cartAggregate, productIds))
-                .ToDictionary(x => x.Id);
+            var currencyProductByIds = quantityAdjustments.Select(x => (x.LineItem.Currency, x.LineItem.ProductId)).ToArray();
+            var productsByIds = await _cartProductService.GetCartProductsAsync(cartAggregate, currencyProductByIds);
 
             foreach (var adjustment in quantityAdjustments)
             {
-                if (productsByIds.TryGetValue(adjustment.LineItem.ProductId, out var product))
+                if (productsByIds.TryGetValue(cartAggregate.GetCartProductKey(adjustment.LineItem), out var product))
                 {
                     adjustment.CartProduct = product;
 

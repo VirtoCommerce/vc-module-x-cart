@@ -42,7 +42,8 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         protected virtual async Task AddItemToCartAsync(AddCartItemCommand request, CartAggregate cartAggregate, CancellationToken cancellationToken)
         {
-            var product = (await _cartProductService.GetCartProductsByIdsAsync(cartAggregate, [request.ProductId])).FirstOrDefault();
+            var itemCurrencyCode = !request.ItemCurrencyCode.IsNullOrEmpty() ? request.ItemCurrencyCode : cartAggregate.Currency.Code;
+            var product = (await _cartProductService.GetCartProductsAsync(cartAggregate, [(itemCurrencyCode, request.ProductId)])).Values.FirstOrDefault();
 
             var newItem = new NewCartItem(request.ProductId, request.Quantity)
             {

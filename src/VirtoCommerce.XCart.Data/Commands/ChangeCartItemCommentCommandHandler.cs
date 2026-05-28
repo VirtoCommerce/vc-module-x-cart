@@ -25,7 +25,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             var lineItem = cartAggregate.Cart.Items.FirstOrDefault(x => x.Id.Equals(request.LineItemId));
 
             if (lineItem != null &&
-                (await _cartProductService.GetCartProductsByIdsAsync(cartAggregate, new[] { lineItem.ProductId })).FirstOrDefault() == null)
+                (await _cartProductService.GetCartProductsAsync(cartAggregate, [(lineItem.Currency, lineItem.ProductId)])).Values.FirstOrDefault() == null)
             {
                 return cartAggregate;
             }

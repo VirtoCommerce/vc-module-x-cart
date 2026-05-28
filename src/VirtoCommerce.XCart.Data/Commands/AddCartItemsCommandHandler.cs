@@ -51,7 +51,12 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             var productIds = request.CartItems.Select(x => x.ProductId).Distinct().ToArray();
 
-            var productsTask = _cartProductService.GetCartProductsByIdsAsync(cartAggregate, productIds);
+            var productPairs = request.CartItems.Select(x =>
+            {
+                var itemCurrencyCode = GetNewItemCurrencyCode(x, cartAggregate);
+                return (itemCurrencyCode, x.ProductId);
+            }).Distinct().ToList();
+            var productsTask = _cartProductService.GetCartProductsAsync(cartAggregate, productPairs);
 
             var criteria = AbstractTypeFactory<ProductConfigurationSearchCriteria>.TryCreateInstance();
             criteria.ProductIds = productIds;
@@ -61,12 +66,13 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             await Task.WhenAll(productsTask, configurationsTask);
 
-            var productsByIds = productsTask.Result.ToDictionary(x => x.Id);
+            var products = productsTask.Result;
             var activeConfigByProductId = configurationsTask.Result.DistinctBy(x => x.ProductId).ToDictionary(x => x.ProductId);
 
             foreach (var item in request.CartItems)
             {
-                if (!productsByIds.TryGetValue(item.ProductId, out var product))
+                var itemCurrencyCode = GetNewItemCurrencyCode(item, cartAggregate);
+                if (!products.TryGetValue(CartAggregate.GetCartProductKey(item.ProductId, itemCurrencyCode), out var product))
                 {
                     var error = CartErrorDescriber.ProductUnavailableError(nameof(CatalogProduct), item.ProductId);
                     cartAggregate.OperationValidationErrors.Add(error);
@@ -84,6 +90,11 @@ namespace VirtoCommerce.XCart.Data.Commands
                     await cartAggregate.AddItemAsync(item);
                 }
             }
+        }
+
+        private static string GetNewItemCurrencyCode(NewCartItem item, CartAggregate cartAggregate)
+        {
+            return !item.CurrencyCode.IsNullOrEmpty() ? item.CurrencyCode : cartAggregate.Currency.Code;
         }
 
         protected virtual async Task AddConfiguredItemAsync(AddCartItemsCommand request, NewCartItem item, CartAggregate cartAggregate, CancellationToken cancellationToken)

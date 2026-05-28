@@ -31,7 +31,7 @@ namespace VirtoCommerce.XCart.Data.Services
     public class CartAggregateRepository : ICartAggregateRepository
     {
         private readonly Func<CartAggregate> _cartAggregateFactory;
-        private readonly ICartProductsLoaderService _cartProductsLoaderService;
+        private readonly ICartProductService _cartProductsService;
         private readonly IShoppingCartSearchService _shoppingCartSearchService;
         private readonly IShoppingCartService _shoppingCartService;
         private readonly ICurrencyService _currencyService;
@@ -48,7 +48,7 @@ namespace VirtoCommerce.XCart.Data.Services
             ICurrencyService currencyService,
             IMemberResolver memberResolver,
             IStoreService storeService,
-            ICartProductsLoaderService cartProductsLoaderService,
+            ICartProductService cartProductsService,
             IPlatformMemoryCache platformMemoryCache,
             IFileUploadService fileUploadService)
         {
@@ -58,7 +58,7 @@ namespace VirtoCommerce.XCart.Data.Services
             _currencyService = currencyService;
             _memberResolver = memberResolver;
             _storeService = storeService;
-            _cartProductsLoaderService = cartProductsLoaderService;
+            _cartProductsService = cartProductsService;
             _platformMemoryCache = platformMemoryCache;
             _fileUploadService = fileUploadService;
         }
@@ -283,11 +283,10 @@ namespace VirtoCommerce.XCart.Data.Services
             language = !string.IsNullOrEmpty(cart.LanguageCode) ? cart.LanguageCode : store.DefaultLanguage;
             var currency = allCurrencies.GetCurrencyForLanguage(cart.Currency, language);
 
-            // find all cart currencies
-            var itemCurrencyCodes = cart.Items?.Select(x => x.Currency).Where(x => !x.EqualsIgnoreCase(cart.Currency)).ToArray();
-            var itemCurrencies = itemCurrencyCodes?.Select(x => allCurrencies.GetCurrencyForLanguage(x, language)).ToList();
-            itemCurrencies ??= new List<Currency>();
-            itemCurrencies.Add(currency);
+            // Preload all available currencies — extras are harmless and avoid having to refresh the list on each item add.
+            var itemCurrencies = allCurrencies
+                .Select(x => allCurrencies.GetCurrencyForLanguage(x.Code, language))
+                .ToList();
 
             var member = await _memberResolver.ResolveMemberByIdAsync(cart.CustomerId);
             var aggregate = _cartAggregateFactory();
@@ -305,22 +304,11 @@ namespace VirtoCommerce.XCart.Data.Services
 
                 if (aggregate.ProductsIncludeFields == null || aggregate.ProductsIncludeFields.FirstOrDefault() != "__none")
                 {
-                    // Group line items by currency so we can issue one product request per currency.
-                    // A single product can appear in several currencies — each currency yields a distinct CartProduct.
-                    var productIdsByCurrency = aggregate.Cart.Items
-                        .GroupBy(x => !string.IsNullOrEmpty(x.Currency) ? x.Currency : aggregate.Currency.Code, StringComparer.OrdinalIgnoreCase)
-                        .ToDictionary(g => g.Key, g => g.Select(x => x.ProductId).Distinct().ToArray(), StringComparer.OrdinalIgnoreCase);
-
-                    foreach (var (currencyCode, productIds) in productIdsByCurrency)
+                    var productPairs = aggregate.Cart.Items.Select(x => (x.Currency, x.ProductId)).Distinct().ToList();
+                    var products = await _cartProductsService.GetCartProductsAsync(aggregate, productPairs);
+                    foreach (var product in products)
                     {
-                        var productRequest = GetCartProductsRequest(aggregate, currencyCode, productIds);
-                        var cartProducts = await _cartProductsLoaderService.GetCartProductsAsync(productRequest);
-
-                        //Populate aggregate.CartProducts with the products data, keyed by productId + currency
-                        foreach (var cartProduct in cartProducts ?? [])
-                        {
-                            aggregate.CartProducts[CartAggregate.GetCartProductKey(cartProduct.Id, currencyCode)] = cartProduct;
-                        }
+                        aggregate.CartProducts[product.Key] = product.Value;
                     }
                 }
 
@@ -398,43 +386,6 @@ namespace VirtoCommerce.XCart.Data.Services
 
                 await _fileUploadService.SaveChangesAsync(files);
             }
-        }
-
-        private static CartProductsRequest GetCartProductsRequest(CartAggregate aggregate, string currencyCode, string[] productIds)
-        {
-            var productRequest = AbstractTypeFactory<CartProductsRequest>.TryCreateInstance();
-
-            productRequest.LoadPrice = true;
-            productRequest.LoadInventory = true;
-            productRequest.EvaluatePromotions = false;
-
-            productRequest.StoreId = aggregate.Store.Id;
-            productRequest.UserId = aggregate.Cart.CustomerId;
-            productRequest.OrganizationId = aggregate.Cart.OrganizationId;
-            productRequest.CultureName = aggregate.Cart.LanguageCode;
-            productRequest.CurrencyCode = currencyCode;
-
-            productRequest.ProductIds = productIds;
-            productRequest.ProductsIncludeFields = GetIncludeFields(aggregate);
-
-            return productRequest;
-        }
-
-        private static List<string> GetIncludeFields(CartAggregate request)
-        {
-            var includeFields = new string[]
-            {
-                "__object",
-                "price",
-                "availabilityData",
-                "images",
-                "properties",
-                "description",
-                "slug",
-                "outlines"
-            };
-
-            return new List<string>(includeFields).Union(request.ProductsIncludeFields ?? []).ToList();
         }
     }
 }
