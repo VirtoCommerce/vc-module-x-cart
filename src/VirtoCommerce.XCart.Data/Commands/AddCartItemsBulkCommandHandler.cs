@@ -60,7 +60,9 @@ namespace VirtoCommerce.XCart.Data.Commands
                 var product = products.FirstOrDefault(x => x.Code == item.ProductSku);
                 if (product != null)
                 {
-                    var newCartItem = new NewCartItem(product.Id, item.Quantity);
+                    var newCartItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
+                    newCartItem.ProductId = product.Id;
+                    newCartItem.Quantity = item.Quantity;
                     cartItemsToAdd.Add(newCartItem);
                 }
                 else

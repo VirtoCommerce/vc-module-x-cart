@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
@@ -50,12 +51,17 @@ public class CreateCartFromWishlistCommandHandler : CartCommandHandler<CreateCar
         if (ordinaryItems.Length > 0)
         {
             var newCartItems = ordinaryItems
-                .Select(x => new NewCartItem(x.ProductId, x.Quantity)
+                .Select(x =>
                 {
-                    IgnoreValidationErrors = true,
-                    IsSelectedForCheckout = true,
-                    CreatedDate = x.CreatedDate,
-                    Comment = x.Note,
+                    var newCartItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
+                    newCartItem.ProductId = x.ProductId;
+                    newCartItem.Quantity = x.Quantity;
+                    newCartItem.IgnoreValidationErrors = true;
+                    newCartItem.IsSelectedForCheckout = true;
+                    newCartItem.CreatedDate = x.CreatedDate;
+                    newCartItem.Comment = x.Note;
+
+                    return newCartItem;
                 })
                 .ToArray();
 

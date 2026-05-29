@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
@@ -25,9 +26,11 @@ namespace VirtoCommerce.XCart.Data.Commands
             var item = sourceCartAggregate.Cart.Items.FirstOrDefault(x => x.Id == request.LineItemId);
             if (item != null)
             {
-                destinationCartAggregate = await destinationCartAggregate.AddItemsAsync(new List<NewCartItem> {
-                    new NewCartItem(item.ProductId, item.Quantity)
-                });
+                var newCartItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
+                newCartItem.ProductId = item.ProductId;
+                newCartItem.Quantity = item.Quantity;
+
+                destinationCartAggregate = await destinationCartAggregate.AddItemsAsync(new List<NewCartItem> { newCartItem });
 
                 await sourceCartAggregate.RemoveItemAsync(request.LineItemId);
 
