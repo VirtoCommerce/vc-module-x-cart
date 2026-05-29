@@ -107,6 +107,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
 
                     var expConfigurationLineItem = AbstractTypeFactory<ExpConfigurationLineItem>.TryCreateInstance();
                     expConfigurationLineItem.Id = option.Id;
+                    expConfigurationLineItem.IsDefault = option.IsDefault;
                     expConfigurationLineItem.Quantity = option.Quantity;
                     expConfigurationLineItem.Item = item;
                     expConfigurationLineItem.Currency = container.Currency;
@@ -128,6 +129,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
             {
                 var expConfigurationLineItem = AbstractTypeFactory<ExpConfigurationLineItem>.TryCreateInstance();
                 expConfigurationLineItem.Id = option.Id;
+                expConfigurationLineItem.IsDefault = option.IsDefault;
                 expConfigurationLineItem.Text = option.Text;
 
                 configurationSection.Options.Add(expConfigurationLineItem);

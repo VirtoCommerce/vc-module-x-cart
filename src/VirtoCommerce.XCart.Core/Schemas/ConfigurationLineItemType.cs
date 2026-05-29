@@ -26,6 +26,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.Id, nullable: true).Description("The unique identifier");
             Field(x => x.Text, nullable: true).Description("The text of the Text-type option");
             Field(x => x.Quantity).Description("The quantity of the option");
+            Field(x => x.IsDefault).Description("Whether the option is selected by default");
 
             var productField = new FieldType
             {
