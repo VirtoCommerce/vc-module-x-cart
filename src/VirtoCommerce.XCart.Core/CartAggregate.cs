@@ -152,7 +152,7 @@ namespace VirtoCommerce.XCart.Core
         /// </summary>
         public static string GetCartProductKey(string productId, string currencyCode)
         {
-            return $"{productId}:{currencyCode?.ToUpperInvariant()}";
+            return $"{productId}:{currencyCode}";
         }
 
         /// <summary>
@@ -664,7 +664,12 @@ namespace VirtoCommerce.XCart.Core
         {
             EnsureCartExists();
 
-            var lineItems = LineItems.Where(x => x.ProductId == productId && x.Currency.EqualsIgnoreCase(currencyCode)).ToList();
+            // Missing currencies on either side are treated as the cart's currency.
+            var targetCurrency = !string.IsNullOrEmpty(currencyCode) ? currencyCode : Cart.Currency;
+            var lineItems = LineItems.Where(x =>
+                x.ProductId == productId &&
+                (string.IsNullOrEmpty(x.Currency) ? Cart.Currency : x.Currency).EqualsIgnoreCase(targetCurrency)).ToList();
+                
             if (lineItems.Count != 0)
             {
                 lineItems.ForEach(x => Cart.Items.Remove(x));
@@ -1343,7 +1348,7 @@ namespace VirtoCommerce.XCart.Core
         /// </summary>
         /// <param name="newProductId">new product id</param>
         /// <param name="newProduct">new product object</param>
-        /// <param name="newDynamicProperties">new dynamuc properties that should be added/updated in cart line item</param>
+        /// <param name="newDynamicProperties">new dynamic properties that should be added/updated in cart line item</param>
         /// <returns></returns>
         [Obsolete("Use FindExistingLineItemBeforeAdd.FindExistingLineItemBeforeAdd(LineItem newLineItem...) instead.", DiagnosticId = "VC0014")]
         protected virtual LineItem FindExistingLineItemBeforeAdd(string newProductId, CartProduct newProduct, IList<DynamicPropertyValue> newDynamicProperties)
@@ -1357,11 +1362,16 @@ namespace VirtoCommerce.XCart.Core
         /// </summary>
         /// <param name="newLineItem">new line item</param>
         /// <param name="newProduct">new product object</param>
-        /// <param name="newDynamicProperties">new dynamuc properties that should be added/updated in cart line item</param>
+        /// <param name="newDynamicProperties">new dynamic properties that should be added/updated in cart line item</param>
         /// <returns></returns>
         protected virtual LineItem FindExistingLineItemBeforeAdd(LineItem newLineItem, CartProduct newProduct, IList<DynamicPropertyValue> newDynamicProperties)
         {
-            return LineItems.FirstOrDefault(x => x.ProductId == newLineItem.ProductId && x.Currency.EqualsIgnoreCase(newLineItem.Currency) && !x.IsConfigured);
+            // Missing currencies on either side are treated as the cart's currency.
+            var newCurrency = !string.IsNullOrEmpty(newLineItem.Currency) ? newLineItem.Currency : Cart.Currency;
+            return LineItems.FirstOrDefault(x =>
+                x.ProductId == newLineItem.ProductId &&
+                !x.IsConfigured &&
+                (string.IsNullOrEmpty(x.Currency) ? Cart.Currency : x.Currency).EqualsIgnoreCase(newCurrency));
         }
 
         protected virtual void EnsureCartExists()

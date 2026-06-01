@@ -32,7 +32,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 Name = "product",
                 Type = GraphTypeExtensionHelper.GetActualType<ProductType>(),
                 Resolver = new FuncFieldResolver<LineItem, IDataLoaderResult<ExpProduct>>(context =>
-                    dataLoader.LoadCartProduct(context, mediator, currencyService, "cart_lineItems_products", context.Source.ProductId)),
+                    dataLoader.LoadCartProduct(context, mediator, currencyService, "cart_lineItems_products", (CurrencyCode: context.Source.Currency, context.Source.ProductId))),
             };
             AddField(productField);
 
