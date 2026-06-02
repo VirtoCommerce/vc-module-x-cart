@@ -79,7 +79,7 @@ public static class DataLoaderContextAccessorExtensions
         ICurrencyService currencyService,
         string loaderKey)
     {
-        var loader = dataLoader.Context.GetOrAddBatchLoader<(string CurrencyCode, string ProductId), ExpProduct>(loaderKey, async lineItems =>
+        var loader = dataLoader.Context.GetOrAddBatchLoader<(string CurrencyCode, string ProductId), ExpProduct>(loaderKey, async productCurrencyPairs =>
         {
             var cartAggregate = context.GetValueForSource<CartAggregate>();
             var cart = cartAggregate.Cart;
@@ -93,7 +93,7 @@ public static class DataLoaderContextAccessorExtensions
             context.UserContext.TryAdd("store", cartAggregate.Store);
             context.UserContext.TryAdd("cultureName", cultureName);
 
-            var lineItemsByCurrency = lineItems.GroupBy(x => x.CurrencyCode);
+            var lineItemsByCurrency = productCurrencyPairs.GroupBy(x => x.CurrencyCode);
             var result = new Dictionary<(string CurrencyCode, string ProductId), ExpProduct>();
 
             foreach (var currencyLineItems in lineItemsByCurrency)

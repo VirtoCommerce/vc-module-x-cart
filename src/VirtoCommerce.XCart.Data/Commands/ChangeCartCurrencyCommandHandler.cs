@@ -73,7 +73,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                 var newCartItems = ordinaryItems
                     .Select(x => new NewCartItem(x.ProductId, x.Quantity)
                     {
-                        CurrencyCode = ResolveTargetCurrency(x.Currency, currentCurrencyCartAggregate, newCurrencyCartAggregate).Code,
+                        ItemCurrencyCode = ResolveTargetCurrency(x.Currency, currentCurrencyCartAggregate, newCurrencyCartAggregate).Code,
                         IgnoreValidationErrors = true,
                         CreatedDate = x.CreatedDate,
                         Comment = x.Note,

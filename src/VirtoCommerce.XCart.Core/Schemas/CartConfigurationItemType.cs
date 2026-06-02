@@ -1,3 +1,4 @@
+using System;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
 using GraphQL.Types;
@@ -52,7 +53,12 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 Name = "product",
                 Type = GraphTypeExtensionHelper.GetActualType<ProductType>(),
                 Resolver = new FuncFieldResolver<ConfigurationItem, IDataLoaderResult<ExpProduct>>(context =>
-                    dataLoader.LoadCartProduct(context, mediator, currencyService, "cart_configurationItems_products", context.Source.ProductId)),
+                {
+                    var cart = context.GetCart();
+                    var currencyCode = cart.Currency?.Code
+                        ?? throw new InvalidOperationException("Cart.Currency is required to load configuration item product. A cart without a currency is not supported.");
+                    return dataLoader.LoadCartProduct(context, mediator, currencyService, "cart_configurationItems_products", (currencyCode, context.Source.ProductId));
+                }),
             };
             AddField(productField);
         }

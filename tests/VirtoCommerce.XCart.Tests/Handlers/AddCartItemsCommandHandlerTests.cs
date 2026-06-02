@@ -77,7 +77,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
             var request = new AddCartItemsCommand
             {
                 CartId = "cart-1",
-                CartItems = [new("prod-1", 1) { CurrencyCode = "USD" }, new("prod-2", 2) { CurrencyCode = "USD" }],
+                CartItems = [new("prod-1", 1) { ItemCurrencyCode = "USD" }, new("prod-2", 2) { ItemCurrencyCode = "USD" }],
             };
 
             // Act
@@ -125,7 +125,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
                 CartId = "cart-1",
                 StoreId = "store-1",
                 UserId = "user-1",
-                CartItems = [new("prod-1", 1) { CurrencyCode = "USD" }],
+                CartItems = [new("prod-1", 1) { ItemCurrencyCode = "USD" }],
             };
 
             // Act
@@ -176,7 +176,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
             {
                 CartId = "cart-1",
                 StoreId = "store-1",
-                CartItems = [new("configurable-1", 1) { CurrencyCode = "USD" }, new("regular-1", 2) { CurrencyCode = "USD" }],
+                CartItems = [new("configurable-1", 1) { ItemCurrencyCode = "USD" }, new("regular-1", 2) { ItemCurrencyCode = "USD" }],
             };
 
             // Act
@@ -208,7 +208,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
             var request = new AddCartItemsCommand
             {
                 CartId = "cart-1",
-                CartItems = [new("missing-prod", 1) { CurrencyCode = "USD" }],
+                CartItems = [new("missing-prod", 1) { ItemCurrencyCode = "USD" }],
             };
 
             // Act
@@ -256,7 +256,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
             {
                 CartId = "cart-1",
                 StoreId = "store-1",
-                CartItems = [new("prod-1", 1) { CurrencyCode = "USD" }], // no ConfigurationSections set
+                CartItems = [new("prod-1", 1) { ItemCurrencyCode = "USD" }], // no ConfigurationSections set
             };
 
             // Act

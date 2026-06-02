@@ -26,7 +26,7 @@ namespace VirtoCommerce.XCart.Core.Models
         /// <summary>
         /// Override currency (can be different from the base cart currency)
         /// </summary>
-        public string CurrencyCode { get; set; }
+        public string ItemCurrencyCode { get; set; }
 
         /// <summary>
         /// Comment

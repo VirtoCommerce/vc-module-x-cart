@@ -52,7 +52,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                 Price = request.Price,
                 CartProduct = product,
                 CreatedDate = request.CreatedDate,
-                CurrencyCode = itemCurrencyCode,
+                ItemCurrencyCode = itemCurrencyCode,
             };
 
             var configurations = await _productConfigurationSearchService.SearchNoCloneAsync(new ProductConfigurationSearchCriteria

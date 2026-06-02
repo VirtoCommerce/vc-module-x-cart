@@ -6,6 +6,6 @@ namespace VirtoCommerce.XCart.Core.Commands
 
         public int Quantity { get; set; }
 
-        public string CurrencyCode { get; set; }
+        public string ItemCurrencyCode { get; set; }
     }
 }

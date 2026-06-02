@@ -36,7 +36,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             var requestItems = CombineRequestItems(request);
 
             var requestItemsByCurrency = requestItems
-                .GroupBy(x => x.CurrencyCode)
+                .GroupBy(x => x.ItemCurrencyCode)
                 .ToDictionary(x => x.Key, x => x.ToArray());
 
             var productTasks = new List<Task>();
@@ -63,7 +63,7 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             foreach (var requestItem in requestItems.Where(x => x.Quantity == 0))
             {
-                await cartAggregate.RemoveItemsByProductIdAndCurrencyAsync(requestItem.ProductId, requestItem.CurrencyCode);
+                await cartAggregate.RemoveItemsByProductIdAndCurrencyAsync(requestItem.ProductId, requestItem.ItemCurrencyCode);
             }
 
             var newCartItems = new List<NewCartItem>();
@@ -72,13 +72,13 @@ namespace VirtoCommerce.XCart.Data.Commands
             {
                 foreach (var product in productsByCurrency.Products)
                 {
-                    var requestItem = requestItems.FirstOrDefault(x => x.ProductId == product.Id && x.CurrencyCode.EqualsIgnoreCase(productsByCurrency.CurrencyCode));
+                    var requestItem = requestItems.FirstOrDefault(x => x.ProductId == product.Id && x.ItemCurrencyCode.EqualsIgnoreCase(productsByCurrency.CurrencyCode));
                     if (requestItem != null)
                     {
                         newCartItems.Add(new NewCartItem(product.Id, requestItem.Quantity)
                         {
                             CartProduct = product,
-                            CurrencyCode = productsByCurrency.CurrencyCode,
+                            ItemCurrencyCode = productsByCurrency.CurrencyCode,
                             IgnoreValidationErrors = true,
                             OverrideQuantity = true,
                         });
@@ -133,12 +133,12 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             foreach (var item in request.Items)
             {
-                if (item.CurrencyCode.IsNullOrEmpty())
+                if (item.ItemCurrencyCode.IsNullOrEmpty())
                 {
-                    item.CurrencyCode = request.CurrencyCode;
+                    item.ItemCurrencyCode = request.CurrencyCode;
                 }
 
-                var resultItem = result.FirstOrDefault(x => x.ProductId == item.ProductId && x.CurrencyCode.EqualsIgnoreCase(item.CurrencyCode));
+                var resultItem = result.FirstOrDefault(x => x.ProductId == item.ProductId && x.ItemCurrencyCode.EqualsIgnoreCase(item.ItemCurrencyCode));
                 if (resultItem != null)
                 {
                     resultItem.Quantity += item.Quantity;
@@ -149,7 +149,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                     {
                         ProductId = item.ProductId,
                         Quantity = item.Quantity,
-                        CurrencyCode = item.CurrencyCode,
+                        ItemCurrencyCode = item.ItemCurrencyCode,
                     });
                 }
             }

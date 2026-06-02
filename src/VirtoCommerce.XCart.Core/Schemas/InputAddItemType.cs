@@ -10,7 +10,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<NonNullGraphType<StringGraphType>>("productId").Description("Product ID");
             Field<NonNullGraphType<IntGraphType>>("quantity").Description("Quantity");
             Field<DecimalGraphType>("price").Description("Price");
-            Field<StringGraphType>("itemCurrencyCode").Description("Item currency");
+            Field<StringGraphType>("itemCurrencyCode").Description("Add the product in a different currency");
             Field<StringGraphType>("comment").Description("Comment");
 
             Field<ListGraphType<InputDynamicPropertyValueType>>("dynamicProperties");

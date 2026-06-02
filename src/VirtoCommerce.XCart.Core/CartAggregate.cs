@@ -345,7 +345,7 @@ namespace VirtoCommerce.XCart.Core
             var lineItem = _mapper.Map<LineItem>(newCartItem.CartProduct, options =>
             {
                 options.Items.TryAdd("cultureName", Cart.LanguageCode);
-                options.Items.TryAdd("currencyCode", newCartItem.CurrencyCode);
+                options.Items.TryAdd("currencyCode", newCartItem.ItemCurrencyCode);
             });
 
             lineItem.Currency ??= Currency.Code;
@@ -381,12 +381,12 @@ namespace VirtoCommerce.XCart.Core
         {
             EnsureCartExists();
 
-            var productPairs = newCartItems.Select(x => (x.CurrencyCode, x.ProductId)).Distinct().ToList();
+            var productPairs = newCartItems.Select(x => (x.ItemCurrencyCode, x.ProductId)).Distinct().ToList();
             var products = await _cartProductService.GetCartProductsAsync(this, productPairs);
 
             foreach (var item in newCartItems)
             {
-                var currencyCode = !string.IsNullOrEmpty(item.CurrencyCode) ? item.CurrencyCode : Currency.Code;
+                var currencyCode = !string.IsNullOrEmpty(item.ItemCurrencyCode) ? item.ItemCurrencyCode : Currency.Code;
                 if (!products.TryGetValue(GetCartProductKey(item.ProductId, currencyCode), out var product))
                 {
                     var error = CartErrorDescriber.ProductUnavailableError(nameof(CatalogProduct), item.ProductId);

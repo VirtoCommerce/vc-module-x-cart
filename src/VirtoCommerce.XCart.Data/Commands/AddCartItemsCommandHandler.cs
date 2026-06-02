@@ -111,7 +111,7 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         private static string GetNewItemCurrencyCode(NewCartItem item, CartAggregate cartAggregate)
         {
-            return !item.CurrencyCode.IsNullOrEmpty() ? item.CurrencyCode : cartAggregate.Currency.Code;
+            return !item.ItemCurrencyCode.IsNullOrEmpty() ? item.ItemCurrencyCode : cartAggregate.Currency.Code;
         }
     }
 }
