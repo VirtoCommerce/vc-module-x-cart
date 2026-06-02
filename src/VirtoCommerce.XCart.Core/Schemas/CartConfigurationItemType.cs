@@ -1,4 +1,3 @@
-using System;
 using System.Linq;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
@@ -58,8 +57,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
                     var cart = context.GetCart();
                     var lineItemId = context.Source.LineItemId;
                     var lineItem = cart.Cart?.Items.FirstOrDefault(x => x.Id == lineItemId);
-                    var currencyCode = lineItem?.Currency
-                        ?? throw new InvalidOperationException("Line item currency is required to load configuration item product.");
+                    var currencyCode = lineItem?.Currency;
                     return dataLoader.LoadCartProduct(context, mediator, currencyService, "cart_configurationItems_products", (currencyCode, context.Source.ProductId));
                 }),
             };
