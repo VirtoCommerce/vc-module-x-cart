@@ -240,14 +240,16 @@ public class SavedForLaterListService(
 
     private static NewCartItem BuildNewCartItem(LineItem source)
     {
-        return new NewCartItem(source.ProductId, source.Quantity)
-        {
-            IgnoreValidationErrors = true,
-            CreatedDate = source.CreatedDate,
-            Comment = source.Note,
-            IsSelectedForCheckout = source.SelectedForCheckout,
-            DynamicProperties = MapDynamicProperties(source.DynamicProperties),
-        };
+        var newCartItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
+        newCartItem.ProductId = source.ProductId;
+        newCartItem.Quantity = source.Quantity;
+        newCartItem.IgnoreValidationErrors = true;
+        newCartItem.CreatedDate = source.CreatedDate;
+        newCartItem.Comment = source.Note;
+        newCartItem.IsSelectedForCheckout = source.SelectedForCheckout;
+        newCartItem.DynamicProperties = MapDynamicProperties(source.DynamicProperties);
+
+        return newCartItem;
     }
 
     private async Task<IList<ConfigurationItemFile>> CopyConfigurationFiles(ConfigurationItem configurationItem, ShoppingCart cart)

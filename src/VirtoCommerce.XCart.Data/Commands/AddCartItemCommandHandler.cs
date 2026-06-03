@@ -44,14 +44,7 @@ namespace VirtoCommerce.XCart.Data.Commands
         {
             var product = (await _cartProductService.GetCartProductsByIdsAsync(cartAggregate, [request.ProductId])).FirstOrDefault();
 
-            var newItem = new NewCartItem(request.ProductId, request.Quantity)
-            {
-                Comment = request.Comment,
-                DynamicProperties = request.DynamicProperties,
-                Price = request.Price,
-                CartProduct = product,
-                CreatedDate = request.CreatedDate,
-            };
+            var newItem = CreateNewCartItem(request, product);
 
             var configurations = await _productConfigurationSearchService.SearchNoCloneAsync(new ProductConfigurationSearchCriteria
             {
@@ -78,6 +71,20 @@ namespace VirtoCommerce.XCart.Data.Commands
             {
                 await cartAggregate.AddItemAsync(newItem);
             }
+        }
+
+        protected virtual NewCartItem CreateNewCartItem(AddCartItemCommand request, CartProduct product)
+        {
+            var newItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
+            newItem.ProductId = request.ProductId;
+            newItem.Quantity = request.Quantity;
+            newItem.Comment = request.Comment;
+            newItem.DynamicProperties = request.DynamicProperties;
+            newItem.Price = request.Price;
+            newItem.CartProduct = product;
+            newItem.CreatedDate = request.CreatedDate;
+
+            return newItem;
         }
     }
 }

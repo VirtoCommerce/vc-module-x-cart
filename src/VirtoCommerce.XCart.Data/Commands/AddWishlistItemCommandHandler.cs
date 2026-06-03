@@ -37,11 +37,11 @@ namespace VirtoCommerce.XCart.Data.Commands
             var cartAggregate = await CartRepository.GetCartByIdAsync(request.ListId);
             cartAggregate.ValidationRuleSet = ["default"];
 
-            var newItem = new NewCartItem(request.ProductId, request.Quantity ?? 1)
-            {
-                IsWishlist = true,
-                IgnoreValidationErrors = true,
-            };
+            var newItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
+            newItem.ProductId = request.ProductId;
+            newItem.Quantity = request.Quantity ?? 1;
+            newItem.IsWishlist = true;
+            newItem.IgnoreValidationErrors = true;
 
             var productConfiguration = await GetProductConfiguration(request);
             if (productConfiguration?.IsActive == true)

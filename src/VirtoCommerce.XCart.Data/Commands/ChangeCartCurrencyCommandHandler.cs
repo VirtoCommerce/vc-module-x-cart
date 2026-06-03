@@ -70,13 +70,16 @@ namespace VirtoCommerce.XCart.Data.Commands
             if (ordinaryItems.Length > 0)
             {
                 var newCartItems = ordinaryItems
-                    .Select(x => new NewCartItem(x.ProductId, x.Quantity)
+                    .Select(x =>
                     {
-                        IgnoreValidationErrors = true,
-                        CreatedDate = x.CreatedDate,
-                        Comment = x.Note,
-                        IsSelectedForCheckout = x.SelectedForCheckout,
-                        DynamicProperties = x.DynamicProperties.SelectMany(p => p.Values.Select(v =>
+                        var newCartItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
+                        newCartItem.ProductId = x.ProductId;
+                        newCartItem.Quantity = x.Quantity;
+                        newCartItem.IgnoreValidationErrors = true;
+                        newCartItem.CreatedDate = x.CreatedDate;
+                        newCartItem.Comment = x.Note;
+                        newCartItem.IsSelectedForCheckout = x.SelectedForCheckout;
+                        newCartItem.DynamicProperties = x.DynamicProperties.SelectMany(p => p.Values.Select(v =>
                         {
                             var value = AbstractTypeFactory<DynamicPropertyValue>.TryCreateInstance();
                             value.Name = p.Name;
@@ -84,7 +87,9 @@ namespace VirtoCommerce.XCart.Data.Commands
                             value.Locale = v.Locale;
 
                             return value;
-                        })).ToArray(),
+                        })).ToArray();
+
+                        return newCartItem;
                     })
                     .ToArray();
 
@@ -127,23 +132,25 @@ namespace VirtoCommerce.XCart.Data.Commands
 
                 var expItem = container.CreateConfiguredLineItem(configurationLineItem.Quantity);
 
-                await newCurrencyCartAggregate.AddConfiguredItemAsync(new NewCartItem(configurationLineItem.ProductId, configurationLineItem.Quantity)
+                var newCartItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
+                newCartItem.ProductId = configurationLineItem.ProductId;
+                newCartItem.Quantity = configurationLineItem.Quantity;
+                newCartItem.CartProduct = container.ConfigurableProduct;
+                newCartItem.IgnoreValidationErrors = true;
+                newCartItem.CreatedDate = configurationLineItem.CreatedDate;
+                newCartItem.Comment = configurationLineItem.Note;
+                newCartItem.IsSelectedForCheckout = configurationLineItem.SelectedForCheckout;
+                newCartItem.DynamicProperties = configurationLineItem.DynamicProperties.SelectMany(x => x.Values.Select(y =>
                 {
-                    CartProduct = container.ConfigurableProduct,
-                    IgnoreValidationErrors = true,
-                    CreatedDate = configurationLineItem.CreatedDate,
-                    Comment = configurationLineItem.Note,
-                    IsSelectedForCheckout = configurationLineItem.SelectedForCheckout,
-                    DynamicProperties = configurationLineItem.DynamicProperties.SelectMany(x => x.Values.Select(y =>
-                    {
-                        var value = AbstractTypeFactory<DynamicPropertyValue>.TryCreateInstance();
-                        value.Name = x.Name;
-                        value.Value = y.Value;
-                        value.Locale = y.Locale;
+                    var value = AbstractTypeFactory<DynamicPropertyValue>.TryCreateInstance();
+                    value.Name = x.Name;
+                    value.Value = y.Value;
+                    value.Locale = y.Locale;
 
-                        return value;
-                    })).ToArray(),
-                }, expItem.Item);
+                    return value;
+                })).ToArray();
+
+                await newCurrencyCartAggregate.AddConfiguredItemAsync(newCartItem, expItem.Item);
             }
         }
 

@@ -36,7 +36,15 @@ public class CloneWishlistCommandHandler : ScopedWishlistCommandHandlerBase<Clon
             cloneCartAggregate.ValidationRuleSet = ["default"];
 
             var items = cart.Items
-                            ?.Select(x => new NewCartItem(x.ProductId, x.Quantity) { IsWishlist = true })
+                            ?.Select(x =>
+                            {
+                                var newCartItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
+                                newCartItem.ProductId = x.ProductId;
+                                newCartItem.Quantity = x.Quantity;
+                                newCartItem.IsWishlist = true;
+
+                                return newCartItem;
+                            })
                             .ToArray()
                         ?? [];
 
