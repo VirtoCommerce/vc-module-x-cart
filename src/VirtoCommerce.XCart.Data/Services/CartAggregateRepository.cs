@@ -297,10 +297,18 @@ namespace VirtoCommerce.XCart.Data.Services
                 var cartProducts = default(IList<CartProduct>);
                 if (aggregate.ProductsIncludeFields == null || aggregate.ProductsIncludeFields.FirstOrDefault() != "__none")
                 {
-                    cartProducts = await _cartProductsService.GetCartProductsByIdsAsync(aggregate, aggregate.Cart.Items.Select(x => x.ProductId).ToArray());
+                    var productIds = aggregate.Cart.Items.Select(x => x.ProductId)
+                        .Concat(aggregate.Cart.Items
+                            .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
+                            .SelectMany(x => x.ConfigurationItems, (_, x) => x.ProductId))
+                        .Where(id => !string.IsNullOrEmpty(id))
+                        .Distinct()
+                        .ToArray();
+
+                    cartProducts = await _cartProductsService.GetCartProductsByIdsAsync(aggregate, productIds);
                 }
 
-                //Populate aggregate.CartProducts with the  products data for all cart  line items
+                //Populate aggregate.CartProducts with the product data for all cart line items and their configuration items
                 foreach (var cartProduct in cartProducts ?? [])
                 {
                     aggregate.CartProducts[cartProduct.Id] = cartProduct;

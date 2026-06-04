@@ -16,15 +16,18 @@ public class ConfiguredLineItemContainerService : IConfiguredLineItemContainerSe
     private readonly ICurrencyService _currencyService;
     private readonly IMemberResolver _memberResolver;
     private readonly IStoreService _storeService;
+    private readonly ICartItemBuilder _cartItemBuilder;
 
     public ConfiguredLineItemContainerService(
        ICurrencyService currencyService,
        IMemberResolver memberResolver,
-       IStoreService storeService)
+       IStoreService storeService,
+       ICartItemBuilder cartItemBuilder)
     {
         _currencyService = currencyService;
         _memberResolver = memberResolver;
         _storeService = storeService;
+        _cartItemBuilder = cartItemBuilder;
     }
 
     public virtual async Task<ConfiguredLineItemContainer> CreateContainerAsync(ICartProductContainerRequest request)
@@ -49,6 +52,7 @@ public class ConfiguredLineItemContainerService : IConfiguredLineItemContainerSe
 
         var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
 
+        container.CartItemBuilder = _cartItemBuilder;
         container.Store = store;
         container.Member = member;
         container.Currency = currency;

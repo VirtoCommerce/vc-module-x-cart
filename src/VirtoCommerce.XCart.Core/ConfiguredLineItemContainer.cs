@@ -7,6 +7,7 @@ using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.XCart.Core.Models;
+using VirtoCommerce.XCart.Core.Services;
 using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Core
@@ -22,11 +23,24 @@ namespace VirtoCommerce.XCart.Core
 
         public CartProduct ConfigurableProduct { get; set; }
 
+        /// <summary>
+        /// Builder used to construct <see cref="LineItem"/> instances inside this container's
+        /// <see cref="CreateLineItem(CartProduct, int)"/> and <see cref="CreateConfiguredLineItem(int)"/>
+        /// methods, and <see cref="ConfigurationItem"/> sub-items inside
+        /// <see cref="CreateConfigurationItem(SectionLineItem)"/>. Populated by every
+        /// <see cref="ConfiguredLineItemContainer"/> construction site (in-tree: <see cref="CartAggregate"/>,
+        /// <c>ChangeCartCurrencyCommandHandler</c>, <c>SavedForLaterListService</c>,
+        /// <c>ConfiguredLineItemContainerService</c>). When null, the container falls back to
+        /// <see cref="AbstractTypeFactory{T}.TryCreateInstance()"/> to preserve behaviour for
+        /// external direct-instantiation call sites that bypass DI.
+        /// </summary>
+        public ICartItemBuilder CartItemBuilder { get; set; }
+
         protected List<SectionLineItem> Items { get; } = [];
 
         public virtual LineItem CreateLineItem(CartProduct cartProduct, int quantity)
         {
-            var lineItem = AbstractTypeFactory<LineItem>.TryCreateInstance();
+            var lineItem = CartItemBuilder?.Create(cartProduct) ?? AbstractTypeFactory<LineItem>.TryCreateInstance();
             lineItem.ProductId = cartProduct.Id;
             lineItem.Name = cartProduct.GetName(CultureName);
             lineItem.Sku = cartProduct.Product.Code;
@@ -195,9 +209,44 @@ namespace VirtoCommerce.XCart.Core
             };
         }
 
+        /// <summary>
+        /// Builds the final <see cref="ConfigurationItem"/> for a section during
+        /// <see cref="CreateConfiguredLineItem(int)"/> sub-item materialization. Routes
+        /// instantiation through <see cref="CartItemBuilder"/> so subtype dispatch
+        /// (e.g. <c>AbstractTypeFactory&lt;ConfigurationItem&gt;</c> overrides) applies; falls
+        /// back to <see cref="AbstractTypeFactory{T}.TryCreateInstance()"/> when the builder
+        /// is null. Override to add section-aware fields or subtype selection that depends on
+        /// context not visible to <see cref="ICartItemBuilder"/> (e.g. section's product type).
+        /// </summary>
+        protected virtual ConfigurationItem CreateConfigurationItem(SectionLineItem section)
+        {
+            var subItem = CartItemBuilder?.Create(section.SectionId, section.Type)
+                ?? AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
+
+            subItem.SectionId = section.SectionId;
+            subItem.Type = section.Type;
+            subItem.CatalogId = section.Item?.CatalogId;
+            subItem.CategoryId = section.Item?.CategoryId;
+            subItem.ProductId = section.Item?.ProductId;
+            subItem.Name = section.Item?.Name;
+            subItem.Sku = section.Item?.Sku;
+            subItem.ImageUrl = section.Item?.ImageUrl;
+            subItem.Quantity = section.Item?.Quantity ?? 1;
+            if (section.Type is ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation)
+            {
+                subItem.ListPrice = section.Item?.ListPrice ?? 0m;
+                subItem.SalePrice = section.Item?.SalePrice ?? 0m;
+                subItem.SelectedForCheckout = section.Item?.SelectedForCheckout ?? true;
+            }
+            subItem.CustomText = section.CustomText;
+            subItem.Files = section.Files;
+
+            return subItem;
+        }
+
         public virtual ExpConfigurationLineItem CreateConfiguredLineItem(int quantity)
         {
-            var lineItem = AbstractTypeFactory<LineItem>.TryCreateInstance();
+            var lineItem = CartItemBuilder?.Create(ConfigurableProduct) ?? AbstractTypeFactory<LineItem>.TryCreateInstance();
 
             lineItem.IsConfigured = true;
             lineItem.Quantity = quantity;
@@ -227,30 +276,7 @@ namespace VirtoCommerce.XCart.Core
 
             // create sub items
             lineItem.ConfigurationItems = Items
-                .Select(x =>
-                {
-                    var subItem = AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
-
-                    subItem.SectionId = x.SectionId;
-                    subItem.Type = x.Type;
-                    subItem.CatalogId = x.Item?.CatalogId;
-                    subItem.CategoryId = x.Item?.CategoryId;
-                    subItem.ProductId = x.Item?.ProductId;
-                    subItem.Name = x.Item?.Name;
-                    subItem.Sku = x.Item?.Sku;
-                    subItem.ImageUrl = x.Item?.ImageUrl;
-                    subItem.Quantity = x.Item?.Quantity ?? 1;
-                    if (x.Type is ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation)
-                    {
-                        subItem.ListPrice = x.Item?.ListPrice ?? 0m;
-                        subItem.SalePrice = x.Item?.SalePrice ?? 0m;
-                        subItem.SelectedForCheckout = x.Item?.SelectedForCheckout ?? true;
-                    }
-                    subItem.CustomText = x.CustomText;
-                    subItem.Files = x.Files;
-
-                    return subItem;
-                })
+                .Select(CreateConfigurationItem)
                 .ToList();
 
             // prices

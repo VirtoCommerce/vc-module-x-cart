@@ -24,7 +24,8 @@ namespace VirtoCommerce.XCart.Data.Services;
 public class SavedForLaterListService(
     ICartAggregateRepository cartAggregateRepository,
     ICartProductService cartProductService,
-    IFileUploadService fileUploadService) : ISavedForLaterListService
+    IFileUploadService fileUploadService,
+    ICartItemBuilder cartItemBuilder) : ISavedForLaterListService
 {
     protected const string savedForLaterDefaultName = "Saved for later";
 
@@ -206,6 +207,7 @@ public class SavedForLaterListService(
         }
 
         var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
+        container.CartItemBuilder = cartItemBuilder;
         container.Currency = to.Currency;
         container.Store = to.Store;
         container.ConfigurableProduct = configurableProduct;

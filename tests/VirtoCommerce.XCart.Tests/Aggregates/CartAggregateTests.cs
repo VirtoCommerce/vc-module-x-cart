@@ -44,7 +44,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 _configurationItemValidatorMock.Object,
                 _fileUploadService.Object,
                 _cartSharingService.Object,
-                _cartValidationContextFactoryMock.Object);
+                _cartValidationContextFactoryMock.Object,
+                _cartItemBuilder);
 
             var cart = GetCart();
             var member = GetMember();

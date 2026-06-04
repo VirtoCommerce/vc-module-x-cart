@@ -15,6 +15,7 @@ using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Index;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
+using VirtoCommerce.XCart.Core.Services;
 
 namespace VirtoCommerce.XCart.Data.Mapping
 {
@@ -32,7 +33,10 @@ namespace VirtoCommerce.XCart.Data.Mapping
             {
                 if (lineItem == null)
                 {
-                    lineItem = AbstractTypeFactory<LineItem>.TryCreateInstance();
+                    var builder = context.Items.TryGetValue(ICartItemBuilder.MapperContextKey, out var builderItem)
+                        ? builderItem as ICartItemBuilder
+                        : null;
+                    lineItem = builder?.Create(cartProduct) ?? AbstractTypeFactory<LineItem>.TryCreateInstance();
                 }
 
                 var cultureName = string.Empty;

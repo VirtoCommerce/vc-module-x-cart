@@ -22,15 +22,18 @@ namespace VirtoCommerce.XCart.Data.Commands
     {
         private readonly ICartProductService _cartProductService;
         private readonly IFileUploadService _fileUploadService;
+        private readonly ICartItemBuilder _cartItemBuilder;
 
         public ChangeCartCurrencyCommandHandler(
             ICartAggregateRepository cartAggregateRepository,
             ICartProductService cartProductService,
-            IFileUploadService fileUploadService)
+            IFileUploadService fileUploadService,
+            ICartItemBuilder cartItemBuilder)
             : base(cartAggregateRepository)
         {
             _cartProductService = cartProductService;
             _fileUploadService = fileUploadService;
+            _cartItemBuilder = cartItemBuilder;
         }
 
         public override async Task<CartAggregate> Handle(ChangeCartCurrencyCommand request, CancellationToken cancellationToken)
@@ -166,6 +169,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             }
 
             var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
+            container.CartItemBuilder = _cartItemBuilder;
             container.Currency = newCurrencyCartAggregate.Currency;
             container.Store = newCurrencyCartAggregate.Store;
             container.ConfigurableProduct = configurableProduct;

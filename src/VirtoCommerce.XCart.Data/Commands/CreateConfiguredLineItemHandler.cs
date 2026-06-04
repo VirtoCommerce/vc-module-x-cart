@@ -40,6 +40,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
         productsRequest.ProductIds = [request.ConfigurableProductId];
         productsRequest.EvaluatePromotions = request.EvaluatePromotions;
         productsRequest.OrganizationId = request.OrganizationId;
+        productsRequest.ProductsIncludeFields = request.ProductsIncludeFields;
 
         var product = (await _cartProductService.GetCartProductsAsync(productsRequest)).FirstOrDefault();
 
@@ -57,25 +58,27 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
         productsRequest.LoadInventory = false;
         productsRequest.EvaluatePromotions = false; // don't need to evaluate promotions for the selected products
 
-        var products = await _cartProductService.GetCartProductsAsync(productsRequest);
+        var cartProducts = (await _cartProductService.GetCartProductsAsync(productsRequest)).ToDictionary(x => x.Id);
 
         foreach (var section in configurationSections)
         {
-            if (section.Type is ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation && section.Option != null)
+            switch (section.Type)
             {
-                var productOption = section.Option;
-                var selectedProduct = products.FirstOrDefault(x => x.Product.Id == productOption.ProductId) ?? throw new InvalidOperationException($"Product with id {productOption.ProductId} not found");
+                case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation when !string.IsNullOrEmpty(section.Option?.ProductId):
+                    var productOption = section.Option;
+                    var cartProduct = cartProducts.GetValueOrDefault(productOption.ProductId) ?? throw new InvalidOperationException($"Product with id {productOption.ProductId} not found");
 
-                container.AddProductSectionLineItem(selectedProduct, productOption.Quantity, productOption.SelectedForCheckout, section.SectionId, section.Type);
-            }
-            else if (section.Type == ConfigurationSectionTypeText)
-            {
-                container.AddTextSectionLineItem(section.CustomText, section.SectionId);
-            }
-            else if (section.Type == ConfigurationSectionTypeFile)
-            {
-                var files = await CreateConfigurationFiles(section, request.CartId);
-                container.AddFileSectionLineItem(files, section.SectionId);
+                    container.AddProductSectionLineItem(cartProduct, productOption.Quantity, productOption.SelectedForCheckout, section.SectionId, section.Type);
+                    break;
+
+                case ConfigurationSectionTypeText:
+                    container.AddTextSectionLineItem(section.CustomText, section.SectionId);
+                    break;
+
+                case ConfigurationSectionTypeFile:
+                    var files = await CreateConfigurationFiles(section, request.CartId);
+                    container.AddFileSectionLineItem(files, section.SectionId);
+                    break;
             }
         }
 

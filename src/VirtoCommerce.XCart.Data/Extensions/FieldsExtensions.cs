@@ -20,7 +20,7 @@ namespace VirtoCommerce.XCart.Data.Extensions
             return result;
         }
 
-        [GeneratedRegex(@"^(items\.)?items\.product\.")]
+        [GeneratedRegex(@"^(items\.)?items\.(configurationItems\.)?product\.")]
         private static partial Regex ProductFields();
     }
 }
