@@ -30,21 +30,29 @@ public class FieldsExtensionsTests
     [Fact]
     public void ItemsToProductIncludeField_LineItemProductPath_IsExtracted()
     {
-        var includeFields = new List<string> { "items.product.id", "items.product.name" };
+        var includeFields = new List<string>
+        {
+            "items.product.id",
+            "items.product.name",
+        };
 
         var result = includeFields.ItemsToProductIncludeField();
 
-        result.Should().BeEquivalentTo(["id", "name"]);
+        result.Should().BeEquivalentTo("id", "name");
     }
 
     [Fact]
     public void ItemsToProductIncludeField_NestedLineItemProductPath_IsExtracted()
     {
-        var includeFields = new List<string> { "items.items.product.id", "items.items.product.properties.tier" };
+        var includeFields = new List<string>
+        {
+            "items.items.product.id",
+            "items.items.product.properties.tier",
+        };
 
         var result = includeFields.ItemsToProductIncludeField();
 
-        result.Should().BeEquivalentTo(["id", "properties.tier"]);
+        result.Should().BeEquivalentTo("id", "properties.tier");
     }
 
     [Fact]
@@ -58,7 +66,7 @@ public class FieldsExtensionsTests
 
         var result = includeFields.ItemsToProductIncludeField();
 
-        result.Should().BeEquivalentTo(["id", "properties.chargeCode"]);
+        result.Should().BeEquivalentTo("id", "properties.chargeCode");
     }
 
     [Fact]
@@ -72,7 +80,7 @@ public class FieldsExtensionsTests
 
         var result = includeFields.ItemsToProductIncludeField();
 
-        result.Should().BeEquivalentTo(["id", "properties.colorCode"]);
+        result.Should().BeEquivalentTo("id", "properties.colorCode");
     }
 
     [Fact]
@@ -88,7 +96,7 @@ public class FieldsExtensionsTests
 
         var result = includeFields.ItemsToProductIncludeField();
 
-        result.Should().BeEquivalentTo(["id", "name", "id", "properties.chargeCode"]);
+        result.Should().BeEquivalentTo("id", "name", "id", "properties.chargeCode");
     }
 
     [Fact]
@@ -122,6 +130,6 @@ public class FieldsExtensionsTests
 
         var result = includeFields.ItemsToProductIncludeField();
 
-        result.Should().BeEquivalentTo(["id", "properties.chargeCode"]);
+        result.Should().BeEquivalentTo("id", "properties.chargeCode");
     }
 }
