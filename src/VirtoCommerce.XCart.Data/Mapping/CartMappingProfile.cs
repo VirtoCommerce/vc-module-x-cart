@@ -210,7 +210,8 @@ namespace VirtoCommerce.XCart.Data.Mapping
 
                 promoEvalcontext.CartPromoEntries = new List<ProductPromoEntry>();
 
-                foreach (var lineItem in cartAggr.SelectedLineItems)
+                // Tax and Promotion are computed only on primary-currency lines
+                foreach (var lineItem in cartAggr.CartCurrencySelectedLineItems)
                 {
                     var promoEntry = context.Mapper.Map<ProductPromoEntry>(lineItem);
                     var cartProduct = cartAggr.CartProducts[cartAggr.GetCartProductKey(lineItem)];
@@ -267,7 +268,8 @@ namespace VirtoCommerce.XCart.Data.Mapping
                 taxEvalcontext.CustomerId = cartAggr.Cart.CustomerId;
                 taxEvalcontext.Currency = cartAggr.Cart.Currency;
 
-                foreach (var lineItem in cartAggr.SelectedLineItems)
+                // Tax and Promotion are computed only on primary-currency lines
+                foreach (var lineItem in cartAggr.CartCurrencySelectedLineItems)
                 {
                     var taxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
                     taxLine.Id = lineItem.Id;

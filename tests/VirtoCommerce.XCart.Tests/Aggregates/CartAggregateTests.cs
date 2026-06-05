@@ -935,7 +935,9 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         {
             // Arrange
             var cartAggregate = GetValidCartAggregate();
-            cartAggregate.Cart.Items = new List<LineItem> { _fixture.Create<LineItem>() };
+            var lineItem = _fixture.Create<LineItem>();
+            lineItem.SelectedForCheckout = true;
+            cartAggregate.Cart.Items = [lineItem];
 
             var coupon = _fixture.Create<string>();
             var context = new PromotionEvaluationContext
@@ -979,7 +981,9 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         {
             // Arrange
             var cartAggregate = GetValidCartAggregate();
-            cartAggregate.Cart.Items = new List<LineItem> { _fixture.Create<LineItem>() };
+            var lineItem = _fixture.Create<LineItem>();
+            lineItem.SelectedForCheckout = true;
+            cartAggregate.Cart.Items = [lineItem];
 
             var context = new PromotionEvaluationContext();
 

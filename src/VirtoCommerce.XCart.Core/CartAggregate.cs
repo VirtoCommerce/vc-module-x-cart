@@ -137,8 +137,9 @@ namespace VirtoCommerce.XCart.Core
         public IEnumerable<LineItem> GiftItems => Cart?.Items.Where(x => x.IsGift) ?? Enumerable.Empty<LineItem>();
         public IEnumerable<LineItem> LineItems => Cart?.Items.Where(x => !x.IsGift) ?? Enumerable.Empty<LineItem>();
         public IEnumerable<LineItem> SelectedLineItems => LineItems.Where(x => x.SelectedForCheckout);
+        public IEnumerable<LineItem> CartCurrencySelectedLineItems => SelectedLineItems.Where(x => x.Currency.EqualsIgnoreCase(Cart.Currency));
 
-        public bool HasSelectedLineItems => SelectedLineItems.Any();
+        public bool HasSelectedLineItems => CartCurrencySelectedLineItems.Any();
 
         /// <summary>
         /// Represents the dictionary of all CartProducts data for each  existing cart line item.
@@ -669,7 +670,7 @@ namespace VirtoCommerce.XCart.Core
             var lineItems = LineItems.Where(x =>
                 x.ProductId == productId &&
                 (string.IsNullOrEmpty(x.Currency) ? Cart.Currency : x.Currency).EqualsIgnoreCase(targetCurrency)).ToList();
-                
+
             if (lineItems.Count != 0)
             {
                 lineItems.ForEach(x => Cart.Items.Remove(x));
@@ -1007,7 +1008,9 @@ namespace VirtoCommerce.XCart.Core
             EnsureCartExists();
 
             var promotionResult = new PromotionResult();
-            if (!LineItems.IsNullOrEmpty() && !LineItems.Any(i => i.IsReadOnly))
+
+            // Promotions are evaluated against the cart's main currency; skip when there are no items in it.
+            if (CartCurrencySelectedLineItems.Any() && !CartCurrencySelectedLineItems.Any(i => i.IsReadOnly))
             {
                 var evalContext = AbstractTypeFactory<PromotionEvaluationContext>.TryCreateInstance();
                 var evalContextCartMap = AbstractTypeFactory<PromotionEvaluationContextCartMap>.TryCreateInstance();
