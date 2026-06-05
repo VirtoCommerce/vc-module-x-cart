@@ -817,6 +817,7 @@ namespace VirtoCommerce.XCart.Core
             await MergeCouponsFromCartAsync(otherCart);
             await MergeShipmentsFromCartAsync(otherCart);
             await MergePaymentsFromCartAsync(otherCart);
+
             return this;
         }
 
@@ -824,12 +825,16 @@ namespace VirtoCommerce.XCart.Core
         {
             foreach (var lineItem in otherCart.Cart.Items.ToList())
             {
-                await InnerAddLineItemAsync(lineItem, overrideQuantity: false, product: otherCart.CartProducts[lineItem.ProductId]);
+                var product = otherCart.CartProducts[lineItem.ProductId];
+                if (product != null)
+                {
+                    CartProducts[product.Id] = product;
+                }
+
+                await InnerAddLineItemAsync(lineItem, overrideQuantity: false, product: product);
             }
 
-            await PopulateCartProductsAsync(otherCart.Cart.Items
-                .Where(x => x.ConfigurationItems != null)
-                .SelectMany(x => x.ConfigurationItems));
+            await PopulateCartProductsAsync(Cart.Items);
         }
 
         protected virtual async Task MergeCouponsFromCartAsync(CartAggregate otherCart)
@@ -1568,52 +1573,49 @@ namespace VirtoCommerce.XCart.Core
             return this;
         }
 
-        protected virtual async Task ApplyConfigurationSectionAsync(
+        protected virtual async Task<ConfigurationItem> ApplyConfigurationSectionAsync(
             LineItem lineItem,
             ProductConfigurationSection section,
             IList<string> fileUrlsToDelete = null)
         {
+            ConfigurationItem configurationItem = null;
             switch (section.Type)
             {
                 case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation when !string.IsNullOrEmpty(section.Option.ProductId):
+                    var cartProduct = CartProducts[section.Option.ProductId];
+                    if (cartProduct is null)
                     {
-                        var cartProduct = CartProducts[section.Option.ProductId];
-                        if (cartProduct is null)
-                        {
-                            OperationValidationErrors.Add(CartErrorDescriber.ProductUnavailableError(nameof(CatalogProduct), section.Option.ProductId));
-                            return;
-                        }
-
-                        var configurationItem = GetOrCreateConfigurationItem(lineItem, section);
-                        UpdateConfigurationItemForProduct(configurationItem, section, cartProduct);
-
-                        break;
+                        OperationValidationErrors.Add(CartErrorDescriber.ProductUnavailableError(nameof(CatalogProduct), section.Option.ProductId));
+                        return null;
                     }
+
+                    configurationItem = GetOrCreateConfigurationItem(lineItem, section);
+                    UpdateConfigurationItemForProduct(configurationItem, section, cartProduct);
+
+                    break;
 
                 case ConfigurationSectionTypeText:
-                    {
-                        var configurationItem = GetOrCreateConfigurationItem(lineItem, section);
-                        UpdateConfigurationItemForText(configurationItem, section);
+                    configurationItem = GetOrCreateConfigurationItem(lineItem, section);
+                    UpdateConfigurationItemForText(configurationItem, section);
 
-                        break;
-                    }
+                    break;
 
                 case ConfigurationSectionTypeFile:
+                    configurationItem = GetOrCreateConfigurationItem(lineItem, section);
+                    if (fileUrlsToDelete != null && !configurationItem.Files.IsNullOrEmpty())
                     {
-                        var configurationItem = GetOrCreateConfigurationItem(lineItem, section);
-                        if (fileUrlsToDelete != null && !configurationItem.Files.IsNullOrEmpty())
+                        foreach (var url in configurationItem.Files.Select(x => x.Url).Except(section.FileUrls))
                         {
-                            foreach (var url in configurationItem.Files.Select(x => x.Url).Except(section.FileUrls))
-                            {
-                                fileUrlsToDelete.Add(url);
-                            }
+                            fileUrlsToDelete.Add(url);
                         }
-
-                        await UpdateConfigurationItemForFilesAsync(configurationItem, section);
-
-                        break;
                     }
+
+                    await UpdateConfigurationItemForFilesAsync(configurationItem, section);
+
+                    break;
             }
+
+            return configurationItem;
         }
 
         public virtual Task<CartAggregate> ChangeConfigurationItemSelectedAsync(string lineItemId, ProductConfigurationSection configurationSection, bool selectedForCheckout)
@@ -1763,7 +1765,7 @@ namespace VirtoCommerce.XCart.Core
                 cloneItem.ConfigurationItems.Remove(configurationItem);
 
                 // Collect file URLs for deferred deletion
-                if (configurationItem.Type == ConfigurationSectionTypeFile && !configurationItem.Files.IsNullOrEmpty())
+                if (configurationItem.Type is ConfigurationSectionTypeFile && !configurationItem.Files.IsNullOrEmpty())
                 {
                     fileUrlsToDelete.AddRange(configurationItem.Files.Select(x => x.Url));
                 }
@@ -1822,12 +1824,17 @@ namespace VirtoCommerce.XCart.Core
                 lineItem.ConfigurationItems.Add(configurationItem);
             }
 
+            if (!string.IsNullOrEmpty(section.SectionName))
+            {
+                configurationItem.SectionName = section.SectionName;
+            }
+
             return configurationItem;
         }
 
         protected virtual ConfigurationItem FindConfigurationItem(LineItem lineItem, ProductConfigurationSection section)
         {
-            return section.Type == ConfigurationSectionTypeVariation
+            return section.Type is ConfigurationSectionTypeVariation
                 // For Variation: search by Type + SectionId + ProductId (multiple variations can exist)
                 ? lineItem.ConfigurationItems?.FirstOrDefault(x => x.Type == section.Type && x.SectionId == section.SectionId && x.ProductId == section.Option?.ProductId)
                 // For Product, Text and File: search only by Type + SectionId
@@ -1888,9 +1895,7 @@ namespace VirtoCommerce.XCart.Core
 
         public virtual async Task<CartAggregate> UpdateConfiguredLineItemPrice(IList<LineItem> configuredItems)
         {
-            await PopulateCartProductsAsync(configuredItems
-                .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
-                .SelectMany(x => x.ConfigurationItems));
+            await PopulateCartProductsAsync(configuredItems);
 
             foreach (var configurationLineItem in configuredItems)
             {
@@ -1906,7 +1911,7 @@ namespace VirtoCommerce.XCart.Core
         /// Loads <see cref="CartProduct"/>s for the given product ids that are not already
         /// in <see cref="CartProducts"/>, and writes them into <see cref="CartProducts"/>.
         /// </summary>
-        protected virtual async Task PopulateCartProductsAsync(IList<string> productIds)
+        public virtual async Task PopulateCartProductsAsync(IList<string> productIds)
         {
             if (productIds.IsNullOrEmpty())
             {
@@ -1927,12 +1932,34 @@ namespace VirtoCommerce.XCart.Core
         }
 
         /// <summary>
+        /// Loads <see cref="CartProduct"/>s referenced by the given line items and their configuration items into
+        /// <see cref="CartProducts"/>. Skips items with empty ProductId.
+        /// </summary>
+        protected virtual Task PopulateCartProductsAsync(ICollection<LineItem> lineItems)
+        {
+            if (lineItems.IsNullOrEmpty())
+            {
+                return Task.CompletedTask;
+            }
+
+            var productIds = lineItems.Select(x => x.ProductId)
+                .Concat(lineItems
+                    .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
+                    .SelectMany(x => x.ConfigurationItems, (_, x) => x.ProductId))
+                .Where(x => !string.IsNullOrEmpty(x))
+                .Distinct()
+                .ToArray();
+
+            return PopulateCartProductsAsync(productIds);
+        }
+
+        /// <summary>
         /// Loads <see cref="CartProduct"/>s referenced by the given configuration items into
         /// <see cref="CartProducts"/>. Skips items with empty <see cref="ConfigurationItem.ProductId"/>.
         /// </summary>
-        protected virtual Task PopulateCartProductsAsync(IEnumerable<ConfigurationItem> configurationItems)
+        protected virtual Task PopulateCartProductsAsync(ICollection<ConfigurationItem> configurationItems)
         {
-            if (configurationItems is null)
+            if (configurationItems.IsNullOrEmpty())
             {
                 return Task.CompletedTask;
             }
@@ -1951,15 +1978,15 @@ namespace VirtoCommerce.XCart.Core
         /// sections into <see cref="CartProducts"/>. Text and File sections are skipped — they
         /// don't reference catalog products.
         /// </summary>
-        protected virtual Task PopulateCartProductsAsync(IEnumerable<ProductConfigurationSection> configurationSections)
+        protected virtual Task PopulateCartProductsAsync(ICollection<ProductConfigurationSection> configurationSections)
         {
-            if (configurationSections is null)
+            if (configurationSections.IsNullOrEmpty())
             {
                 return Task.CompletedTask;
             }
 
             var productIds = configurationSections
-                .Where(x => x.Type is ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation && !string.IsNullOrEmpty(x.Option?.ProductId))
+                .Where(x => !string.IsNullOrEmpty(x.Option?.ProductId))
                 .Select(x => x.Option.ProductId)
                 .Distinct()
                 .ToArray();
@@ -1979,18 +2006,18 @@ namespace VirtoCommerce.XCart.Core
             {
                 switch (configurationItem.Type)
                 {
-                    case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
+                    case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation when !string.IsNullOrEmpty(configurationItem.ProductId):
+                        if (CartProducts[configurationItem.ProductId] is { } product)
                         {
-                            if (CartProducts[configurationItem.ProductId] is { } product)
-                            {
-                                container.AddProductSectionLineItem(product, configurationItem);
-                            }
-
-                            break;
+                            container.AddProductSectionLineItem(product, configurationItem);
                         }
+
+                        break;
+
                     case ConfigurationSectionTypeText:
                         container.AddTextSectionLineItem(configurationItem);
                         break;
+
                     case ConfigurationSectionTypeFile:
                         container.AddFileSectionLineItem(configurationItem);
                         break;

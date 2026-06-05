@@ -88,22 +88,22 @@ namespace VirtoCommerce.XCart.Core
         /// Adds a product section line item for a new configuration item (e.g. from a GraphQL mutation).
         /// Prices are loaded from the catalog product.
         /// </summary>
-        public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId, string type = ConfigurationSectionTypeProduct)
+        public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId, string sectionName, string type = ConfigurationSectionTypeProduct)
         {
-            AddProductSectionLineItem(cartProduct, quantity, selectedForCheckout: true, sectionId, type);
+            AddProductSectionLineItem(cartProduct, quantity, selectedForCheckout: true, sectionId: sectionId, sectionName: sectionName, type: type);
         }
 
-        public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, bool selectedForCheckout, string sectionId, string type = ConfigurationSectionTypeProduct)
+        public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, bool selectedForCheckout, string sectionId, string sectionName, string type = ConfigurationSectionTypeProduct)
         {
             var lineItem = CreateLineItem(cartProduct, quantity);
             lineItem.SelectedForCheckout = selectedForCheckout;
 
-            AddProductSectionLineItem(lineItem, sectionId, type);
+            AddProductSectionLineItem(lineItem, sectionId, sectionName, type);
         }
 
-        protected virtual void AddProductSectionLineItem(LineItem lineItem, string sectionId, string type)
+        protected virtual void AddProductSectionLineItem(LineItem lineItem, string sectionId, string sectionName, string type)
         {
-            var item = CreateSectionLineItem(sectionId, type);
+            var item = CreateSectionLineItem(sectionId, sectionName, type);
             item.Item = lineItem;
 
             Items.Add(item);
@@ -127,9 +127,9 @@ namespace VirtoCommerce.XCart.Core
             Items.Add(item);
         }
 
-        public virtual void AddTextSectionLineItem(string customText, string sectionId)
+        public virtual void AddTextSectionLineItem(string customText, string sectionId, string sectionName)
         {
-            var item = CreateSectionLineItem(sectionId, ConfigurationSectionTypeText);
+            var item = CreateSectionLineItem(sectionId, sectionName, ConfigurationSectionTypeText);
             item.CustomText = customText;
 
             Items.Add(item);
@@ -147,9 +147,9 @@ namespace VirtoCommerce.XCart.Core
             Items.Add(item);
         }
 
-        public virtual void AddFileSectionLineItem(IList<ConfigurationItemFile> files, string sectionId)
+        public virtual void AddFileSectionLineItem(IList<ConfigurationItemFile> files, string sectionId, string sectionName)
         {
-            var item = CreateSectionLineItem(sectionId, ConfigurationSectionTypeFile);
+            var item = CreateSectionLineItem(sectionId, sectionName, ConfigurationSectionTypeFile);
             item.Files = files;
 
             Items.Add(item);
@@ -183,7 +183,7 @@ namespace VirtoCommerce.XCart.Core
         /// </summary>
         protected virtual SectionLineItem CreateSectionLineItem(ConfigurationItem configurationItem)
         {
-            var item = CreateSectionLineItem(configurationItem.SectionId, configurationItem.Type);
+            var item = CreateSectionLineItem(configurationItem.SectionId, configurationItem.SectionName, configurationItem.Type);
 
             item.CustomText = configurationItem.CustomText;
             item.Files = configurationItem.Files ?? [];
@@ -200,11 +200,12 @@ namespace VirtoCommerce.XCart.Core
         /// is not reachable; subclassing <see cref="ConfiguredLineItemContainer"/> is the
         /// supported extension point.
         /// </summary>
-        protected virtual SectionLineItem CreateSectionLineItem(string sectionId, string type)
+        protected virtual SectionLineItem CreateSectionLineItem(string sectionId, string sectionName, string type)
         {
             return new SectionLineItem
             {
                 SectionId = sectionId,
+                SectionName = sectionName,
                 Type = type,
             };
         }
@@ -220,28 +221,29 @@ namespace VirtoCommerce.XCart.Core
         /// </summary>
         protected virtual ConfigurationItem CreateConfigurationItem(SectionLineItem section)
         {
-            var subItem = CartItemBuilder?.Create(section.SectionId, section.Type)
+            var configurationItem = CartItemBuilder?.Create(section.SectionId, section.Type)
                 ?? AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
 
-            subItem.SectionId = section.SectionId;
-            subItem.Type = section.Type;
-            subItem.CatalogId = section.Item?.CatalogId;
-            subItem.CategoryId = section.Item?.CategoryId;
-            subItem.ProductId = section.Item?.ProductId;
-            subItem.Name = section.Item?.Name;
-            subItem.Sku = section.Item?.Sku;
-            subItem.ImageUrl = section.Item?.ImageUrl;
-            subItem.Quantity = section.Item?.Quantity ?? 1;
+            configurationItem.SectionId = section.SectionId;
+            configurationItem.SectionName = section.SectionName;
+            configurationItem.Type = section.Type;
+            configurationItem.CatalogId = section.Item?.CatalogId;
+            configurationItem.CategoryId = section.Item?.CategoryId;
+            configurationItem.ProductId = section.Item?.ProductId;
+            configurationItem.Name = section.Item?.Name;
+            configurationItem.Sku = section.Item?.Sku;
+            configurationItem.ImageUrl = section.Item?.ImageUrl;
+            configurationItem.Quantity = section.Item?.Quantity ?? 1;
             if (section.Type is ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation)
             {
-                subItem.ListPrice = section.Item?.ListPrice ?? 0m;
-                subItem.SalePrice = section.Item?.SalePrice ?? 0m;
-                subItem.SelectedForCheckout = section.Item?.SelectedForCheckout ?? true;
+                configurationItem.ListPrice = section.Item?.ListPrice ?? 0m;
+                configurationItem.SalePrice = section.Item?.SalePrice ?? 0m;
+                configurationItem.SelectedForCheckout = section.Item?.SelectedForCheckout ?? true;
             }
-            subItem.CustomText = section.CustomText;
-            subItem.Files = section.Files;
+            configurationItem.CustomText = section.CustomText;
+            configurationItem.Files = section.Files;
 
-            return subItem;
+            return configurationItem;
         }
 
         public virtual ExpConfigurationLineItem CreateConfiguredLineItem(int quantity)
@@ -336,7 +338,7 @@ namespace VirtoCommerce.XCart.Core
 
             foreach (var sectionLineItem in Items.Where(x => x.Item is not null))
             {
-                var configurationItem = lineItem.ConfigurationItems.FirstOrDefault(x =>
+                var configurationItem = sectionLineItem.Source ?? lineItem.ConfigurationItems.FirstOrDefault(x =>
                     x.SectionId == sectionLineItem.SectionId &&
                     x.Type == sectionLineItem.Type &&
                     (x.Type is not (ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation) || x.ProductId == sectionLineItem.Item.ProductId));
@@ -357,6 +359,7 @@ namespace VirtoCommerce.XCart.Core
         protected class SectionLineItem
         {
             public string SectionId { get; set; }
+            public string SectionName { get; set; }
             public string Type { get; set; }
             public LineItem Item { get; set; }
             public string CustomText { get; set; }
@@ -365,7 +368,7 @@ namespace VirtoCommerce.XCart.Core
             /// <summary>
             /// Reference to the source <see cref="ConfigurationItem"/> from which this section line
             /// item was built, when one exists. <c>null</c> for items added via creation-path
-            /// overloads (e.g. <see cref="AddTextSectionLineItem(string, string)"/>) where the
+            /// overloads (e.g. <see cref="AddTextSectionLineItem(string, string, string)"/>) where the
             /// configuration item does not yet exist; non-null for items added via the source-aware
             /// overloads (e.g. <see cref="AddTextSectionLineItem(ConfigurationItem)"/>).
             /// </summary>

@@ -1,9 +1,11 @@
 using System.Collections.Generic;
+using System.Linq;
 using FluentAssertions;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
+using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using Xunit;
@@ -95,7 +97,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         [Fact]
         public void AddTextSectionLineItem_CreationPath_LeavesSourceNull()
         {
-            _container.AddTextSectionLineItem(EngravingText, "sec-text");
+            _container.AddTextSectionLineItem(EngravingText, "sec-text", "Text Section");
 
             _container.SourceAt(0).Should().BeNull(
                 "creation-path overloads have no ConfigurationItem yet — Source is null by design");
@@ -110,10 +112,38 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 new() { Name = "creation.png" },
             };
 
-            _container.AddFileSectionLineItem(files, "sec-file");
+            _container.AddFileSectionLineItem(files, "sec-file", "File Section");
 
             _container.SourceAt(0).Should().BeNull();
             _container.FilesAt(0).Should().BeSameAs(files);
+        }
+
+        [Fact]
+        public void CreateConfiguredLineItem_CreationPath_StampsSectionNameOnConfigurationItem()
+        {
+            _container.Store = new Store { Id = "store-1" };
+            var cartProduct = NewCartProduct();
+
+            _container.AddProductSectionLineItem(cartProduct, quantity: 1, sectionId: "sec-product", sectionName: "Color", type: ConfigurationSectionTypeProduct);
+
+            var built = _container.CreateConfiguredLineItem(1).Item.ConfigurationItems.Single();
+            built.SectionName.Should().Be("Color",
+                "creation-path threads sectionName through staging, and CreateConfigurationItem stamps it onto the built ConfigurationItem");
+        }
+
+        [Fact]
+        public void CreateConfiguredLineItem_SourceAware_PreservesSectionNameFromConfigurationItem()
+        {
+            _container.Store = new Store { Id = "store-1" };
+            var configurationItem = NewConfigurationItem("sec-product", ConfigurationSectionTypeProduct);
+            configurationItem.SectionName = "Color";
+            var cartProduct = NewCartProduct();
+
+            _container.AddProductSectionLineItem(cartProduct, configurationItem);
+
+            var built = _container.CreateConfiguredLineItem(1).Item.ConfigurationItems.Single();
+            built.SectionName.Should().Be("Color",
+                "source-aware overload carries SectionName from the existing ConfigurationItem through staging onto the rebuilt item");
         }
 
         private static ConfigurationItem NewConfigurationItem(string sectionId, string type)
@@ -143,6 +173,12 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         /// </summary>
         private sealed class TestableContainer : ConfiguredLineItemContainer
         {
+            // Pricing is out of scope for these tests and requires a fully-priced ConfigurableProduct;
+            // stub it so CreateConfiguredLineItem can run and we can assert on the built ConfigurationItems.
+            public override void UpdatePrice(LineItem lineItem)
+            {
+            }
+
             public ConfigurationItem SourceAt(int index) => Items[index].Source;
 
             public string CustomTextAt(int index) => Items[index].CustomText;

@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.CatalogModule.Core.Search;
 using VirtoCommerce.FileExperienceApi.Core.Extensions;
 using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
@@ -21,15 +22,18 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
     private readonly IConfiguredLineItemContainerService _configuredLineItemContainerService;
     private readonly ICartProductsLoaderService _cartProductService;
     private readonly IFileUploadService _fileUploadService;
+    private readonly IProductConfigurationSearchService _productConfigurationSearchService;
 
     public CreateConfiguredLineItemHandler(
        IConfiguredLineItemContainerService configuredLineItemContainerService,
        ICartProductsLoaderService cartProductService,
-       IFileUploadService fileUploadService)
+       IFileUploadService fileUploadService,
+       IProductConfigurationSearchService productConfigurationSearchService)
     {
         _configuredLineItemContainerService = configuredLineItemContainerService;
         _cartProductService = cartProductService;
         _fileUploadService = fileUploadService;
+        _productConfigurationSearchService = productConfigurationSearchService;
     }
 
     public virtual async Task<ExpConfigurationLineItem> Handle(CreateConfiguredLineItemCommand request, CancellationToken cancellationToken)
@@ -48,6 +52,10 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
         // need to take productId and quantity from the configuration
         var configurationSections = request.ConfigurationSections ?? [];
+
+        // Enrich each section with its catalog name; the container stamps it onto each created
+        // ConfigurationItem so the persisted SectionName snapshot needs no catalog round-trip on load.
+        await _productConfigurationSearchService.UpdateSectionsFromCatalogAsync(request.ConfigurableProductId, configurationSections);
 
         var selectedProductIds = configurationSections
             .Select(x => x.Option?.ProductId)
@@ -68,16 +76,16 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
                     var productOption = section.Option;
                     var cartProduct = cartProducts.GetValueOrDefault(productOption.ProductId) ?? throw new InvalidOperationException($"Product with id {productOption.ProductId} not found");
 
-                    container.AddProductSectionLineItem(cartProduct, productOption.Quantity, productOption.SelectedForCheckout, section.SectionId, section.Type);
+                    container.AddProductSectionLineItem(cartProduct, productOption.Quantity, productOption.SelectedForCheckout, section.SectionId, section.SectionName, section.Type);
                     break;
 
                 case ConfigurationSectionTypeText:
-                    container.AddTextSectionLineItem(section.CustomText, section.SectionId);
+                    container.AddTextSectionLineItem(section.CustomText, section.SectionId, section.SectionName);
                     break;
 
                 case ConfigurationSectionTypeFile:
                     var files = await CreateConfigurationFiles(section, request.CartId);
-                    container.AddFileSectionLineItem(files, section.SectionId);
+                    container.AddFileSectionLineItem(files, section.SectionId, section.SectionName);
                     break;
             }
         }
