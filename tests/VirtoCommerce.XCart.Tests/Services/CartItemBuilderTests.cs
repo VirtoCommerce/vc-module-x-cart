@@ -58,7 +58,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         {
             var builder = new CartItemBuilder();
 
-            var result = builder.Create(sectionId: "S1", type: "Product");
+            var result = builder.Create(new ProductConfigurationSection { SectionId = "S1", Type = "Product" });
 
             result.Should().BeOfType<ConfigurationItem>();
             result.SectionId.Should().Be("S1");
@@ -73,7 +73,7 @@ namespace VirtoCommerce.XCart.Tests.Services
             {
                 var builder = new CartItemBuilder();
 
-                var result = builder.Create(sectionId: "S2", type: "Text");
+                var result = builder.Create(new ProductConfigurationSection { SectionId = "S2", Type = "Text" });
 
                 result.Should().BeOfType<TestConfigurationItem>();
                 result.SectionId.Should().Be("S2");

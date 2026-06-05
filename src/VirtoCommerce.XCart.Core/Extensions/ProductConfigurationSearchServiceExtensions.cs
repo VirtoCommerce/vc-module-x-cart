@@ -11,16 +11,16 @@ namespace VirtoCommerce.XCart.Core.Extensions;
 public static class ProductConfigurationSearchServiceExtensions
 {
     /// <summary>
-    /// Enriches each request section with the catalog section name (<see cref="ProductConfigurationSection.SectionName"/>),
+    /// Enriches each request configuration section with the catalog configuration section name (<see cref="ProductConfigurationSection.SectionName"/>),
     /// looked up by <c>SectionId</c> against the product's active configuration. The name is a denormalized snapshot
     /// the aggregate stores onto the created <c>ConfigurationItem.SectionName</c>.
     /// </summary>
     public static async Task UpdateSectionsFromCatalogAsync(
         this IProductConfigurationSearchService searchService,
         string productId,
-        IList<ProductConfigurationSection> sections)
+        IList<ProductConfigurationSection> configurationSections)
     {
-        if (string.IsNullOrEmpty(productId) || sections.IsNullOrEmpty())
+        if (string.IsNullOrEmpty(productId) || configurationSections.IsNullOrEmpty())
         {
             return;
         }
@@ -38,11 +38,11 @@ public static class ProductConfigurationSearchServiceExtensions
 
         var sectionNameById = configuration.Sections.ToDictionary(x => x.Id, x => x.Name);
 
-        foreach (var section in sections)
+        foreach (var configurationSection in configurationSections)
         {
-            if (sectionNameById.TryGetValue(section.SectionId, out var name))
+            if (sectionNameById.TryGetValue(configurationSection.SectionId, out var name))
             {
-                section.SectionName = name;
+                configurationSection.SectionName = name;
             }
         }
     }

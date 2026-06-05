@@ -68,24 +68,23 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
         var cartProducts = (await _cartProductService.GetCartProductsAsync(productsRequest)).ToDictionary(x => x.Id);
 
-        foreach (var section in configurationSections)
+        foreach (var configurationSection in configurationSections)
         {
-            switch (section.Type)
+            switch (configurationSection.Type)
             {
-                case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation when !string.IsNullOrEmpty(section.Option?.ProductId):
-                    var productOption = section.Option;
-                    var cartProduct = cartProducts.GetValueOrDefault(productOption.ProductId) ?? throw new InvalidOperationException($"Product with id {productOption.ProductId} not found");
-
-                    container.AddProductSectionLineItem(cartProduct, productOption.Quantity, productOption.SelectedForCheckout, section.SectionId, section.SectionName, section.Type);
+                case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation when !string.IsNullOrEmpty(configurationSection.Option?.ProductId):
+                    var cartProduct = cartProducts.GetValueOrDefault(configurationSection.Option.ProductId)
+                                      ?? throw new InvalidOperationException($"Product with id {configurationSection.Option.ProductId} not found");
+                    container.AddProductSectionLineItem(cartProduct, configurationSection);
                     break;
 
                 case ConfigurationSectionTypeText:
-                    container.AddTextSectionLineItem(section.CustomText, section.SectionId, section.SectionName);
+                    container.AddTextSectionLineItem(configurationSection);
                     break;
 
                 case ConfigurationSectionTypeFile:
-                    var files = await CreateConfigurationFiles(section, request.CartId);
-                    container.AddFileSectionLineItem(files, section.SectionId, section.SectionName);
+                    var files = await CreateConfigurationFiles(configurationSection, request.CartId);
+                    container.AddFileSectionLineItem(configurationSection, files);
                     break;
             }
         }
@@ -95,14 +94,14 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
         return configuredItem;
     }
 
-    private async Task<IList<ConfigurationItemFile>> CreateConfigurationFiles(ProductConfigurationSection section, string cartId)
+    private async Task<IList<ConfigurationItemFile>> CreateConfigurationFiles(ProductConfigurationSection configurationSection, string cartId)
     {
-        if (section.FileUrls.IsNullOrEmpty())
+        if (configurationSection.FileUrls.IsNullOrEmpty())
         {
             return null;
         }
 
-        return (await _fileUploadService.GetByPublicUrlAsync(section.FileUrls))
+        return (await _fileUploadService.GetByPublicUrlAsync(configurationSection.FileUrls))
             .Where(x => x.Scope == ConfigurationSectionFilesScope && (x.OwnerIsEmpty() || x.OwnerIs<ShoppingCart>(cartId)))
             .Select(x => x.ConvertToConfigurationItemFile())
             .ToList();

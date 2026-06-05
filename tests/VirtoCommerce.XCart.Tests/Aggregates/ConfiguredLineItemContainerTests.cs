@@ -97,7 +97,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         [Fact]
         public void AddTextSectionLineItem_CreationPath_LeavesSourceNull()
         {
-            _container.AddTextSectionLineItem(EngravingText, "sec-text", "Text Section");
+            _container.AddTextSectionLineItem(new ProductConfigurationSection { SectionId = "sec-text", SectionName = "Text Section", Type = ConfigurationSectionTypeText, CustomText = EngravingText });
 
             _container.SourceAt(0).Should().BeNull(
                 "creation-path overloads have no ConfigurationItem yet — Source is null by design");
@@ -112,7 +112,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 new() { Name = "creation.png" },
             };
 
-            _container.AddFileSectionLineItem(files, "sec-file", "File Section");
+            _container.AddFileSectionLineItem(new ProductConfigurationSection { SectionId = "sec-file", SectionName = "File Section", Type = ConfigurationSectionTypeFile }, files);
 
             _container.SourceAt(0).Should().BeNull();
             _container.FilesAt(0).Should().BeSameAs(files);
@@ -124,7 +124,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             _container.Store = new Store { Id = "store-1" };
             var cartProduct = NewCartProduct();
 
-            _container.AddProductSectionLineItem(cartProduct, quantity: 1, sectionId: "sec-product", sectionName: "Color", type: ConfigurationSectionTypeProduct);
+            _container.AddProductSectionLineItem(cartProduct, new ProductConfigurationSection { SectionId = "sec-product", SectionName = "Color", Type = ConfigurationSectionTypeProduct });
 
             var built = _container.CreateConfiguredLineItem(1).Item.ConfigurationItems.Single();
             built.SectionName.Should().Be("Color",
@@ -144,6 +144,32 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var built = _container.CreateConfiguredLineItem(1).Item.ConfigurationItems.Single();
             built.SectionName.Should().Be("Color",
                 "source-aware overload carries SectionName from the existing ConfigurationItem through staging onto the rebuilt item");
+        }
+
+        [Fact]
+        public void AddProductSectionLineItem_CreationPath_StagesSectionAndCartProduct()
+        {
+            var configurationSection = new ProductConfigurationSection { SectionId = "sec-product", SectionName = "Color", Type = ConfigurationSectionTypeProduct };
+            var cartProduct = NewCartProduct();
+
+            _container.AddProductSectionLineItem(cartProduct, configurationSection);
+
+            _container.SectionAt(0).Should().BeSameAs(configurationSection,
+                "the creation-path configurationSection is staged so materialize-time builder dispatch can read it");
+            _container.CartProductAt(0).Should().BeSameAs(cartProduct,
+                "the configurationSection's chosen product is staged for the builder's subtype-specific field population");
+        }
+
+        [Fact]
+        public void AddTextSectionLineItem_CreationPath_StagesSection_WithNullCartProduct()
+        {
+            var configurationSection = new ProductConfigurationSection { SectionId = "sec-text", SectionName = "Text Section", Type = ConfigurationSectionTypeText };
+
+            _container.AddTextSectionLineItem(configurationSection);
+
+            _container.SectionAt(0).Should().BeSameAs(configurationSection);
+            _container.CartProductAt(0).Should().BeNull(
+                "Text/File creation-path overloads have no chosen product — CartProduct is null by design");
         }
 
         private static ConfigurationItem NewConfigurationItem(string sectionId, string type)
@@ -184,6 +210,10 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             public string CustomTextAt(int index) => Items[index].CustomText;
 
             public IList<ConfigurationItemFile> FilesAt(int index) => Items[index].Files;
+
+            public ProductConfigurationSection SectionAt(int index) => Items[index].ConfigurationSection;
+
+            public CartProduct CartProductAt(int index) => Items[index].CartProduct;
         }
     }
 }

@@ -1616,7 +1616,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
-            var sections = new List<ProductConfigurationSection>
+            var configurationSections = new List<ProductConfigurationSection>
             {
                 new()
                 {
@@ -1632,7 +1632,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                     [new FluentValidation.Results.ValidationFailure("ConfigurationItems", "Invalid configuration")]));
 
             // Act
-            await cartAggregate.AddConfigurationItemsAsync(lineItem.Id, sections);
+            await cartAggregate.AddConfigurationItemsAsync(lineItem.Id, configurationSections);
 
             // Assert
             cartAggregate.OperationValidationErrors.Should().NotBeEmpty();
@@ -1655,7 +1655,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
-            var sections = new List<ProductConfigurationSection>
+            var configurationSections = new List<ProductConfigurationSection>
             {
                 new()
                 {
@@ -1668,7 +1668,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             // Default validator mock returns valid (empty ValidationResult)
 
             // Act
-            await cartAggregate.AddConfigurationItemsAsync(lineItem.Id, sections);
+            await cartAggregate.AddConfigurationItemsAsync(lineItem.Id, configurationSections);
 
             // Assert
             cartAggregate.OperationValidationErrors.Should().BeEmpty();
@@ -2456,7 +2456,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
-            var sections = new List<ProductConfigurationSection>
+            var configurationSections = new List<ProductConfigurationSection>
             {
                 new()
                 {
@@ -2472,7 +2472,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                     [new FluentValidation.Results.ValidationFailure("ConfigurationItems", "Invalid configuration")]));
 
             // Act
-            await cartAggregate.UpdateConfigurationItemsAsync(lineItem.Id, sections);
+            await cartAggregate.UpdateConfigurationItemsAsync(lineItem.Id, configurationSections);
 
             // Assert
             cartAggregate.OperationValidationErrors.Should().NotBeEmpty();
@@ -2845,7 +2845,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
-            var sections = new List<ProductConfigurationSection>
+            var configurationSections = new List<ProductConfigurationSection>
             {
                 new()
                 {
@@ -2860,7 +2860,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                     [new FluentValidation.Results.ValidationFailure("ConfigurationItems", "Required section missing")]));
 
             // Act
-            await cartAggregate.RemoveConfigurationItemsAsync(lineItem.Id, sections);
+            await cartAggregate.RemoveConfigurationItemsAsync(lineItem.Id, configurationSections);
 
             // Assert
             cartAggregate.OperationValidationErrors.Should().NotBeEmpty();
@@ -3161,7 +3161,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         [Fact]
         public async Task ChangeConfigurationItemSelectedAsync_ShouldFlipFlag_OnTextSection()
         {
-            // Arrange — Text/File sections are unique by (Type, SectionId); Option.ProductId is irrelevant.
+            // Arrange — Text/File configurationSections are unique by (Type, SectionId); Option.ProductId is irrelevant.
             var cartAggregate = GetValidCartAggregate();
             var textConfigItem = new ConfigurationItem { Id = "text-1", SectionId = "label", Type = "Text", CustomText = "hello", SelectedForCheckout = true };
             var lineItem = new LineItem

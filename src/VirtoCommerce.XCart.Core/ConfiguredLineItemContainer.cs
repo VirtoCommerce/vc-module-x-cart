@@ -40,6 +40,8 @@ namespace VirtoCommerce.XCart.Core
 
         public virtual LineItem CreateLineItem(CartProduct cartProduct, int quantity)
         {
+            ArgumentNullException.ThrowIfNull(cartProduct);
+
             var lineItem = CartItemBuilder?.Create(cartProduct) ?? AbstractTypeFactory<LineItem>.TryCreateInstance();
             lineItem.ProductId = cartProduct.Id;
             lineItem.Name = cartProduct.GetName(CultureName);
@@ -85,26 +87,21 @@ namespace VirtoCommerce.XCart.Core
         }
 
         /// <summary>
-        /// Adds a product section line item for a new configuration item (e.g. from a GraphQL mutation).
-        /// Prices are loaded from the catalog product.
+        /// Adds a product configuration section line item for a new configuration item (e.g. from a GraphQL mutation).
+        /// Prices are loaded from the catalog product. <paramref name="configurationSection"/> and
+        /// <paramref name="cartProduct"/> are stored on the staging <see cref="SectionLineItem"/> so
+        /// that materialize-time builder dispatch (<see cref="CreateConfigurationItem(SectionLineItem)"/>)
+        /// has the configuration section + chosen-product context. Quantity and <c>SelectedForCheckout</c> are read
+        /// from <paramref name="configurationSection"/>.<see cref="ProductConfigurationSection.Option"/>.
         /// </summary>
-        public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, string sectionId, string sectionName, string type = ConfigurationSectionTypeProduct)
+        public virtual void AddProductSectionLineItem(CartProduct cartProduct, ProductConfigurationSection configurationSection)
         {
-            AddProductSectionLineItem(cartProduct, quantity, selectedForCheckout: true, sectionId: sectionId, sectionName: sectionName, type: type);
-        }
+            var lineItem = CreateLineItem(cartProduct, configurationSection.Option?.Quantity ?? 1);
+            lineItem.SelectedForCheckout = configurationSection.Option?.SelectedForCheckout ?? true;
 
-        public virtual void AddProductSectionLineItem(CartProduct cartProduct, int quantity, bool selectedForCheckout, string sectionId, string sectionName, string type = ConfigurationSectionTypeProduct)
-        {
-            var lineItem = CreateLineItem(cartProduct, quantity);
-            lineItem.SelectedForCheckout = selectedForCheckout;
-
-            AddProductSectionLineItem(lineItem, sectionId, sectionName, type);
-        }
-
-        protected virtual void AddProductSectionLineItem(LineItem lineItem, string sectionId, string sectionName, string type)
-        {
-            var item = CreateSectionLineItem(sectionId, sectionName, type);
+            var item = CreateSectionLineItem(configurationSection);
             item.Item = lineItem;
+            item.CartProduct = cartProduct;
 
             Items.Add(item);
         }
@@ -123,14 +120,15 @@ namespace VirtoCommerce.XCart.Core
 
             var item = CreateSectionLineItem(configurationItem);
             item.Item = lineItem;
+            item.CartProduct = cartProduct;
 
             Items.Add(item);
         }
 
-        public virtual void AddTextSectionLineItem(string customText, string sectionId, string sectionName)
+        public virtual void AddTextSectionLineItem(ProductConfigurationSection configurationSection)
         {
-            var item = CreateSectionLineItem(sectionId, sectionName, ConfigurationSectionTypeText);
-            item.CustomText = customText;
+            var item = CreateSectionLineItem(configurationSection);
+            item.CustomText = configurationSection.CustomText;
 
             Items.Add(item);
         }
@@ -143,13 +141,14 @@ namespace VirtoCommerce.XCart.Core
         public virtual void AddTextSectionLineItem(ConfigurationItem configurationItem)
         {
             var item = CreateSectionLineItem(configurationItem);
+            item.CustomText = configurationItem.CustomText;
 
             Items.Add(item);
         }
 
-        public virtual void AddFileSectionLineItem(IList<ConfigurationItemFile> files, string sectionId, string sectionName)
+        public virtual void AddFileSectionLineItem(ProductConfigurationSection configurationSection, IList<ConfigurationItemFile> files)
         {
-            var item = CreateSectionLineItem(sectionId, sectionName, ConfigurationSectionTypeFile);
+            var item = CreateSectionLineItem(configurationSection);
             item.Files = files;
 
             Items.Add(item);
@@ -169,64 +168,77 @@ namespace VirtoCommerce.XCart.Core
         public virtual void AddFileSectionLineItem(ConfigurationItem configurationItem, IList<ConfigurationItemFile> files = null)
         {
             var item = CreateSectionLineItem(configurationItem);
-            if (files is not null)
-            {
-                item.Files = files;
-            }
+            item.Files = files ?? configurationItem.Files ?? [];
 
             Items.Add(item);
         }
 
-        /// <summary>
-        /// Creates a <see cref="SectionLineItem"/> initialized from <paramref name="configurationItem"/>.
-        /// Override to populate additional fields from a derived <see cref="ConfigurationItem"/> type.
-        /// </summary>
         protected virtual SectionLineItem CreateSectionLineItem(ConfigurationItem configurationItem)
         {
-            var item = CreateSectionLineItem(configurationItem.SectionId, configurationItem.SectionName, configurationItem.Type);
+            var item = CreateSectionLineItem();
 
-            item.CustomText = configurationItem.CustomText;
-            item.Files = configurationItem.Files ?? [];
+            item.SectionId = configurationItem.SectionId;
+            item.SectionName = configurationItem.SectionName;
+            item.Type = configurationItem.Type;
             item.Source = configurationItem;
 
             return item;
         }
 
+        protected virtual SectionLineItem CreateSectionLineItem(ProductConfigurationSection configurationSection)
+        {
+            var item = CreateSectionLineItem();
+
+            item.SectionId = configurationSection.SectionId;
+            item.SectionName = configurationSection.SectionName;
+            item.Type = configurationSection.Type;
+            item.ConfigurationSection = configurationSection;
+
+            return item;
+        }
+
         /// <summary>
-        /// Creates an empty <see cref="SectionLineItem"/> with the given identifying fields.
+        /// Creates an empty <see cref="SectionLineItem"/>.
         /// Used by both creation-path and source-aware overloads. Override to return a
         /// derived <see cref="SectionLineItem"/> type — <see cref="SectionLineItem"/> is
         /// nested-protected, so external <see cref="AbstractTypeFactory{T}"/> registration
         /// is not reachable; subclassing <see cref="ConfiguredLineItemContainer"/> is the
         /// supported extension point.
         /// </summary>
-        protected virtual SectionLineItem CreateSectionLineItem(string sectionId, string sectionName, string type)
+        protected virtual SectionLineItem CreateSectionLineItem()
         {
-            return new SectionLineItem
-            {
-                SectionId = sectionId,
-                SectionName = sectionName,
-                Type = type,
-            };
+            return new SectionLineItem();
         }
 
         /// <summary>
         /// Builds the final <see cref="ConfigurationItem"/> for a section during
-        /// <see cref="CreateConfiguredLineItem(int)"/> sub-item materialization. Routes
-        /// instantiation through <see cref="CartItemBuilder"/> so subtype dispatch
-        /// (e.g. <c>AbstractTypeFactory&lt;ConfigurationItem&gt;</c> overrides) applies; falls
-        /// back to <see cref="AbstractTypeFactory{T}.TryCreateInstance()"/> when the builder
-        /// is null. Override to add section-aware fields or subtype selection that depends on
-        /// context not visible to <see cref="ICartItemBuilder"/> (e.g. section's product type).
+        /// <see cref="CreateConfiguredLineItem(int)"/> sub-item materialization.
+        /// On the source-aware path (<see cref="SectionLineItem.Source"/> is set), updates
+        /// the existing item in place and returns it — preserving the CLR subtype and all
+        /// domain-specific fields the base type does not expose.
+        /// On the creation path, routes instantiation through <see cref="CartItemBuilder"/>
+        /// for subtype dispatch; falls back to
+        /// <see cref="AbstractTypeFactory{T}.TryCreateInstance()"/> when the builder is null.
         /// </summary>
         protected virtual ConfigurationItem CreateConfigurationItem(SectionLineItem section)
         {
-            var configurationItem = CartItemBuilder?.Create(section.SectionId, section.Type)
-                ?? AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
+            ConfigurationItem configurationItem;
 
-            configurationItem.SectionId = section.SectionId;
+            if (section.Source is { } source)
+            {
+                configurationItem = source.CloneTyped();
+            }
+            else
+            {
+                configurationItem = CartItemBuilder?.Create(section.ConfigurationSection, section.CartProduct)
+                    ?? AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
+
+                configurationItem.SectionId = section.SectionId;
+            }
+
             configurationItem.SectionName = section.SectionName;
             configurationItem.Type = section.Type;
+
             configurationItem.CatalogId = section.Item?.CatalogId;
             configurationItem.CategoryId = section.Item?.CategoryId;
             configurationItem.ProductId = section.Item?.ProductId;
@@ -248,7 +260,8 @@ namespace VirtoCommerce.XCart.Core
 
         public virtual ExpConfigurationLineItem CreateConfiguredLineItem(int quantity)
         {
-            var lineItem = CartItemBuilder?.Create(ConfigurableProduct) ?? AbstractTypeFactory<LineItem>.TryCreateInstance();
+            var lineItem = CartItemBuilder?.Create(ConfigurableProduct)
+                           ?? AbstractTypeFactory<LineItem>.TryCreateInstance();
 
             lineItem.IsConfigured = true;
             lineItem.Quantity = quantity;
@@ -277,9 +290,7 @@ namespace VirtoCommerce.XCart.Core
             }
 
             // create sub items
-            lineItem.ConfigurationItems = Items
-                .Select(CreateConfigurationItem)
-                .ToList();
+            lineItem.ConfigurationItems = Items.Select(CreateConfigurationItem).ToList();
 
             // prices
             lineItem.Currency = Currency.Code;
@@ -336,17 +347,22 @@ namespace VirtoCommerce.XCart.Core
                 return;
             }
 
-            foreach (var sectionLineItem in Items.Where(x => x.Item is not null))
+            foreach (var sectionLineItem in Items)
             {
+                if (sectionLineItem.Item is not { } item)
+                {
+                    continue;
+                }
+
                 var configurationItem = sectionLineItem.Source ?? lineItem.ConfigurationItems.FirstOrDefault(x =>
                     x.SectionId == sectionLineItem.SectionId &&
                     x.Type == sectionLineItem.Type &&
-                    (x.Type is not (ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation) || x.ProductId == sectionLineItem.Item.ProductId));
+                    (x.Type is not (ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation) || x.ProductId == item.ProductId));
 
                 if (configurationItem is not null)
                 {
-                    configurationItem.ListPrice = sectionLineItem.Item.ListPrice;
-                    configurationItem.SalePrice = sectionLineItem.Item.SalePrice;
+                    configurationItem.ListPrice = item.ListPrice;
+                    configurationItem.SalePrice = item.SalePrice;
                 }
             }
         }
@@ -362,15 +378,25 @@ namespace VirtoCommerce.XCart.Core
             public string SectionName { get; set; }
             public string Type { get; set; }
             public LineItem Item { get; set; }
+            public CartProduct CartProduct { get; set; }
             public string CustomText { get; set; }
             public IList<ConfigurationItemFile> Files { get; set; } = [];
 
             /// <summary>
+            /// The creation-path <see cref="ProductConfigurationSection"/> this staging item was built
+            /// from, and the section's chosen product. Both are <c>null</c> for items added via the
+            /// source-aware overloads (which carry <see cref="Source"/> instead). Passed to
+            /// <see cref="ICartItemBuilder.Create(ProductConfigurationSection, CartProduct)"/> at
+            /// materialize time so an override can dispatch subtype + subtype-specific fields.
+            /// </summary>
+            public ProductConfigurationSection ConfigurationSection { get; set; }
+
+            /// <summary>
             /// Reference to the source <see cref="ConfigurationItem"/> from which this section line
             /// item was built, when one exists. <c>null</c> for items added via creation-path
-            /// overloads (e.g. <see cref="AddTextSectionLineItem(string, string, string)"/>) where the
-            /// configuration item does not yet exist; non-null for items added via the source-aware
-            /// overloads (e.g. <see cref="AddTextSectionLineItem(ConfigurationItem)"/>).
+            /// overloads (e.g. <see cref="AddTextSectionLineItem(ProductConfigurationSection)"/>)
+            /// where the configuration item does not yet exist; non-null for items added via the
+            /// source-aware overloads (e.g. <see cref="AddTextSectionLineItem(ConfigurationItem)"/>).
             /// </summary>
             public ConfigurationItem Source { get; set; }
         }

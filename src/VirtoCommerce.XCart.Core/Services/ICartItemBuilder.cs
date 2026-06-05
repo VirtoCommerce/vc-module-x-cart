@@ -19,6 +19,6 @@ namespace VirtoCommerce.XCart.Core.Services
 
         LineItem Create(CartProduct cartProduct);
 
-        ConfigurationItem Create(string sectionId, string type);
+        ConfigurationItem Create(ProductConfigurationSection configurationSection, CartProduct cartProduct = null);
     }
 }

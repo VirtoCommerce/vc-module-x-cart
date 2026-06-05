@@ -31,19 +31,12 @@ public class SavedForLaterListService(
 
     public virtual async Task<CartAggregateWithList> MoveFromSavedForLaterItems(MoveSavedForLaterItemsCommandBase request)
     {
-        var cart = request.Cart ?? await cartAggregateRepository.GetCartByIdAsync(request.CartId, request.CultureName);
+        var cart = request.Cart
+                   ?? await cartAggregateRepository.GetCartByIdAsync(request.CartId, request.CultureName)
+                   ?? throw new OperationCanceledException("Cart not found");
 
-        if (cart == null)
-        {
-            throw new OperationCanceledException("Cart not found");
-        }
-
-        var savedForLaterList = await FindSavedForLaterListAsync(request);
-
-        if (savedForLaterList == null)
-        {
-            throw new OperationCanceledException("Saved for later list not found");
-        }
+        var savedForLaterList = await FindSavedForLaterListAsync(request)
+                                ?? throw new OperationCanceledException("Saved for later list not found");
 
         await MoveItemsAsync(savedForLaterList, cart, request.LineItemIds);
 
@@ -52,12 +45,9 @@ public class SavedForLaterListService(
 
     public virtual async Task<CartAggregateWithList> MoveToSavedForLaterItems(MoveSavedForLaterItemsCommandBase request)
     {
-        var cart = request.Cart ?? await cartAggregateRepository.GetCartByIdAsync(request.CartId, request.CultureName);
-
-        if (cart == null)
-        {
-            throw new OperationCanceledException("Cart not found");
-        }
+        var cart = request.Cart
+                   ?? await cartAggregateRepository.GetCartByIdAsync(request.CartId, request.CultureName)
+                   ?? throw new OperationCanceledException("Cart not found");
 
         var savedForLaterList = await EnsureSaveForLaterListAsync(request);
 
@@ -66,7 +56,7 @@ public class SavedForLaterListService(
         return new CartAggregateWithList { Cart = cart, List = savedForLaterList };
     }
 
-    public virtual async Task<CartAggregate> FindSavedForLaterListAsync(ICartRequest request)
+    public virtual Task<CartAggregate> FindSavedForLaterListAsync(ICartRequest request)
     {
         var searchCriteria = AbstractTypeFactory<ShoppingCartSearchCriteria>.TryCreateInstance();
 
@@ -76,10 +66,10 @@ public class SavedForLaterListService(
         searchCriteria.LanguageCode = request.CultureName;
         searchCriteria.Currency = request.CurrencyCode;
 
-        return await cartAggregateRepository.GetCartAsync(searchCriteria, request.CultureName);
+        return cartAggregateRepository.GetCartAsync(searchCriteria, request.CultureName);
     }
 
-    protected virtual async Task<CartAggregate> CreateSaveForLaterListAsync(ICartRequest request)
+    protected virtual Task<CartAggregate> CreateSaveForLaterListAsync(ICartRequest request)
     {
         var cart = AbstractTypeFactory<ShoppingCart>.TryCreateInstance();
 
@@ -98,7 +88,7 @@ public class SavedForLaterListService(
         cart.Discounts = new List<Discount>();
         cart.DynamicProperties = new List<DynamicObjectProperty>();
 
-        return await cartAggregateRepository.GetCartForShoppingCartAsync(cart);
+        return cartAggregateRepository.GetCartForShoppingCartAsync(cart);
     }
 
     protected async Task<CartAggregate> EnsureSaveForLaterListAsync(ICartRequest request)
@@ -137,7 +127,7 @@ public class SavedForLaterListService(
         await cartAggregateRepository.SaveAsync(to);
     }
 
-    protected static async Task CopyOrdinaryItemsAsync(IList<LineItem> sourceItems, CartAggregate to)
+    protected async Task CopyOrdinaryItemsAsync(IList<LineItem> sourceItems, CartAggregate to)
     {
         var ordinaryItems = sourceItems.Where(x => !x.IsConfigured).ToArray();
 
@@ -154,36 +144,36 @@ public class SavedForLaterListService(
     protected async Task CopyConfiguredItemsAsync(IList<LineItem> sourceItems, CartAggregate from, CartAggregate to)
     {
         var configuredItems = sourceItems.Where(x => x.IsConfigured).ToArray();
-
         if (configuredItems.IsNullOrEmpty())
         {
             return;
         }
 
-        var configuredProductIds = configuredItems
+        var productIds = configuredItems
             .SelectMany(GetReferencedProductIds)
-            .Where(id => !id.IsNullOrEmpty())
+            .Where(x => !string.IsNullOrEmpty(x))
             .Distinct()
             .ToArray();
 
-        var configuredProducts = await cartProductService.GetCartProductsByIdsAsync(to, configuredProductIds);
-        var configuredProductDictionary = configuredProducts.ToDictionary(x => x.Id);
+        var cartProducts = (await cartProductService.GetCartProductsByIdsAsync(to, productIds)).ToDictionary(x => x.Id);
 
-        foreach (var configuredItem in configuredItems)
+        foreach (var lineItem in configuredItems)
         {
-            var container = await CreateConfiguredLineItemContainerAsync(configuredItem, configuredProductDictionary, from, to);
+            var container = await CreateConfiguredLineItemContainerAsync(lineItem, cartProducts, from, to);
             if (container is null)
             {
                 continue;
             }
 
-            var newConfiguredItem = container.CreateConfiguredLineItem(configuredItem.Quantity).Item;
+            var newConfiguredItem = container.CreateConfiguredLineItem(lineItem.Quantity).Item;
 
-            var newCartItem = BuildNewCartItem(configuredItem);
+            var newCartItem = BuildNewCartItem(lineItem);
             newCartItem.CartProduct = container.ConfigurableProduct;
 
             await to.AddConfiguredItemAsync(newCartItem, newConfiguredItem);
         }
+
+        return;
 
         static IEnumerable<string> GetReferencedProductIds(LineItem item)
         {
@@ -196,12 +186,12 @@ public class SavedForLaterListService(
     }
 
     protected virtual async Task<ConfiguredLineItemContainer> CreateConfiguredLineItemContainerAsync(
-        LineItem configurationLineItem,
-        Dictionary<string, CartProduct> configuredProductDictionary,
+        LineItem configuredLineItem,
+        Dictionary<string, CartProduct> cartProducts,
         CartAggregate from,
         CartAggregate to)
     {
-        if (!configuredProductDictionary.TryGetValue(configurationLineItem.ProductId, out var configurableProduct))
+        if (!cartProducts.TryGetValue(configuredLineItem.ProductId, out var configurableProduct))
         {
             return null;
         }
@@ -212,17 +202,17 @@ public class SavedForLaterListService(
         container.Store = to.Store;
         container.ConfigurableProduct = configurableProduct;
 
-        if (configurationLineItem.ConfigurationItems.IsNullOrEmpty())
+        if (configuredLineItem.ConfigurationItems.IsNullOrEmpty())
         {
             return container;
         }
 
-        foreach (var configurationItem in configurationLineItem.ConfigurationItems)
+        foreach (var configurationItem in configuredLineItem.ConfigurationItems)
         {
             switch (configurationItem.Type)
             {
                 case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation
-                    when configuredProductDictionary.TryGetValue(configurationItem.ProductId, out var product):
+                    when cartProducts.TryGetValue(configurationItem.ProductId, out var product):
                     container.AddProductSectionLineItem(product, configurationItem);
                     break;
 
@@ -231,8 +221,8 @@ public class SavedForLaterListService(
                     break;
 
                 case ConfigurationSectionTypeFile:
-                    var configurationFiles = await CopyConfigurationFiles(configurationItem, from.Cart);
-                    container.AddFileSectionLineItem(configurationItem, configurationFiles);
+                    var files = await CopyConfigurationFiles(configurationItem, from.Cart);
+                    container.AddFileSectionLineItem(configurationItem, files);
                     break;
             }
         }
@@ -240,7 +230,7 @@ public class SavedForLaterListService(
         return container;
     }
 
-    private static NewCartItem BuildNewCartItem(LineItem source)
+    protected virtual NewCartItem BuildNewCartItem(LineItem source)
     {
         var newCartItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
         newCartItem.ProductId = source.ProductId;
@@ -254,7 +244,7 @@ public class SavedForLaterListService(
         return newCartItem;
     }
 
-    private async Task<IList<ConfigurationItemFile>> CopyConfigurationFiles(ConfigurationItem configurationItem, ShoppingCart cart)
+    protected async Task<IList<ConfigurationItemFile>> CopyConfigurationFiles(ConfigurationItem configurationItem, ShoppingCart cart)
     {
         if (configurationItem.Files.IsNullOrEmpty())
         {
@@ -279,7 +269,7 @@ public class SavedForLaterListService(
            .ToArray();
     }
 
-    private static DynamicPropertyValue[] MapDynamicProperties(ICollection<DynamicObjectProperty> dynamicProperties)
+    protected static DynamicPropertyValue[] MapDynamicProperties(ICollection<DynamicObjectProperty> dynamicProperties)
     {
         if (dynamicProperties.IsNullOrEmpty())
         {
@@ -293,6 +283,7 @@ public class SavedForLaterListService(
                 value.Name = p.Name;
                 value.Value = v.Value;
                 value.Locale = v.Locale;
+
                 return value;
             })
             .ToArray();

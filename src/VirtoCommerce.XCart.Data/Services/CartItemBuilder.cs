@@ -1,3 +1,4 @@
+using System;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core.Models;
@@ -12,13 +13,16 @@ namespace VirtoCommerce.XCart.Data.Services
             return AbstractTypeFactory<LineItem>.TryCreateInstance();
         }
 
-        public virtual ConfigurationItem Create(string sectionId, string type)
+        public virtual ConfigurationItem Create(ProductConfigurationSection configurationSection, CartProduct cartProduct = null)
         {
-            var item = AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
-            item.SectionId = sectionId;
-            item.Type = type;
+            ArgumentNullException.ThrowIfNull(configurationSection);
 
-            return item;
+            var configurationItem = AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
+            configurationItem.SectionId = configurationSection.SectionId;
+            configurationItem.SectionName = configurationSection.SectionName;
+            configurationItem.Type = configurationSection.Type;
+
+            return configurationItem;
         }
     }
 }
