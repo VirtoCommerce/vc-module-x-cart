@@ -43,7 +43,7 @@
   </groups>
 
   <projectUrl>https://github.com/VirtoCommerce/vc-module-x-cart</projectUrl>
-  <iconUrl>Modules/$(VirtoCommerce.XCart)/Content/logo.png</iconUrl>
+  <iconUrl>Modules/$(VirtoCommerce.XCart)/Content/logo.svg</iconUrl>
   <requireLicenseAcceptance>false</requireLicenseAcceptance>
 
   <assemblyFile>VirtoCommerce.XCart.Web.dll</assemblyFile>
