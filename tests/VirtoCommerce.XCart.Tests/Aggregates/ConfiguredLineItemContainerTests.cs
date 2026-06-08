@@ -59,7 +59,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         }
 
         [Fact]
-        public void AddFileSectionLineItem_WithConfigurationItem_NoOverride_UsesSourceFilesByReference()
+        public void AddFileSectionLineItem_WithConfigurationItem_NoOverride_StagesNoFiles()
         {
             var sourceFiles = new List<ConfigurationItemFile>
             {
@@ -71,8 +71,9 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             _container.AddFileSectionLineItem(configurationItem);
 
             _container.SourceAt(0).Should().BeSameAs(configurationItem);
-            _container.FilesAt(0).Should().BeSameAs(sourceFiles,
-                "with files=null, the source file list must propagate as-is");
+            _container.FilesAt(0).Should().BeNull(
+                "with files=null, staging carries only explicit overrides; the source's files are " +
+                "supplied by the clone in CreateConfigurationItem, so they are not aliased through staging");
         }
 
         [Fact]

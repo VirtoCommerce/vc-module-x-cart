@@ -159,16 +159,16 @@ namespace VirtoCommerce.XCart.Core
         /// <paramref name="configurationItem"/> on <see cref="SectionLineItem.Source"/>
         /// for downstream consumers.
         /// </summary>
-        /// <param name="configurationItem">Source configuration item; its
-        /// <see cref="ConfigurationItem.Files"/> are used by default.</param>
+        /// <param name="configurationItem">Source configuration item.</param>
         /// <param name="files">Optional override for the file list. Pass a non-null value
         /// when the files must be transformed before being added (e.g. duplicated for a
-        /// different currency context). When <c>null</c>, <c>configurationItem.Files</c>
-        /// is used.</param>
+        /// different currency context). When <c>null</c>, the source's files are carried by
+        /// the clone produced in <see cref="CreateConfigurationItem"/>; staging holds only the
+        /// explicit override.</param>
         public virtual void AddFileSectionLineItem(ConfigurationItem configurationItem, IList<ConfigurationItemFile> files = null)
         {
             var item = CreateSectionLineItem(configurationItem);
-            item.Files = files ?? configurationItem.Files ?? [];
+            item.Files = files;
 
             Items.Add(item);
         }
@@ -227,6 +227,26 @@ namespace VirtoCommerce.XCart.Core
             if (section.Source is { } source)
             {
                 configurationItem = source.CloneTyped();
+
+                // The source-aware path may materialize an existing configuration item into a
+                // different cart (currency change, saved-for-later). Reset keys so the clone
+                // persists as a new row instead of reusing the source primary key — mirrors the
+                // pre-merge reset in MergeWithCartAsync, extended to audit fields and the
+                // LineItemId foreign key so the clone matches a freshly constructed instance.
+                foreach (var entity in configurationItem.GetFlatObjectsListWithInterface<IEntity>())
+                {
+                    entity.Id = null;
+
+                    if (entity is IAuditable auditable)
+                    {
+                        auditable.CreatedDate = default;
+                        auditable.CreatedBy = null;
+                        auditable.ModifiedDate = null;
+                        auditable.ModifiedBy = null;
+                    }
+                }
+
+                configurationItem.LineItemId = null;
             }
             else
             {
@@ -253,7 +273,16 @@ namespace VirtoCommerce.XCart.Core
                 configurationItem.SelectedForCheckout = section.Item?.SelectedForCheckout ?? true;
             }
             configurationItem.CustomText = section.CustomText;
-            configurationItem.Files = section.Files;
+
+            // An explicit file override (files transformed/dropped for a different cart on a
+            // currency change or saved-for-later move) wins on both paths. Absent an override,
+            // the creation path falls through to [] and the source path keeps the clone's own
+            // (already key-cleared) files.
+            if (section.Files is not null)
+            {
+                configurationItem.Files = section.Files;
+            }
+            configurationItem.Files ??= [];
 
             return configurationItem;
         }
@@ -354,7 +383,15 @@ namespace VirtoCommerce.XCart.Core
                     continue;
                 }
 
-                var configurationItem = sectionLineItem.Source ?? lineItem.ConfigurationItems.FirstOrDefault(x =>
+                // Resolve the destination among the line item's own configuration items. Prefer the
+                // staged Source by reference (the source-aware price-sync path carries the live item),
+                // which also makes it explicit that we write back into lineItem.ConfigurationItems — not
+                // into a detached clone. Fall back to matching by (SectionId, Type, ProductId) when the
+                // staged item has no Source on the line item (e.g. a freshly materialized item).
+                var configurationItem = sectionLineItem.Source is not null
+                    ? lineItem.ConfigurationItems.FirstOrDefault(x => ReferenceEquals(x, sectionLineItem.Source))
+                      : null;
+                configurationItem ??= lineItem.ConfigurationItems.FirstOrDefault(x =>
                     x.SectionId == sectionLineItem.SectionId &&
                     x.Type == sectionLineItem.Type &&
                     (x.Type is not (ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation) || x.ProductId == item.ProductId));
@@ -380,7 +417,14 @@ namespace VirtoCommerce.XCart.Core
             public LineItem Item { get; set; }
             public CartProduct CartProduct { get; set; }
             public string CustomText { get; set; }
-            public IList<ConfigurationItemFile> Files { get; set; } = [];
+
+            /// <summary>
+            /// Explicit file override for the materialized configuration item. <c>null</c> means
+            /// "no override": the creation path then yields an empty list, while the source-aware
+            /// path keeps the clone's own (deep-copied) files. A non-null value — including an empty
+            /// list — is honored as-is (e.g. files transformed/dropped for a different cart).
+            /// </summary>
+            public IList<ConfigurationItemFile> Files { get; set; }
 
             /// <summary>
             /// The creation-path <see cref="ProductConfigurationSection"/> this staging item was built
