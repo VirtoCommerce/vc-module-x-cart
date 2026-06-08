@@ -53,9 +53,14 @@ public class GetPricesSumQueryHandler : IQueryHandler<GetPricesSumQuery, ExpPric
         if (items.Length > 0)
         {
             var newCartItems = items
-                .Select(x => new NewCartItem(x.ProductId, x.Quantity)
+                .Select(x =>
                 {
-                    IgnoreValidationErrors = true,
+                    var newCartItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
+                    newCartItem.ProductId = x.ProductId;
+                    newCartItem.Quantity = x.Quantity;
+                    newCartItem.IgnoreValidationErrors = true;
+
+                    return newCartItem;
                 })
                 .ToArray();
 

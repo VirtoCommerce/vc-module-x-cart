@@ -6,6 +6,10 @@ namespace VirtoCommerce.XCart.Core.Models
 {
     public class NewCartItem
     {
+        public NewCartItem()
+        {
+        }
+
         public NewCartItem(string productId, int quantity)
         {
             ProductId = productId;

@@ -75,13 +75,14 @@ namespace VirtoCommerce.XCart.Data.Commands
                     var requestItem = requestItems.FirstOrDefault(x => x.ProductId == product.Id && x.ItemCurrencyCode.EqualsIgnoreCase(productsByCurrency.CurrencyCode));
                     if (requestItem != null)
                     {
-                        newCartItems.Add(new NewCartItem(product.Id, requestItem.Quantity)
-                        {
-                            CartProduct = product,
-                            ItemCurrencyCode = productsByCurrency.CurrencyCode,
-                            IgnoreValidationErrors = true,
-                            OverrideQuantity = true,
-                        });
+                        var newCartItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
+                        newCartItem.ItemCurrencyCode = productsByCurrency.CurrencyCode;
+                        newCartItem.ProductId = product.Id;
+                        newCartItem.Quantity = requestItem.Quantity;
+                        newCartItem.CartProduct = product;
+                        newCartItem.IgnoreValidationErrors = true;
+                        newCartItem.OverrideQuantity = true;
+                        newCartItems.Add(newCartItem);
                     }
                 }
             }

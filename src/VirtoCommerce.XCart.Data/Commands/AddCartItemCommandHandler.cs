@@ -45,15 +45,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             var itemCurrencyCode = !request.ItemCurrencyCode.IsNullOrEmpty() ? request.ItemCurrencyCode : cartAggregate.Currency.Code;
             var product = (await _cartProductService.GetCartProductsAsync(cartAggregate, [(itemCurrencyCode, request.ProductId)])).Values.FirstOrDefault();
 
-            var newItem = new NewCartItem(request.ProductId, request.Quantity)
-            {
-                Comment = request.Comment,
-                DynamicProperties = request.DynamicProperties,
-                Price = request.Price,
-                CartProduct = product,
-                CreatedDate = request.CreatedDate,
-                ItemCurrencyCode = itemCurrencyCode,
-            };
+            var newItem = CreateNewCartItem(request, product, itemCurrencyCode);
 
             var configurations = await _productConfigurationSearchService.SearchNoCloneAsync(new ProductConfigurationSearchCriteria
             {
@@ -80,6 +72,21 @@ namespace VirtoCommerce.XCart.Data.Commands
             {
                 await cartAggregate.AddItemAsync(newItem);
             }
+        }
+
+        protected virtual NewCartItem CreateNewCartItem(AddCartItemCommand request, CartProduct product, string itemCurrencyCode)
+        {
+            var newItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
+            newItem.ProductId = request.ProductId;
+            newItem.Quantity = request.Quantity;
+            newItem.Comment = request.Comment;
+            newItem.DynamicProperties = request.DynamicProperties;
+            newItem.Price = request.Price;
+            newItem.CartProduct = product;
+            newItem.CreatedDate = request.CreatedDate;
+            newItem.ItemCurrencyCode = itemCurrencyCode;
+
+            return newItem;
         }
     }
 }
