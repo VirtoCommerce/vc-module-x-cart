@@ -1,4 +1,3 @@
-using System.Linq;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
 using GraphQL.Types;
@@ -34,15 +33,15 @@ namespace VirtoCommerce.XCart.Core.Schemas
 
             Field<NonNullGraphType<MoneyType>>("listPrice")
                 .Description("List price")
-                .Resolve(context => context.Source.ListPrice.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.ListPrice.ToMoney(context.GetConfiguratonItemCurrency()));
 
             Field<NonNullGraphType<MoneyType>>("salePrice")
                 .Description("Sale price")
-                .Resolve(context => context.Source.SalePrice.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.SalePrice.ToMoney(context.GetConfiguratonItemCurrency()));
 
             Field<NonNullGraphType<MoneyType>>("extendedPrice")
                 .Description("Extended price")
-                .Resolve(context => context.Source.ExtendedPrice.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.ExtendedPrice.ToMoney(context.GetConfiguratonItemCurrency()));
 
             ExtendableField<ListGraphType<CartConfigurationItemFileType>>(nameof(ConfigurationItem.Files),
                 resolve: context => context.Source.Files,
@@ -54,11 +53,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 Type = GraphTypeExtensionHelper.GetActualType<ProductType>(),
                 Resolver = new FuncFieldResolver<ConfigurationItem, IDataLoaderResult<ExpProduct>>(context =>
                 {
-                    var cart = context.GetCart();
-                    var lineItemId = context.Source.LineItemId;
-                    var lineItem = cart.Cart?.Items.FirstOrDefault(x => x.Id == lineItemId);
-                    var currencyCode = lineItem?.Currency;
-                    return dataLoader.LoadCartProduct(context, mediator, currencyService, "cart_configurationItems_products", (currencyCode, context.Source.ProductId));
+                    var currency = context.GetConfiguratonItemCurrency();
+                    return dataLoader.LoadCartProduct(context, mediator, currencyService, "cart_configurationItems_products", (CurrencyCode: currency?.Code, context.Source.ProductId));
                 }),
             };
             AddField(productField);

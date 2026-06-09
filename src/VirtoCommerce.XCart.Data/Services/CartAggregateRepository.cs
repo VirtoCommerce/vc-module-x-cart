@@ -296,7 +296,7 @@ namespace VirtoCommerce.XCart.Data.Services
                 aggregate.GrabCart(cart, store, member, currency);
 
                 // init cart currencies
-                aggregate.ItemCurrencies = itemCurrencies;
+                aggregate.AllCurrencies = itemCurrencies;
 
                 //Load cart products explicitly if no validation is requested
                 aggregate.ProductsIncludeFields = productsIncludeFields;

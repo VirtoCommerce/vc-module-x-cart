@@ -23,15 +23,12 @@ namespace VirtoCommerce.XCart.Core.Extensions
             return userContext.GetValueForSource<CartAggregate>().Currency;
         }
 
-        /// <summary>
-        /// Returns the currency that matches the line item's <see cref="LineItem.Currency"/> code,
-        /// looked up in the cart's <see cref="CartAggregate.ItemCurrencies"/>.
-        /// Falls back to <see cref="CartAggregate.Currency"/> when no match is found.
-        /// </summary>
-        public static Currency GetLineItemCurrency(this IResolveFieldContext<LineItem> context)
+        public static Currency GetConfiguratonItemCurrency(this IResolveFieldContext<ConfigurationItem> context)
         {
             var cart = context.GetCart();
-            return cart.ItemCurrencies?.FirstOrDefault(x => x.Code.EqualsIgnoreCase(context.Source.Currency)) ?? cart.Currency;
+            var lineItemId = context.Source.LineItemId;
+            var lineItem = cart?.Cart.Items.FirstOrDefault(x => x.Id == lineItemId);
+            return context.GetCurrencyByCode(lineItem?.Currency);
         }
 
         public static Money GetTotal(this IResolveFieldContext<CartAggregate> context, decimal number)

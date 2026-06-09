@@ -92,7 +92,7 @@ namespace VirtoCommerce.XCart.Core
         public Currency Currency { get; protected set; }
         public Member Member { get; protected set; }
 
-        public IList<Currency> ItemCurrencies { get; set; }
+        public IList<Currency> AllCurrencies { get; set; }
 
         public IList<CartTotalAggregate> CartTotals
         {
@@ -103,7 +103,7 @@ namespace VirtoCommerce.XCart.Core
                 foreach (var item in cartTotals)
                 {
                     item.IsDefaultTotalCurrency = Cart.Currency.EqualsIgnoreCase(item.CartTotal.CurrencyCode);
-                    item.Currency = ItemCurrencies?.FirstOrDefault(x => x.Code.EqualsIgnoreCase(item.CartTotal.CurrencyCode)) ?? Currency;
+                    item.Currency = AllCurrencies?.FirstOrDefault(x => x.Code.EqualsIgnoreCase(item.CartTotal.CurrencyCode)) ?? Currency;
                 }
 
                 return cartTotals;
@@ -167,12 +167,12 @@ namespace VirtoCommerce.XCart.Core
         }
 
         /// <summary>
-        /// Resolves the <see cref="Currency"/> matching the specified code from <see cref="ItemCurrencies"/>.
+        /// Resolves the <see cref="Currency"/> matching the specified code from <see cref="AllCurrencies"/>.
         /// Falls back to the cart's default <see cref="Currency"/> when no match is found.
         /// </summary>
         public virtual Currency GetCurrencyByCode(string currencyCode)
         {
-            return ItemCurrencies?.FirstOrDefault(x => x.Code.EqualsIgnoreCase(currencyCode)) ?? Currency;
+            return AllCurrencies?.FirstOrDefault(x => x.Code.EqualsIgnoreCase(currencyCode)) ?? Currency;
         }
 
         /// <summary>
