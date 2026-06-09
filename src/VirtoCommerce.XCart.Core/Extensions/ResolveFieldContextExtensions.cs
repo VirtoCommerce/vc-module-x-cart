@@ -47,8 +47,13 @@ namespace VirtoCommerce.XCart.Core.Extensions
         public static Currency GetConfiguratonItemCurrency(this IResolveFieldContext<ConfigurationItem> context)
         {
             var cart = context.GetCart();
+            if (cart == null)
+            {
+                return null;
+            }
+
             var lineItemId = context.Source.LineItemId;
-            var lineItem = cart?.Cart?.Items?.FirstOrDefault(x => x.Id == lineItemId);
+            var lineItem = cart.Cart?.Items?.FirstOrDefault(x => x.Id == lineItemId);
             if (lineItem == null)
             {
                 return null;
