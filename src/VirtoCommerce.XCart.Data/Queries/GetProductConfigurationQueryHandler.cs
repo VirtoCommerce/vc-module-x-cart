@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -36,35 +37,86 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
     {
         var result = AbstractTypeFactory<ProductConfigurationQueryResponse>.TryCreateInstance();
 
-        var configuration = await GetConfiguration(request);
+        var responseGroup = GetResponseGroup(request);
+
+        var configuration = await GetConfiguration(request, responseGroup);
 
         if (configuration is null)
         {
             return result;
         }
 
-        var container = await _configuredLineItemContainerService.CreateContainerAsync(request);
-        var productsRequest = container.GetCartProductsRequest();
+        // Narrow to the requested sections (when specified) so we build and enrich only what is needed.
+        var sections = configuration.Sections.AsEnumerable();
+        if (!request.SectionIds.IsNullOrEmpty())
+        {
+            sections = sections.Where(x => request.SectionIds.Contains(x.Id));
+        }
 
-        productsRequest.ProductIds = configuration.Sections
-            .SelectMany(x => x.Options?.Select(x => x.ProductId).Where(x => !string.IsNullOrEmpty(x)))
-            .Distinct()
-            .ToArray();
+        var orderedSections = sections.OrderBy(x => x.DisplayOrder).ToList();
 
-        var cartProducts = await _cartProductService.GetCartProductsAsync(productsRequest);
-        var productByIds = cartProducts.ToDictionary(x => x.Product.Id, x => x);
+        // Load and build options (and their products/prices) only when the client requested them.
+        var loadOptions = responseGroup.HasFlag(ProductConfigurationResponseGroup.Options);
 
-        foreach (var section in configuration.Sections.OrderBy(x => x.DisplayOrder))
+        ConfiguredLineItemContainer container = null;
+        var productByIds = new Dictionary<string, CartProduct>();
+
+        if (loadOptions)
+        {
+            container = await _configuredLineItemContainerService.CreateContainerAsync(request);
+            var productsRequest = container.GetCartProductsRequest();
+
+            productsRequest.ProductIds = orderedSections
+                .SelectMany(x => x.Options?.Select(o => o.ProductId).Where(id => !string.IsNullOrEmpty(id)) ?? [])
+                .Distinct()
+                .ToArray();
+
+            var cartProducts = await _cartProductService.GetCartProductsAsync(productsRequest);
+            productByIds = cartProducts.ToDictionary(x => x.Product.Id, x => x);
+        }
+
+        foreach (var section in orderedSections)
         {
             var configurationSection = CreateConfigurationSection(section);
 
             result.ConfigurationSections.Add(configurationSection);
 
-            AddProductOptions(section, configurationSection, container, productByIds);
-            AddTextOptions(section, configurationSection);
+            if (loadOptions)
+            {
+                AddProductOptions(section, configurationSection, container, productByIds);
+                AddTextOptions(section, configurationSection);
+            }
         }
 
         return result;
+    }
+
+    protected virtual ProductConfigurationResponseGroup GetResponseGroup(GetProductConfigurationQuery request)
+    {
+        // No field selection provided (e.g. the standalone product configuration query) → load the full graph.
+        if (request.IncludeFields.IsNullOrEmpty())
+        {
+            return ProductConfigurationResponseGroup.Full;
+        }
+
+        var optionFields = request.IncludeFields
+            .Where(x => x.Contains("options", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (optionFields.Count == 0)
+        {
+            return ProductConfigurationResponseGroup.Sections;
+        }
+
+        // Option sub-fields that reference a product / price / image require option-referenced products to be loaded.
+        var needsProducts = optionFields.Any(x =>
+            x.Contains("product", StringComparison.OrdinalIgnoreCase) ||
+            x.Contains("price", StringComparison.OrdinalIgnoreCase) ||
+            x.Contains("image", StringComparison.OrdinalIgnoreCase));
+
+        return needsProducts
+            ? ProductConfigurationResponseGroup.Full
+            : ProductConfigurationResponseGroup.Options;
     }
 
     protected virtual ExpProductConfigurationSection CreateConfigurationSection(CatalogProductConfigurationSection section)
@@ -84,11 +136,12 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         return result;
     }
 
-    protected virtual async Task<ProductConfiguration> GetConfiguration(GetProductConfigurationQuery request)
+    protected virtual async Task<ProductConfiguration> GetConfiguration(GetProductConfigurationQuery request, ProductConfigurationResponseGroup responseGroup)
     {
         var criteria = AbstractTypeFactory<ProductConfigurationSearchCriteria>.TryCreateInstance();
         criteria.ProductId = request.ConfigurableProductId;
         criteria.IsActive = true;
+        criteria.ResponseGroup = responseGroup.ToString();
 
         var configurationsResult = await _productConfigurationSearchService.SearchNoCloneAsync(criteria);
 
