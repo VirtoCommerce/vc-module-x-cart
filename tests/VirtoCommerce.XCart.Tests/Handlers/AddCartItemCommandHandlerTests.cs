@@ -58,7 +58,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
             var product = new CartProduct(new CatalogProduct { Id = "prod-1", IsActive = true, IsBuyable = true });
             var products = new Dictionary<string, CartProduct>
             {
-                { CartAggregate.GetCartProductKey(product.Id, "USD"), product }
+                { CartAggregate.FormatGetCartProductKey(product.Id, "USD"), product }
             };
 
             _cartProductServiceMock
@@ -99,7 +99,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
             var product = new CartProduct(new CatalogProduct { Id = "prod-1", IsActive = true, IsBuyable = true });
             var products = new Dictionary<string, CartProduct>
             {
-                { CartAggregate.GetCartProductKey(product.Id, "USD"), product }
+                { CartAggregate.FormatGetCartProductKey(product.Id, "USD"), product }
             };
 
             _cartProductServiceMock

@@ -22,7 +22,7 @@ namespace VirtoCommerce.XCart.Core.Services
         /// <param name="aggregate">Cart data to use</param>
         /// <param name="currencyProductIdPairs">Pairs of (currencyCode, productId). An empty currencyCode falls back to the cart's currency.</param>
         /// <returns>
-        /// Products keyed by <see cref="CartAggregate.GetCartProductKey(string, string)"/> ("{productId}:{CURRENCYCODE}").
+        /// Products keyed by <see cref="CartAggregate.FormatGetCartProductKey(string, string)"/> ("{productId}:{CURRENCYCODE}").
         /// </returns>
         Task<IDictionary<string, CartProduct>> GetCartProductsAsync(CartAggregate aggregate, IList<(string CurrencyCode, string ProductId)> currencyProductIdPairs);
     }

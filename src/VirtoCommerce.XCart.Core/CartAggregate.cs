@@ -137,13 +137,13 @@ namespace VirtoCommerce.XCart.Core
         public IEnumerable<LineItem> GiftItems => Cart?.Items.Where(x => x.IsGift) ?? Enumerable.Empty<LineItem>();
         public IEnumerable<LineItem> LineItems => Cart?.Items.Where(x => !x.IsGift) ?? Enumerable.Empty<LineItem>();
         public IEnumerable<LineItem> SelectedLineItems => LineItems.Where(x => x.SelectedForCheckout);
-        public IEnumerable<LineItem> CartCurrencySelectedLineItems => SelectedLineItems.Where(x => x.Currency.EqualsIgnoreCase(Cart.Currency));
+        public IEnumerable<LineItem> CartCurrencySelectedLineItems => SelectedLineItems.Where(x => x.Currency.EqualsIgnoreCase(Cart.Currency) || x.Currency.IsNullOrEmpty());
 
         public bool HasSelectedLineItems => CartCurrencySelectedLineItems.Any();
 
         /// <summary>
         /// Represents the dictionary of all CartProducts data for each  existing cart line item.
-        /// Key is a composite "{productId}:{CURRENCYCODE}" — built via <see cref="GetCartProductKey(string, string)"/>.
+        /// Key is a composite "{productId}:{CURRENCYCODE}" — built via <see cref="FormatGetCartProductKey(string, string)"/>.
         /// This allows storing the same product under different currencies in the same cart.
         /// </summary>
         public IDictionary<string, CartProduct> CartProducts { get; protected set; } = new Dictionary<string, CartProduct>().WithDefaultValue(null);
@@ -151,7 +151,7 @@ namespace VirtoCommerce.XCart.Core
         /// <summary>
         /// Builds a CartProducts dictionary key from product id and currency code.
         /// </summary>
-        public static string GetCartProductKey(string productId, string currencyCode)
+        public static string FormatGetCartProductKey(string productId, string currencyCode)
         {
             return $"{productId}:{currencyCode}";
         }
@@ -163,7 +163,13 @@ namespace VirtoCommerce.XCart.Core
         public virtual string GetCartProductKey(LineItem lineItem)
         {
             var currencyCode = !string.IsNullOrEmpty(lineItem?.Currency) ? lineItem.Currency : Cart?.Currency;
-            return GetCartProductKey(lineItem?.ProductId, currencyCode);
+            return FormatGetCartProductKey(lineItem?.ProductId, currencyCode);
+        }
+
+        public virtual string GetCartProductKey(string productId, string currencyCode)
+        {
+            var normalizedCode = !string.IsNullOrEmpty(currencyCode) ? currencyCode : Cart?.Currency;
+            return FormatGetCartProductKey(productId, normalizedCode);
         }
 
         /// <summary>

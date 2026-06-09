@@ -72,7 +72,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             foreach (var item in request.CartItems)
             {
                 var itemCurrencyCode = GetNewItemCurrencyCode(item, cartAggregate);
-                if (!products.TryGetValue(CartAggregate.GetCartProductKey(item.ProductId, itemCurrencyCode), out var product))
+                if (!products.TryGetValue(cartAggregate.GetCartProductKey(item.ProductId, itemCurrencyCode), out var product))
                 {
                     var error = CartErrorDescriber.ProductUnavailableError(nameof(CatalogProduct), item.ProductId);
                     cartAggregate.OperationValidationErrors.Add(error);

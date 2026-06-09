@@ -259,7 +259,7 @@ namespace VirtoCommerce.XCart.Tests.Repositories
                 .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
                 .ReturnsAsync(new Dictionary<string, CartProduct>()
                 {
-                    { CartAggregate.GetCartProductKey(product.Id, "USD"), product },
+                    { CartAggregate.FormatGetCartProductKey(product.Id, "USD"), product },
                 });
 
             // Act

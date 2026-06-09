@@ -135,8 +135,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
                     return new Dictionary<string, CartProduct>
                     {
-                        { CartAggregate.GetCartProductKey(cartProduct1.Id, "USD"), cartProduct1 },
-                        { CartAggregate.GetCartProductKey(cartProduct2.Id, "USD"), cartProduct2 }
+                        { CartAggregate.FormatGetCartProductKey(cartProduct1.Id, "USD"), cartProduct1 },
+                        { CartAggregate.FormatGetCartProductKey(cartProduct2.Id, "USD"), cartProduct2 }
                     };
                 });
 
@@ -197,7 +197,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var product = new CartProduct(new CatalogProduct { Id = "prod-1", IsActive = true, IsBuyable = true });
             var products = new Dictionary<string, CartProduct>
             {
-                { CartAggregate.GetCartProductKey(product.Id, "USD"), product },
+                { CartAggregate.FormatGetCartProductKey(product.Id, "USD"), product },
             };
 
             _cartProductServiceMock
@@ -1256,7 +1256,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var products = new Dictionary<string, CartProduct>
             {
-                { CartAggregate.GetCartProductKey(cartProduct.Id, "USD"), cartProduct }
+                { CartAggregate.FormatGetCartProductKey(cartProduct.Id, "USD"), cartProduct }
             };
 
             // Setup mock to return variation product when requested
@@ -1339,7 +1339,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var products = new Dictionary<string, CartProduct>
             {
-                { CartAggregate.GetCartProductKey(cartProduct.Id, "USD"), cartProduct }
+                { CartAggregate.FormatGetCartProductKey(cartProduct.Id, "USD"), cartProduct }
             };
 
             // Setup mock to return variation product when requested
@@ -1423,7 +1423,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var products = new Dictionary<string, CartProduct>
             {
-                { CartAggregate.GetCartProductKey(cartProduct.Id, "USD"), cartProduct }
+                { CartAggregate.FormatGetCartProductKey(cartProduct.Id, "USD"), cartProduct }
             };
 
             // Setup mock to return product when requested
@@ -1540,12 +1540,12 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
                     if (productPairs.Any(x => x.ProductId == "shirt-size-M"))
                     {
-                        products.Add(CartAggregate.GetCartProductKey(cartProducts[0].Id, "USD"), cartProducts[0]);
+                        products.Add(CartAggregate.FormatGetCartProductKey(cartProducts[0].Id, "USD"), cartProducts[0]);
                     }
 
                     if (productPairs.Any(x => x.ProductId == "shirt-size-L"))
                     {
-                        products.Add(CartAggregate.GetCartProductKey(cartProducts[1].Id, "USD"), cartProducts[1]);
+                        products.Add(CartAggregate.FormatGetCartProductKey(cartProducts[1].Id, "USD"), cartProducts[1]);
                     }
 
                     return products;
@@ -1687,7 +1687,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var products = new Dictionary<string, CartProduct>
             {
-                { CartAggregate.GetCartProductKey(cartProduct.Id, "USD"), cartProduct }
+                { CartAggregate.FormatGetCartProductKey(cartProduct.Id, "USD"), cartProduct }
             };
 
             // Add configurable product to CartProducts
@@ -1830,12 +1830,12 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
                      if (productPairs.Any(x => x.ProductId == "shirt-size-M"))
                      {
-                         products.Add(CartAggregate.GetCartProductKey(cartProducts[0].Id, "USD"), cartProducts[0]);
+                         products.Add(CartAggregate.FormatGetCartProductKey(cartProducts[0].Id, "USD"), cartProducts[0]);
                      }
 
                      if (productPairs.Any(x => x.ProductId == "shirt-size-L"))
                      {
-                         products.Add(CartAggregate.GetCartProductKey(cartProducts[1].Id, "USD"), cartProducts[1]);
+                         products.Add(CartAggregate.FormatGetCartProductKey(cartProducts[1].Id, "USD"), cartProducts[1]);
                      }
 
                      return products;
@@ -1933,7 +1933,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var products = new Dictionary<string, CartProduct>
             {
-                { CartAggregate.GetCartProductKey(cartProduct.Id, "USD"), cartProduct }
+                { CartAggregate.FormatGetCartProductKey(cartProduct.Id, "USD"), cartProduct }
             };
 
             // Setup mock to return product
@@ -2000,7 +2000,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var products = new Dictionary<string, CartProduct>
             {
-                { CartAggregate.GetCartProductKey(cartProduct.Id, "USD"), cartProduct }
+                { CartAggregate.FormatGetCartProductKey(cartProduct.Id, "USD"), cartProduct }
             };
 
             // Setup mock to return product
@@ -2273,12 +2273,12 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
                     if (productPairs.Any(x => x.ProductId == "shirt-size-M"))
                     {
-                        products.Add(CartAggregate.GetCartProductKey(cartProducts[0].Id, "USD"), cartProducts[0]);
+                        products.Add(CartAggregate.FormatGetCartProductKey(cartProducts[0].Id, "USD"), cartProducts[0]);
                     }
 
                     if (productPairs.Any(x => x.ProductId == "color-blue"))
                     {
-                        products.Add(CartAggregate.GetCartProductKey(cartProducts[1].Id, "USD"), cartProducts[1]);
+                        products.Add(CartAggregate.FormatGetCartProductKey(cartProducts[1].Id, "USD"), cartProducts[1]);
                     }
 
                     return products;
@@ -2388,12 +2388,12 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
                     if (productPairs.Any(x => x.ProductId == "shirt-size-M"))
                     {
-                        products.Add(CartAggregate.GetCartProductKey(cartProducts[0].Id, "USD"), cartProducts[0]);
+                        products.Add(CartAggregate.FormatGetCartProductKey(cartProducts[0].Id, "USD"), cartProducts[0]);
                     }
 
                     if (productPairs.Any(x => x.ProductId == "shirt-size-L"))
                     {
-                        products.Add(CartAggregate.GetCartProductKey(cartProducts[1].Id, "USD"), cartProducts[1]);
+                        products.Add(CartAggregate.FormatGetCartProductKey(cartProducts[1].Id, "USD"), cartProducts[1]);
                     }
 
                     return products;
@@ -2633,7 +2633,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
             var products = new Dictionary<string, CartProduct>
             {
-                { CartAggregate.GetCartProductKey(remainingProduct.Id, "USD"), remainingProduct }
+                { CartAggregate.FormatGetCartProductKey(remainingProduct.Id, "USD"), remainingProduct }
             };
 
             // Setup mock to return remaining products after removal

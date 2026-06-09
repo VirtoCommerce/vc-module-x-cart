@@ -83,7 +83,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
 
                     return new Dictionary<string, CartProduct>
                     {
-                        { CartAggregate.GetCartProductKey(productId, lineItem.Currency), cartProduct },
+                        { CartAggregate.FormatGetCartProductKey(productId, lineItem.Currency), cartProduct },
                     };
                 });
 

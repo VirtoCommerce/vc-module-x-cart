@@ -16,7 +16,7 @@ namespace VirtoCommerce.XCart.Core.Validators
 
                 var productPairKey = lineItemContext.CartAggregate != null ?
                     lineItemContext.CartAggregate.GetCartProductKey(lineItem) :
-                    CartAggregate.GetCartProductKey(lineItem.ProductId, lineItem.Currency);
+                    CartAggregate.FormatGetCartProductKey(lineItem.ProductId, lineItem.Currency);
 
                 if (lineItemContext.CartProducts.TryGetValue(productPairKey, out var cartProduct) &&
                     cartProduct?.Price != null)

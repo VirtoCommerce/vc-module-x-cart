@@ -42,6 +42,12 @@ namespace VirtoCommerce.XCart.Tests.Handlers
             var cartProperty = typeof(CartAggregate).GetProperty(nameof(CartAggregate.Cart));
             cartProperty.SetValue(mock.Object, new ShoppingCart { Id = "cart-1" });
 
+            mock.Setup(x => x.GetCartProductKey(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns((string productId, string currencyCode) =>
+                {
+                    return CartAggregate.FormatGetCartProductKey(productId, currencyCode);
+                });
+
             return mock;
         }
 
@@ -63,8 +69,8 @@ namespace VirtoCommerce.XCart.Tests.Handlers
 
                     return new Dictionary<string, CartProduct>
                     {
-                        { CartAggregate.GetCartProductKey(cartProduct1.Id, "USD"), cartProduct1 },
-                        { CartAggregate.GetCartProductKey(cartProduct2.Id, "USD"), cartProduct2 },
+                        { CartAggregate.FormatGetCartProductKey(cartProduct1.Id, "USD"), cartProduct1 },
+                        { CartAggregate.FormatGetCartProductKey(cartProduct2.Id, "USD"), cartProduct2 },
                     };
                 });
 
@@ -106,7 +112,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
 
                     return new Dictionary<string, CartProduct>
                     {
-                        { CartAggregate.GetCartProductKey(cartProduct.Id, "USD"), cartProduct },
+                        { CartAggregate.FormatGetCartProductKey(cartProduct.Id, "USD"), cartProduct },
                     };
                 });
 
@@ -157,8 +163,8 @@ namespace VirtoCommerce.XCart.Tests.Handlers
 
                     return new Dictionary<string, CartProduct>
                     {
-                        { CartAggregate.GetCartProductKey(cartProduct1.Id, "USD"), cartProduct1 },
-                        { CartAggregate.GetCartProductKey(cartProduct2.Id, "USD"), cartProduct2 },
+                        { CartAggregate.FormatGetCartProductKey(cartProduct1.Id, "USD"), cartProduct1 },
+                        { CartAggregate.FormatGetCartProductKey(cartProduct2.Id, "USD"), cartProduct2 },
                     };
                 });
 
@@ -238,7 +244,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
 
                     return new Dictionary<string, CartProduct>
                     {
-                        { CartAggregate.GetCartProductKey(cartProduct.Id, "USD"), cartProduct },
+                        { CartAggregate.FormatGetCartProductKey(cartProduct.Id, "USD"), cartProduct },
                     };
                 });
 

@@ -180,7 +180,7 @@ namespace VirtoCommerce.XCart.Data.Commands
         {
             var targetCurrency = ResolveTargetCurrency(configurationLineItem.Currency, currentCurrencyCartAggregate, newCurrencyCartAggregate);
 
-            if (!configProducts.TryGetValue(CartAggregate.GetCartProductKey(configurationLineItem.ProductId, targetCurrency.Code), out var configurableProduct))
+            if (!configProducts.TryGetValue(newCurrencyCartAggregate.GetCartProductKey(configurationLineItem.ProductId, targetCurrency.Code), out var configurableProduct))
             {
                 return null;
             }
@@ -195,23 +195,23 @@ namespace VirtoCommerce.XCart.Data.Commands
                 switch (configurationItem.Type)
                 {
                     case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
-                    {
-                        if (configProducts.TryGetValue(CartAggregate.GetCartProductKey(configurationItem.ProductId, targetCurrency.Code), out var product))
                         {
-                            container.AddProductSectionLineItem(product, configurationItem);
-                        }
+                            if (configProducts.TryGetValue(newCurrencyCartAggregate.GetCartProductKey(configurationItem.ProductId, targetCurrency.Code), out var product))
+                            {
+                                container.AddProductSectionLineItem(product, configurationItem);
+                            }
 
-                        break;
-                    }
+                            break;
+                        }
                     case ConfigurationSectionTypeText:
                         container.AddTextSectionLineItem(configurationItem);
                         break;
                     case ConfigurationSectionTypeFile:
-                    {
-                        var files = await CopyConfigurationFiles(configurationItem, currentCurrencyCartAggregate.Cart);
-                        container.AddFileSectionLineItem(configurationItem, files);
-                        break;
-                    }
+                        {
+                            var files = await CopyConfigurationFiles(configurationItem, currentCurrencyCartAggregate.Cart);
+                            container.AddFileSectionLineItem(configurationItem, files);
+                            break;
+                        }
                 }
             }
 
