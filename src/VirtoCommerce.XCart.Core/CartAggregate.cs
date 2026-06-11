@@ -194,6 +194,24 @@ namespace VirtoCommerce.XCart.Core
 #pragma warning restore VC0015
         }
 
+        /// <summary>
+        /// Re-validates the cart with the line-item ruleset and returns the validation errors for the
+        /// specified line item. Used by the GraphQL per-line resolvers so the line-level
+        /// validationErrors/isValid stay consistent with the cart-level resolver after a save clears the
+        /// validation cache. Results are cached per ruleSet by <see cref="ValidateAsync(string)"/>.
+        /// </summary>
+        public virtual async Task<IList<CartValidationError>> GetLineItemValidationErrorsAsync(LineItem lineItem)
+        {
+            ArgumentNullException.ThrowIfNull(lineItem);
+
+            var errors = await ValidateAsync(ModuleConstants.ValidationRuleSets.Items);
+
+            return errors
+                .Concat(OperationValidationErrors)
+                .GetEntityCartErrors(lineItem)
+                .ToList();
+        }
+
         public virtual CartAggregate GrabCart(ShoppingCart cart, Store store, Member member, Currency currency)
         {
             Id = cart.Id;
@@ -855,6 +873,11 @@ namespace VirtoCommerce.XCart.Core
         /// Validates the cart with the specified <paramref name="ruleSet"/>. Results are cached
         /// per ruleSet in <see cref="ValidationErrorsByRuleSet"/> — subsequent calls with the same
         /// ruleSet return cached results without re-running validation.
+        /// <para>
+        /// Delegates to <see cref="ValidateAsync(CartValidationContext, string)"/>, which remains the
+        /// virtual extension point for derived aggregates during its deprecation window — overrides of
+        /// that overload participate in every validation triggered through this method.
+        /// </para>
         /// </summary>
         public virtual async Task<IList<ValidationFailure>> ValidateAsync(string ruleSet)
         {
@@ -875,17 +898,10 @@ namespace VirtoCommerce.XCart.Core
             EnsureCartExists();
 
             var validationContext = await _cartValidationContextFactory.CreateValidationContextAsync(this);
-            validationContext.CartAggregate = this;
 
-            var rules = ruleSet?.Split(RuleSetSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var result = await AbstractTypeFactory<CartValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
-
-            ValidationErrorsByRuleSet[key] = result.Errors;
-#pragma warning disable VC0015 // Obsolete: maintained for backward compatibility
-            CartValidationErrors = result.Errors;
-#pragma warning restore VC0015
-
-            return result.Errors;
+#pragma warning disable VC0009 // Obsolete overload is intentionally kept as the virtual extension point
+            return await ValidateAsync(validationContext, ruleSet);
+#pragma warning restore VC0009
         }
 
         [Obsolete("Use ValidateAsync(string ruleSet). The context is now created internally.", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
@@ -1295,6 +1311,8 @@ namespace VirtoCommerce.XCart.Core
         /// <summary>
         /// Normalizes a ruleSet string into a consistent cache key for <see cref="ValidationErrorsByRuleSet"/>.
         /// Sorts composite rulesets ("shipments,default" → "default,shipments") and collapses "*" variants.
+        /// Protected so derived aggregates that post-process validation results can update
+        /// the cache entry for a ruleSet under the same key the base class uses.
         /// <para>
         /// Note: composite keys like "default,shipments" and standalone "default" are cached separately
         /// even though the composite result is a superset. This is a deliberate design decision —
@@ -1302,7 +1320,7 @@ namespace VirtoCommerce.XCart.Core
         /// without meaningful performance benefit in practice.
         /// </para>
         /// </summary>
-        private static string NormalizeRuleSet(string ruleSet)
+        protected static string NormalizeRuleSet(string ruleSet)
         {
             if (string.IsNullOrEmpty(ruleSet))
             {
