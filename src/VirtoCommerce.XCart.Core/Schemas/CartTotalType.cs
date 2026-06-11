@@ -1,6 +1,6 @@
 using GraphQL.Types;
-using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Schemas;
+using VirtoCommerce.XCart.Core.Extensions;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
@@ -12,19 +12,19 @@ namespace VirtoCommerce.XCart.Core.Schemas
 
             Field<NonNullGraphType<MoneyType>>("total")
                 .Description("Cart total")
-                .Resolve(context => context.Source.CartTotal.Total.ToMoney(context.Source.Currency));
+                .Resolve(context => context.GetTotal(context.Source.CartTotal.Total));
 
             Field<NonNullGraphType<MoneyType>>("subTotal")
                 .Description("Cart subtotal")
-                .Resolve(context => context.Source.CartTotal.SubTotal.ToMoney(context.Source.Currency));
+                .Resolve(context => context.GetTotal(context.Source.CartTotal.SubTotal));
 
             Field<NonNullGraphType<MoneyType>>("taxTotal")
                 .Description("Total tax")
-                .Resolve(context => context.Source.CartTotal.TaxTotal.ToMoney(context.Source.Currency));
+                .Resolve(context => context.GetTotal(context.Source.CartTotal.TaxTotal));
 
             Field<NonNullGraphType<MoneyType>>("discountTotal")
                 .Description("Total discount")
-                .Resolve(context => context.Source.CartTotal.DiscountTotal.ToMoney(context.Source.Currency));
+                .Resolve(context => context.GetTotal(context.Source.CartTotal.DiscountTotal));
         }
     }
 }

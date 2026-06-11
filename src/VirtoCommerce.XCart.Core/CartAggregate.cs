@@ -104,6 +104,7 @@ namespace VirtoCommerce.XCart.Core
                 {
                     item.IsDefaultTotalCurrency = Cart.Currency.EqualsIgnoreCase(item.CartTotal.CurrencyCode);
                     item.Currency = AllCurrencies?.FirstOrDefault(x => x.Code.EqualsIgnoreCase(item.CartTotal.CurrencyCode)) ?? Currency;
+                    item.CartAggregate = this;
                 }
 
                 return cartTotals;
@@ -1016,7 +1017,7 @@ namespace VirtoCommerce.XCart.Core
             var promotionResult = new PromotionResult();
 
             // Promotions are evaluated against the cart's main currency; skip when there are no items in it.
-            if (CartCurrencySelectedLineItems.Any() && !CartCurrencySelectedLineItems.Any(i => i.IsReadOnly))
+            if (HasSelectedLineItems && !CartCurrencySelectedLineItems.Any(i => i.IsReadOnly))
             {
                 var evalContext = AbstractTypeFactory<PromotionEvaluationContext>.TryCreateInstance();
                 var evalContextCartMap = AbstractTypeFactory<PromotionEvaluationContextCartMap>.TryCreateInstance();
@@ -1040,13 +1041,19 @@ namespace VirtoCommerce.XCart.Core
         protected virtual async Task<IEnumerable<TaxRate>> EvaluateTaxesAsync()
         {
             EnsureCartExists();
+
             var result = Enumerable.Empty<TaxRate>();
-            var taxProvider = await GetActiveTaxProviderAsync();
-            if (taxProvider != null)
+
+            if (HasSelectedLineItems)
             {
-                var taxEvalContext = _mapper.Map<TaxEvaluationContext>(this);
-                result = taxProvider.CalculateRates(taxEvalContext);
+                var taxProvider = await GetActiveTaxProviderAsync();
+                if (taxProvider != null)
+                {
+                    var taxEvalContext = _mapper.Map<TaxEvaluationContext>(this);
+                    result = taxProvider.CalculateRates(taxEvalContext);
+                }
             }
+
             return result;
         }
 

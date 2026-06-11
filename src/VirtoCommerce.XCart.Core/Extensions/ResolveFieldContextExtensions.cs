@@ -74,6 +74,13 @@ namespace VirtoCommerce.XCart.Core.Extensions
                 : new Money(0.0m, context.Source.Currency);
         }
 
+        public static Money GetTotal(this IResolveFieldContext<CartTotalAggregate> context, decimal number)
+        {
+            return (context.Source.CartAggregate?.HasSelectedLineItems ?? false)
+                ? number.ToMoney(context.Source.Currency)
+                : new Money(0.0m, context.Source.Currency);
+        }
+
         public static T GetCartCommand<T>(this IResolveFieldContext context)
             where T : ICartRequest
         {
