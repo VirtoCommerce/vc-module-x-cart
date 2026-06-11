@@ -46,7 +46,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             var productConfiguration = await GetProductConfiguration(request);
             if (productConfiguration?.IsActive == true)
             {
-                var cartProduct = (await _cartProductService.GetCartProductsByIdsAsync(cartAggregate, [request.ProductId])).FirstOrDefault();
+                var cartProduct = (await _cartProductService.GetCartProductsAsync(cartAggregate, [(cartAggregate.Currency.Code, request.ProductId)])).Values.FirstOrDefault();
                 newItem.CartProduct = cartProduct;
 
                 var createConfigurableProductCommand = new CreateConfiguredLineItemCommand

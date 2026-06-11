@@ -10,6 +10,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
         {
             Field(x => x.ProductId, nullable: false).Description("Product Id");
             Field(x => x.Quantity, nullable: true).Description("Product quantity");
+            Field<StringGraphType>("itemCurrencyCode").Description("Add the product in a different currency");
 
             Field<ListGraphType<InputDynamicPropertyValueType>>("dynamicProperties");
         }

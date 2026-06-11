@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -86,6 +87,34 @@ namespace VirtoCommerce.XCart.Data.Services
             }
 
             return cartProducts;
+        }
+
+        public async Task<IDictionary<string, CartProduct>> GetCartProductsAsync(CartAggregate aggregate, IList<(string CurrencyCode, string ProductId)> currencyProductIdPairs)
+        {
+            var result = new Dictionary<string, CartProduct>();
+
+            var productIdsByCurrency = currencyProductIdPairs
+                .GroupBy(x => !x.CurrencyCode.IsNullOrEmpty() ? x.CurrencyCode : aggregate.Currency.Code, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.ProductId).Distinct().ToArray(), StringComparer.OrdinalIgnoreCase);
+
+            foreach (var (currencyCode, productIds) in productIdsByCurrency)
+            {
+                var cartProducts = await GetCartProductsAsync(productIds, aggregate.Store.Id, currencyCode, aggregate.Cart.CustomerId, aggregate.Cart.OrganizationId, GetIncludeFields(aggregate.ProductsIncludeFields));
+
+                var productsToLoadDependencies = cartProducts.Where(x => x.LoadDependencies).ToList();
+                if (productsToLoadDependencies.Count != 0)
+                {
+                    await Task.WhenAll(LoadDependencies(aggregate, productsToLoadDependencies));
+                }
+
+                //Populate aggregate.CartProducts with the products data, keyed by productId + currency
+                foreach (var cartProduct in cartProducts)
+                {
+                    result[aggregate.GetCartProductKey(cartProduct.Id, currencyCode)] = cartProduct;
+                }
+            }
+
+            return result;
         }
 
         /// <summary>

@@ -1,4 +1,6 @@
+using System.Linq;
 using GraphQL;
+using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Extensions;
@@ -21,9 +23,44 @@ namespace VirtoCommerce.XCart.Core.Extensions
             return userContext.GetValueForSource<CartAggregate>().Currency;
         }
 
+        /// <summary>
+        /// Returns the currency that matches the line item's <see cref="LineItem.Currency"/> code,
+        /// looked up in the cart's <see cref="CartAggregate.AllCurrencies"/>.
+        /// Falls back to <see cref="CartAggregate.Currency"/> if LineItem.Currency is null or empty.
+        /// </summary>
+        public static Currency GetLineItemCurrency(this IResolveFieldContext<LineItem> context)
+        {
+            var cart = context.GetCart();
+            if (cart == null)
+            {
+                return null;
+            }
+
+            if (context.Source.Currency.IsNullOrEmpty())
+            {
+                return cart.Currency;
+            }
+
+            return cart.AllCurrencies?.FirstOrDefault(x => x.Code.EqualsIgnoreCase(context.Source.Currency));
+        }
+
         public static Money GetTotal(this IResolveFieldContext<CartAggregate> context, decimal number)
         {
             return context.Source.HasSelectedLineItems
+                ? number.ToMoney(context.Source.Currency)
+                : new Money(0.0m, context.Source.Currency);
+        }
+
+        public static Money GetTotal(this IResolveFieldContext<CartTotalAggregate> context, decimal number)
+        {
+            var total = context.Source;
+
+            if (!total.IsDefaultTotalCurrency)
+            {
+                return number.ToMoney(context.Source.Currency);
+            }
+
+            return (total.CartAggregate?.HasSelectedLineItems ?? false)
                 ? number.ToMoney(context.Source.Currency)
                 : new Money(0.0m, context.Source.Currency);
         }

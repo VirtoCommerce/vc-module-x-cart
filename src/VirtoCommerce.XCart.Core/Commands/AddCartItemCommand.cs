@@ -18,6 +18,11 @@ namespace VirtoCommerce.XCart.Core.Commands
         public decimal? Price { get; set; }
 
         /// <summary>
+        /// Manual currency
+        /// </summary>
+        public string ItemCurrencyCode { get; set; }
+
+        /// <summary>
         /// Comment
         /// </summary>
         public string Comment { get; set; }

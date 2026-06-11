@@ -35,16 +35,17 @@ namespace VirtoCommerce.XCart.Data.Commands
         public override async Task<CartAggregate> Handle(AddCartItemCommand request, CancellationToken cancellationToken)
         {
             var cartAggregate = await GetOrCreateCartFromCommandAsync(request);
-            var product = (await _cartProductService.GetCartProductsByIdsAsync(cartAggregate, [request.ProductId])).FirstOrDefault();
+            await AddItemToCartAsync(request, cartAggregate, cancellationToken);
 
-            var newItem = new NewCartItem(request.ProductId, request.Quantity)
-            {
-                Comment = request.Comment,
-                DynamicProperties = request.DynamicProperties,
-                Price = request.Price,
-                CartProduct = product,
-                CreatedDate = request.CreatedDate,
-            };
+            return await SaveCartAsync(cartAggregate);
+        }
+
+        protected virtual async Task AddItemToCartAsync(AddCartItemCommand request, CartAggregate cartAggregate, CancellationToken cancellationToken)
+        {
+            var itemCurrencyCode = !request.ItemCurrencyCode.IsNullOrEmpty() ? request.ItemCurrencyCode : cartAggregate.Currency.Code;
+            var product = (await _cartProductService.GetCartProductsAsync(cartAggregate, [(itemCurrencyCode, request.ProductId)])).Values.FirstOrDefault();
+
+            var newItem = CreateNewCartItem(request, product, itemCurrencyCode);
 
             var configurations = await _productConfigurationSearchService.SearchNoCloneAsync(new ProductConfigurationSearchCriteria
             {
@@ -54,17 +55,15 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             if (configuration?.IsActive == true)
             {
-                var createConfigurableProductCommand = new CreateConfiguredLineItemCommand
-                {
-                    StoreId = request.StoreId,
-                    UserId = request.UserId,
-                    OrganizationId = request.OrganizationId,
-                    CultureName = request.CultureName,
-                    CurrencyCode = request.CurrencyCode,
-                    ConfigurableProductId = request.ProductId,
-                    ConfigurationSections = request.ConfigurationSections,
-                    CartId = cartAggregate.Cart.Id,
-                };
+                var createConfigurableProductCommand = AbstractTypeFactory<CreateConfiguredLineItemCommand>.TryCreateInstance();
+                createConfigurableProductCommand.StoreId = request.StoreId;
+                createConfigurableProductCommand.UserId = request.UserId;
+                createConfigurableProductCommand.OrganizationId = request.OrganizationId;
+                createConfigurableProductCommand.CultureName = request.CultureName;
+                createConfigurableProductCommand.CurrencyCode = itemCurrencyCode;
+                createConfigurableProductCommand.ConfigurableProductId = request.ProductId;
+                createConfigurableProductCommand.ConfigurationSections = request.ConfigurationSections;
+                createConfigurableProductCommand.CartId = cartAggregate.Cart.Id;
 
                 var mediatorResult = await _mediator.Send(createConfigurableProductCommand, cancellationToken);
                 await cartAggregate.AddConfiguredItemAsync(newItem, mediatorResult.Item);
@@ -73,8 +72,21 @@ namespace VirtoCommerce.XCart.Data.Commands
             {
                 await cartAggregate.AddItemAsync(newItem);
             }
+        }
 
-            return await SaveCartAsync(cartAggregate);
+        protected virtual NewCartItem CreateNewCartItem(AddCartItemCommand request, CartProduct product, string itemCurrencyCode)
+        {
+            var newItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
+            newItem.ProductId = request.ProductId;
+            newItem.Quantity = request.Quantity;
+            newItem.Comment = request.Comment;
+            newItem.DynamicProperties = request.DynamicProperties;
+            newItem.Price = request.Price;
+            newItem.CartProduct = product;
+            newItem.CreatedDate = request.CreatedDate;
+            newItem.ItemCurrencyCode = itemCurrencyCode;
+
+            return newItem;
         }
     }
 }

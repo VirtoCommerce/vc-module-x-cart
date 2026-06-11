@@ -204,7 +204,7 @@ namespace VirtoCommerce.XCart.Core.Extensions
                 payment.ApplyRewards(aggregate.Currency, paymentRewards);
             }
 
-            var subTotalExcludeDiscount = shoppingCart.Items.Where(li => li.SelectedForCheckout).Sum(li => (li.ListPrice - li.DiscountAmount) * li.Quantity);
+            var subTotalExcludeDiscount = aggregate.CartCurrencySelectedLineItems.Sum(li => (li.ListPrice - li.DiscountAmount) * li.Quantity);
 
             var cartRewards = rewards.OfType<CartSubtotalReward>();
             foreach (var reward in cartRewards.Where(reward => reward.IsValid))

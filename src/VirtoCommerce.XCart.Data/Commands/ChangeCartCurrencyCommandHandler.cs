@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.FileExperienceApi.Core.Extensions;
 using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
@@ -70,18 +71,27 @@ namespace VirtoCommerce.XCart.Data.Commands
             if (ordinaryItems.Length > 0)
             {
                 var newCartItems = ordinaryItems
-                    .Select(x => new NewCartItem(x.ProductId, x.Quantity)
+                    .Select(x =>
                     {
-                        IgnoreValidationErrors = true,
-                        CreatedDate = x.CreatedDate,
-                        Comment = x.Note,
-                        IsSelectedForCheckout = x.SelectedForCheckout,
-                        DynamicProperties = x.DynamicProperties.SelectMany(x => x.Values.Select(y => new DynamicPropertyValue()
+                        var newCartItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
+                        newCartItem.ItemCurrencyCode = ResolveTargetCurrency(x.Currency, currentCurrencyCartAggregate, newCurrencyCartAggregate).Code;
+                        newCartItem.ProductId = x.ProductId;
+                        newCartItem.Quantity = x.Quantity;
+                        newCartItem.IgnoreValidationErrors = true;
+                        newCartItem.CreatedDate = x.CreatedDate;
+                        newCartItem.Comment = x.Note;
+                        newCartItem.IsSelectedForCheckout = x.SelectedForCheckout;
+                        newCartItem.DynamicProperties = x.DynamicProperties.SelectMany(p => p.Values.Select(v =>
                         {
-                            Name = x.Name,
-                            Value = y.Value,
-                            Locale = y.Locale,
-                        })).ToArray(),
+                            var value = AbstractTypeFactory<DynamicPropertyValue>.TryCreateInstance();
+                            value.Name = p.Name;
+                            value.Value = v.Value;
+                            value.Locale = v.Locale;
+
+                            return value;
+                        })).ToArray();
+
+                        return newCartItem;
                     })
                     .ToArray();
 
@@ -89,6 +99,18 @@ namespace VirtoCommerce.XCart.Data.Commands
             }
 
             await CopyConfiguredItems(currentCurrencyCartAggregate, newCurrencyCartAggregate);
+        }
+
+        /// <summary>
+        /// Resolves the target currency for a copied line item.
+        /// Items in the source cart's base currency are converted to the new cart's currency;
+        /// items in their own (non-base) currency keep it.
+        /// </summary>
+        protected virtual Currency ResolveTargetCurrency(string itemCurrencyCode, CartAggregate currentCurrencyCartAggregate, CartAggregate newCurrencyCartAggregate)
+        {
+            return itemCurrencyCode.EqualsIgnoreCase(currentCurrencyCartAggregate.Cart.Currency)
+                ? newCurrencyCartAggregate.Currency
+                : currentCurrencyCartAggregate.GetCurrencyByCode(itemCurrencyCode);
         }
 
         protected virtual async Task CopyConfiguredItems(CartAggregate currentCurrencyCartAggregate, CartAggregate newCurrencyCartAggregate)
@@ -102,63 +124,98 @@ namespace VirtoCommerce.XCart.Data.Commands
                 return;
             }
 
-            var configProductsIds = configuredItems
-                            .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
-                            .SelectMany(x => x.ConfigurationItems.Select(y => y.ProductId))
-                            .Where(x => !string.IsNullOrEmpty(x))
-                            .Distinct()
-                            .ToList();
+            var configProductPairs = configuredItems
+                .SelectMany(item =>
+                {
+                    var targetCurrencyCode = ResolveTargetCurrency(item.Currency, currentCurrencyCartAggregate, newCurrencyCartAggregate).Code;
+                    var productIds = (item.ConfigurationItems ?? [])
+                        .Select(c => c.ProductId)
+                        .Where(id => !string.IsNullOrEmpty(id))
+                        .Append(item.ProductId);
 
-            configProductsIds.AddRange(configuredItems.Select(x => x.ProductId));
+                    return productIds.Select(id => (targetCurrencyCode, id));
+                })
+                .Distinct()
+                .ToList();
 
-            var configProducts = await _cartProductService.GetCartProductsByIdsAsync(newCurrencyCartAggregate, configProductsIds);
+            var configProducts = await _cartProductService.GetCartProductsAsync(newCurrencyCartAggregate, configProductPairs);
 
             foreach (var configurationLineItem in configuredItems)
             {
-                var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
-                container.Currency = newCurrencyCartAggregate.Currency;
-                container.Store = newCurrencyCartAggregate.Store;
-
-                container.ConfigurableProduct = configProducts.FirstOrDefault(x => x.Product.Id == configurationLineItem.ProductId);
-
-                foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
+                var container = await CreateConfiguredLineItemContainerAsync(configurationLineItem, configProducts, currentCurrencyCartAggregate, newCurrencyCartAggregate);
+                if (container is null)
                 {
-                    if (configurationItem.Type == ConfigurationSectionTypeProduct)
-                    {
-                        var product = configProducts.FirstOrDefault(x => x.Product.Id == configurationItem.ProductId);
-                        if (product != null)
-                        {
-                            container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId);
-                        }
-                    }
-                    else if (configurationItem.Type == ConfigurationSectionTypeText)
-                    {
-                        container.AddTextSectionLineItem(configurationItem.CustomText, configurationItem.SectionId);
-                    }
-                    else if (configurationItem.Type == ConfigurationSectionTypeFile)
-                    {
-                        var files = await CopyConfigurationFiles(configurationItem, currentCurrencyCartAggregate.Cart);
-                        container.AddFileSectionLineItem(files, configurationItem.SectionId);
-                    }
+                    continue;
                 }
 
                 var expItem = container.CreateConfiguredLineItem(configurationLineItem.Quantity);
 
-                await newCurrencyCartAggregate.AddConfiguredItemAsync(new NewCartItem(configurationLineItem.ProductId, configurationLineItem.Quantity)
+                var newCartItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
+                newCartItem.ProductId = configurationLineItem.ProductId;
+                newCartItem.Quantity = configurationLineItem.Quantity;
+                newCartItem.CartProduct = container.ConfigurableProduct;
+                newCartItem.IgnoreValidationErrors = true;
+                newCartItem.CreatedDate = configurationLineItem.CreatedDate;
+                newCartItem.Comment = configurationLineItem.Note;
+                newCartItem.IsSelectedForCheckout = configurationLineItem.SelectedForCheckout;
+                newCartItem.DynamicProperties = configurationLineItem.DynamicProperties.SelectMany(x => x.Values.Select(y =>
                 {
-                    CartProduct = container.ConfigurableProduct,
-                    IgnoreValidationErrors = true,
-                    CreatedDate = configurationLineItem.CreatedDate,
-                    Comment = configurationLineItem.Note,
-                    IsSelectedForCheckout = configurationLineItem.SelectedForCheckout,
-                    DynamicProperties = configurationLineItem.DynamicProperties.SelectMany(x => x.Values.Select(y => new DynamicPropertyValue()
-                    {
-                        Name = x.Name,
-                        Value = y.Value,
-                        Locale = y.Locale,
-                    })).ToArray(),
-                }, expItem.Item);
+                    var value = AbstractTypeFactory<DynamicPropertyValue>.TryCreateInstance();
+                    value.Name = x.Name;
+                    value.Value = y.Value;
+                    value.Locale = y.Locale;
+
+                    return value;
+                })).ToArray();
+
+                await newCurrencyCartAggregate.AddConfiguredItemAsync(newCartItem, expItem.Item);
             }
+        }
+
+        protected virtual async Task<ConfiguredLineItemContainer> CreateConfiguredLineItemContainerAsync(
+            LineItem configurationLineItem,
+            IDictionary<string, CartProduct> configProducts,
+            CartAggregate currentCurrencyCartAggregate,
+            CartAggregate newCurrencyCartAggregate)
+        {
+            var targetCurrency = ResolveTargetCurrency(configurationLineItem.Currency, currentCurrencyCartAggregate, newCurrencyCartAggregate);
+
+            if (!configProducts.TryGetValue(newCurrencyCartAggregate.GetCartProductKey(configurationLineItem.ProductId, targetCurrency.Code), out var configurableProduct))
+            {
+                return null;
+            }
+
+            var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
+            container.Currency = targetCurrency;
+            container.Store = newCurrencyCartAggregate.Store;
+            container.ConfigurableProduct = configurableProduct;
+
+            foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
+            {
+                switch (configurationItem.Type)
+                {
+                    case ConfigurationSectionTypeProduct:
+                        {
+                            if (configProducts.TryGetValue(newCurrencyCartAggregate.GetCartProductKey(configurationItem.ProductId, targetCurrency.Code), out var product))
+                            {
+                                container.AddProductSectionLineItem(product, configurationItem.Quantity, configurationItem.SectionId);
+                            }
+
+                            break;
+                        }
+                    case ConfigurationSectionTypeText:
+                        container.AddTextSectionLineItem(configurationItem.CustomText, configurationItem.SectionId);
+                        break;
+                    case ConfigurationSectionTypeFile:
+                        {
+                            var files = await CopyConfigurationFiles(configurationItem, currentCurrencyCartAggregate.Cart);
+                            container.AddFileSectionLineItem(files, configurationItem.SectionId);
+                            break;
+                        }
+                }
+            }
+
+            return container;
         }
 
         private async Task<IList<ConfigurationItemFile>> CopyConfigurationFiles(ConfigurationItem configurationItem, ShoppingCart cart)

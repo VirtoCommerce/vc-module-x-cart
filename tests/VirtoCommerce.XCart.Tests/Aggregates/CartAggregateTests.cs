@@ -128,14 +128,18 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var newCartItems = new List<NewCartItem>() { newCartItem1, newCartItem2 };
 
             _cartProductServiceMock
-                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), new[] { productId1, productId2 }))
-                .ReturnsAsync(
-                    new List<CartProduct>()
-                    {
-                        new CartProduct(new CatalogProduct() { Id = productId1, IsActive = true, IsBuyable = true }),
-                        new CartProduct(new CatalogProduct() { Id = productId2, IsActive = true, IsBuyable = true }),
-                    });
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
+                {
+                    var cartProduct1 = new CartProduct(new CatalogProduct { Id = productId1, IsActive = true, IsBuyable = true });
+                    var cartProduct2 = new CartProduct(new CatalogProduct { Id = productId2, IsActive = true, IsBuyable = true });
 
+                    return new Dictionary<string, CartProduct>
+                    {
+                        { CartAggregate.FormatGetCartProductKey(cartProduct1.Id, "USD"), cartProduct1 },
+                        { CartAggregate.FormatGetCartProductKey(cartProduct2.Id, "USD"), cartProduct2 }
+                    };
+                });
 
             _mapperMock
                 .Setup(m => m.Map(It.IsAny<CartProduct>(), It.IsAny<Action<IMappingOperationOptions<object, LineItem>>>()))
@@ -515,14 +519,13 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             sourceAggregate.Cart.Shipments = Enumerable.Empty<Shipment>().ToList();
             sourceAggregate.Cart.Payments = Enumerable.Empty<Payment>().ToList();
 
+            var currencyCode = "USD";
+
             var sourceProduct1 = _fixture.Create<CartProduct>();
             var sourceProduct2 = _fixture.Create<CartProduct>();
 
             sourceProduct1.Id = "source1";
             sourceProduct2.Id = "source2";
-
-            sourceAggregate.CartProducts.Add(sourceProduct1.Id, sourceProduct1);
-            sourceAggregate.CartProducts.Add(sourceProduct2.Id, sourceProduct2);
 
             var sourceLineItem1 = _fixture.Create<LineItem>();
             sourceLineItem1.ProductId = sourceProduct1.Id;
@@ -532,7 +535,12 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             sourceLineItem2.ProductId = sourceProduct2.Id;
             sourceLineItem2.IsConfigured = false;
 
+            sourceLineItem1.Currency = sourceLineItem2.Currency = currencyCode;
+
             sourceAggregate.Cart.Items = new List<LineItem> { sourceLineItem1, sourceLineItem2 };
+
+            sourceAggregate.CartProducts.Add(sourceAggregate.GetCartProductKey(sourceLineItem1), sourceProduct1);
+            sourceAggregate.CartProducts.Add(sourceAggregate.GetCartProductKey(sourceLineItem2), sourceProduct2);
 
             var destinationAggregate = GetValidCartAggregate();
 
@@ -547,6 +555,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             destinationLineItem2.ProductId = sourceProduct2.Id;
             destinationLineItem2.IsConfigured = false;
             var quantity = destinationLineItem2.Quantity;
+
+            destinationLineItem1.Currency = destinationLineItem2.Currency = currencyCode;
 
             destinationAggregate.Cart.Items = new List<LineItem> { destinationLineItem1, destinationLineItem2 };
 
@@ -702,7 +712,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var sharedProduct = _fixture.Create<CartProduct>();
             sharedProduct.Id = "shared-product";
-            sourceAggregate.CartProducts.Add(sharedProduct.Id, sharedProduct);
 
             var sourceConfiguredItem = _fixture.Create<LineItem>();
             sourceConfiguredItem.ProductId = sharedProduct.Id;
@@ -714,6 +723,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var sourceQuantity = sourceConfiguredItem.Quantity;
 
             sourceAggregate.Cart.Items = new List<LineItem> { sourceConfiguredItem };
+            sourceAggregate.CartProducts.Add(sourceAggregate.GetCartProductKey(sourceConfiguredItem), sharedProduct);
 
             var destinationAggregate = GetValidCartAggregate();
 
@@ -751,7 +761,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var sharedProduct = _fixture.Create<CartProduct>();
             sharedProduct.Id = "shared-product";
-            sourceAggregate.CartProducts.Add(sharedProduct.Id, sharedProduct);
 
             var sourceConfiguredItem = _fixture.Create<LineItem>();
             sourceConfiguredItem.ProductId = sharedProduct.Id;
@@ -763,6 +772,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var sourceQuantity = sourceConfiguredItem.Quantity;
 
             sourceAggregate.Cart.Items = new List<LineItem> { sourceConfiguredItem };
+            sourceAggregate.CartProducts.Add(sourceAggregate.GetCartProductKey(sourceConfiguredItem), sharedProduct);
 
             var destinationAggregate = GetValidCartAggregate();
 
@@ -798,7 +808,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var sharedProduct = _fixture.Create<CartProduct>();
             sharedProduct.Id = "shared-product";
-            sourceAggregate.CartProducts.Add(sharedProduct.Id, sharedProduct);
 
             var sourceSimpleItem = _fixture.Create<LineItem>();
             sourceSimpleItem.ProductId = sharedProduct.Id;
@@ -807,6 +816,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var sourceQuantity = sourceSimpleItem.Quantity;
 
             sourceAggregate.Cart.Items = new List<LineItem> { sourceSimpleItem };
+            sourceAggregate.CartProducts.Add(sourceAggregate.GetCartProductKey(sourceSimpleItem), sharedProduct);
 
             var destinationAggregate = GetValidCartAggregate();
 
@@ -861,7 +871,9 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         {
             // Arrange
             var cartAggregate = GetValidCartAggregate();
-            cartAggregate.Cart.Items = new List<LineItem> { _fixture.Create<LineItem>() };
+            var lineItem = _fixture.Create<LineItem>();
+            lineItem.SelectedForCheckout = true;
+            cartAggregate.Cart.Items = [lineItem];
 
             var coupon = _fixture.Create<string>();
             var context = new PromotionEvaluationContext
@@ -905,7 +917,9 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         {
             // Arrange
             var cartAggregate = GetValidCartAggregate();
-            cartAggregate.Cart.Items = new List<LineItem> { _fixture.Create<LineItem>() };
+            var lineItem = _fixture.Create<LineItem>();
+            lineItem.SelectedForCheckout = true;
+            cartAggregate.Cart.Items = [lineItem];
 
             var context = new PromotionEvaluationContext();
 

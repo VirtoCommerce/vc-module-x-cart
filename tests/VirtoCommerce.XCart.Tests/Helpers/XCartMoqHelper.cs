@@ -119,6 +119,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
 
             _fixture.Register(() => _fixture.Build<LineItem>()
                                             .Without(x => x.DynamicProperties)
+                                            .With(x => x.Currency, CURRENCY_CODE)
                                             .With(x => x.IsReadOnly, false)
                                             .With(x => x.IsGift, false)
                                             .With(x => x.Quantity, InStockQuantity)

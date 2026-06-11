@@ -282,6 +282,11 @@ namespace VirtoCommerce.XCart.Data.Services
             language = !string.IsNullOrEmpty(cart.LanguageCode) ? cart.LanguageCode : store.DefaultLanguage;
             var currency = allCurrencies.GetCurrencyForLanguage(cart.Currency, language);
 
+            // Preload all available currencies — extras are harmless and avoid having to refresh the list on each item add.
+            var itemCurrencies = allCurrencies
+                .Select(x => allCurrencies.GetCurrencyForLanguage(x.Code, language))
+                .ToList();
+
             var member = await _memberResolver.ResolveMemberByIdAsync(cart.CustomerId);
             var aggregate = _cartAggregateFactory();
 
@@ -289,26 +294,27 @@ namespace VirtoCommerce.XCart.Data.Services
             {
                 aggregate.GrabCart(cart, store, member, currency);
 
+                // init cart currencies
+                aggregate.AllCurrencies = itemCurrencies;
+
                 //Load cart products explicitly if no validation is requested
                 aggregate.ProductsIncludeFields = productsIncludeFields;
                 aggregate.ResponseGroup = responseGroup;
 
-                var cartProducts = default(IList<CartProduct>);
                 if (aggregate.ProductsIncludeFields == null || aggregate.ProductsIncludeFields.FirstOrDefault() != "__none")
                 {
-                    cartProducts = await _cartProductsService.GetCartProductsByIdsAsync(aggregate, aggregate.Cart.Items.Select(x => x.ProductId).ToArray());
-                }
-
-                //Populate aggregate.CartProducts with the  products data for all cart  line items
-                foreach (var cartProduct in cartProducts ?? [])
-                {
-                    aggregate.CartProducts[cartProduct.Id] = cartProduct;
+                    var productPairs = aggregate.Cart.Items.Select(x => (x.Currency, x.ProductId)).Distinct().ToList();
+                    var products = await _cartProductsService.GetCartProductsAsync(aggregate, productPairs);
+                    foreach (var product in products)
+                    {
+                        aggregate.CartProducts[product.Key] = product.Value;
+                    }
                 }
 
                 var validator = AbstractTypeFactory<CartLineItemPriceChangedValidator>.TryCreateInstance();
                 foreach (var lineItem in aggregate.LineItems)
                 {
-                    var cartProduct = aggregate.CartProducts[lineItem.ProductId];
+                    var cartProduct = aggregate.CartProducts[aggregate.GetCartProductKey(lineItem)];
                     if (cartProduct == null)
                     {
                         continue;
@@ -318,6 +324,7 @@ namespace VirtoCommerce.XCart.Data.Services
                     var lineItemContext = new CartLineItemPriceChangedValidationContext
                     {
                         LineItem = lineItem,
+                        CartAggregate = aggregate,
                         CartProducts = aggregate.CartProducts,
                     };
 
