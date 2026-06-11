@@ -928,6 +928,116 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
         #endregion ValidateAsync
 
+        #region GetLineItemValidationErrorsAsync
+
+        [Fact]
+        public async Task GetLineItemValidationErrorsAsync_AfterCacheCleared_RevalidatesAndReturnsLineItemErrors()
+        {
+            // Arrange
+            // Regression guard for VCST-5234: after a save clears the validation cache, the per-line
+            // validationErrors/isValid resolvers must still re-validate (like the cart-level resolver)
+            // instead of reading the now-empty obsolete sync store.
+            var cartAggregate = GetValidCartAggregate();
+            cartAggregate.ValidationRuleSet = ["default"];
+
+            var invalidLineItem = new LineItem
+            {
+                Id = "line-1",
+                ProductId = "product-1",
+                Currency = CURRENCY_CODE,
+                IsGift = false,
+                SelectedForCheckout = true,
+                Quantity = ModuleConstants.LineItemQualityLimit + 1,
+            };
+            cartAggregate.Cart.Items = new List<LineItem> { invalidLineItem };
+
+            _cartValidationContextFactoryMock
+                .Setup(x => x.CreateValidationContextAsync(cartAggregate))
+                .ReturnsAsync(new CartValidationContext());
+
+            // Simulate CartAggregateRepository.SaveAsync(), which clears the validation cache.
+            cartAggregate.ClearValidationCache();
+
+            // Act
+            var errors = await cartAggregate.GetLineItemValidationErrorsAsync(invalidLineItem);
+
+            // Assert
+            errors.Should().Contain(x => x.ErrorCode == "LINE_ITEM_LIMIT" && x.ObjectId == invalidLineItem.Id);
+        }
+
+        #endregion GetLineItemValidationErrorsAsync
+
+        #region ValidateAsync extensibility
+
+        [Fact]
+        public async Task ValidateAsync_DerivedOverridesContextOverload_OverrideParticipatesInValidation()
+        {
+            // Arrange
+            // Extensibility guard: derived aggregates (module customizations) override the virtual
+            // ValidateAsync(CartValidationContext, string) to append their own validation results.
+            // The ruleSet-only overload must delegate to it so those customizations keep working.
+            var aggregate = new ExtendedCartAggregate(
+                _marketingPromoEvaluatorMock.Object,
+                _shoppingCartTotalsCalculatorMock.Object,
+                _taxProviderSearchServiceMock.Object,
+                _cartProductServiceMock.Object,
+                _dynamicPropertyUpdaterService.Object,
+                _mapperMock.Object,
+                _memberService.Object,
+                _genericPipelineLauncherMock.Object,
+                _configurationItemValidatorMock.Object,
+                _fileUploadService.Object,
+                _cartSharingService.Object,
+                _cartValidationContextFactoryMock.Object);
+            aggregate.GrabCart(GetCart(), GetStore(), GetMember(), GetCurrency());
+
+            _cartValidationContextFactoryMock
+                .Setup(x => x.CreateValidationContextAsync(aggregate))
+                .ReturnsAsync(new CartValidationContext());
+
+            // Act
+            var errors = await aggregate.ValidateAsync("default");
+
+            // Assert
+            errors.Should().Contain(x => x.ErrorCode == ExtendedCartAggregate.CustomErrorCode);
+        }
+
+        private class ExtendedCartAggregate : CartAggregate
+        {
+            public const string CustomErrorCode = "CUSTOM_VALIDATION_ERROR";
+
+            public ExtendedCartAggregate(
+                VirtoCommerce.MarketingModule.Core.Services.IMarketingPromoEvaluator marketingEvaluator,
+                VirtoCommerce.CartModule.Core.Services.IShoppingCartTotalsCalculator cartTotalsCalculator,
+                VirtoCommerce.Platform.Core.Modularity.IOptionalDependency<VirtoCommerce.TaxModule.Core.Services.ITaxProviderSearchService> taxProviderSearchService,
+                VirtoCommerce.XCart.Core.Services.ICartProductService cartProductService,
+                VirtoCommerce.Xapi.Core.Services.IDynamicPropertyUpdaterService dynamicPropertyUpdaterService,
+                IMapper mapper,
+                VirtoCommerce.CustomerModule.Core.Services.IMemberService memberService,
+                VirtoCommerce.Xapi.Core.Pipelines.IGenericPipelineLauncher pipeline,
+                IConfigurationItemValidator configurationItemValidator,
+                VirtoCommerce.FileExperienceApi.Core.Services.IFileUploadService fileUploadService,
+                VirtoCommerce.XCart.Core.Services.ICartSharingService cartSharingService,
+                ICartValidationContextFactory cartValidationContextFactory)
+                : base(marketingEvaluator, cartTotalsCalculator, taxProviderSearchService, cartProductService, dynamicPropertyUpdaterService, mapper, memberService, pipeline,
+                    configurationItemValidator, fileUploadService, cartSharingService, cartValidationContextFactory)
+            {
+            }
+
+#pragma warning disable VC0009 // The obsolete overload remains the virtual extension point during the deprecation window
+            public override async Task<IList<FluentValidation.Results.ValidationFailure>> ValidateAsync(CartValidationContext validationContext, string ruleSet)
+            {
+                var errors = await base.ValidateAsync(validationContext, ruleSet);
+
+                return errors
+                    .Concat(new[] { new CartValidationError("TestEntity", "test-id", "Custom validation error", CustomErrorCode) })
+                    .ToList();
+            }
+#pragma warning restore VC0009
+        }
+
+        #endregion ValidateAsync extensibility
+
         #region ValidateCouponAsync
 
         [Fact]
