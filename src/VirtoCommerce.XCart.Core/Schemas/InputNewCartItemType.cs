@@ -12,8 +12,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.Quantity, nullable: true).Description("Product quantity");
             Field<DecimalGraphType>("price").Description("Price");
             Field<StringGraphType>("comment").Description("Comment");
-            Field<DateTimeGraphType>("createdDate")
-                .Description("Line item created date override");
+            Field<DateTimeGraphType>("createdDate").Description("Line item created date override");
+            Field<StringGraphType>("itemCurrencyCode").Description("Add the product in a different currency");
 
             Field<ListGraphType<InputDynamicPropertyValueType>>("dynamicProperties");
 

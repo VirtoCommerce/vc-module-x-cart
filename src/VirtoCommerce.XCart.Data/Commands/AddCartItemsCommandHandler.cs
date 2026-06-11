@@ -51,7 +51,12 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             var productIds = request.CartItems.Select(x => x.ProductId).Distinct().ToArray();
 
-            var productsTask = _cartProductService.GetCartProductsByIdsAsync(cartAggregate, productIds);
+            var productPairs = request.CartItems.Select(x =>
+            {
+                var itemCurrencyCode = GetNewItemCurrencyCode(x, cartAggregate);
+                return (itemCurrencyCode, x.ProductId);
+            }).Distinct().ToList();
+            var productsTask = _cartProductService.GetCartProductsAsync(cartAggregate, productPairs);
 
             var criteria = AbstractTypeFactory<ProductConfigurationSearchCriteria>.TryCreateInstance();
             criteria.ProductIds = productIds;
@@ -61,12 +66,13 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             await Task.WhenAll(productsTask, configurationsTask);
 
-            var productsByIds = productsTask.Result.ToDictionary(x => x.Id);
+            var products = productsTask.Result;
             var activeConfigByProductId = configurationsTask.Result.DistinctBy(x => x.ProductId).ToDictionary(x => x.ProductId);
 
             foreach (var item in request.CartItems)
             {
-                if (!productsByIds.TryGetValue(item.ProductId, out var product))
+                var itemCurrencyCode = GetNewItemCurrencyCode(item, cartAggregate);
+                if (!products.TryGetValue(cartAggregate.GetCartProductKey(item.ProductId, itemCurrencyCode), out var product))
                 {
                     var error = CartErrorDescriber.ProductUnavailableError(nameof(CatalogProduct), item.ProductId);
                     cartAggregate.OperationValidationErrors.Add(error);
@@ -93,7 +99,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             command.UserId = request.UserId;
             command.OrganizationId = request.OrganizationId;
             command.CultureName = request.CultureName;
-            command.CurrencyCode = request.CurrencyCode;
+            command.CurrencyCode = GetNewItemCurrencyCode(item, cartAggregate);
             command.ConfigurableProductId = item.ProductId;
             command.ConfigurationSections = item.ConfigurationSections;
             command.CartId = cartAggregate.Cart.Id;
@@ -101,6 +107,11 @@ namespace VirtoCommerce.XCart.Data.Commands
             var result = await _mediator.Send(command, cancellationToken);
 
             await cartAggregate.AddConfiguredItemAsync(item, result.Item);
+        }
+
+        private static string GetNewItemCurrencyCode(NewCartItem item, CartAggregate cartAggregate)
+        {
+            return !item.ItemCurrencyCode.IsNullOrEmpty() ? item.ItemCurrencyCode : cartAggregate.Currency.Code;
         }
     }
 }

@@ -14,7 +14,11 @@ namespace VirtoCommerce.XCart.Core.Validators
             {
                 var lineItem = lineItemContext.LineItem;
 
-                if (lineItemContext.CartProducts.TryGetValue(lineItem.ProductId, out var cartProduct) &&
+                var productPairKey = lineItemContext.CartAggregate != null ?
+                    lineItemContext.CartAggregate.GetCartProductKey(lineItem) :
+                    CartAggregate.FormatGetCartProductKey(lineItem.ProductId, lineItem.Currency);
+
+                if (lineItemContext.CartProducts.TryGetValue(productPairKey, out var cartProduct) &&
                     cartProduct?.Price != null)
                 {
                     var tierPrice = cartProduct.Price.GetTierPrice(lineItem.Quantity);

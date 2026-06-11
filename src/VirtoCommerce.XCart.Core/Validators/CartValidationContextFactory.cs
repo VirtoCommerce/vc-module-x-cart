@@ -30,13 +30,13 @@ namespace VirtoCommerce.XCart.Core.Validators
         {
             var availPaymentsTask = _availMethods.GetAvailablePaymentMethodsAsync(cartAggregate);
             var availShippingRatesTask = _availMethods.GetAvailableShippingRatesAsync(cartAggregate);
-            var cartProductsTask = _cartProducts.GetCartProductsByIdsAsync(cartAggregate, cartAggregate.Cart.Items.Select(x => x.ProductId).ToArray());
+            var cartProductsTask = _cartProducts.GetCartProductsAsync(cartAggregate, cartAggregate.Cart.Items.Select(x => (x.Currency, x.ProductId)).ToList());
             var configurationsTask = LoadProductConfigurationsAsync(cartAggregate);
             await Task.WhenAll(availPaymentsTask, availShippingRatesTask, cartProductsTask, configurationsTask);
 
             var context = AbstractTypeFactory<CartValidationContext>.TryCreateInstance();
             context.CartAggregate = cartAggregate;
-            context.AllCartProducts = cartProductsTask.Result;
+            context.AllCartProducts = cartProductsTask.Result.Values;
             context.AvailPaymentMethods = availPaymentsTask.Result;
             context.AvailShippingRates = availShippingRatesTask.Result;
             context.ProductConfigurations = configurationsTask.Result;

@@ -33,7 +33,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             CartProduct product = null;
             if (lineItem != null)
             {
-                product = (await _cartProductService.GetCartProductsByIdsAsync(cartAggregate, new[] { lineItem.ProductId })).FirstOrDefault();
+                product = (await _cartProductService.GetCartProductsAsync(cartAggregate, [(lineItem.Currency, lineItem.ProductId)])).Values.FirstOrDefault();
             }
 
             await cartAggregate.ChangeItemQuantityAsync(new ItemQtyAdjustment

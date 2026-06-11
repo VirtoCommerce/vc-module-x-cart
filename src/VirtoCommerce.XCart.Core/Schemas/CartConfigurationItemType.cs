@@ -33,15 +33,15 @@ namespace VirtoCommerce.XCart.Core.Schemas
 
             Field<NonNullGraphType<MoneyType>>("listPrice")
                 .Description("List price")
-                .Resolve(context => context.Source.ListPrice.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.ListPrice.ToMoney(context.GetConfiguratonItemCurrency()));
 
             Field<NonNullGraphType<MoneyType>>("salePrice")
                 .Description("Sale price")
-                .Resolve(context => context.Source.SalePrice.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.SalePrice.ToMoney(context.GetConfiguratonItemCurrency()));
 
             Field<NonNullGraphType<MoneyType>>("extendedPrice")
                 .Description("Extended price")
-                .Resolve(context => context.Source.ExtendedPrice.ToMoney(context.GetCart().Currency));
+                .Resolve(context => context.Source.ExtendedPrice.ToMoney(context.GetConfiguratonItemCurrency()));
 
             ExtendableField<ListGraphType<CartConfigurationItemFileType>>(nameof(ConfigurationItem.Files),
                 resolve: context => context.Source.Files,
@@ -52,7 +52,10 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 Name = "product",
                 Type = GraphTypeExtensionHelper.GetActualType<ProductType>(),
                 Resolver = new FuncFieldResolver<ConfigurationItem, IDataLoaderResult<ExpProduct>>(context =>
-                    dataLoader.LoadCartProduct(context, mediator, currencyService, "cart_configurationItems_products", context.Source.ProductId)),
+                {
+                    var currency = context.GetConfiguratonItemCurrency();
+                    return dataLoader.LoadCartProduct(context, mediator, currencyService, "cart_configurationItems_products", (CurrencyCode: currency?.Code, context.Source.ProductId));
+                }),
             };
             AddField(productField);
         }
