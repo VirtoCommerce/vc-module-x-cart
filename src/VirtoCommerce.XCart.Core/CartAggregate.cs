@@ -53,10 +53,10 @@ namespace VirtoCommerce.XCart.Core
         private readonly IMemberService _memberService;
         private readonly IMapper _mapper;
         private readonly IGenericPipelineLauncher _pipeline;
-        private readonly IConfigurationItemValidator _configurationItemValidator;
         private readonly IFileUploadService _fileUploadService;
         private readonly ICartSharingService _cartSharingService;
         private readonly ICartValidationContextFactory _cartValidationContextFactory;
+        private readonly ICartValidatorRegistry _cartValidatorRegistry;
 
         private const char RuleSetSeparator = ',';
 
@@ -69,10 +69,10 @@ namespace VirtoCommerce.XCart.Core
             IMapper mapper,
             IMemberService memberService,
             IGenericPipelineLauncher pipeline,
-            IConfigurationItemValidator configurationItemValidator,
             IFileUploadService fileUploadService,
             ICartSharingService cartSharingService,
-            ICartValidationContextFactory cartValidationContextFactory)
+            ICartValidationContextFactory cartValidationContextFactory,
+            ICartValidatorRegistry cartValidatorRegistry)
         {
             _cartTotalsCalculator = cartTotalsCalculator;
             _marketingEvaluator = marketingEvaluator;
@@ -82,10 +82,10 @@ namespace VirtoCommerce.XCart.Core
             _mapper = mapper;
             _memberService = memberService;
             _pipeline = pipeline;
-            _configurationItemValidator = configurationItemValidator;
             _fileUploadService = fileUploadService;
             _cartSharingService = cartSharingService;
             _cartValidationContextFactory = cartValidationContextFactory;
+            _cartValidatorRegistry = cartValidatorRegistry;
         }
 
         public Store Store { get; protected set; }
@@ -283,10 +283,10 @@ namespace VirtoCommerce.XCart.Core
             ArgumentNullException.ThrowIfNull(newCartItem);
             ArgumentNullException.ThrowIfNull(newConfiguredItem);
 
-            var validationResult = await _configurationItemValidator.ValidateAsync(newConfiguredItem);
-            if (!validationResult.IsValid)
+            var configurationErrors = await _cartValidatorRegistry.ValidateAsync(new ConfigurationItemValidationContext { LineItem = newConfiguredItem });
+            if (configurationErrors.Count > 0)
             {
-                OperationValidationErrors.AddRange(validationResult.Errors);
+                OperationValidationErrors.AddRange(configurationErrors);
 
                 if (!newCartItem.IgnoreValidationErrors)
                 {
@@ -329,10 +329,10 @@ namespace VirtoCommerce.XCart.Core
 
             EnsureCartExists();
 
-            var validationResult = await AbstractTypeFactory<NewCartItemValidator>.TryCreateInstance().ValidateAsync(newCartItem, options => options.IncludeRuleSets(ValidationRuleSet));
-            if (!validationResult.IsValid)
+            var validationErrors = await _cartValidatorRegistry.ValidateAsync(newCartItem, options => options.IncludeRuleSets(ValidationRuleSet));
+            if (validationErrors.Count > 0)
             {
-                OperationValidationErrors.AddRange(validationResult.Errors);
+                OperationValidationErrors.AddRange(validationErrors);
 
                 if (!newCartItem.IgnoreValidationErrors)
                 {
@@ -563,7 +563,7 @@ namespace VirtoCommerce.XCart.Core
             var lineItem = Cart.Items.FirstOrDefault(x => x.Id == priceAdjustment.LineItemId);
             if (lineItem != null)
             {
-                await AbstractTypeFactory<ChangeCartItemPriceValidator>.TryCreateInstance().ValidateAsync(priceAdjustment, options => options.IncludeRuleSets(ValidationRuleSet).ThrowOnFailures());
+                await _cartValidatorRegistry.ValidateAsync(priceAdjustment, options => options.IncludeRuleSets(ValidationRuleSet).ThrowOnFailures());
                 lineItem.ListPrice = priceAdjustment.NewPrice;
                 lineItem.SalePrice = priceAdjustment.NewPrice;
             }
@@ -575,10 +575,10 @@ namespace VirtoCommerce.XCart.Core
         {
             EnsureCartExists();
 
-            var validationResult = await AbstractTypeFactory<ItemQtyAdjustmentValidator>.TryCreateInstance().ValidateAsync(qtyAdjustment, options => options.IncludeRuleSets(ValidationRuleSet));
-            if (!validationResult.IsValid)
+            var validationErrors = await _cartValidatorRegistry.ValidateAsync(qtyAdjustment, options => options.IncludeRuleSets(ValidationRuleSet));
+            if (validationErrors.Count > 0)
             {
-                OperationValidationErrors.AddRange(validationResult.Errors);
+                OperationValidationErrors.AddRange(validationErrors);
             }
 
             var lineItem = Cart.Items.FirstOrDefault(i => i.Id == qtyAdjustment.LineItemId);
@@ -749,7 +749,7 @@ namespace VirtoCommerce.XCart.Core
                 Shipment = shipment,
                 AvailShippingRates = availRates
             };
-            await AbstractTypeFactory<CartShipmentValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(ValidationRuleSet).ThrowOnFailures());
+            await _cartValidatorRegistry.ValidateAsync(validationContext, options => options.IncludeRuleSets(ValidationRuleSet).ThrowOnFailures());
 
             shipment.Currency = Cart.Currency;
             if (shipment.DeliveryAddress != null)
@@ -828,7 +828,7 @@ namespace VirtoCommerce.XCart.Core
                 Payment = payment,
                 AvailPaymentMethods = availPaymentMethods
             };
-            await AbstractTypeFactory<CartPaymentValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(ValidationRuleSet).ThrowOnFailures());
+            await _cartValidatorRegistry.ValidateAsync(validationContext, options => options.IncludeRuleSets(ValidationRuleSet).ThrowOnFailures());
 
             payment.Currency ??= Cart.Currency;
             await RemoveExistingPaymentAsync(payment);
@@ -957,14 +957,14 @@ namespace VirtoCommerce.XCart.Core
             validationContext.CartAggregate = this;
 
             var rules = ruleSet?.Split(RuleSetSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var result = await AbstractTypeFactory<CartValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
+            var errors = await _cartValidatorRegistry.ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
 
-            ValidationErrorsByRuleSet[key] = result.Errors;
+            ValidationErrorsByRuleSet[key] = errors;
 #pragma warning disable VC0015 // Obsolete: maintained for backward compatibility
-            CartValidationErrors = result.Errors;
+            CartValidationErrors = errors;
 #pragma warning restore VC0015
 
-            return result.Errors;
+            return errors;
         }
 
         [Obsolete("Use ValidateAsync(string ruleSet). The context is now created internally.", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
@@ -984,15 +984,15 @@ namespace VirtoCommerce.XCart.Core
             validationContext.CartAggregate = this;
 
             var rules = ruleSet?.Split(RuleSetSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var result = await AbstractTypeFactory<CartValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
+            var errors = await _cartValidatorRegistry.ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
 
-            ValidationErrorsByRuleSet[key] = result.Errors;
-            CartValidationErrors = result.Errors;
+            ValidationErrorsByRuleSet[key] = errors;
+            CartValidationErrors = errors;
 
             // Backward compatibility: keep obsolete flag in sync
             IsValidated = true;
 
-            return result.Errors;
+            return errors;
         }
 
         public virtual async Task<bool> ValidateCouponAsync(string coupon)
@@ -1488,10 +1488,10 @@ namespace VirtoCommerce.XCart.Core
 
             if (lineItem != null)
             {
-                var validationResult = await _configurationItemValidator.ValidateAsync(configuredItem);
-                if (!validationResult.IsValid)
+                var configurationErrors = await _cartValidatorRegistry.ValidateAsync(new ConfigurationItemValidationContext { LineItem = configuredItem });
+                if (configurationErrors.Count > 0)
                 {
-                    OperationValidationErrors.AddRange(validationResult.Errors);
+                    OperationValidationErrors.AddRange(configurationErrors);
                     return this;
                 }
 
@@ -1574,10 +1574,10 @@ namespace VirtoCommerce.XCart.Core
                 return this;
             }
 
-            var validationResult = await _configurationItemValidator.ValidateAsync(cloneItem);
-            if (!validationResult.IsValid)
+            var configurationErrors = await _cartValidatorRegistry.ValidateAsync(new ConfigurationItemValidationContext { LineItem = cloneItem });
+            if (configurationErrors.Count > 0)
             {
-                OperationValidationErrors.AddRange(validationResult.Errors);
+                OperationValidationErrors.AddRange(configurationErrors);
                 return this;
             }
 
@@ -1651,10 +1651,10 @@ namespace VirtoCommerce.XCart.Core
                 return this;
             }
 
-            var validationResult = await _configurationItemValidator.ValidateAsync(cloneItem);
-            if (!validationResult.IsValid)
+            var configurationErrors = await _cartValidatorRegistry.ValidateAsync(new ConfigurationItemValidationContext { LineItem = cloneItem });
+            if (configurationErrors.Count > 0)
             {
-                OperationValidationErrors.AddRange(validationResult.Errors);
+                OperationValidationErrors.AddRange(configurationErrors);
                 return this;
             }
 
@@ -1871,10 +1871,10 @@ namespace VirtoCommerce.XCart.Core
                 }
             }
 
-            var validationResult = await _configurationItemValidator.ValidateAsync(cloneItem);
-            if (!validationResult.IsValid)
+            var configurationErrors = await _cartValidatorRegistry.ValidateAsync(new ConfigurationItemValidationContext { LineItem = cloneItem });
+            if (configurationErrors.Count > 0)
             {
-                OperationValidationErrors.AddRange(validationResult.Errors);
+                OperationValidationErrors.AddRange(configurationErrors);
                 return this;
             }
 

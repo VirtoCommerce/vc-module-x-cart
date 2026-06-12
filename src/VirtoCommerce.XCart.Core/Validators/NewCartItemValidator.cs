@@ -7,8 +7,10 @@ using VirtoCommerce.XCart.Core.Specifications;
 
 namespace VirtoCommerce.XCart.Core.Validators
 {
-    public class NewCartItemValidator : AbstractValidator<NewCartItem>
+    public class NewCartItemValidator : AbstractValidator<NewCartItem>, ICartValidator<NewCartItem>
     {
+        public int Order => ModuleConstants.ValidationOrder.Core;
+
         public NewCartItemValidator()
         {
             RuleFor(x => x.Quantity).GreaterThan(0);
