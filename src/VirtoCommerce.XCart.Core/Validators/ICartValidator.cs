@@ -10,7 +10,7 @@ namespace VirtoCommerce.XCart.Core.Validators;
 /// Built-in validators and validators contributed by other modules implement this interface.
 /// </summary>
 /// <typeparam name="TContext">The object being validated (e.g. CartValidationContext, NewCartItem).</typeparam>
-public interface ICartValidator<TContext> : IValidator<TContext>
+public interface ICartValidator<in TContext> : IValidator<TContext>
 {
     /// <summary>
     /// Relative position in the chain. Lower runs first; built-in validators use

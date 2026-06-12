@@ -211,12 +211,12 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         }
 
         /// <summary>
-        /// Builds a real <see cref="ICartValidatorRegistry"/> backed by the genuine validator chain,
+        /// Builds a real <see cref="CartValidatorRegistry"/> backed by the genuine validator chain,
         /// so unit tests exercise the actual validators (as they did when validators were created via
         /// AbstractTypeFactory). Only <see cref="IConfigurationItemValidator"/> is mocked, matching the
         /// previous test setup.
         /// </summary>
-        private ICartValidatorRegistry BuildCartValidatorRegistry()
+        private CartValidatorRegistry BuildCartValidatorRegistry()
         {
             var services = new ServiceCollection();
 
