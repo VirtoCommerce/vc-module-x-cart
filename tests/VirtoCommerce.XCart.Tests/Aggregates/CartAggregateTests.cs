@@ -9,6 +9,7 @@ using FluentAssertions;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Model;
+using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.FileExperienceApi.Core.Models;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
@@ -928,6 +929,116 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
         #endregion ValidateAsync
 
+        #region GetLineItemValidationErrorsAsync
+
+        [Fact]
+        public async Task GetLineItemValidationErrorsAsync_AfterCacheCleared_RevalidatesAndReturnsLineItemErrors()
+        {
+            // Arrange
+            // Regression guard for VCST-5234: after a save clears the validation cache, the per-line
+            // validationErrors/isValid resolvers must still re-validate (like the cart-level resolver)
+            // instead of reading the now-empty obsolete sync store.
+            var cartAggregate = GetValidCartAggregate();
+            cartAggregate.ValidationRuleSet = ["default"];
+
+            var invalidLineItem = new LineItem
+            {
+                Id = "line-1",
+                ProductId = "product-1",
+                Currency = CURRENCY_CODE,
+                IsGift = false,
+                SelectedForCheckout = true,
+                Quantity = ModuleConstants.LineItemQualityLimit + 1,
+            };
+            cartAggregate.Cart.Items = new List<LineItem> { invalidLineItem };
+
+            _cartValidationContextFactoryMock
+                .Setup(x => x.CreateValidationContextAsync(cartAggregate))
+                .ReturnsAsync(new CartValidationContext());
+
+            // Simulate CartAggregateRepository.SaveAsync(), which clears the validation cache.
+            cartAggregate.ClearValidationCache();
+
+            // Act
+            var errors = await cartAggregate.GetLineItemValidationErrorsAsync(invalidLineItem);
+
+            // Assert
+            errors.Should().Contain(x => x.ErrorCode == "LINE_ITEM_LIMIT" && x.ObjectId == invalidLineItem.Id);
+        }
+
+        #endregion GetLineItemValidationErrorsAsync
+
+        #region ValidateAsync extensibility
+
+        [Fact]
+        public async Task ValidateAsync_DerivedOverridesContextOverload_OverrideParticipatesInValidation()
+        {
+            // Arrange
+            // Extensibility guard: derived aggregates (module customizations) override the virtual
+            // ValidateAsync(CartValidationContext, string) to append their own validation results.
+            // The ruleSet-only overload must delegate to it so those customizations keep working.
+            var aggregate = new ExtendedCartAggregate(
+                _marketingPromoEvaluatorMock.Object,
+                _shoppingCartTotalsCalculatorMock.Object,
+                _taxProviderSearchServiceMock.Object,
+                _cartProductServiceMock.Object,
+                _dynamicPropertyUpdaterService.Object,
+                _mapperMock.Object,
+                _memberService.Object,
+                _genericPipelineLauncherMock.Object,
+                _configurationItemValidatorMock.Object,
+                _fileUploadService.Object,
+                _cartSharingService.Object,
+                _cartValidationContextFactoryMock.Object);
+            aggregate.GrabCart(GetCart(), GetStore(), GetMember(), GetCurrency());
+
+            _cartValidationContextFactoryMock
+                .Setup(x => x.CreateValidationContextAsync(aggregate))
+                .ReturnsAsync(new CartValidationContext());
+
+            // Act
+            var errors = await aggregate.ValidateAsync("default");
+
+            // Assert
+            errors.Should().Contain(x => x.ErrorCode == ExtendedCartAggregate.CustomErrorCode);
+        }
+
+        private class ExtendedCartAggregate : CartAggregate
+        {
+            public const string CustomErrorCode = "CUSTOM_VALIDATION_ERROR";
+
+            public ExtendedCartAggregate(
+                VirtoCommerce.MarketingModule.Core.Services.IMarketingPromoEvaluator marketingEvaluator,
+                VirtoCommerce.CartModule.Core.Services.IShoppingCartTotalsCalculator cartTotalsCalculator,
+                VirtoCommerce.Platform.Core.Modularity.IOptionalDependency<VirtoCommerce.TaxModule.Core.Services.ITaxProviderSearchService> taxProviderSearchService,
+                VirtoCommerce.XCart.Core.Services.ICartProductService cartProductService,
+                VirtoCommerce.Xapi.Core.Services.IDynamicPropertyUpdaterService dynamicPropertyUpdaterService,
+                IMapper mapper,
+                VirtoCommerce.CustomerModule.Core.Services.IMemberService memberService,
+                VirtoCommerce.Xapi.Core.Pipelines.IGenericPipelineLauncher pipeline,
+                IConfigurationItemValidator configurationItemValidator,
+                VirtoCommerce.FileExperienceApi.Core.Services.IFileUploadService fileUploadService,
+                VirtoCommerce.XCart.Core.Services.ICartSharingService cartSharingService,
+                ICartValidationContextFactory cartValidationContextFactory)
+                : base(marketingEvaluator, cartTotalsCalculator, taxProviderSearchService, cartProductService, dynamicPropertyUpdaterService, mapper, memberService, pipeline,
+                    configurationItemValidator, fileUploadService, cartSharingService, cartValidationContextFactory)
+            {
+            }
+
+#pragma warning disable VC0009 // The obsolete overload remains the virtual extension point during the deprecation window
+            public override async Task<IList<FluentValidation.Results.ValidationFailure>> ValidateAsync(CartValidationContext validationContext, string ruleSet)
+            {
+                var errors = await base.ValidateAsync(validationContext, ruleSet);
+
+                return errors
+                    .Concat(new[] { new CartValidationError("TestEntity", "test-id", "Custom validation error", CustomErrorCode) })
+                    .ToList();
+            }
+#pragma warning restore VC0009
+        }
+
+        #endregion ValidateAsync extensibility
+
         #region ValidateCouponAsync
 
         [Fact]
@@ -970,6 +1081,80 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             // Assert
             result.Should().BeTrue();
+        }
+
+        // VCST-5233: a coupon stored in non-uppercase case (the promotion engine + DB match
+        // case-insensitively and DynamicPromotion stamps the reward with the stored canonical
+        // code) must still validate when the entered code differs only in case. Mirrors the
+        // case-insensitive handling already used by AddCouponAsync/RemoveCouponAsync.
+        [Fact]
+        public async Task ValidateCouponAsync_CaseInsensitiveMatch_CouponValidated()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var lineItem = _fixture.Create<LineItem>();
+            lineItem.SelectedForCheckout = true;
+            cartAggregate.Cart.Items = [lineItem];
+
+            // Stored/canonical coupon code as returned by the promotion engine.
+            var storedCoupon = "agent";
+            // Entered code differs only in case (what the shopper submits).
+            var enteredCoupon = "AGENT";
+
+            var context = new PromotionEvaluationContext
+            {
+                Coupon = enteredCoupon,
+            };
+
+            var stub = new PromotionResult();
+            stub.Rewards.Add(new StubPromotionReward
+            {
+                Coupon = storedCoupon,
+                IsValid = true,
+            });
+
+            _mapperMock.Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
+                .Returns(context);
+
+            _marketingPromoEvaluatorMock
+               .Setup(x => x.EvaluatePromotionAsync(It.Is<PromotionEvaluationContext>(x => x.Coupon == enteredCoupon)))
+               .ReturnsAsync(stub);
+
+            _genericPipelineLauncherMock.Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
+                .Callback<PromotionEvaluationContextCartMap>(x =>
+                {
+                    x.PromotionEvaluationContext = _mapperMock.Object.Map<PromotionEvaluationContext>(cartAggregate);
+                });
+
+            // Act
+            var result = await cartAggregate.ValidateCouponAsync(enteredCoupon);
+
+            // Assert
+            result.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Coupons_CaseInsensitiveMatch_ReportsAppliedSuccessfully()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+
+            // Stored/canonical coupon code stamped onto the applied discount by the engine.
+            var storedCoupon = "agent";
+            // Entered code differs only in case (what the shopper added to the cart).
+            var enteredCoupon = "AGENT";
+
+            cartAggregate.Cart.Coupons = new List<string> { enteredCoupon };
+            cartAggregate.Cart.Discounts = new List<Discount>
+            {
+                new Discount { Coupon = storedCoupon },
+            };
+
+            // Act
+            var couponState = cartAggregate.Coupons.Single(x => x.Code == enteredCoupon);
+
+            // Assert
+            couponState.IsAppliedSuccessfully.Should().BeTrue();
         }
 
         #endregion ValidateCouponAsync
