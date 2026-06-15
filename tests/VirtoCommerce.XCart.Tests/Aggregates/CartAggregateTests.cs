@@ -9,6 +9,7 @@ using FluentAssertions;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Model;
+using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.FileExperienceApi.Core.Models;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
@@ -1080,6 +1081,80 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             // Assert
             result.Should().BeTrue();
+        }
+
+        // VCST-5233: a coupon stored in non-uppercase case (the promotion engine + DB match
+        // case-insensitively and DynamicPromotion stamps the reward with the stored canonical
+        // code) must still validate when the entered code differs only in case. Mirrors the
+        // case-insensitive handling already used by AddCouponAsync/RemoveCouponAsync.
+        [Fact]
+        public async Task ValidateCouponAsync_CaseInsensitiveMatch_CouponValidated()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var lineItem = _fixture.Create<LineItem>();
+            lineItem.SelectedForCheckout = true;
+            cartAggregate.Cart.Items = [lineItem];
+
+            // Stored/canonical coupon code as returned by the promotion engine.
+            var storedCoupon = "agent";
+            // Entered code differs only in case (what the shopper submits).
+            var enteredCoupon = "AGENT";
+
+            var context = new PromotionEvaluationContext
+            {
+                Coupon = enteredCoupon,
+            };
+
+            var stub = new PromotionResult();
+            stub.Rewards.Add(new StubPromotionReward
+            {
+                Coupon = storedCoupon,
+                IsValid = true,
+            });
+
+            _mapperMock.Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
+                .Returns(context);
+
+            _marketingPromoEvaluatorMock
+               .Setup(x => x.EvaluatePromotionAsync(It.Is<PromotionEvaluationContext>(x => x.Coupon == enteredCoupon)))
+               .ReturnsAsync(stub);
+
+            _genericPipelineLauncherMock.Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
+                .Callback<PromotionEvaluationContextCartMap>(x =>
+                {
+                    x.PromotionEvaluationContext = _mapperMock.Object.Map<PromotionEvaluationContext>(cartAggregate);
+                });
+
+            // Act
+            var result = await cartAggregate.ValidateCouponAsync(enteredCoupon);
+
+            // Assert
+            result.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Coupons_CaseInsensitiveMatch_ReportsAppliedSuccessfully()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+
+            // Stored/canonical coupon code stamped onto the applied discount by the engine.
+            var storedCoupon = "agent";
+            // Entered code differs only in case (what the shopper added to the cart).
+            var enteredCoupon = "AGENT";
+
+            cartAggregate.Cart.Coupons = new List<string> { enteredCoupon };
+            cartAggregate.Cart.Discounts = new List<Discount>
+            {
+                new Discount { Coupon = storedCoupon },
+            };
+
+            // Act
+            var couponState = cartAggregate.Coupons.Single(x => x.Code == enteredCoupon);
+
+            // Assert
+            couponState.IsAppliedSuccessfully.Should().BeTrue();
         }
 
         #endregion ValidateCouponAsync

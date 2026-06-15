@@ -127,7 +127,7 @@ namespace VirtoCommerce.XCart.Core
                     var cartCoupon = new CartCoupon
                     {
                         Code = coupon,
-                        IsAppliedSuccessfully = allAppliedCoupons.Contains(coupon)
+                        IsAppliedSuccessfully = allAppliedCoupons.Any(c => c.EqualsIgnoreCase(coupon))
                     };
                     yield return cartCoupon;
                 }
@@ -1021,7 +1021,7 @@ namespace VirtoCommerce.XCart.Core
                 return false;
             }
 
-            var validCoupon = promotionResult.Rewards.FirstOrDefault(x => x.IsValid && x.Coupon == coupon);
+            var validCoupon = promotionResult.Rewards.FirstOrDefault(x => x.IsValid && x.Coupon.EqualsIgnoreCase(coupon));
 
             return validCoupon != null;
         }
