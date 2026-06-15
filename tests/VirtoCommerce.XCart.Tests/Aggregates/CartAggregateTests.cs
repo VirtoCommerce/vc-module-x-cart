@@ -986,10 +986,10 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 _mapperMock.Object,
                 _memberService.Object,
                 _genericPipelineLauncherMock.Object,
-                _configurationItemValidatorMock.Object,
                 _fileUploadService.Object,
                 _cartSharingService.Object,
-                _cartValidationContextFactoryMock.Object);
+                _cartValidationContextFactoryMock.Object,
+                _cartValidatorRegistry);
             aggregate.GrabCart(GetCart(), GetStore(), GetMember(), GetCurrency());
 
             _cartValidationContextFactoryMock
@@ -1016,12 +1016,12 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 IMapper mapper,
                 VirtoCommerce.CustomerModule.Core.Services.IMemberService memberService,
                 VirtoCommerce.Xapi.Core.Pipelines.IGenericPipelineLauncher pipeline,
-                IConfigurationItemValidator configurationItemValidator,
                 VirtoCommerce.FileExperienceApi.Core.Services.IFileUploadService fileUploadService,
                 VirtoCommerce.XCart.Core.Services.ICartSharingService cartSharingService,
-                ICartValidationContextFactory cartValidationContextFactory)
+                ICartValidationContextFactory cartValidationContextFactory,
+                ICartValidatorRegistry cartValidatorRegistry)
                 : base(marketingEvaluator, cartTotalsCalculator, taxProviderSearchService, cartProductService, dynamicPropertyUpdaterService, mapper, memberService, pipeline,
-                    configurationItemValidator, fileUploadService, cartSharingService, cartValidationContextFactory)
+                    fileUploadService, cartSharingService, cartValidationContextFactory, cartValidatorRegistry)
             {
             }
 
