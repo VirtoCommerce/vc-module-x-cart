@@ -195,6 +195,15 @@ namespace VirtoCommerce.XCart.Core
         /// </summary>
         protected ConcurrentDictionary<string, IList<ValidationFailure>> ValidationErrorsByRuleSet { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// Tracks the in-flight validation task per ruleSet so concurrent callers share a single
+        /// validation pass. The GraphQL per-line-item isValid/validationErrors resolvers call
+        /// <see cref="ValidateAsync(string)"/> concurrently for every line in the cart; without this,
+        /// each call would build its own validation context and reload products from the catalog
+        /// index, causing a request-scoped search stampede. Cleared by <see cref="ClearValidationCache"/>.
+        /// </summary>
+        private readonly ConcurrentDictionary<string, Lazy<Task<IList<ValidationFailure>>>> _validationTasksByRuleSet = new(StringComparer.OrdinalIgnoreCase);
+
         public bool IsValid => ValidationErrorsByRuleSet.IsEmpty || ValidationErrorsByRuleSet.Values.All(x => x.Count == 0);
 
         [Obsolete("Use GetValidationErrors().", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
@@ -231,6 +240,7 @@ namespace VirtoCommerce.XCart.Core
         public void ClearValidationCache()
         {
             ValidationErrorsByRuleSet.Clear();
+            _validationTasksByRuleSet.Clear();
 #pragma warning disable VC0015 // Obsolete: maintained for backward compatibility
             CartValidationErrors = new List<ValidationFailure>();
 #pragma warning restore VC0015
@@ -976,11 +986,35 @@ namespace VirtoCommerce.XCart.Core
 
             EnsureCartExists();
 
-            var validationContext = await _cartValidationContextFactory.CreateValidationContextAsync(this);
+            // Single-flight: collapse concurrent validations of the same ruleSet into one pass.
+            // The GraphQL per-line-item isValid/validationErrors resolvers run concurrently, so without
+            // this each line would build its own validation context and reload products, flooding the
+            // catalog index with one search per line item instead of one per cart. Lazy guarantees the
+            // factory delegate runs at most once even under contended GetOrAdd.
+            var lazy = _validationTasksByRuleSet.GetOrAdd(
+                key,
+                _ => new Lazy<Task<IList<ValidationFailure>>>(() => CreateContextAndValidateAsync(ruleSet)));
+
+            return await lazy.Value;
+        }
+
+        private async Task<IList<ValidationFailure>> CreateContextAndValidateAsync(string ruleSet)
+        {
+            try
+            {
+                var validationContext = await _cartValidationContextFactory.CreateValidationContextAsync(this);
 
 #pragma warning disable VC0009 // Obsolete overload is intentionally kept as the virtual extension point
-            return await ValidateAsync(validationContext, ruleSet);
+                return await ValidateAsync(validationContext, ruleSet);
 #pragma warning restore VC0009
+            }
+            finally
+            {
+                // Drop the in-flight entry once complete; the durable result now lives in
+                // ValidationErrorsByRuleSet, and removing it lets a later pass (e.g. after
+                // ClearValidationCache) re-run, and a faulted validation be retried.
+                _validationTasksByRuleSet.TryRemove(NormalizeRuleSet(ruleSet), out _);
+            }
         }
 
         [Obsolete("Use ValidateAsync(string ruleSet). The context is now created internally.", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]

@@ -927,6 +927,43 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             cartAggregate.GetValidationErrors().Should().BeEmpty();
         }
 
+        [Fact]
+        public async Task ValidateAsync_ConcurrentCallsSameRuleSet_CreatesValidationContextOnce()
+        {
+            // Regression guard: the per-line-item isValid/validationErrors GraphQL resolvers call
+            // ValidateAsync(ruleSet) concurrently for every line in the cart. Without single-flight
+            // de-duplication each concurrent call builds its own validation context and reloads
+            // products, producing a catalog-search stampede (observed as ~N product searches per
+            // GetFullCart in load tests instead of one). All concurrent callers of the same ruleSet
+            // must share a single validation pass.
+
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+
+            var contextCreations = 0;
+            var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            _cartValidationContextFactoryMock
+                .Setup(x => x.CreateValidationContextAsync(cartAggregate))
+                .Returns(async () =>
+                {
+                    Interlocked.Increment(ref contextCreations);
+                    await gate.Task;
+                    return new CartValidationContext();
+                });
+
+            // Act - fire many concurrent validations of the same ruleSet, then release the gate so
+            // they can complete. Each call runs synchronously up to the awaited context creation, so
+            // by the time the gate is released every caller has already entered ValidateAsync.
+            var tasks = Enumerable.Range(0, 50)
+                .Select(_ => cartAggregate.ValidateAsync("default"))
+                .ToList();
+            gate.SetResult();
+            await Task.WhenAll(tasks);
+
+            // Assert - the expensive validation context (which loads products) was built exactly once.
+            contextCreations.Should().Be(1);
+        }
+
         #endregion ValidateAsync
 
         #region GetLineItemValidationErrorsAsync
