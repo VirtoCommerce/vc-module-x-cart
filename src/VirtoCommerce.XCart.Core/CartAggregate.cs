@@ -298,6 +298,20 @@ namespace VirtoCommerce.XCart.Core
         /// <returns></returns>
         public virtual async Task<CartAggregate> AddConfiguredItemAsync(NewCartItem newCartItem, LineItem newConfiguredItem)
         {
+            await AddConfiguredItemAndReturnAsync(newCartItem, newConfiguredItem);
+
+            return this;
+        }
+
+        /// <summary>
+        /// Same as <see cref="AddConfiguredItemAsync"/>, but returns the added line item instead of the aggregate.
+        /// Returns <c>null</c> when nothing was added — a validation failure with
+        /// <see cref="NewCartItem.IgnoreValidationErrors"/> off, or a missing <see cref="NewCartItem.CartProduct"/>.
+        /// This is the implementation funnel for configured adds; override this method (not
+        /// <see cref="AddConfiguredItemAsync"/>) to customize the configured-add behavior.
+        /// </summary>
+        public virtual async Task<LineItem> AddConfiguredItemAndReturnAsync(NewCartItem newCartItem, LineItem newConfiguredItem)
+        {
             ArgumentNullException.ThrowIfNull(newCartItem);
             ArgumentNullException.ThrowIfNull(newConfiguredItem);
 
@@ -308,7 +322,7 @@ namespace VirtoCommerce.XCart.Core
 
                 if (!newCartItem.IgnoreValidationErrors)
                 {
-                    return this;
+                    return null;
                 }
             }
 
@@ -316,7 +330,7 @@ namespace VirtoCommerce.XCart.Core
 
             if (newCartItem.CartProduct == null)
             {
-                return this;
+                return null;
             }
 
             CartProducts[GetCartProductKey(newConfiguredItem)] = newCartItem.CartProduct;
@@ -338,10 +352,26 @@ namespace VirtoCommerce.XCart.Core
             await SetItemFulfillmentCenterAsync(newConfiguredItem, newCartItem.CartProduct);
             await UpdateVendor(newConfiguredItem, newCartItem.CartProduct);
 
-            return this;
+            return newConfiguredItem;
         }
 
         public virtual async Task<CartAggregate> AddItemAsync(NewCartItem newCartItem)
+        {
+            await AddItemAndReturnAsync(newCartItem);
+
+            return this;
+        }
+
+        /// <summary>
+        /// Same as <see cref="AddItemAsync"/>, but returns the affected line item instead of the aggregate:
+        /// the newly created line item, or the existing line item it was merged into (see
+        /// <see cref="FindExistingLineItemBeforeAdd(LineItem, CartProduct, IList{DynamicPropertyValue})"/>).
+        /// Returns <c>null</c> when nothing was added — a validation failure with
+        /// <see cref="NewCartItem.IgnoreValidationErrors"/> off, or a missing <see cref="NewCartItem.CartProduct"/>.
+        /// This is the implementation funnel for non-configured adds; override this method (not
+        /// <see cref="AddItemAsync"/>) to customize the add behavior.
+        /// </summary>
+        public virtual async Task<LineItem> AddItemAndReturnAsync(NewCartItem newCartItem)
         {
             ArgumentNullException.ThrowIfNull(newCartItem);
 
@@ -354,13 +384,13 @@ namespace VirtoCommerce.XCart.Core
 
                 if (!newCartItem.IgnoreValidationErrors)
                 {
-                    return this;
+                    return null;
                 }
             }
 
             if (newCartItem.CartProduct == null)
             {
-                return this;
+                return null;
             }
 
             if (newCartItem.IsWishlist && newCartItem.CartProduct.Price == null)
@@ -398,9 +428,8 @@ namespace VirtoCommerce.XCart.Core
             CartProducts[GetCartProductKey(lineItem)] = newCartItem.CartProduct;
             await SetItemFulfillmentCenterAsync(lineItem, newCartItem.CartProduct);
             await UpdateVendor(lineItem, newCartItem.CartProduct);
-            await InnerAddLineItemAsync(lineItem, newCartItem.OverrideQuantity, newCartItem.CartProduct, newCartItem.DynamicProperties);
 
-            return this;
+            return await InnerAddLineItemAndReturnAsync(lineItem, newCartItem.OverrideQuantity, newCartItem.CartProduct, newCartItem.DynamicProperties);
         }
 
         public virtual async Task<CartAggregate> AddItemsAsync(ICollection<NewCartItem> newCartItems)
@@ -906,7 +935,7 @@ namespace VirtoCommerce.XCart.Core
         {
             foreach (var lineItem in otherCart.Cart.Items.ToList())
             {
-                await InnerAddLineItemAsync(lineItem, overrideQuantity: false, product: otherCart.CartProducts[otherCart.GetCartProductKey(lineItem)]);
+                await InnerAddLineItemAndReturnAsync(lineItem, overrideQuantity: false, product: otherCart.CartProducts[otherCart.GetCartProductKey(lineItem)]);
             }
         }
 
@@ -1314,7 +1343,7 @@ namespace VirtoCommerce.XCart.Core
             return tierPrice.Price.Amount > 0;
         }
 
-        [Obsolete("Use InnerAddLineItemAsync(LineItem newLineItem, bool overrideQuantity) instead", DiagnosticId = "VC0011", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+        [Obsolete("Use InnerAddLineItemAndReturnAsync(LineItem newLineItem, bool overrideQuantity) instead", DiagnosticId = "VC0011", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
         protected virtual async Task<CartAggregate> InnerAddLineItemAsync(LineItem newLineItem, CartProduct product = null, IList<DynamicPropertyValue> dynamicProperties = null)
         {
             var existingLineItem = newLineItem.IsConfigured
@@ -1344,7 +1373,21 @@ namespace VirtoCommerce.XCart.Core
             return this;
         }
 
+        [Obsolete("Use InnerAddLineItemAndReturnAsync, which returns the added or merged line item. Override that method instead of this one.", DiagnosticId = "VC0011", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
         protected virtual async Task<CartAggregate> InnerAddLineItemAsync(LineItem newLineItem, bool overrideQuantity, CartProduct product = null, IList<DynamicPropertyValue> dynamicProperties = null)
+        {
+            await InnerAddLineItemAndReturnAsync(newLineItem, overrideQuantity, product, dynamicProperties);
+
+            return this;
+        }
+
+        /// <summary>
+        /// Adds <paramref name="newLineItem"/> to the cart, or merges it into an existing matching line item
+        /// (see <see cref="FindExistingLineItemBeforeAdd(LineItem, CartProduct, IList{DynamicPropertyValue})"/>),
+        /// and returns the resulting line item — the newly added instance, or the existing one it was merged into.
+        /// This is the single funnel for non-configured adds; override this method to hook the add path.
+        /// </summary>
+        protected virtual async Task<LineItem> InnerAddLineItemAndReturnAsync(LineItem newLineItem, bool overrideQuantity, CartProduct product = null, IList<DynamicPropertyValue> dynamicProperties = null)
         {
             var existingLineItem = newLineItem.IsConfigured
                 ? null
@@ -1371,7 +1414,7 @@ namespace VirtoCommerce.XCart.Core
                 await UpdateCartItemDynamicProperties(newLineItem, dynamicProperties);
             }
 
-            return this;
+            return newLineItem;
         }
 
         /// <summary>
