@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="XCart">
+  <title>XCart</title>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="92%" y2="100%">
+      <stop offset="0%" stop-color="#FFC24D"/>
+      <stop offset="100%" stop-color="#ED8A12"/>
+    </linearGradient>
+    <filter id="lift" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#7A3D00" flood-opacity="0.30"/>
+    </filter>
+  </defs>
+
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+
+  <g transform="translate(62,60)" filter="url(#lift)">
+    <!-- Products -->
+    <circle cx="-14" cy="-6" r="8" fill="#E5484D"/>
+    <circle cx="6" cy="-8" r="8" fill="#5FC8F5"/>
+    <!-- Cart -->
+    <path d="M-42,-30 H-34 L-27,-14 H32 L25,6 H-17 L-27,-14" fill="none" stroke="#ffffff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="-13" cy="20" r="6.5" fill="#ffffff"/>
+    <circle cx="18" cy="20" r="6.5" fill="#ffffff"/>
+
+    <!-- GraphQL API badge -->
+    <circle cx="30" cy="28" r="15" fill="#6A45D9"/>
+    <g stroke="#ffffff" stroke-width="2.1"><line x1="30" y1="20" x2="23" y2="34"/><line x1="30" y1="20" x2="38" y2="33"/><line x1="23" y1="34" x2="38" y2="33"/></g>
+    <circle cx="30" cy="20" r="3.1" fill="#ffffff"/>
+    <circle cx="22.5" cy="34.5" r="3.1" fill="#ffffff"/>
+    <circle cx="38" cy="33" r="3.1" fill="#ffffff"/>
+  </g>
+</svg>

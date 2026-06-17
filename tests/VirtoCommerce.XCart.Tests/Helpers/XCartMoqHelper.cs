@@ -122,6 +122,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
 
             _fixture.Register(() => _fixture.Build<LineItem>()
                                             .Without(x => x.DynamicProperties)
+                                            .With(x => x.Currency, CURRENCY_CODE)
                                             .With(x => x.IsReadOnly, false)
                                             .With(x => x.IsGift, false)
                                             .With(x => x.Quantity, InStockQuantity)
@@ -160,6 +161,9 @@ namespace VirtoCommerce.XCart.Tests.Helpers
             _cartProductServiceMock
                 .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
                 .ReturnsAsync([]);
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string, string)>>()))
+                .ReturnsAsync(new Dictionary<string, CartProduct>());
 
             _currencyServiceMock = new Mock<ICurrencyService>();
             _currencyServiceMock

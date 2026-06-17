@@ -42,9 +42,10 @@ namespace VirtoCommerce.XCart.Data.Commands
 
         protected virtual async Task AddItemToCartAsync(AddCartItemCommand request, CartAggregate cartAggregate, CancellationToken cancellationToken)
         {
-            var product = (await _cartProductService.GetCartProductsByIdsAsync(cartAggregate, [request.ProductId])).FirstOrDefault();
+            var itemCurrencyCode = !request.ItemCurrencyCode.IsNullOrEmpty() ? request.ItemCurrencyCode : cartAggregate.Currency.Code;
+            var product = (await _cartProductService.GetCartProductsAsync(cartAggregate, [(itemCurrencyCode, request.ProductId)])).Values.FirstOrDefault();
 
-            var newItem = CreateNewCartItem(request, product);
+            var newItem = CreateNewCartItem(request, product, itemCurrencyCode);
 
             var configurations = await _productConfigurationSearchService.SearchNoCloneAsync(new ProductConfigurationSearchCriteria
             {
@@ -60,7 +61,7 @@ namespace VirtoCommerce.XCart.Data.Commands
                 command.UserId = request.UserId;
                 command.OrganizationId = request.OrganizationId;
                 command.CultureName = request.CultureName;
-                command.CurrencyCode = request.CurrencyCode;
+                command.CurrencyCode = itemCurrencyCode;
                 command.ConfigurableProductId = request.ProductId;
                 command.ProductsIncludeFields = cartAggregate.ProductsIncludeFields;
                 command.ConfigurationSections = request.ConfigurationSections;
@@ -75,7 +76,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             }
         }
 
-        protected virtual NewCartItem CreateNewCartItem(AddCartItemCommand request, CartProduct product)
+        protected virtual NewCartItem CreateNewCartItem(AddCartItemCommand request, CartProduct product, string itemCurrencyCode)
         {
             var newItem = AbstractTypeFactory<NewCartItem>.TryCreateInstance();
             newItem.ProductId = request.ProductId;
@@ -85,6 +86,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             newItem.Price = request.Price;
             newItem.CartProduct = product;
             newItem.CreatedDate = request.CreatedDate;
+            newItem.ItemCurrencyCode = itemCurrencyCode;
 
             return newItem;
         }

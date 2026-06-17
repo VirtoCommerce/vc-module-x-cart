@@ -1,4 +1,4 @@
-﻿using GraphQL.Types;
+using GraphQL.Types;
 using VirtoCommerce.XCart.Core.Commands;
 
 namespace VirtoCommerce.XCart.Core.Schemas
@@ -11,6 +11,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
 
             Field<NonNullGraphType<StringGraphType>>("productId").Description("Product ID");
             Field<NonNullGraphType<IntGraphType>>("quantity").Description("Quantity");
+            Field<StringGraphType>("itemCurrencyCode").Description("Add the product in a different currency");
         }
     }
 }

@@ -55,10 +55,10 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 .Resolve(context => context.GetTotal(context.Source.Cart.SubTotalWithTax));
             Field<NonNullGraphType<MoneyType>>("extendedPriceTotal")
                 .Description("Total extended price")
-                .Resolve(context => context.Source.SelectedLineItems.Sum(i => i.ExtendedPrice).ToMoney(context.Source.Currency));
+                .Resolve(context => context.Source.CartCurrencySelectedLineItems.Sum(i => i.ExtendedPrice).ToMoney(context.Source.Currency));
             Field<NonNullGraphType<MoneyType>>("extendedPriceTotalWithTax")
                 .Description("Total extended price with tax")
-                .Resolve(context => context.Source.SelectedLineItems.Sum(i => i.ExtendedPriceWithTax).ToMoney(context.Source.Currency));
+                .Resolve(context => context.Source.CartCurrencySelectedLineItems.Sum(i => i.ExtendedPriceWithTax).ToMoney(context.Source.Currency));
             Field<NonNullGraphType<CurrencyType>>("currency")
                 .Description("Currency")
                 .Resolve(context => context.Source.Currency);
@@ -218,6 +218,10 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<NonNullGraphType<ListGraphType<NonNullGraphType<ValidationErrorType>>>>("warnings")
                 .Description("A set of temporary warnings for a cart user")
                 .Resolve(context => context.Source.ValidationWarnings);
+
+            ExtendableField<ListGraphType<CartTotalType>>("cartTotals",
+                "Cart totals",
+                resolve: context => context.Source.CartTotals);
         }
     }
 }
