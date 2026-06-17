@@ -330,7 +330,7 @@ namespace VirtoCommerce.XCart.Core
 
             CartProducts[GetCartProductKey(newConfiguredItem)] = newCartItem.CartProduct;
 
-            await PopulateCartProductsAsync(newConfiguredItem.ConfigurationItems, newConfiguredItem.Currency);
+            await PopulateCartProductsAsync(newConfiguredItem);
 
             newConfiguredItem.Id = null;
             newConfiguredItem.SelectedForCheckout = IsSelectedForCheckout;
@@ -1544,7 +1544,7 @@ namespace VirtoCommerce.XCart.Core
 
                 lineItem.ConfigurationItems = configuredItem.ConfigurationItems.ToList();
 
-                await PopulateCartProductsAsync(lineItem.ConfigurationItems, lineItem.Currency);
+                await PopulateCartProductsAsync(lineItem);
             }
 
             return this;
@@ -2075,24 +2075,12 @@ namespace VirtoCommerce.XCart.Core
         }
 
         /// <summary>
-        /// Loads <see cref="CartProduct"/>s referenced by the given configuration items into
-        /// <see cref="CartProducts"/> under <paramref name="currencyCode"/>. Skips items with empty
-        /// <see cref="ConfigurationItem.ProductId"/>.
+        /// Loads <see cref="CartProduct"/>s referenced by the line item and its configuration items into
+        /// <see cref="CartProducts"/>, keyed under the line item's currency.
         /// </summary>
-        protected virtual Task PopulateCartProductsAsync(ICollection<ConfigurationItem> configurationItems, string currencyCode)
+        protected virtual Task PopulateCartProductsAsync(LineItem lineItem)
         {
-            if (configurationItems.IsNullOrEmpty())
-            {
-                return Task.CompletedTask;
-            }
-
-            var productKeys = configurationItems
-                .Where(x => !string.IsNullOrEmpty(x.ProductId))
-                .Select(x => (currencyCode, x.ProductId))
-                .Distinct()
-                .ToList();
-
-            return PopulateCartProductsAsync(productKeys);
+            return lineItem is null ? Task.CompletedTask : PopulateCartProductsAsync([lineItem]);
         }
 
         /// <summary>
