@@ -156,6 +156,7 @@ internal static class CartBenchmarkFixtures
             Shipments = [],
             Payments = [],
             Coupons = [], // a real cart's Coupons collection is never null — coupon mutations call .Any()/.Remove() on it
+            Addresses = [], // likewise: ClearAsync/address handlers call .Clear()/LINQ on Addresses
         };
     }
 
