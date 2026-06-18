@@ -98,10 +98,30 @@ A single run's numbers are not a verdict — compare. Two ways:
    ```
    Allocations are deterministic, so this is reliable for them across separate runs.
 
-2. **Single-process side-by-side.** To get a `Ratio` column that controls for machine variance
-   (and a trustworthy `Mean` delta), build the baseline `XCart.Data` to a folder and reference it
-   as a second job — see BenchmarkDotNet's saved-build comparison. This is only valid when the
-   change keeps the public API these benchmarks call stable.
+2. **Single-process side-by-side (`--baseline-src`).** To get `Ratio` / `Alloc Ratio` columns that
+   control for machine variance in **one** run, point the benchmark at a baseline checkout of the
+   source. BenchmarkDotNet then builds a `before` job (the baseline) from that source and an `after`
+   job from the current source, side-by-side:
+   ```bash
+   # 1. materialize the "before" source (a worktree on the baseline revision — no working-tree switch)
+   git worktree add /tmp/xcart-before <baseline-ref>
+
+   # 2. compare — runs from the benchmark's own directory (BDN resolves its exe relative to CWD)
+   dotnet run -c Release -- --filter "*RecalculateAsync*" --baseline-src /tmp/xcart-before/src
+
+   # 3. clean up
+   git worktree remove /tmp/xcart-before
+   ```
+   `--baseline-src <path>` is opt-in and additive — without it the run is unchanged. The path is the
+   `src` root of the baseline checkout; the `before` job rebuilds `XCart.Core`/`XCart.Data` from it
+   via `/p:XCartSrc=<path>` (a `ProjectReference` swap, so the full transitive package graph still
+   restores — a bare DLL reference would not). The `before` job is the baseline, so an `Alloc Ratio`
+   of `0.85` on an `after` row means the change allocates ~15% less. Valid only when the change keeps
+   the public API these benchmarks call stable (same namespaces and signatures).
+
+   Do **not** add `--job <preset>` here — BDN appends it as a *third* job rather than reconfiguring
+   the before/after pair. `Allocated` / `Alloc Ratio` are the deterministic signal; for a stricter
+   `Mean` comparison (symmetric invocation counts) add `--apples --iterationCount N`.
 
 Allocations catch garbage/GC regressions; the time `Ratio` (in a controlled run) catches pure-CPU
 regressions that allocate nothing — read both.

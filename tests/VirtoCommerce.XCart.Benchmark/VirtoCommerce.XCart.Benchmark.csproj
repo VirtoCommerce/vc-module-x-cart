@@ -22,9 +22,19 @@
     <PackageReference Include="VirtoCommerce.CartModule.Data" Version="3.1005.0" />
   </ItemGroup>
 
+  <!-- $(XCartSrc) defaults to the in-repo source. The before/after comparison mode (the Program.cs
+       baseline-src flag) overrides it per BenchmarkDotNet job via /p:XCartSrc=(baseline-worktree)/src,
+       so the "before" job builds XCart.Core/Data from the baseline revision. ProjectReference (not a
+       bare DLL HintPath) is deliberate: the benchmark uses ~16 packages that XCart.Core/Data bring
+       transitively, and only ProjectReference restores that transitive graph. See README
+       "Comparing before/after a change". -->
+  <PropertyGroup>
+    <XCartSrc Condition="'$(XCartSrc)' == ''">..\..\src</XCartSrc>
+  </PropertyGroup>
+
   <ItemGroup>
-    <ProjectReference Include="..\..\src\VirtoCommerce.XCart.Core\VirtoCommerce.XCart.Core.csproj" />
-    <ProjectReference Include="..\..\src\VirtoCommerce.XCart.Data\VirtoCommerce.XCart.Data.csproj" />
+    <ProjectReference Include="$(XCartSrc)\VirtoCommerce.XCart.Core\VirtoCommerce.XCart.Core.csproj" />
+    <ProjectReference Include="$(XCartSrc)\VirtoCommerce.XCart.Data\VirtoCommerce.XCart.Data.csproj" />
   </ItemGroup>
 
 </Project>
