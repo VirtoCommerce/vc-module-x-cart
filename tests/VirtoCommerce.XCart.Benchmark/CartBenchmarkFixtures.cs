@@ -368,7 +368,8 @@ internal static class CartBenchmarkFixtures
     }
 
     /// <summary>The shared product mock: returns one active/buyable priced <see cref="CartProduct"/>
-    /// per requested (currency, product) pair, keyed exactly as the aggregate keys them.</summary>
+    /// per requested (currency, product) pair (<c>GetCartProductsAsync</c>) or per product id
+    /// (<c>GetCartProductsByIdsAsync</c> — used by the configured saved-for-later copy path).</summary>
     public static Mock<ICartProductService> CartProductServiceMock()
     {
         var mock = new Mock<ICartProductService>();
@@ -377,6 +378,9 @@ internal static class CartBenchmarkFixtures
                 pairs.ToDictionary(
                     p => aggregate.GetCartProductKey(p.ProductId, p.CurrencyCode),
                     p => CreateCartProduct(p.ProductId)));
+        mock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
+            .ReturnsAsync((CartAggregate _, IList<string> ids) =>
+                ids.Select(CreateCartProduct).ToList());
         return mock;
     }
 
@@ -408,10 +412,18 @@ internal static class CartBenchmarkFixtures
 
         var cartProductService = CartProductServiceMock();
 
+        // Returns an empty (non-null) search result. The CartId load path never searches, but the
+        // SearchAllAsync extension (used by e.g. the saved-for-later list lookup) reads .Results on
+        // the result — a loose Mock.Of would return null and NRE there.
+        var searchService = new Mock<IShoppingCartSearchService>();
+        searchService
+            .Setup(x => x.SearchAsync(It.IsAny<ShoppingCartSearchCriteria>(), It.IsAny<bool>()))
+            .ReturnsAsync(new ShoppingCartSearchResult());
+
         var repository = new CartAggregateRepository(
             // The aggregate's own product service must resolve configured variation products — see CreateAggregate.
             cartAggregateFactory: () => CreateAggregate(mapper, cartProductService.Object),
-            shoppingCartSearchService: Mock.Of<IShoppingCartSearchService>(), // unused on the CartId load path
+            shoppingCartSearchService: searchService.Object,
             shoppingCartService: shoppingCartService.Object,
             currencyService: currencyService.Object,
             memberResolver: Mock.Of<IMemberResolver>(),            // ResolveMemberByIdAsync → null (anonymous)

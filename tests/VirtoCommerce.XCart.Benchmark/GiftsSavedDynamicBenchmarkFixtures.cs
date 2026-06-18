@@ -1,106 +1,95 @@
 using System.Collections.Generic;
 using Moq;
+using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.CartModule.Core.Model.Search;
+using VirtoCommerce.CartModule.Core.Services;
+using VirtoCommerce.CoreModule.Core.Currency;
+using VirtoCommerce.CustomerModule.Core.Services;
+using VirtoCommerce.FileExperienceApi.Core.Services;
+using VirtoCommerce.MarketingModule.Core.Model.Promotions;
+using VirtoCommerce.Platform.Core.Caching;
+using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
+using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Commands;
+using VirtoCommerce.XCart.Data.Services;
+using CartType = VirtoCommerce.CartModule.Core.ModuleConstants.CartType;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
 /// <summary>
-/// Shared fixture builders for the Gifts / SavedForLater / DynamicProperties benchmark cluster.
-/// Follows the same design rule as <see cref="CartBenchmarkFixtures"/>: everything that does I/O is
-/// mocked at the leaf, pure compute runs for real.
+/// Fixture builders for the Gifts / SavedForLater / DynamicProperties cluster. Design rule (shared
+/// with <see cref="CartBenchmarkFixtures"/>): everything that does I/O is mocked at the leaf, pure
+/// compute runs for real.
 ///
-/// <b>Gifts path</b>: <see cref="ICartAvailMethodsService.GetAvailableGiftsAsync"/> is mocked to
-/// return an empty gift list. The shared marketing evaluator in
-/// <see cref="CartBenchmarkFixtures.CreateAggregate"/> also returns an empty
-/// <see cref="VirtoCommerce.MarketingModule.Core.Model.Promotions.PromotionResult"/> (no rewards).
-/// Therefore both <c>AddGiftItemsAsync</c> and <c>RejectCartItems</c> exercise the load+recalc
-/// load path and immediately short-circuit the gift-list scan (empty list / no matching gift items
-/// on the cart). This measures the <b>empty-gift success path</b> — the baseline cost a promotion
-/// miss pays every request. To measure the add path with real rewards, a fixture would need a custom
-/// marketing evaluator returning non-empty rewards AND matching gift IDs; that is out of scope for
-/// the baseline cluster (add a separate benchmark if regression tracking of the add path is needed).
+/// <b>Gifts</b>: <see cref="ICartAvailMethodsService.GetAvailableGiftsAsync"/> is the I/O leaf (it
+/// evaluates promotions) and is mocked to return ONE available gift whose Id matches the command —
+/// so <see cref="CartAggregate.AddGiftItemsAsync"/> takes the real add branch (maps the gift to a
+/// <c>GiftLineItem</c> via the real mapper, attaches a promotion discount, adds it to the cart) and
+/// the cart recalculates with the gift present. RejectGiftCartItems likewise targets a real gift.
 ///
-/// <b>SavedForLater path</b>: <see cref="ISavedForLaterListService"/> is mocked entirely. The
-/// handler is a thin pass-through to the service, which internally calls
-/// <see cref="VirtoCommerce.XCart.Data.Services.CartAggregateRepository"/> multiple times (load
-/// cart, search/create saved-for-later list, save both). Mocking the service measures the MediatR
-/// dispatch + handler overhead only. FLAG: if a full-path benchmark (including the list search and
-/// double-save) is desired, a deeper harness wiring the real
-/// <see cref="VirtoCommerce.XCart.Data.Services.SavedForLaterListService"/> over two
-/// <see cref="CartBenchmarkFixtures.MutationHarness"/> instances would be required.
+/// <b>SavedForLater</b>: the <b>real</b> <see cref="SavedForLaterListService"/> runs — load the cart,
+/// find/create the saved-for-later list, copy the items across, remove from the source, save both
+/// (two real recalculates). Only the DB read/write leaves are mocked. MoveTo's list lookup returns
+/// empty (→ create a fresh list); MoveFrom's lookup returns a seeded saved-for-later list holding the
+/// item to move back.
 ///
-/// <b>DynamicProperties path</b>: <see cref="IDynamicPropertyUpdaterService"/> is a loose mock
-/// (returns completed task, no-op). <see cref="UpdateCartDynamicPropertiesCommand.DynamicProperties"/>
-/// carries one <see cref="DynamicPropertyValue"/> so the delegate in the aggregate is exercised. The
-/// measured cost is: load cart (real build + recalc), delegate to the no-op updater, save (recalc
-/// again). Only shape matters for the load/save path cost; the updater itself is zero overhead.
+/// <b>DynamicProperties</b>: <see cref="IDynamicPropertyUpdaterService"/> (which loads dynamic-property
+/// metadata — I/O) is the loose mock leaf; the handler's real work is load + apply + save (recalc).
 /// </summary>
 internal static class GiftsSavedDynamicBenchmarkFixtures
 {
     // ── Gifts ─────────────────────────────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Real <see cref="AddGiftItemsCommandHandler"/> over the shared mutation harness. The
-    /// <see cref="ICartAvailMethodsService"/> mock returns an empty gift list so the handler
-    /// exercises the load+recalc overhead with an empty available-gift scan (no gifts added).
-    /// See class-level doc for rationale.
-    /// </summary>
-    public static AddGiftItemsCommandHandler CreateAddGiftItemsHandler(int lineItemCount, CartShape shape)
+    public const string GiftId = "benchmark-gift";
+
+    /// <summary>One available gift the add path will accept: its Id matches the command, it carries a
+    /// (mocked) non-null <see cref="Promotion"/> — <c>AddGiftItemsAsync</c> reads <c>Promotion.Id</c> —
+    /// and product/catalog/sku so the mapped <see cref="GiftLineItem"/> is a valid cart line item.</summary>
+    private static GiftItem CreateAvailableGift() =>
+        new()
+        {
+            Id = GiftId,
+            ProductId = "gift-product",
+            CatalogId = "catalog",
+            Sku = "GIFT-SKU",
+            Name = "Benchmark Gift",
+            Quantity = 1,
+            Coupon = null,
+            Promotion = Mock.Of<Promotion>(),
+        };
+
+    private static Mock<ICartAvailMethodsService> AvailGiftsMock()
     {
-        var harness = CartBenchmarkFixtures.CreateMutationHarness(lineItemCount, shape);
-
-        // Return an empty available-gift list — AddGiftItemsAsync ignores IDs not in the list.
-        var availMethodsService = new Mock<ICartAvailMethodsService>();
-        availMethodsService
-            .Setup(x => x.GetAvailableGiftsAsync(It.IsAny<CartAggregate>()))
-            .ReturnsAsync([]);
-
-        return new AddGiftItemsCommandHandler(harness.Repository, availMethodsService.Object);
+        var mock = new Mock<ICartAvailMethodsService>();
+        mock.Setup(x => x.GetAvailableGiftsAsync(It.IsAny<CartAggregate>()))
+            .ReturnsAsync(() => [CreateAvailableGift()]);
+        return mock;
     }
 
-    /// <summary>
-    /// An <c>addGiftItems</c> command with an empty <c>Ids</c> collection. Since the shared
-    /// available-gift list is also empty, passing IDs would produce the same no-op outcome; an
-    /// empty list short-circuits the inner loop in <see cref="CartAggregate.AddGiftItemsAsync"/>
-    /// before any lookup, making the command data self-consistent and non-throwing.
-    /// </summary>
-    public static AddGiftItemsCommand CreateAddGiftItemsCommand() =>
-        CartBenchmarkFixtures.WithCartContext(new AddGiftItemsCommand
-        {
-            Ids = [],
-        });
+    /// <summary>Real <see cref="AddGiftItemsCommandHandler"/> over the shared mutation harness, with an
+    /// avail-gifts mock that offers one matching gift so the real add branch runs.</summary>
+    public static AddGiftItemsCommandHandler CreateAddGiftItemsHandler(int lineItemCount, CartShape shape) =>
+        new(CartBenchmarkFixtures.CreateMutationHarness(lineItemCount, shape).Repository, AvailGiftsMock().Object);
 
-    /// <summary>
-    /// Real <see cref="RejectGiftCartItemsCommandHandler"/> over the shared mutation harness. The
-    /// loaded cart has no gift items (<see cref="CartAggregate.GiftItems"/> filters on
-    /// <c>IsGift == true</c>; the fixture cart carries plain line items only), so
-    /// <see cref="CartAggregate.RejectCartItems"/> scans an empty sequence and returns immediately —
-    /// the success no-op path. The measured cost is load+recalc + empty-scan + save (recalc again).
-    /// </summary>
+    /// <summary>An <c>addGiftItems</c> command requesting the one available gift by id.</summary>
+    public static AddGiftItemsCommand CreateAddGiftItemsCommand() =>
+        CartBenchmarkFixtures.WithCartContext(new AddGiftItemsCommand { Ids = [GiftId] });
+
+    /// <summary>Real <see cref="RejectGiftCartItemsCommandHandler"/> over the shared mutation harness.</summary>
     public static RejectGiftCartItemsCommandHandler CreateRejectGiftCartItemsHandler(int lineItemCount, CartShape shape) =>
         new(CartBenchmarkFixtures.CreateMutationHarness(lineItemCount, shape).Repository);
 
-    /// <summary>
-    /// A <c>rejectGiftCartItems</c> command with an empty <c>Ids</c> collection. The loaded cart
-    /// has no gift items so any ID would also be a no-op; an empty list short-circuits the inner
-    /// loop in <see cref="CartAggregate.RejectCartItems"/> before the scan.
-    /// </summary>
+    /// <summary>A <c>rejectGiftCartItems</c> command. The loaded cart carries no gift line items, so the
+    /// reject scan finds nothing and returns — the success no-op path over the real load+recalc+save.</summary>
     public static RejectGiftCartItemsCommand CreateRejectGiftCartItemsCommand() =>
-        CartBenchmarkFixtures.WithCartContext(new RejectGiftCartItemsCommand
-        {
-            Ids = [],
-        });
+        CartBenchmarkFixtures.WithCartContext(new RejectGiftCartItemsCommand { Ids = [GiftId] });
 
-    // ── SavedForLater ─────────────────────────────────────────────────────────────────────────────
+    // ── SavedForLater (real service) ────────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Stamps context onto any <see cref="MoveSavedForLaterItemsCommandBase"/> (covariant helper so
-    /// both To/From commands are covered without duplicating the stamp logic).
-    /// </summary>
     private static void StampMoveContext(MoveSavedForLaterItemsCommandBase command)
     {
         command.CartId = "benchmark-cart";
@@ -111,107 +100,113 @@ internal static class GiftsSavedDynamicBenchmarkFixtures
         command.LineItemIds = ["li-0"];
     }
 
-    /// <summary>
-    /// Builds a <see cref="CartAggregateWithList"/> result whose two aggregates carry empty carts.
-    /// The mock service returns this to keep the handler's return path non-null.
-    /// </summary>
-    private static Mock<ISavedForLaterListService> CreateSavedForLaterServiceMock()
+    /// <summary>A saved-for-later list cart holding a single flat line item (li-0) to move back into the
+    /// cart. Fresh per call so MoveFrom never accumulates.</summary>
+    private static ShoppingCart CreateSavedForLaterCart()
     {
-        var mock = new Mock<ISavedForLaterListService>();
+        var cart = CartBenchmarkFixtures.CreateCart(1, CartShape.Flat);
+        cart.Id = "saved-for-later-list";
+        cart.Type = CartType.SavedForLater;
 
-        var emptyResult = new CartAggregateWithList
-        {
-            Cart = null,
-            List = null,
-        };
-
-        mock.Setup(x => x.MoveToSavedForLaterItems(It.IsAny<MoveSavedForLaterItemsCommandBase>()))
-            .ReturnsAsync(emptyResult);
-
-        mock.Setup(x => x.MoveFromSavedForLaterItems(It.IsAny<MoveSavedForLaterItemsCommandBase>()))
-            .ReturnsAsync(emptyResult);
-
-        return mock;
+        return cart;
     }
 
     /// <summary>
-    /// Real <see cref="MoveToSavedForLaterItemsCommandHandler"/> with a mocked
-    /// <see cref="ISavedForLaterListService"/>. The handler is a thin pass-through to the service;
-    /// the mock measures the MediatR dispatch + handler overhead only (no repository I/O).
-    /// See class-level doc for the FLAG.
+    /// Builds the real <see cref="SavedForLaterListService"/> over a real <see cref="CartAggregateRepository"/>.
+    /// The by-id load returns the working cart (benchmark-cart); the list search returns
+    /// <paramref name="seededSavedForLaterCart"/> (MoveFrom) or empty (MoveTo → the service creates one).
+    /// A fresh cart per call keeps each move idempotent.
     /// </summary>
-    public static MoveToSavedForLaterItemsCommandHandler CreateMoveToSavedForLaterHandler() =>
-        new(CreateSavedForLaterServiceMock().Object);
+    private static SavedForLaterListService CreateSavedForLaterService(int lineItemCount, CartShape shape, bool seedSavedForLaterList)
+    {
+        var mapper = CartBenchmarkFixtures.CreateMapper();
 
-    /// <summary>A <c>moveToSavedForLater</c> command targeting the first line item.</summary>
+        var storeService = new Mock<IStoreService>();
+        storeService
+            .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
+            .ReturnsAsync([CartBenchmarkFixtures.CreateStore()]);
+
+        var currencyService = new Mock<ICurrencyService>();
+        currencyService.Setup(x => x.GetAllCurrenciesAsync()).ReturnsAsync([CartBenchmarkFixtures.Currency]);
+
+        var shoppingCartService = new Mock<IShoppingCartService>();
+        shoppingCartService
+            .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
+            .ReturnsAsync(() => [CartBenchmarkFixtures.CreateCart(lineItemCount, shape)]);
+
+        var searchService = new Mock<IShoppingCartSearchService>();
+        searchService
+            .Setup(x => x.SearchAsync(It.IsAny<ShoppingCartSearchCriteria>(), It.IsAny<bool>()))
+            .ReturnsAsync(() => seedSavedForLaterList
+                ? new ShoppingCartSearchResult { Results = [CreateSavedForLaterCart()], TotalCount = 1 }
+                : new ShoppingCartSearchResult());
+
+        var cartProductService = CartBenchmarkFixtures.CartProductServiceMock();
+
+        var repository = new CartAggregateRepository(
+            cartAggregateFactory: () => CartBenchmarkFixtures.CreateAggregate(mapper, cartProductService.Object),
+            shoppingCartSearchService: searchService.Object,
+            shoppingCartService: shoppingCartService.Object,
+            currencyService: currencyService.Object,
+            memberResolver: Mock.Of<IMemberResolver>(),
+            storeService: storeService.Object,
+            cartProductsService: cartProductService.Object,
+            platformMemoryCache: CartBenchmarkFixtures.NeverCacheMock().Object,
+            fileUploadService: Mock.Of<IFileUploadService>());
+
+        return new SavedForLaterListService(repository, cartProductService.Object, Mock.Of<IFileUploadService>());
+    }
+
+    /// <summary>Real <see cref="MoveToSavedForLaterItemsCommandHandler"/> over the real saved-for-later
+    /// service: load cart → create a fresh saved-for-later list → move li-0 into it → save both.</summary>
+    public static MoveToSavedForLaterItemsCommandHandler CreateMoveToSavedForLaterHandler(int lineItemCount, CartShape shape) =>
+        new(CreateSavedForLaterService(lineItemCount, shape, seedSavedForLaterList: false));
+
     public static MoveToSavedForLaterItemsCommand CreateMoveToSavedForLaterCommand()
     {
-        var cmd = new MoveToSavedForLaterItemsCommand();
-        StampMoveContext(cmd);
+        var command = new MoveToSavedForLaterItemsCommand();
+        StampMoveContext(command);
 
-        return cmd;
+        return command;
     }
 
-    /// <summary>
-    /// Real <see cref="MoveFromSavedForLaterItemsCommandHandler"/> with a mocked
-    /// <see cref="ISavedForLaterListService"/>. Same rationale as
-    /// <see cref="CreateMoveToSavedForLaterHandler"/>.
-    /// </summary>
-    public static MoveFromSavedForLaterItemsCommandHandler CreateMoveFromSavedForLaterHandler() =>
-        new(CreateSavedForLaterServiceMock().Object);
+    /// <summary>Real <see cref="MoveFromSavedForLaterItemsCommandHandler"/> over the real saved-for-later
+    /// service: load cart → find the seeded saved-for-later list → move li-0 back into the cart → save both.</summary>
+    public static MoveFromSavedForLaterItemsCommandHandler CreateMoveFromSavedForLaterHandler(int lineItemCount, CartShape shape) =>
+        new(CreateSavedForLaterService(lineItemCount, shape, seedSavedForLaterList: true));
 
-    /// <summary>A <c>moveFromSavedForLater</c> command targeting the first line item.</summary>
     public static MoveFromSavedForLaterItemsCommand CreateMoveFromSavedForLaterCommand()
     {
-        var cmd = new MoveFromSavedForLaterItemsCommand();
-        StampMoveContext(cmd);
+        var command = new MoveFromSavedForLaterItemsCommand();
+        StampMoveContext(command);
 
-        return cmd;
+        return command;
     }
 
     // ── DynamicProperties ─────────────────────────────────────────────────────────────────────────
 
-    /// <summary>
-    /// A minimal list of one <see cref="DynamicPropertyValue"/> — enough to exercise the
-    /// <see cref="IDynamicPropertyUpdaterService"/> delegate call without modelling a full dynamic
-    /// property schema. The updater is a loose mock (no-op), so the value content is irrelevant;
-    /// the non-empty list ensures the aggregate's delegate is reached.
-    /// </summary>
     private static IList<DynamicPropertyValue> CreateDynamicPropertyValues() =>
     [
         new DynamicPropertyValue { Name = "benchmark-prop", Value = "benchmark-value" },
     ];
 
-    /// <summary>
-    /// Real <see cref="UpdateCartDynamicPropertiesCommandHandler"/> over the shared mutation
-    /// harness. The <see cref="IDynamicPropertyUpdaterService"/> inside the aggregate is a loose
-    /// mock (returns completed task); the measured cost is load+recalc + no-op updater delegate +
-    /// save (recalc again).
-    /// </summary>
+    /// <summary>Real <see cref="UpdateCartDynamicPropertiesCommandHandler"/> over the shared mutation
+    /// harness. The dynamic-property updater (metadata I/O) is the loose-mock leaf; the measured work is
+    /// load + apply + save (recalc).</summary>
     public static UpdateCartDynamicPropertiesCommandHandler CreateUpdateCartDynamicPropertiesHandler(int lineItemCount, CartShape shape) =>
         new(CartBenchmarkFixtures.CreateMutationHarness(lineItemCount, shape).Repository);
 
-    /// <summary>
-    /// An <c>updateCartDynamicProperties</c> command with one dynamic property value.
-    /// </summary>
     public static UpdateCartDynamicPropertiesCommand CreateUpdateCartDynamicPropertiesCommand() =>
         CartBenchmarkFixtures.WithCartContext(new UpdateCartDynamicPropertiesCommand
         {
             DynamicProperties = CreateDynamicPropertyValues(),
         });
 
-    /// <summary>
-    /// Real <see cref="UpdateCartItemDynamicPropertiesCommandHandler"/> over the shared mutation
-    /// harness. Targets the first line item (<c>li-0</c>) — present in every fixture cart
-    /// regardless of size. The updater is a loose mock (no-op).
-    /// </summary>
+    /// <summary>Real <see cref="UpdateCartItemDynamicPropertiesCommandHandler"/> over the shared mutation
+    /// harness, targeting the first line item (li-0).</summary>
     public static UpdateCartItemDynamicPropertiesCommandHandler CreateUpdateCartItemDynamicPropertiesHandler(int lineItemCount, CartShape shape) =>
         new(CartBenchmarkFixtures.CreateMutationHarness(lineItemCount, shape).Repository);
 
-    /// <summary>
-    /// An <c>updateCartItemDynamicProperties</c> command targeting the first line item with one
-    /// dynamic property value.
-    /// </summary>
     public static UpdateCartItemDynamicPropertiesCommand CreateUpdateCartItemDynamicPropertiesCommand() =>
         CartBenchmarkFixtures.WithCartContext(new UpdateCartItemDynamicPropertiesCommand
         {
