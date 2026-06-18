@@ -155,6 +155,7 @@ internal static class CartBenchmarkFixtures
             Items = items,
             Shipments = [],
             Payments = [],
+            Coupons = [], // a real cart's Coupons collection is never null — coupon mutations call .Any()/.Remove() on it
         };
     }
 
