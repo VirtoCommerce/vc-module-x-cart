@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using AutoMapper;
+using FluentValidation.Results;
 using MediatR;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
@@ -8,6 +10,7 @@ using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CartModule.Data.Services;
 using VirtoCommerce.CatalogModule.Core.Model;
+using VirtoCommerce.CatalogModule.Core.Model.Configuration;
 using VirtoCommerce.CatalogModule.Core.Model.Search;
 using VirtoCommerce.CatalogModule.Core.Search;
 using VirtoCommerce.CoreModule.Core.Common;
@@ -36,10 +39,10 @@ using VirtoCommerce.XCart.Data.Services;
 namespace VirtoCommerce.XCart.Benchmark;
 
 /// <summary>
-/// Shared fixture builders for the XCart benchmarks. The single design rule here mirrors the
-/// L1 mock boundary: everything that does I/O is a mock, everything that is pure compute runs for
-/// real. In particular the totals calculator is the real <see cref="DefaultShoppingCartTotalsCalculator"/>
-/// — mocking it (as some legacy benchmarks did) measures an almost-empty <c>RecalculateAsync</c>.
+/// Shared fixture builders for the XCart benchmarks. The single design rule: everything that does
+/// I/O is a mock, everything that is pure compute runs for real. In particular the totals calculator
+/// is the real <see cref="DefaultShoppingCartTotalsCalculator"/> — mocking it measures an
+/// almost-empty <c>RecalculateAsync</c>.
 /// </summary>
 internal static class CartBenchmarkFixtures
 {
@@ -75,6 +78,13 @@ internal static class CartBenchmarkFixtures
             .Setup(x => x.EvaluatePromotionAsync(It.IsAny<PromotionEvaluationContext>()))
             .ReturnsAsync(new PromotionResult());
 
+        // AddConfiguredItemAsync validates the configured line item; a loose mock would return a
+        // null ValidationResult and NRE. Return a passing result.
+        var configurationItemValidator = new Mock<IConfigurationItemValidator>();
+        configurationItemValidator
+            .Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ValidationResult());
+
         return new CartAggregate(
             marketingEvaluator.Object,
             totalsCalculator,
@@ -84,7 +94,7 @@ internal static class CartBenchmarkFixtures
             mapper,
             Mock.Of<IMemberService>(),
             Mock.Of<IGenericPipelineLauncher>(), // Execute returns Task → loose mock yields Task.CompletedTask
-            Mock.Of<IConfigurationItemValidator>(),
+            configurationItemValidator.Object,
             Mock.Of<IFileUploadService>(),
             Mock.Of<ICartSharingService>(),
             Mock.Of<ICartValidationContextFactory>());
@@ -180,10 +190,15 @@ internal static class CartBenchmarkFixtures
     /// Builds the real <see cref="AddCartItemsCommandHandler"/> over a real
     /// <see cref="CartAggregateRepository"/> with every I/O leaf mocked. The search service returns
     /// no carts, so each <c>Handle</c> takes the create-new-cart path (empty CartId) and builds a
-    /// fresh aggregate — the benchmark stays idempotent across invocations (no item accumulation),
-    /// and the empty-Id cart skips the aggregate cache entirely.
+    /// fresh aggregate — the benchmark stays free of cross-invocation item accumulation, and the
+    /// empty-Id cart skips the aggregate cache entirely.
+    ///
+    /// <paramref name="shape"/> selects the add path: <see cref="CartShape.Flat"/> exercises the
+    /// plain <c>AddItemAsync</c> branch; <see cref="CartShape.Configured"/> makes the product-
+    /// configuration search return a config per product so the handler routes through the
+    /// <c>CreateConfiguredLineItem</c> mediator send + <c>AddConfiguredItemAsync</c> branch.
     /// </summary>
-    public static AddCartItemsCommandHandler CreateAddCartItemsHandler()
+    public static AddCartItemsCommandHandler CreateAddCartItemsHandler(CartShape shape)
     {
         var mapper = CreateMapper();
 
@@ -220,21 +235,63 @@ internal static class CartBenchmarkFixtures
             platformMemoryCache: Mock.Of<IPlatformMemoryCache>(),  // never hit — empty-Id carts skip the cache
             fileUploadService: Mock.Of<IFileUploadService>());
 
-        // Empty config search → no active product-configuration → flat-SKU branch (AddItemAsync).
         var configurationSearchService = new Mock<IProductConfigurationSearchService>();
-        configurationSearchService
-            .Setup(x => x.SearchAsync(It.IsAny<ProductConfigurationSearchCriteria>(), It.IsAny<bool>()))
-            .ReturnsAsync(new ProductConfigurationSearchResult());
+        var mediator = new Mock<IMediator>();
+
+        if (shape == CartShape.Configured)
+        {
+            // A config per requested product → handler takes the configured branch for every item.
+            configurationSearchService
+                .Setup(x => x.SearchAsync(It.IsAny<ProductConfigurationSearchCriteria>(), It.IsAny<bool>()))
+                .ReturnsAsync((ProductConfigurationSearchCriteria criteria, bool _) =>
+                {
+                    var results = (criteria.ProductIds ?? [])
+                        .Select(productId => new ProductConfiguration { ProductId = productId })
+                        .ToList();
+                    return new ProductConfigurationSearchResult { Results = results, TotalCount = results.Count };
+                });
+
+            // CreateConfiguredLineItemCommand → a freshly-built configured line item per send
+            // (AddConfiguredItemAsync mutates and adds it to the cart, so it can't be shared).
+            mediator
+                .Setup(x => x.Send(It.IsAny<CreateConfiguredLineItemCommand>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync((CreateConfiguredLineItemCommand command, CancellationToken _) =>
+                    new ExpConfigurationLineItem { Item = CreateConfiguredLineItem(command.ConfigurableProductId) });
+        }
+        else
+        {
+            // Empty config search → no active product-configuration → flat-SKU branch (AddItemAsync).
+            configurationSearchService
+                .Setup(x => x.SearchAsync(It.IsAny<ProductConfigurationSearchCriteria>(), It.IsAny<bool>()))
+                .ReturnsAsync(new ProductConfigurationSearchResult());
+        }
 
         return new AddCartItemsCommandHandler(
             repository,
             cartProductService.Object,
-            Mock.Of<IMediator>(), // only reached on the configured branch, which flat-SKU never takes
+            mediator.Object,
             configurationSearchService.Object);
     }
 
+    /// <summary>A configured line item as the CreateConfiguredLineItem mediator response would
+    /// return it — IsConfigured with a priced configuration-item set. AddConfiguredItemAsync sets
+    /// Id/Quantity/SelectedForCheckout itself.</summary>
+    private static LineItem CreateConfiguredLineItem(string productId) =>
+        new()
+        {
+            ProductId = productId,
+            CatalogId = "catalog",
+            Sku = $"SKU-{productId}",
+            Name = $"Product {productId}",
+            Currency = Currency.Code,
+            ListPrice = 10m,
+            SalePrice = 9m,
+            IsConfigured = true,
+            ConfigurationItems = CreateConfigurationItems(0),
+        };
+
     /// <summary>
-    /// A flat-SKU <c>addCartItems</c> command of <paramref name="itemCount"/> items with no CartId
+    /// An <c>addCartItems</c> command of <paramref name="itemCount"/> items with no CartId
     /// (create-new path). The count is the bulk dimension: 1 = single add, &gt;1 = bulk.
     /// </summary>
     public static AddCartItemsCommand CreateAddCartItemsCommand(int itemCount) =>

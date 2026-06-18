@@ -8,16 +8,14 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// <summary>
 /// Standalone microbenchmark of <see cref="CartAggregate.RecalculateAsync"/> — the cart hot path
 /// (fires on every read via the aggregate cache and inside every mutation's save) run against the
-/// <b>real</b> <c>DefaultShoppingCartTotalsCalculator</c>. This is the finest-grained gate for
-/// totals-math allocation/throughput regressions.
+/// <b>real</b> <c>DefaultShoppingCartTotalsCalculator</c>. The finest-grained probe for totals-math
+/// allocation/throughput regressions.
 ///
 /// No method-level baseline: the operations are not alternatives, so a within-run <c>Ratio</c>
-/// would compare nothing. The comparison axes are <b>scale</b> (the count param rows) and
-/// <b>before/after</b> a change (see README). The count axis includes 100 as the superlinearity
-/// canary — RecalculateAsync is one of the operations where O(n²) is plausible.
+/// would compare nothing. Read the <c>Allocated</c> column across the count/shape rows (scale) and
+/// before/after a change. The count axis includes 100 to surface super-linear (O(n²)) growth.
 /// </summary>
 [MemoryDiagnoser]
-[BenchmarkCategory(BenchmarkCategories.Tier1)]
 public class RecalculateAsyncBenchmarks
 {
     private CartAggregate _aggregate = null!;

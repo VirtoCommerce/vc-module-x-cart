@@ -9,21 +9,23 @@ namespace VirtoCommerce.XCart.Benchmark;
 
 /// <summary>
 /// Command-level microbenchmark of the <c>addCartItems</c> GraphQL mutation
-/// (<see cref="AddCartItemsCommandHandler.Handle"/>) — the operation a developer ships. The whole
-/// real graph runs (handler → real <c>CartAggregateRepository</c> → add dispatch → real
-/// <c>RecalculateAsync</c> with the real totals calculator); only the I/O leaves are mocked, and
-/// the DB write is a no-op so the save still recalculates.
+/// (<see cref="AddCartItemsCommandHandler.Handle"/>). The whole real graph runs (handler → real
+/// <c>CartAggregateRepository</c> → add dispatch → real <c>RecalculateAsync</c> with the real
+/// totals calculator); only the I/O leaves are mocked, and the DB write is a no-op so the save
+/// still recalculates.
 ///
-/// Flat-SKU only here (Tier 1). The item count is the <b>bulk</b> dimension: 1 = single add,
-/// 5/20/100 = bulk — it drives the per-item dispatch loop, the product/config batch dedup, and the
-/// recalculate over the growing cart. 100 is the superlinearity canary. Configured / mixed shapes
-/// are Tier 2 (separate change).
-///
-/// No method-level baseline: this is a single operation, not an A/B. Compare across the count rows
-/// (scale) and before/after a change (see README).
+/// Two axes:
+/// <list type="bullet">
+/// <item><b>Shape</b> — <c>Flat</c> exercises the plain per-item add; <c>Configured</c> routes
+/// every item through the configured-product dispatch (a distinct, heavier handler branch).</item>
+/// <item><b>Item count</b> — the bulk dimension: 1 = single add, 5/20/100 = bulk; drives the
+/// per-item dispatch loop, the product/config batch dedup, and the recalculate over the growing
+/// cart. 100 surfaces super-linear growth.</item>
+/// </list>
+/// Read the <c>Allocated</c> column across the rows (and before/after a change); the operations are
+/// not alternatives, so there is no in-run baseline.
 /// </summary>
 [MemoryDiagnoser]
-[BenchmarkCategory(BenchmarkCategories.Tier1)]
 public class AddCartItemsBenchmarks
 {
     private AddCartItemsCommandHandler _handler = null!;
@@ -32,15 +34,18 @@ public class AddCartItemsBenchmarks
     [Params(1, 5, 20, 100)]
     public int ItemCount { get; set; }
 
+    [Params(CartShape.Flat, CartShape.Configured)]
+    public CartShape Shape { get; set; }
+
     [GlobalSetup]
     public void Setup()
     {
-        _handler = CartBenchmarkFixtures.CreateAddCartItemsHandler();
+        _handler = CartBenchmarkFixtures.CreateAddCartItemsHandler(Shape);
         _command = CartBenchmarkFixtures.CreateAddCartItemsCommand(ItemCount);
     }
 
     // Each invocation creates its own fresh cart (the search returns none → create-new path), so
-    // adds never accumulate across invocations — the benchmark is idempotent without [IterationSetup].
+    // adds never accumulate across invocations — no [IterationSetup] reset needed.
     [Benchmark]
     public Task<CartAggregate> AddCartItems() => _handler.Handle(_command, CancellationToken.None);
 }
