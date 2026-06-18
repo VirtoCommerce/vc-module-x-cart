@@ -158,10 +158,12 @@ internal static class CartBenchmarkFixtures
         };
     }
 
-    private static List<ConfigurationItem> CreateConfigurationItems(int lineItemIndex)
+    /// <summary>Three priced variation items per configured line item — the configured-shape graph
+    /// reused by every cluster's fixtures.</summary>
+    public static List<ConfigurationItem> CreateConfigurationItems(int lineItemIndex)
     {
-        // Three priced variation items per configured line item — enough object graph to make the
-        // configured shape diverge from flat without modelling a full LEO design→garment tree.
+        // Enough object graph to make the configured shape diverge from flat without modelling a
+        // full LEO design→garment tree.
         return Enumerable.Range(0, 3).Select(v => new ConfigurationItem
         {
             Id = $"ci-{lineItemIndex}-{v}",
@@ -177,7 +179,9 @@ internal static class CartBenchmarkFixtures
     public static IMapper CreateMapper() =>
         new MapperConfiguration(cfg => cfg.AddProfile<CartMappingProfile>()).CreateMapper();
 
-    private static CartProduct CreateCartProduct(string productId) =>
+    /// <summary>An active/buyable, untracked, priced <see cref="CartProduct"/> — the success-path
+    /// product shape reused across clusters.</summary>
+    public static CartProduct CreateCartProduct(string productId) =>
         // Active + buyable + no inventory tracking so the Strict add-validation rules pass and the
         // item is actually added (an invalid product makes AddItemAsync return early — measuring
         // nothing). A real ProductPrice drives SetLineItemTierPrice on add.
@@ -363,7 +367,7 @@ internal static class CartBenchmarkFixtures
 
     /// <summary>The shared product mock: returns one active/buyable priced <see cref="CartProduct"/>
     /// per requested (currency, product) pair, keyed exactly as the aggregate keys them.</summary>
-    private static Mock<ICartProductService> CartProductServiceMock()
+    public static Mock<ICartProductService> CartProductServiceMock()
     {
         var mock = new Mock<ICartProductService>();
         mock.Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string, string)>>()))
@@ -419,7 +423,7 @@ internal static class CartBenchmarkFixtures
 
     /// <summary>Stamps the shared cart context (target cart id + store/currency/culture/user) onto
     /// any <see cref="CartCommand"/> so every mutation command resolves the same loaded cart.</summary>
-    private static T WithCartContext<T>(T command)
+    public static T WithCartContext<T>(T command)
         where T : CartCommand
     {
         command.CartId = "benchmark-cart";
