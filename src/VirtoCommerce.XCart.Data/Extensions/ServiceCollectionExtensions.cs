@@ -83,20 +83,8 @@ namespace VirtoCommerce.XCart.Data.Extensions
 
         /// <summary>
         /// Replaces a single registration identified by both its service type and its concrete
-        /// implementation type, keeping the original lifetime and position in the collection.
-        /// Use it to swap one specific link in a multi-registration service (e.g. replace
-        /// <c>CartValidator2</c> among several <c>ICartValidator&lt;CartValidationContext&gt;</c>
-        /// registrations) without touching the others — unlike <c>Replace</c> (matches the service
-        /// type only, takes the first) or <c>RemoveAll</c> (drops every registration).
+        /// implementation type. Use it to swap one specific link in the CartValidator 
         /// </summary>
-        /// <typeparam name="TService">The registered service type, e.g. ICartValidator&lt;CartValidationContext&gt;.</typeparam>
-        /// <typeparam name="TOldImplementation">The concrete implementation to find and remove.</typeparam>
-        /// <typeparam name="TNewImplementation">The concrete implementation to register in its place.</typeparam>
-        /// <remarks>
-        /// Matches by <see cref="ServiceDescriptor.ImplementationType"/>, so it only works for
-        /// type-based registrations. Factory/instance registrations have no implementation type and
-        /// are skipped. No-op if no matching descriptor is found.
-        /// </remarks>
         public static IServiceCollection ReplaceImplementation<TService, TOldImplementation, TNewImplementation>(
             this IServiceCollection services)
             where TService : class

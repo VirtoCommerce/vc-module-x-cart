@@ -10,11 +10,6 @@ using VirtoCommerce.XCart.Core.Validators;
 
 namespace VirtoCommerce.XCart.Data.Validators;
 
-/// <summary>
-/// Default <see cref="ICartValidatorRegistry"/>. Resolves the validator chain from the ambient
-/// <see cref="IServiceProvider"/> (the cart aggregate's scope), so scoped validators such as the
-/// configuration-item validator and module-supplied validators bind to the right scope.
-/// </summary>
 public class CartValidatorRegistry(IServiceProvider serviceProvider) : ICartValidatorRegistry
 {
     public async Task<IList<ValidationFailure>> ValidateAsync<TContext>(TContext context, Action<ValidationStrategy<TContext>> options = null)
@@ -27,7 +22,7 @@ public class CartValidatorRegistry(IServiceProvider serviceProvider) : ICartVali
 
         foreach (var validator in validators)
         {
-            // Throws here if the caller opted into ThrowOnFailures — chain stops at the first failing link.
+            // Throws here if the caller called ThrowOnFailures(), chain stops at the first failing link.
             var result = options is null
                 ? await validator.ValidateAsync(context)
                 : await validator.ValidateAsync(context, options);

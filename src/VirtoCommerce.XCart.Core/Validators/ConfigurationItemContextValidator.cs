@@ -3,10 +3,7 @@ using FluentValidation;
 namespace VirtoCommerce.XCart.Core.Validators;
 
 /// <summary>
-/// Core link of the configuration validation chain. Adapts the existing
-/// <see cref="IConfigurationItemValidator"/> (which validates a bare LineItem) to the
-/// <see cref="ConfigurationItemValidationContext"/> the chain is keyed by, so the built-in
-/// configuration rules keep running while other modules can append their own links.
+/// Wrapper for the existing IConfigurationItemValidator as a link in the validation chain
 /// </summary>
 public class ConfigurationItemContextValidator : AbstractValidator<ConfigurationItemValidationContext>, ICartValidator<ConfigurationItemValidationContext>
 {

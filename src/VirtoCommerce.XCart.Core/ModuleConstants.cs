@@ -36,8 +36,7 @@ namespace VirtoCommerce.XCart.Core
         }
 
         /// <summary>
-        /// Relative ordering of <see cref="Validators.ICartValidator{TContext}"/> links in the chain.
-        /// Built-in validators use <see cref="Core"/> so they always run before module-supplied extensions.
+        /// Default order for the built-in validators
         /// </summary>
         public static class ValidationOrder
         {

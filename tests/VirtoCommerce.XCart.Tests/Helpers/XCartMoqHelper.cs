@@ -59,9 +59,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         protected readonly Mock<ICartSharingService> _cartSharingService;
         protected readonly Mock<ICartValidationContextFactory> _cartValidationContextFactoryMock;
 
-        // Not a mock on purpose: it runs the real validator chain, mirroring the legacy behavior where
-        // validators were created via AbstractTypeFactory (which couldn't be mocked) and honestly validated.
-        // Only IConfigurationItemValidator stays mocked, exactly as before.
+        // Not a mock on purpose: it runs the real validator chain, as they did when validators were created via AbstractTypeFactory
         protected readonly ICartValidatorRegistry _cartValidatorRegistry;
 
         protected readonly Randomizer Rand = new Randomizer();
@@ -211,10 +209,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         }
 
         /// <summary>
-        /// Builds a real <see cref="CartValidatorRegistry"/> backed by the genuine validator chain,
-        /// so unit tests exercise the actual validators (as they did when validators were created via
-        /// AbstractTypeFactory). Only <see cref="IConfigurationItemValidator"/> is mocked, matching the
-        /// previous test setup.
+        /// Builds a real CartValidatorRegistry so unit tests exercise the actual validators,
+        /// as they did when validators were created via AbstractTypeFactory 
         /// </summary>
         private CartValidatorRegistry BuildCartValidatorRegistry()
         {
