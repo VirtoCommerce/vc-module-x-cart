@@ -26,6 +26,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// recalculation on every call.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Configuration)]
 public class ChangeCartConfigurationItemSelectedBenchmarks
 {
     private ChangeCartConfigurationItemSelectedCommandHandler _handler = null!;

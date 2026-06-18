@@ -26,6 +26,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// not alternatives, so there is no in-run baseline.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Items)]
 public class AddCartItemsBenchmarks
 {
     private AddCartItemsCommandHandler _handler = null!;

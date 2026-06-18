@@ -16,6 +16,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// Configured surfaces configured-product regressions; count surfaces super-linear growth.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Items)]
 public class ChangeCartItemCommentBenchmarks
 {
     private ChangeCartItemCommentCommandHandler _handler = null!;

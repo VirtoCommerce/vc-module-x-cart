@@ -17,6 +17,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// call regardless of wishlist size. A single invocation measures the delete overhead cleanly.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Wishlist)]
 public class RemoveWishlistBenchmarks
 {
     private RemoveWishlistCommandHandler _handler = null!;

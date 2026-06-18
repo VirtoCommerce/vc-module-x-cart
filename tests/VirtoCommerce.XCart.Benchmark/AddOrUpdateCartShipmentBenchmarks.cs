@@ -21,6 +21,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// and cart size — surfaces recalc super-linear growth and configured-product regressions.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Checkout)]
 public class AddOrUpdateCartShipmentBenchmarks
 {
     private AddOrUpdateCartShipmentCommandHandler _handler = null!;

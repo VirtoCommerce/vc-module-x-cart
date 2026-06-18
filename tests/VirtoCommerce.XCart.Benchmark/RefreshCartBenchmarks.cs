@@ -24,6 +24,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// Idempotent without [IterationSetup]: the GetAsync mock returns a fresh cart per call.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.CartState)]
 public class RefreshCartBenchmarks
 {
     private RefreshCartCommandHandler _handler = null!;

@@ -18,6 +18,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// clone. 100 items surfaces super-linear growth in the copy + recalculate loop.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Wishlist)]
 public class CloneWishlistBenchmarks
 {
     private CloneWishlistCommandHandler _handler = null!;

@@ -24,6 +24,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// super-linear growth).
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Queries)]
 public class GetCartBenchmarks
 {
     private GetCartQueryHandler _handler = null!;

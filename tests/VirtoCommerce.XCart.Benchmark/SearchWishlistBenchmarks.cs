@@ -20,6 +20,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// criteria-build + mock-dispatch overhead, establishing a baseline for the search path.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Wishlist)]
 public class SearchWishlistBenchmarks
 {
     private SearchWishlistQueryHandler _handler = null!;

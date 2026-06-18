@@ -19,6 +19,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// the two recalculates.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.SavedForLater)]
 public class MoveToSavedForLaterItemsBenchmarks
 {
     private MoveToSavedForLaterItemsCommandHandler _handler = null!;

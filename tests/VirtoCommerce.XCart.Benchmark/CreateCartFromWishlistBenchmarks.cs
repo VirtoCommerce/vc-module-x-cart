@@ -20,6 +20,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// drives both the source-cart size and the number of items copied.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Wishlist)]
 public class CreateCartFromWishlistBenchmarks
 {
     private CreateCartFromWishlistCommandHandler _handler = null!;

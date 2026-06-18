@@ -16,6 +16,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// Idempotent without [IterationSetup] (fresh cart per call). Flat vs Configured; count axis.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Items)]
 public class ChangeCartItemSelectedBenchmarks
 {
     private ChangeCartItemSelectedCommandHandler _handler = null!;

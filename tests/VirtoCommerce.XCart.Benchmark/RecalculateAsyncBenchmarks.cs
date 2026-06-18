@@ -16,6 +16,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// before/after a change. The count axis includes 100 to surface super-linear (O(n²)) growth.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Recalculate)]
 public class RecalculateAsyncBenchmarks
 {
     private CartAggregate _aggregate = null!;

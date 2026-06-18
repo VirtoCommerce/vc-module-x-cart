@@ -23,6 +23,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// up here) and the cart-size count (100 surfaces super-linear growth).
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Items)]
 public class ChangeCartItemQuantityBenchmarks
 {
     private ChangeCartItemQuantityCommandHandler _handler = null!;

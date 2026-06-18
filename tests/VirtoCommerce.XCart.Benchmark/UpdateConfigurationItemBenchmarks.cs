@@ -23,6 +23,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// update is always applied to the same baseline.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Configuration)]
 public class UpdateConfigurationItemBenchmarks
 {
     private UpdateConfigurationItemCommandHandler _handler = null!;

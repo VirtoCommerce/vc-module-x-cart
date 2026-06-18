@@ -19,6 +19,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// The updater is zero overhead; dominant cost is load+recalc. Idempotent without [IterationSetup].
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.DynamicProperties)]
 public class UpdateCartItemDynamicPropertiesBenchmarks
 {
     private UpdateCartItemDynamicPropertiesCommandHandler _handler = null!;

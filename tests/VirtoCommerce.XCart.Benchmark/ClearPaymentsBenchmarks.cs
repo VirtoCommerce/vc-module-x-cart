@@ -17,6 +17,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// recalc + save recalc) is still the dominant cost. Two axes: shape and cart size.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Checkout)]
 public class ClearPaymentsBenchmarks
 {
     private ClearPaymentsCommandHandler _handler = null!;

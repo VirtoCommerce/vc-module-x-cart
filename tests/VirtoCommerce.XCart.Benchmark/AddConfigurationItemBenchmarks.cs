@@ -23,6 +23,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// and the GetAsync mock returns a fresh cart each time so the added item never accumulates.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Configuration)]
 public class AddConfigurationItemBenchmarks
 {
     private AddConfigurationItemCommandHandler _handler = null!;

@@ -23,6 +23,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// super-linear growth in the recalculate loop).
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Coupon)]
 public class AddCouponBenchmarks
 {
     private AddCouponCommandHandler _handler = null!;

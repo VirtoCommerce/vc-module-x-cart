@@ -22,6 +22,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// configured-product recalc regressions; count surfaces super-linear growth.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Gifts)]
 public class AddGiftItemsBenchmarks
 {
     private AddGiftItemsCommandHandler _handler = null!;

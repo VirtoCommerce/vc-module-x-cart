@@ -30,6 +30,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// Idempotent without [IterationSetup]: the GetAsync mock returns fresh carts per call.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.CartState)]
 public class MergeCartBenchmarks
 {
     private MergeCartCommandHandler _handler = null!;

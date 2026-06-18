@@ -23,6 +23,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// to a cart where <c>ci-0-0</c> is present.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Configuration)]
 public class RemoveConfigurationItemBenchmarks
 {
     private RemoveConfigurationItemCommandHandler _handler = null!;

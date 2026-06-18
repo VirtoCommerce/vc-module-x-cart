@@ -21,6 +21,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// Idempotent without [IterationSetup]: fresh cart per call (no pre-existing address). Two axes.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Checkout)]
 public class AddOrUpdateCartAddressBenchmarks
 {
     private AddOrUpdateCartAddressCommandHandler _handler = null!;

@@ -18,6 +18,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// recalculate cost as a function of wishlist size.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Wishlist)]
 public class GetWishlistBenchmarks
 {
     private GetWishlistQueryHandler _handler = null!;

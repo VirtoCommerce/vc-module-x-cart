@@ -18,6 +18,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// mutation that also handles scope/sharing; the rename-only branch is the common case.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Wishlist)]
 public class ChangeWishlistBenchmarks
 {
     private ChangeWishlistCommandHandler _handler = null!;

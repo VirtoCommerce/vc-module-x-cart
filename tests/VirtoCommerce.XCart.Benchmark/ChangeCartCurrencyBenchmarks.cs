@@ -28,6 +28,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// call, so currency-change never accumulates across invocations.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.CartState)]
 public class ChangeCartCurrencyBenchmarks
 {
     private ChangeCartCurrencyCommandHandler _handler = null!;

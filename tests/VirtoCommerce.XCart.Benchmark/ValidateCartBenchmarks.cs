@@ -31,6 +31,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// not a trivially-short-circuiting empty-product path.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Validation)]
 public class ValidateCartBenchmarks
 {
     private CartAggregate _aggregate = null!;

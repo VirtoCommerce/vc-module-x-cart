@@ -21,6 +21,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// Idempotent without [IterationSetup]: GetAsync mock returns a fresh cart per call.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Checkout)]
 public class RemoveShipmentBenchmarks
 {
     private RemoveShipmentCommandHandler _handler = null!;

@@ -18,6 +18,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// present.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Wishlist)]
 public class RemoveWishlistItemBenchmarks
 {
     private RemoveWishlistItemCommandHandler _handler = null!;

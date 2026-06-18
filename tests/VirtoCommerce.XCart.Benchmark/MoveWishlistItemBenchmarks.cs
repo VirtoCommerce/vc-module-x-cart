@@ -19,6 +19,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// single-cart mutation.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Wishlist)]
 public class MoveWishlistItemBenchmarks
 {
     private MoveWishListItemCommandHandler _handler = null!;

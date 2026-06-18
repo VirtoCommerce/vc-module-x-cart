@@ -16,6 +16,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// surfaces any super-linear growth in the totals calculator.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Wishlist)]
 public class RenameWishlistBenchmarks
 {
     private RenameWishlistCommandHandler _handler = null!;

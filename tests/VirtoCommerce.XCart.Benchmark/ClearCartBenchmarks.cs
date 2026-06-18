@@ -26,6 +26,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// so the clear never accumulates (each invocation starts with a full cart).
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.CartState)]
 public class ClearCartBenchmarks
 {
     private ClearCartCommandHandler _handler = null!;

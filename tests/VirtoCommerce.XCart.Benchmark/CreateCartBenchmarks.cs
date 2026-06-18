@@ -26,6 +26,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// returns empty on every call) so invocations don't accumulate state.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.CartState)]
 public class CreateCartBenchmarks
 {
     private CreateCartCommandHandler _handler = null!;

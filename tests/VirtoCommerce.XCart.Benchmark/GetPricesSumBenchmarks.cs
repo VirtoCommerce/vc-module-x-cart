@@ -24,6 +24,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// copy path fully exercises the item-level compute surface (not a trivially-empty subset).
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Queries)]
 public class GetPricesSumBenchmarks
 {
     private GetPricesSumQueryHandler _handler = null!;

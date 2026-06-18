@@ -19,6 +19,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// the single-item case is the representative path.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Wishlist)]
 public class UpdateWishlistItemsBenchmarks
 {
     private UpdateWishlistItemsCommandHandler _handler = null!;

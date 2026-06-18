@@ -19,6 +19,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// per call so items never accumulate.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Wishlist)]
 public class AddWishlistItemBenchmarks
 {
     private AddWishlistItemCommandHandler _handler = null!;

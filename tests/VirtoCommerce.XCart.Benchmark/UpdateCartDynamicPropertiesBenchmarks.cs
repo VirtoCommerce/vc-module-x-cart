@@ -20,6 +20,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// Flat vs configured and cart count surfaces recalc regressions independently of the updater.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.DynamicProperties)]
 public class UpdateCartDynamicPropertiesBenchmarks
 {
     private UpdateCartDynamicPropertiesCommandHandler _handler = null!;

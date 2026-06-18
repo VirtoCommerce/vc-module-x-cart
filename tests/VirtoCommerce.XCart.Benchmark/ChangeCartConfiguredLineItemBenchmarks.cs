@@ -24,6 +24,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// instance, so the line item replacement is always applied to the same baseline.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Configuration)]
 public class ChangeCartConfiguredLineItemBenchmarks
 {
     private ChangeCartConfiguredLineItemCommandHandler _handler = null!;

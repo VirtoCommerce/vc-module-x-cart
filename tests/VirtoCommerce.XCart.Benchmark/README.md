@@ -12,10 +12,30 @@ and runs, so it is meaningful even when comparing numbers taken at different tim
 
 ## Subjects
 
-| Benchmark | Subject | Harness |
-|---|---|---|
-| `RecalculateAsyncBenchmarks` | `CartAggregate.RecalculateAsync()` — fires on every cart read and inside every mutation's save | aggregate-direct, **real** `DefaultShoppingCartTotalsCalculator` |
-| `AddCartItemsBenchmarks` | `addCartItems` → `AddCartItemsCommandHandler.Handle` (flat + configured shapes, single + bulk via the count axis) | command-level, real handler + real `CartAggregateRepository`, mocked I/O leaves |
+The suite covers the cart module's distinct code paths — one benchmark per distinct handler/query
+logic (single/bulk/all twins are deduped and varied via the count axis instead). Most run both a
+**flat** and a **configured** cart shape, and each over cart sizes `[1, 5, 20, 100]`. Subjects are
+grouped into functional **categories** for selective runs (see [Running](#running)):
+
+| Category | Covers |
+|---|---|
+| `items` | add / change-quantity / change-price / change-comment / change-selected / remove line items |
+| `configuration` | add / update / remove configuration items, change configured line item, config-item selected |
+| `checkout` | add-or-update shipment / payment / address, initialize payment, remove shipment, clear shipments / payments |
+| `cart-state` | change currency, merge, clear, refresh, change PO number, change cart comment, create cart |
+| `coupon` | add / remove coupon, validate coupon |
+| `queries` | `getCart`, `getPricesSum` |
+| `recalculate` | `CartAggregate.RecalculateAsync()` — fires on every cart read and inside every mutation's save |
+| `validation` | cart `validateAsync` (the `validationErrors` field) + `validateCoupon` (cross-tagged) |
+| `gifts` | add gift items, reject gift items |
+| `saved-for-later` | move items to / from the saved-for-later list (real `SavedForLaterListService`) |
+| `dynamic-properties` | update cart / cart-item dynamic properties |
+| `wishlist` | add / create / clone / rename / change / remove / move / update wishlist + items, create cart from wishlist, get / search |
+
+Harness: command/query-level with the real handler, real `CartAggregateRepository`, real
+`DefaultShoppingCartTotalsCalculator`, and only the I/O leaves mocked (`recalculate` is
+aggregate-direct). A benchmark may carry more than one category (e.g. `validateCoupon` is both
+`coupon` and `validation`).
 
 ### What is real vs mocked
 
@@ -45,12 +65,24 @@ dotnet run -c Release -- --filter "*" --job Dry
 # all benchmarks
 dotnet run -c Release -- --filter "*" --noOverwrite > benchmark.log 2>&1
 
-# one class / one method / one shape
+# one class / one method
 dotnet run -c Release -- --filter "*RecalculateAsyncBenchmarks*"
-dotnet run -c Release -- --filter "*AddCartItems*"
+dotnet run -c Release -- --filter "*.AddCartItems"
+
+# a whole functional area, by category (space-separated = OR)
+dotnet run -c Release -- --anyCategories checkout
+dotnet run -c Release -- --anyCategories coupon wishlist
+dotnet run -c Release -- --anyCategories validation   # cart + coupon validation
+
+# discover what exists
+dotnet run -c Release -- --list flat                  # all benchmark names
+dotnet run -c Release -- --list flat --anyCategories checkout
 ```
 
-Results are written to `BenchmarkDotNet.Artifacts/`; read the `*-report-github.md` summary table.
+`--filter` matches globs on the full `Namespace.Class.Method`; `--anyCategories` / `--allCategories`
+match the `[BenchmarkCategory]` tags (defined in `Categories.cs`). Results are written to
+`BenchmarkDotNet.Artifacts/`; read the `*-report-github.md` summary table — the `Categories` column
+shows each row's category.
 
 ## Comparing before/after a change
 

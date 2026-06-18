@@ -28,6 +28,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// never-cache forces a real load every invocation. Two axes: shape and cart size.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Checkout)]
 public class InitializeCartPaymentBenchmarks
 {
     private InitializeCartPaymentCommandHandler _handler = null!;

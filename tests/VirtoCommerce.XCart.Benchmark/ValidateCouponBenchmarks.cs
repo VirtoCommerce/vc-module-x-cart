@@ -22,6 +22,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// super-linear growth in both the load and the clone path.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Coupon, Categories.Validation)]
 public class ValidateCouponBenchmarks
 {
     private ValidateCouponQueryHandler _handler = null!;

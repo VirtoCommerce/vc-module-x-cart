@@ -19,6 +19,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// flat vs configured and cart count axes are the same as other mutation benchmarks.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Gifts)]
 public class RejectGiftCartItemsBenchmarks
 {
     private RejectGiftCartItemsCommandHandler _handler = null!;

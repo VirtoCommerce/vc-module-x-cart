@@ -19,6 +19,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// product references — no configured-item semantics benchmarked here).
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Wishlist)]
 public class CreateWishlistBenchmarks
 {
     private CreateWishlistCommandHandler _handler = null!;

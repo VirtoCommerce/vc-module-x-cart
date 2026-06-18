@@ -16,6 +16,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// regressions; count surfaces super-linear growth.
 /// </summary>
 [MemoryDiagnoser]
+[BenchmarkCategory(Categories.Items)]
 public class RemoveCartItemBenchmarks
 {
     private RemoveCartItemCommandHandler _handler = null!;
