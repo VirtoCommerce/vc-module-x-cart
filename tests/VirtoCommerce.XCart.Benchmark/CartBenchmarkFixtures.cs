@@ -28,7 +28,6 @@ using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.TaxModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Models;
-using VirtoCommerce.Xapi.Core.Pipelines;
 using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
@@ -94,7 +93,10 @@ internal static class CartBenchmarkFixtures
             .Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ValidationResult());
 
-        return new CartAggregate(
+        // The active module setup decides the concrete aggregate (plain CartAggregate upstream, a
+        // heavier subclass for a consuming module) and supplies its own pipeline launcher. The shared
+        // leaves below — real totals calculator, mocked I/O — are identical across modules.
+        var context = new CartAggregateContext(
             marketingEvaluator.Object,
             totalsCalculator,
             Mock.Of<IOptionalDependency<ITaxProviderSearchService>>(), // HasValue defaults to false → tax branch skipped
@@ -102,11 +104,12 @@ internal static class CartBenchmarkFixtures
             Mock.Of<IDynamicPropertyUpdaterService>(),
             mapper,
             Mock.Of<IMemberService>(),
-            Mock.Of<IGenericPipelineLauncher>(), // Execute returns Task → loose mock yields Task.CompletedTask
             configurationItemValidator.Object,
             Mock.Of<IFileUploadService>(),
             Mock.Of<ICartSharingService>(),
             Mock.Of<ICartValidationContextFactory>());
+
+        return BenchmarkEnvironment.Current.CreateAggregate(context);
     }
 
     /// <summary>

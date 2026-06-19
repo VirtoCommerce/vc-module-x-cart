@@ -12,7 +12,6 @@ using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.TaxModule.Core.Services;
-using VirtoCommerce.Xapi.Core.Pipelines;
 using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
@@ -203,7 +202,7 @@ internal static class ReadLoadBenchmarkFixtures
 
         var totalsCalculator = new VirtoCommerce.CartModule.Data.Services.DefaultShoppingCartTotalsCalculator(currencyService.Object);
 
-        return new CartAggregate(
+        var context = new CartAggregateContext(
             marketingEvaluator.Object,
             totalsCalculator,
             Mock.Of<IOptionalDependency<ITaxProviderSearchService>>(),
@@ -211,10 +210,11 @@ internal static class ReadLoadBenchmarkFixtures
             Mock.Of<IDynamicPropertyUpdaterService>(),
             Mock.Of<AutoMapper.IMapper>(),
             Mock.Of<IMemberService>(),
-            Mock.Of<IGenericPipelineLauncher>(),
             configItemValidator.Object,
             Mock.Of<IFileUploadService>(),
             Mock.Of<ICartSharingService>(),
             contextFactory.Object);
+
+        return BenchmarkEnvironment.Current.CreateAggregate(context);
     }
 }
