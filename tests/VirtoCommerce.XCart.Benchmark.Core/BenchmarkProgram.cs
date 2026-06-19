@@ -5,6 +5,7 @@ using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Toolchains;
+using BenchmarkDotNet.Toolchains.InProcess.Emit;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
@@ -21,6 +22,15 @@ public static class BenchmarkProgram
     /// </summary>
     public static void Run(string[] args)
     {
+        // The active module setup registers its AbstractTypeFactory overrides here, in the process
+        // that will execute the benchmarks. This is meaningful only for the in-process toolchain
+        // (where the benchmarks run in THIS process): a consuming module's runner sets
+        // BenchmarkEnvironment.Current before calling Run, so its Leo* overrides are active when the
+        // benchmark methods run. Upstream's setup registers nothing (no-op), and the out-of-process
+        // toolchain runs benchmarks in a child process that never reaches this call — which is fine,
+        // because only the upstream (no-op) setup uses the out-of-process toolchain.
+        BenchmarkEnvironment.Current.RegisterTypes();
+
         // BenchmarkSwitcher forwards CLI args (--filter, --job, --anyCategories, --allCategories, ...)
         // to BenchmarkDotNet. Always pass --filter when running non-interactively to avoid the
         // interactive prompt. The categories column surfaces each benchmark's functional category.
@@ -36,12 +46,48 @@ public static class BenchmarkProgram
         // --smoke runs every case once (Job.Dry) for a fast correctness check. Use this instead of the
         // BDN `--job Dry` CLI preset: a CLI `--job` ADDS a job that uses BDN's DEFAULT toolchain, which
         // cannot locate this library's .csproj (see BenchmarkCoreToolchain) and fails to generate.
-        var (smoke, rest) = ExtractFlag(afterBaseline, "--smoke");
+        var (smoke, afterSmoke) = ExtractFlag(afterBaseline, "--smoke");
 
-        // Every job runs on the Core toolchain, which resolves this library's .csproj deterministically
-        // (BDN's default current-directory search can't find it from a sibling runner exe).
-        var toolchain = BenchmarkCoreToolchain.Instance;
-        var baseJob = smoke ? Job.Dry : Job.Default;
+        // --short runs a bounded job (Job.Short: a few fixed warmup + measurement iterations) for a
+        // fast-but-real measurement. Preferred over the default job for in-process comparison runs:
+        // the default job's adaptive iteration count does not converge in-process on the heavier
+        // cases (it keeps measuring), whereas allocations stabilize within Short's fixed iterations.
+        var (shortJob, afterShort) = ExtractFlag(afterSmoke, "--short");
+
+        // --in-process runs the benchmarks in THIS process (InProcessEmitToolchain) instead of the
+        // out-of-process CsProj toolchain. A consuming module (e.g. LEO) that references this library
+        // as a NuGet package has no .csproj on disk for the out-of-process toolchain to build, and its
+        // BenchmarkEnvironment.Current setup is only visible in-process — so it MUST run in-process.
+        // It is also how an upstream baseline is produced on the SAME toolchain a consumer is locked
+        // into, which is the only way the time numbers are comparable across runs (allocations are
+        // toolchain-robust either way).
+        var (inProcess, rest) = ExtractFlag(afterShort, "--in-process");
+
+        if (inProcess && baselineSrc is not null)
+        {
+            // --baseline-src rebuilds the source from a worktree, which only the out-of-process build
+            // does; in-process runs the already-loaded assemblies. The two are mutually exclusive.
+            throw new ArgumentException("--in-process cannot be combined with --baseline-src (the before/after rebuild requires the out-of-process toolchain).");
+        }
+
+        // In-process: same process, no per-benchmark build. Out-of-process: the Core toolchain resolves
+        // this library's .csproj deterministically (BDN's default current-directory search can't find
+        // it from a sibling runner exe).
+        var toolchain = inProcess ? InProcessEmitToolchain.Instance : BenchmarkCoreToolchain.Instance;
+
+        Job baseJob;
+        if (smoke)
+        {
+            baseJob = Job.Dry;
+        }
+        else if (shortJob)
+        {
+            baseJob = Job.ShortRun;
+        }
+        else
+        {
+            baseJob = Job.Default;
+        }
 
         var config = ManualConfig.Create(DefaultConfig.Instance).AddColumn(CategoriesColumn.Default);
         if (baselineSrc is null)

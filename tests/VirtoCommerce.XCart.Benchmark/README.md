@@ -62,6 +62,11 @@ cd tests/VirtoCommerce.XCart.Benchmark
 # validate first — compiles + executes each case once, no measurement
 dotnet run -c Release -- --filter "*" --smoke
 
+# fast-but-real job — bounded 3 warmup + 3 measurement iterations (Job.ShortRun). Prefer over the
+# default job for quick reads and for in-process runs, where the default job's adaptive iteration
+# count may not converge on heavier cases
+dotnet run -c Release -- --filter "*RecalculateAsync*" --short
+
 # all benchmarks
 dotnet run -c Release -- --filter "*" --noOverwrite > benchmark.log 2>&1
 
@@ -95,10 +100,38 @@ find it from the runner's folder.
 
 Two consequences for the command line:
 
-- **Use `--smoke`, not `--job Dry`, to validate.** `--smoke` runs every case once on the custom
-  toolchain. A BenchmarkDotNet `--job <preset>` (`Dry`/`Short`/...) CLI argument *adds* a job that uses
-  the **default** toolchain, which cannot locate the library project and fails to generate.
-- The default run (no flag) and `--baseline-src` already use the custom toolchain.
+- **Use `--smoke`, not `--job Dry`, to validate; use `--short`, not `--job Short`, for a fast real
+  measurement.** Both run on the custom toolchain. A BenchmarkDotNet `--job <preset>` CLI argument
+  *adds* a job that uses the **default** toolchain, which cannot locate the library project and fails
+  to generate.
+- The default run (no flag), `--smoke`, `--short`, and `--baseline-src` use the custom out-of-process
+  toolchain. **`--in-process`** switches to `InProcessEmitToolchain` (runs the benchmarks in this
+  process, no per-case build) — required when a consuming module runs the benchmarks from a NuGet
+  package (no `.csproj` on disk) and for producing a baseline on the *same* toolchain a consumer is
+  locked into. `--in-process` cannot be combined with `--baseline-src`.
+
+## Comparing a consuming module against upstream (module-agnostic toolchain)
+
+Because the benchmark classes live in the Core library, a consuming module (XOrder, LEO, …) can
+reference Core, install its own `ICartModuleBenchmarkSetup` via `BenchmarkEnvironment.Current`, and run
+the **same** benchmark definitions against its overridden aggregate/types. Run both sides **in-process,
+on the same toolchain**, into separate `--artifacts`, and diff the `Allocated` column (deterministic;
+`Mean` from a short run is noise):
+
+```bash
+# upstream baseline
+dotnet run -c Release -- --filter "*ChangeCartItemQuantity*" --short --in-process --artifacts ./upstream
+# consumer (from its own runner, which sets BenchmarkEnvironment.Current)
+dotnet run -c Release -- --filter "*ChangeCartItemQuantity*" --short --artifacts ./consumer
+```
+
+**Validity rule — compare full operations, not isolated overridden methods.** The seam swaps the
+**aggregate and model types**, not the command handlers. A head-to-head is meaningful only when the
+consumer's override is an alternative implementation of the **same** operation. Isolating a method the
+consumer fully reimplements (e.g. `RecalculateAsync`, where an override may drop promotions or change
+the totals passes) compares two different operations and yields apples-to-oranges deltas. Full
+mutations (`ChangeCartItemQuantity`, `RemoveCartItem`, …) give a realistic overhead signal whose sign
+and magnitude track the cart shape and the recalc share of the operation.
 
 ## Comparing before/after a change
 

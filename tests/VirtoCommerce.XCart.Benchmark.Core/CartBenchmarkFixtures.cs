@@ -47,7 +47,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// is the real <see cref="DefaultShoppingCartTotalsCalculator"/> — mocking it measures an
 /// almost-empty <c>RecalculateAsync</c>.
 /// </summary>
-internal static class CartBenchmarkFixtures
+public static class CartBenchmarkFixtures
 {
     public const string StoreId = "benchmark-store";
 

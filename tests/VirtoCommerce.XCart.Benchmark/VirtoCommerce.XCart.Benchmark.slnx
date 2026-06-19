@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="../../src/VirtoCommerce.XCart.Core/VirtoCommerce.XCart.Core.csproj" />
   <Project Path="../../src/VirtoCommerce.XCart.Data/VirtoCommerce.XCart.Data.csproj" />
+  <Project Path="../VirtoCommerce.XCart.Benchmark.Core/VirtoCommerce.XCart.Benchmark.Core.csproj" />
   <Project Path="VirtoCommerce.XCart.Benchmark.csproj" />
 </Solution>
