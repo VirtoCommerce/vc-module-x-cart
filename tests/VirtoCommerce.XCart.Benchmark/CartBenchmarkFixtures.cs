@@ -22,6 +22,7 @@ using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.MarketingModule.Core.Services;
 using VirtoCommerce.Platform.Core.Caching;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
@@ -121,19 +122,17 @@ internal static class CartBenchmarkFixtures
 
         for (var i = 0; i < lineItemCount; i++)
         {
-            var item = new LineItem
-            {
-                Id = $"li-{i}",
-                ProductId = $"product-{i}",
-                CatalogId = "catalog",
-                Sku = $"SKU-{i}",
-                Name = $"Product {i}",
-                Currency = Currency.Code,
-                Quantity = 2,
-                ListPrice = 10m,
-                SalePrice = 9m,
-                SelectedForCheckout = true,
-            };
+            var item = AbstractTypeFactory<LineItem>.TryCreateInstance();
+            item.Id = $"li-{i}";
+            item.ProductId = $"product-{i}";
+            item.CatalogId = "catalog";
+            item.Sku = $"SKU-{i}";
+            item.Name = $"Product {i}";
+            item.Currency = Currency.Code;
+            item.Quantity = 2;
+            item.ListPrice = 10m;
+            item.SalePrice = 9m;
+            item.SelectedForCheckout = true;
 
             if (shape == CartShape.Configured)
             {
@@ -144,20 +143,20 @@ internal static class CartBenchmarkFixtures
             items.Add(item);
         }
 
-        return new ShoppingCart
-        {
-            Id = "benchmark-cart",
-            Name = "default",
-            StoreId = StoreId,
-            CustomerId = "benchmark-user",
-            Currency = Currency.Code,
-            LanguageCode = "en-US",
-            Items = items,
-            Shipments = [],
-            Payments = [],
-            Coupons = [], // a real cart's Coupons collection is never null — coupon mutations call .Any()/.Remove() on it
-            Addresses = [], // likewise: ClearAsync/address handlers call .Clear()/LINQ on Addresses
-        };
+        var cart = AbstractTypeFactory<ShoppingCart>.TryCreateInstance();
+        cart.Id = "benchmark-cart";
+        cart.Name = "default";
+        cart.StoreId = StoreId;
+        cart.CustomerId = "benchmark-user";
+        cart.Currency = Currency.Code;
+        cart.LanguageCode = "en-US";
+        cart.Items = items;
+        cart.Shipments = [];
+        cart.Payments = [];
+        cart.Coupons = []; // a real cart's Coupons collection is never null — coupon mutations call .Any()/.Remove() on it
+        cart.Addresses = []; // likewise: ClearAsync/address handlers call .Clear()/LINQ on Addresses
+
+        return cart;
     }
 
     /// <summary>Three priced variation items per configured line item — the configured-shape graph
@@ -166,12 +165,14 @@ internal static class CartBenchmarkFixtures
     {
         // Enough object graph to make the configured shape diverge from flat without modelling a
         // full LEO design→garment tree.
-        return Enumerable.Range(0, 3).Select(v => new ConfigurationItem
+        return Enumerable.Range(0, 3).Select(v =>
         {
-            Id = $"ci-{lineItemIndex}-{v}",
-            Type = "Variation",
-            ProductId = $"variation-{lineItemIndex}-{v}",
-            Quantity = 1,
+            var item = AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
+            item.Id = $"ci-{lineItemIndex}-{v}";
+            item.Type = "Variation";
+            item.ProductId = $"variation-{lineItemIndex}-{v}";
+            item.Quantity = 1;
+            return item;
         }).ToList();
     }
 
@@ -183,20 +184,21 @@ internal static class CartBenchmarkFixtures
 
     /// <summary>An active/buyable, untracked, priced <see cref="CartProduct"/> — the success-path
     /// product shape reused across clusters.</summary>
-    public static CartProduct CreateCartProduct(string productId) =>
+    public static CartProduct CreateCartProduct(string productId)
+    {
         // Active + buyable + no inventory tracking so the Strict add-validation rules pass and the
         // item is actually added (an invalid product makes AddItemAsync return early — measuring
         // nothing). A real ProductPrice drives SetLineItemTierPrice on add.
-        new(new CatalogProduct
-        {
-            Id = productId,
-            CatalogId = "catalog",
-            Code = $"SKU-{productId}",
-            Name = $"Product {productId}",
-            IsActive = true,
-            IsBuyable = true,
-            TrackInventory = false,
-        })
+        var product = AbstractTypeFactory<CatalogProduct>.TryCreateInstance();
+        product.Id = productId;
+        product.CatalogId = "catalog";
+        product.Code = $"SKU-{productId}";
+        product.Name = $"Product {productId}";
+        product.IsActive = true;
+        product.IsBuyable = true;
+        product.TrackInventory = false;
+
+        return new CartProduct(product)
         {
             Price = new ProductPrice(Currency)
             {
@@ -204,6 +206,7 @@ internal static class CartBenchmarkFixtures
                 SalePrice = new Money(9m, Currency),
             },
         };
+    }
 
     /// <summary>
     /// Builds the real <see cref="AddCartItemsCommandHandler"/> over a real
@@ -295,19 +298,21 @@ internal static class CartBenchmarkFixtures
     /// <summary>A configured line item as the CreateConfiguredLineItem mediator response would
     /// return it — IsConfigured with a priced configuration-item set. AddConfiguredItemAsync sets
     /// Id/Quantity/SelectedForCheckout itself.</summary>
-    private static LineItem CreateConfiguredLineItem(string productId) =>
-        new()
-        {
-            ProductId = productId,
-            CatalogId = "catalog",
-            Sku = $"SKU-{productId}",
-            Name = $"Product {productId}",
-            Currency = Currency.Code,
-            ListPrice = 10m,
-            SalePrice = 9m,
-            IsConfigured = true,
-            ConfigurationItems = CreateConfigurationItems(0),
-        };
+    private static LineItem CreateConfiguredLineItem(string productId)
+    {
+        var item = AbstractTypeFactory<LineItem>.TryCreateInstance();
+        item.ProductId = productId;
+        item.CatalogId = "catalog";
+        item.Sku = $"SKU-{productId}";
+        item.Name = $"Product {productId}";
+        item.Currency = Currency.Code;
+        item.ListPrice = 10m;
+        item.SalePrice = 9m;
+        item.IsConfigured = true;
+        item.ConfigurationItems = CreateConfigurationItems(0);
+
+        return item;
+    }
 
     /// <summary>
     /// An <c>addCartItems</c> command of <paramref name="itemCount"/> items with no CartId

@@ -18,6 +18,7 @@ using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Core.Caching;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.SearchModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Models;
@@ -94,35 +95,34 @@ internal static class WishlistBenchmarkFixtures
 
         for (var i = 0; i < lineItemCount; i++)
         {
-            items.Add(new LineItem
-            {
-                Id = $"li-{i}",
-                ProductId = $"product-{i}",
-                CatalogId = "catalog",
-                Sku = $"SKU-{i}",
-                Name = $"Product {i}",
-                Currency = CartBenchmarkFixtures.Currency.Code,
-                Quantity = 1,
-                ListPrice = 10m,
-                SalePrice = 9m,
-                SelectedForCheckout = true,
-            });
+            var item = AbstractTypeFactory<LineItem>.TryCreateInstance();
+            item.Id = $"li-{i}";
+            item.ProductId = $"product-{i}";
+            item.CatalogId = "catalog";
+            item.Sku = $"SKU-{i}";
+            item.Name = $"Product {i}";
+            item.Currency = CartBenchmarkFixtures.Currency.Code;
+            item.Quantity = 1;
+            item.ListPrice = 10m;
+            item.SalePrice = 9m;
+            item.SelectedForCheckout = true;
+            items.Add(item);
         }
 
-        return new ShoppingCart
-        {
-            Id = WishlistId,
-            Name = WishlistName,
-            StoreId = CartBenchmarkFixtures.StoreId,
-            CustomerId = "benchmark-user",
-            Currency = CartBenchmarkFixtures.Currency.Code,
-            LanguageCode = "en-US",
-            Type = "Wishlist",
-            Items = items,
-            Shipments = [],
-            Payments = [],
-            Coupons = [],
-        };
+        var cart = AbstractTypeFactory<ShoppingCart>.TryCreateInstance();
+        cart.Id = WishlistId;
+        cart.Name = WishlistName;
+        cart.StoreId = CartBenchmarkFixtures.StoreId;
+        cart.CustomerId = "benchmark-user";
+        cart.Currency = CartBenchmarkFixtures.Currency.Code;
+        cart.LanguageCode = "en-US";
+        cart.Type = "Wishlist";
+        cart.Items = items;
+        cart.Shipments = [];
+        cart.Payments = [];
+        cart.Coupons = [];
+
+        return cart;
     }
 
     // ── WishlistUserContext helper ────────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ using System.Threading;
 using MediatR;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Data.Commands;
@@ -49,12 +50,7 @@ internal static class ConfigurationBenchmarkFixtures
         CartBenchmarkFixtures.WithCartContext(new AddConfigurationItemCommand
         {
             LineItemId = "li-0",
-            ConfigurationSection = new ProductConfigurationSection
-            {
-                SectionId = "s-add",
-                Type = "Variation",
-                Option = new ConfigurableProductOption { ProductId = "variation-0-0", Quantity = 1 },
-            },
+            ConfigurationSection = CreateVariationSection("s-add", quantity: 1),
         });
 
     // ── UpdateConfigurationItem ───────────────────────────────────────────────────────────────────
@@ -76,12 +72,7 @@ internal static class ConfigurationBenchmarkFixtures
         CartBenchmarkFixtures.WithCartContext(new UpdateConfigurationItemCommand
         {
             LineItemId = "li-0",
-            ConfigurationSection = new ProductConfigurationSection
-            {
-                SectionId = null,
-                Type = "Variation",
-                Option = new ConfigurableProductOption { ProductId = "variation-0-0", Quantity = 2 },
-            },
+            ConfigurationSection = CreateVariationSection(sectionId: null, quantity: 2),
         });
 
     // ── RemoveConfigurationItem ───────────────────────────────────────────────────────────────────
@@ -101,12 +92,7 @@ internal static class ConfigurationBenchmarkFixtures
         CartBenchmarkFixtures.WithCartContext(new RemoveConfigurationItemCommand
         {
             LineItemId = "li-0",
-            ConfigurationSection = new ProductConfigurationSection
-            {
-                SectionId = null,
-                Type = "Variation",
-                Option = new ConfigurableProductOption { ProductId = "variation-0-0", Quantity = 1 },
-            },
+            ConfigurationSection = CreateVariationSection(sectionId: null, quantity: 1),
         });
 
     // ── ChangeCartConfiguredLineItem ──────────────────────────────────────────────────────────────
@@ -136,18 +122,17 @@ internal static class ConfigurationBenchmarkFixtures
         mediator
             .Setup(x => x.Send(It.IsAny<CreateConfiguredLineItemCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((CreateConfiguredLineItemCommand command, CancellationToken _) =>
-                new ExpConfigurationLineItem
-                {
-                    Item = new LineItem
-                    {
-                        ProductId = command.ConfigurableProductId,
-                        CatalogId = "catalog",
-                        Sku = $"SKU-{command.ConfigurableProductId}",
-                        Currency = CartBenchmarkFixtures.Currency.Code,
-                        IsConfigured = true,
-                        ConfigurationItems = CartBenchmarkFixtures.CreateConfigurationItems(0),
-                    },
-                });
+            {
+                var item = AbstractTypeFactory<LineItem>.TryCreateInstance();
+                item.ProductId = command.ConfigurableProductId;
+                item.CatalogId = "catalog";
+                item.Sku = $"SKU-{command.ConfigurableProductId}";
+                item.Currency = CartBenchmarkFixtures.Currency.Code;
+                item.IsConfigured = true;
+                item.ConfigurationItems = CartBenchmarkFixtures.CreateConfigurationItems(0);
+
+                return new ExpConfigurationLineItem { Item = item };
+            });
 
         return new ChangeCartConfiguredLineItemCommandHandler(harness.Repository, mediator.Object);
     }
@@ -165,15 +150,7 @@ internal static class ConfigurationBenchmarkFixtures
         {
             LineItemId = "li-0",
             Quantity = 3,
-            ConfigurationSections = new List<ProductConfigurationSection>
-            {
-                new()
-                {
-                    SectionId = null,
-                    Type = "Variation",
-                    Option = new ConfigurableProductOption { ProductId = "variation-0-0", Quantity = 1 },
-                },
-            },
+            ConfigurationSections = [CreateVariationSection(sectionId: null, quantity: 1)],
         });
 
     // ── ChangeCartConfigurationItemSelected ───────────────────────────────────────────────────────
@@ -193,12 +170,23 @@ internal static class ConfigurationBenchmarkFixtures
         CartBenchmarkFixtures.WithCartContext(new ChangeCartConfigurationItemSelectedCommand
         {
             LineItemId = "li-0",
-            ConfigurationSection = new ProductConfigurationSection
-            {
-                SectionId = null,
-                Type = "Variation",
-                Option = new ConfigurableProductOption { ProductId = "variation-0-0", Quantity = 1 },
-            },
+            ConfigurationSection = CreateVariationSection(sectionId: null, quantity: 1),
             SelectedForCheckout = true,
         });
+
+    /// <summary>
+    /// A Variation configuration section targeting <c>variation-0-0</c>, built via
+    /// <see cref="AbstractTypeFactory{T}"/> so a registered <see cref="ProductConfigurationSection"/>
+    /// override flows through the same fixtures. <paramref name="sectionId"/> selects the matching
+    /// target (<c>null</c> hits an existing config item; a distinct id creates a new one).
+    /// </summary>
+    private static ProductConfigurationSection CreateVariationSection(string sectionId, int quantity)
+    {
+        var section = AbstractTypeFactory<ProductConfigurationSection>.TryCreateInstance();
+        section.SectionId = sectionId;
+        section.Type = "Variation";
+        section.Option = new ConfigurableProductOption { ProductId = "variation-0-0", Quantity = quantity };
+
+        return section;
+    }
 }
