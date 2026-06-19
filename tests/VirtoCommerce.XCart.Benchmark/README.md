@@ -60,7 +60,7 @@ the process-cached shared aggregate. These are single-threaded, in-memory measur
 cd tests/VirtoCommerce.XCart.Benchmark
 
 # validate first — compiles + executes each case once, no measurement
-dotnet run -c Release -- --filter "*" --job Dry
+dotnet run -c Release -- --filter "*" --smoke
 
 # all benchmarks
 dotnet run -c Release -- --filter "*" --noOverwrite > benchmark.log 2>&1
@@ -83,6 +83,22 @@ dotnet run -c Release -- --list flat --anyCategories checkout
 match the `[BenchmarkCategory]` tags (defined in `Categories.cs`). Results are written to
 `BenchmarkDotNet.Artifacts/`; read the `*-report-github.md` summary table — the `Categories` column
 shows each row's category.
+
+### Layout and toolchain
+
+The benchmark classes, fixtures, seam, and entry-point plumbing live in the
+`VirtoCommerce.XCart.Benchmark.Core` **library** (so other modules can reference and run the same
+benchmarks under their own setup); this project is a thin runner exe over it. Because the benchmarks
+live in a referenced library, the run uses a custom toolchain (`BenchmarkCoreToolchain`) that resolves
+the library's `.csproj` deterministically — BenchmarkDotNet's default current-directory search can't
+find it from the runner's folder.
+
+Two consequences for the command line:
+
+- **Use `--smoke`, not `--job Dry`, to validate.** `--smoke` runs every case once on the custom
+  toolchain. A BenchmarkDotNet `--job <preset>` (`Dry`/`Short`/...) CLI argument *adds* a job that uses
+  the **default** toolchain, which cannot locate the library project and fails to generate.
+- The default run (no flag) and `--baseline-src` already use the custom toolchain.
 
 ## Comparing before/after a change
 
@@ -119,9 +135,11 @@ A single run's numbers are not a verdict — compare. Two ways:
    of `0.85` on an `after` row means the change allocates ~15% less. Valid only when the change keeps
    the public API these benchmarks call stable (same namespaces and signatures).
 
-   Do **not** add `--job <preset>` here — BDN appends it as a *third* job rather than reconfiguring
-   the before/after pair. `Allocated` / `Alloc Ratio` are the deterministic signal; for a stricter
-   `Mean` comparison (symmetric invocation counts) add `--apples --iterationCount N`.
+   Do **not** add `--job <preset>` here — besides appending an extra job rather than reconfiguring the
+   before/after pair, a CLI `--job` uses the default toolchain that can't resolve the library project
+   (see "Layout and toolchain"). `Allocated` / `Alloc Ratio` are the deterministic signal; for a
+   stricter `Mean` comparison (symmetric invocation counts) add `--apples --iterationCount N`, or
+   `--smoke` for a fast before/after correctness pass.
 
 Allocations catch garbage/GC regressions; the time `Ratio` (in a controlled run) catches pure-CPU
 regressions that allocate nothing — read both.

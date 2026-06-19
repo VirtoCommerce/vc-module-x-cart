@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- Files keep namespace VirtoCommerce.XCart.Benchmark so benchmark full names (and the BDN
+         filter globs) are unchanged after the move out of the runner project. -->
+    <RootNamespace>VirtoCommerce.XCart.Benchmark</RootNamespace>
+    <!-- Packable so consuming modules (XOrder, LEO) can reference the shared fixtures, seam, and
+         benchmark classes via a (local) NuGet feed and run them under their own setup. -->
+    <IsPackable>true</IsPackable>
+    <!-- TreatWarningsAsErrors is inherited from Directory.Build.props (true); this project builds clean. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Version resolved by `dotnet add package BenchmarkDotNet` (latest compatible at scaffold
+         time). Bump via `dotnet add package` rather than hand-editing — keeps current-runtime/CLI
+         support. -->
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <!-- CartModule.Data is NOT referenced by XCart (it only needs CartModule.Core's
+         IShoppingCartTotalsCalculator interface). The benchmark needs the real
+         DefaultShoppingCartTotalsCalculator implementation, so reference Data explicitly,
+         aligned with the CartModule.Core version XCart.Core brings (3.1005.0). -->
+    <PackageReference Include="VirtoCommerce.CartModule.Data" Version="3.1005.0" />
+  </ItemGroup>
+
+  <!-- $(XCartSrc) defaults to the in-repo source. The before/after comparison mode (the Core
+       BenchmarkProgram baseline-src flag) overrides it per BenchmarkDotNet job via
+       /p:XCartSrc=(baseline-worktree)/src, so the "before" job builds XCart.Core/Data from the
+       baseline revision. ProjectReference (not a bare DLL HintPath) is deliberate: the benchmark uses
+       ~16 packages that XCart.Core/Data bring transitively, and only ProjectReference restores that
+       transitive graph. See README "Comparing before/after a change". -->
+  <PropertyGroup>
+    <XCartSrc Condition="'$(XCartSrc)' == ''">..\..\src</XCartSrc>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(XCartSrc)\VirtoCommerce.XCart.Core\VirtoCommerce.XCart.Core.csproj" />
+    <ProjectReference Include="$(XCartSrc)\VirtoCommerce.XCart.Data\VirtoCommerce.XCart.Data.csproj" />
+  </ItemGroup>
+
+</Project>
