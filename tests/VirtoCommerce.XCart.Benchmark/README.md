@@ -63,8 +63,7 @@ cd tests/VirtoCommerce.XCart.Benchmark
 dotnet run -c Release -- --filter "*" --smoke
 
 # fast-but-real job — bounded 3 warmup + 3 measurement iterations (Job.ShortRun). Prefer over the
-# default job for quick reads and for in-process runs, where the default job's adaptive iteration
-# count may not converge on heavier cases
+# default job for quick reads
 dotnet run -c Release -- --filter "*RecalculateAsync*" --short
 
 # all benchmarks
@@ -91,47 +90,49 @@ shows each row's category.
 
 ### Layout and toolchain
 
-The benchmark classes, fixtures, seam, and entry-point plumbing live in the
-`VirtoCommerce.XCart.Benchmark.Core` **library** (so other modules can reference and run the same
-benchmarks under their own setup); this project is a thin runner exe over it. Because the benchmarks
-live in a referenced library, the run uses a custom toolchain (`BenchmarkCoreToolchain`) that resolves
-the library's `.csproj` deterministically — BenchmarkDotNet's default current-directory search can't
-find it from the runner's folder.
+The benchmark **logic** ([Benchmark] methods, [Params], fixtures, the DI host, the module-agnostic
+seam, and entry-point plumbing) lives in the `VirtoCommerce.XCart.Benchmark.Core` **library** as
+abstract `*BenchmarksBase` classes (so other modules can reference and run the same benchmarks under
+their own setup). This project is a thin runner exe over it. The concrete subclasses BenchmarkDotNet
+discovers are **source-generated** into this runner: a single `[assembly: BenchmarkSetup(typeof(...))]`
+in `Program.cs` tells the generator (shipped in the Core package's `analyzers/` folder) which
+`ICartModuleBenchmarkSetup` to bake, and it emits one concrete `*Benchmarks` subclass per Core base.
 
-Two consequences for the command line:
+Because the concrete subclasses live in *this* exe whose `.csproj` filename matches its assembly name,
+the run uses BenchmarkDotNet's **stock out-of-process toolchain** — no custom toolchain, no in-process
+mode, no process-global state. BDN rebuilds this runner's own project for each child process, which
+re-runs the generator, so the baked setup is active there too.
 
-- **Use `--smoke`, not `--job Dry`, to validate; use `--short`, not `--job Short`, for a fast real
-  measurement.** Both run on the custom toolchain. A BenchmarkDotNet `--job <preset>` CLI argument
-  *adds* a job that uses the **default** toolchain, which cannot locate the library project and fails
-  to generate.
-- The default run (no flag), `--smoke`, `--short`, and `--baseline-src` use the custom out-of-process
-  toolchain. **`--in-process`** switches to `InProcessEmitToolchain` (runs the benchmarks in this
-  process, no per-case build) — required when a consuming module runs the benchmarks from a NuGet
-  package (no `.csproj` on disk) and for producing a baseline on the *same* toolchain a consumer is
-  locked into. `--in-process` cannot be combined with `--baseline-src`.
+Use `--smoke` (Job.Dry) to validate and `--short` (Job.ShortRun) for a fast real measurement; a bare
+`--job <preset>` also works since everything is the stock toolchain.
 
-## Comparing a consuming module against upstream (module-agnostic toolchain)
+## Comparing a consuming module against upstream (module-agnostic engine)
 
-Because the benchmark classes live in the Core library, a consuming module (XOrder, LEO, …) can
-reference Core, install its own `ICartModuleBenchmarkSetup` via `BenchmarkEnvironment.Current`, and run
-the **same** benchmark definitions against its overridden aggregate/types. Run both sides **in-process,
-on the same toolchain**, into separate `--artifacts`, and diff the `Allocated` column (deterministic;
-`Mean` from a short run is noise):
+Because the benchmark logic lives in the Core library, a consuming module (XOrder, LEO, …) references
+the Core package, implements `ICartModuleBenchmarkSetup.ConfigureServices` to contribute its own
+registrations (subclassed models via `AbstractTypeFactory`, a heavier aggregate, overridden command
+handlers, extra recalculate middleware), and declares it once via `[assembly: BenchmarkSetup]`. The
+generator (shipped in the Core package) emits the same benchmark definitions into the consumer's runner,
+so the **same** operations run against the consumer's graph. Both sides run out-of-process on the stock
+toolchain — run each into separate `--artifacts` and diff the `Allocated` column (deterministic; `Mean`
+from a short run is noise):
 
 ```bash
-# upstream baseline
-dotnet run -c Release -- --filter "*ChangeCartItemQuantity*" --short --in-process --artifacts ./upstream
-# consumer (from its own runner, which sets BenchmarkEnvironment.Current)
+# upstream baseline (this runner)
+dotnet run -c Release -- --filter "*ChangeCartItemQuantity*" --short --artifacts ./upstream
+# consumer (from its own runner, which declares [assembly: BenchmarkSetup(typeof(ConsumerSetup))])
 dotnet run -c Release -- --filter "*ChangeCartItemQuantity*" --short --artifacts ./consumer
 ```
 
-**Validity rule — compare full operations, not isolated overridden methods.** The seam swaps the
-**aggregate and model types**, not the command handlers. A head-to-head is meaningful only when the
-consumer's override is an alternative implementation of the **same** operation. Isolating a method the
-consumer fully reimplements (e.g. `RecalculateAsync`, where an override may drop promotions or change
-the totals passes) compares two different operations and yields apples-to-oranges deltas. Full
-mutations (`ChangeCartItemQuantity`, `RemoveCartItem`, …) give a realistic overhead signal whose sign
-and magnitude track the cart shape and the recalc share of the operation.
+**Validity rule — compare full operations, not isolated reimplemented methods.** The seam is
+DI-resolved: a consumer's `ConfigureServices` can override the aggregate, the model types, **and the
+command handlers** (`OverrideCommandType` / `UseCommandType().WithCommandHandler()`), so a full
+operation measured here genuinely routes through the consumer's overrides — the overhead signal is real.
+The remaining caveat is *semantic*: isolating a method the consumer fully reimplements with different
+behavior (e.g. `RecalculateAsync`, where an override may drop promotions or change the totals passes)
+compares two different operations and yields apples-to-oranges deltas. Prefer full mutations
+(`ChangeCartItemQuantity`, `RemoveCartItem`, …), whose sign and magnitude track the cart shape and the
+recalc share of the operation.
 
 ## Comparing before/after a change
 
