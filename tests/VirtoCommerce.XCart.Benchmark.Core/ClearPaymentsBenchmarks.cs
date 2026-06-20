@@ -1,28 +1,27 @@
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Data.Commands;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
 /// <summary>
-/// Command-level microbenchmark of the <c>clearPayments</c> GraphQL mutation
-/// (<see cref="ClearPaymentsCommandHandler.Handle"/>): load the cart (real build + recalc),
-/// call <c>ClearPaymentsAsync</c> (sets Payments = []), save (recalc).
+/// Command-level microbenchmark of the <c>clearPayments</c> GraphQL mutation, resolved through
+/// <see cref="IMediator"/>: load the cart (real build + recalc), call <c>ClearPaymentsAsync</c>
+/// (sets Payments = []), save (recalc).
 ///
-/// Same semantics as <see cref="ClearShipmentsBenchmarks"/>: the load + empty-collection-assign +
+/// Same semantics as <see cref="ClearShipmentsBenchmarksBase"/>: the load + empty-collection-assign +
 /// save + recalc cycle is measured on a cart with empty Payments. The full item graph walk (load
 /// recalc + save recalc) is still the dominant cost. Two axes: shape and cart size.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Checkout)]
-public class ClearPaymentsBenchmarks
+public abstract class ClearPaymentsBenchmarksBase : CartBenchmarkBase
 {
-    private ClearPaymentsCommandHandler _handler = null!;
-    private readonly ClearPaymentsCommand _command =
-        CheckoutBenchmarkFixtures.CreateClearPaymentsCommand();
+    private IMediator _mediator = null!;
+    private ClearPaymentsCommand _command = null!;
 
     [Params(1, 5, 20, 100)]
     public int LineItemCount { get; set; }
@@ -31,10 +30,12 @@ public class ClearPaymentsBenchmarks
     public CartShape Shape { get; set; }
 
     [GlobalSetup]
-    public void Setup() =>
-        _handler = CheckoutBenchmarkFixtures.CreateClearPaymentsHandler(LineItemCount, Shape);
+    public void Setup()
+    {
+        _mediator = BuildProvider(LineItemCount, Shape).GetRequiredService<IMediator>();
+        _command = CheckoutBenchmarkFixtures.CreateClearPaymentsCommand();
+    }
 
     [Benchmark]
-    public Task<CartAggregate> ClearPayments() =>
-        _handler.Handle(_command, CancellationToken.None);
+    public Task<CartAggregate> ClearPayments() => _mediator.Send(_command);
 }

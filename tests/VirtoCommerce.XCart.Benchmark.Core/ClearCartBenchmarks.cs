@@ -1,9 +1,9 @@
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Data.Commands;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
@@ -27,10 +27,10 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.CartState)]
-public class ClearCartBenchmarks
+public abstract class ClearCartBenchmarksBase : CartBenchmarkBase
 {
-    private ClearCartCommandHandler _handler = null!;
-    private readonly ClearCartCommand _command = CartStateBenchmarkFixtures.CreateClearCartCommand();
+    private IMediator _mediator = null!;
+    private ClearCartCommand _command = null!;
 
     [Params(1, 5, 20, 100)]
     public int LineItemCount { get; set; }
@@ -39,8 +39,12 @@ public class ClearCartBenchmarks
     public CartShape Shape { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _handler = CartStateBenchmarkFixtures.CreateClearCartHandler(LineItemCount, Shape);
+    public void Setup()
+    {
+        _mediator = BuildProvider(LineItemCount, Shape).GetRequiredService<IMediator>();
+        _command = CartStateBenchmarkFixtures.CreateClearCartCommand();
+    }
 
     [Benchmark]
-    public Task<CartAggregate> ClearCart() => _handler.Handle(_command, CancellationToken.None);
+    public Task<CartAggregate> ClearCart() => _mediator.Send(_command);
 }

@@ -1,18 +1,17 @@
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Data.Commands;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
 /// <summary>
-/// Command-level microbenchmark of the <c>addCartItems</c> GraphQL mutation
-/// (<see cref="AddCartItemsCommandHandler.Handle"/>). The whole real graph runs (handler → real
-/// <c>CartAggregateRepository</c> → add dispatch → real <c>RecalculateAsync</c> with the real
-/// totals calculator); only the I/O leaves are mocked, and the DB write is a no-op so the save
-/// still recalculates.
+/// Command-level microbenchmark of the <c>addCartItems</c> GraphQL mutation, resolved through
+/// <see cref="IMediator"/> so a consuming module's handler override is what runs. The whole real graph
+/// runs (handler → real <c>CartAggregateRepository</c> → add dispatch → real <c>RecalculateAsync</c>);
+/// only the I/O leaves are mocked, and the DB write is a no-op so the save still recalculates.
 ///
 /// Two axes:
 /// <list type="bullet">
@@ -27,9 +26,9 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Items)]
-public class AddCartItemsBenchmarks
+public abstract class AddCartItemsBenchmarksBase : CartBenchmarkBase
 {
-    private AddCartItemsCommandHandler _handler = null!;
+    private IMediator _mediator = null!;
     private AddCartItemsCommand _command = null!;
 
     [Params(1, 5, 20, 100)]
@@ -41,12 +40,11 @@ public class AddCartItemsBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        _handler = CartBenchmarkFixtures.CreateAddCartItemsHandler(Shape);
+        _mediator = BuildProvider(ItemCount, Shape).GetRequiredService<IMediator>();
+        // After BuildProvider so a consumer's OverrideCommandType registration is in effect.
         _command = CartBenchmarkFixtures.CreateAddCartItemsCommand(ItemCount);
     }
 
-    // Each invocation creates its own fresh cart (the search returns none → create-new path), so
-    // adds never accumulate across invocations — no [IterationSetup] reset needed.
     [Benchmark]
-    public Task<CartAggregate> AddCartItems() => _handler.Handle(_command, CancellationToken.None);
+    public Task<CartAggregate> AddCartItems() => _mediator.Send(_command);
 }

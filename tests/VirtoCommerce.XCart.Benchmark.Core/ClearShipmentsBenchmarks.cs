@@ -1,16 +1,16 @@
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Data.Commands;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
 /// <summary>
-/// Command-level microbenchmark of the <c>clearShipments</c> GraphQL mutation
-/// (<see cref="ClearShipmentsCommandHandler.Handle"/>): load the cart (real build + recalc),
-/// call <c>ClearShipmentsAsync</c> (sets Shipments = []), save (recalc).
+/// Command-level microbenchmark of the <c>clearShipments</c> GraphQL mutation, resolved through
+/// <see cref="IMediator"/>: load the cart (real build + recalc), call <c>ClearShipmentsAsync</c>
+/// (sets Shipments = []), save (recalc).
 ///
 /// Measuring on a cart with empty Shipments is valid — the load + empty-collection-assign + save +
 /// recalc cycle is what the benchmark captures regardless of initial shipment count. The measured
@@ -20,11 +20,10 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Checkout)]
-public class ClearShipmentsBenchmarks
+public abstract class ClearShipmentsBenchmarksBase : CartBenchmarkBase
 {
-    private ClearShipmentsCommandHandler _handler = null!;
-    private readonly ClearShipmentsCommand _command =
-        CheckoutBenchmarkFixtures.CreateClearShipmentsCommand();
+    private IMediator _mediator = null!;
+    private ClearShipmentsCommand _command = null!;
 
     [Params(1, 5, 20, 100)]
     public int LineItemCount { get; set; }
@@ -33,10 +32,12 @@ public class ClearShipmentsBenchmarks
     public CartShape Shape { get; set; }
 
     [GlobalSetup]
-    public void Setup() =>
-        _handler = CheckoutBenchmarkFixtures.CreateClearShipmentsHandler(LineItemCount, Shape);
+    public void Setup()
+    {
+        _mediator = BuildProvider(LineItemCount, Shape).GetRequiredService<IMediator>();
+        _command = CheckoutBenchmarkFixtures.CreateClearShipmentsCommand();
+    }
 
     [Benchmark]
-    public Task<CartAggregate> ClearShipments() =>
-        _handler.Handle(_command, CancellationToken.None);
+    public Task<CartAggregate> ClearShipments() => _mediator.Send(_command);
 }

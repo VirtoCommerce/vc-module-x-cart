@@ -8,6 +8,7 @@ using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.Platform.Core.Caching;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Models;
 using VirtoCommerce.XCart.Core;
@@ -76,8 +77,13 @@ internal static class GiftsSavedDynamicBenchmarkFixtures
         new(CartBenchmarkFixtures.CreateMutationHarness(lineItemCount, shape).Repository, AvailGiftsMock().Object);
 
     /// <summary>An <c>addGiftItems</c> command requesting the one available gift by id.</summary>
-    public static AddGiftItemsCommand CreateAddGiftItemsCommand() =>
-        CartBenchmarkFixtures.WithCartContext(new AddGiftItemsCommand { Ids = [GiftId] });
+    public static AddGiftItemsCommand CreateAddGiftItemsCommand()
+    {
+        var command = AbstractTypeFactory<AddGiftItemsCommand>.TryCreateInstance();
+        command.Ids = [GiftId];
+
+        return CartBenchmarkFixtures.WithCartContext(command);
+    }
 
     /// <summary>Real <see cref="RejectGiftCartItemsCommandHandler"/> over the shared mutation harness.</summary>
     public static RejectGiftCartItemsCommandHandler CreateRejectGiftCartItemsHandler(int lineItemCount, CartShape shape) =>
@@ -85,8 +91,13 @@ internal static class GiftsSavedDynamicBenchmarkFixtures
 
     /// <summary>A <c>rejectGiftCartItems</c> command. The loaded cart carries no gift line items, so the
     /// reject scan finds nothing and returns — the success no-op path over the real load+recalc+save.</summary>
-    public static RejectGiftCartItemsCommand CreateRejectGiftCartItemsCommand() =>
-        CartBenchmarkFixtures.WithCartContext(new RejectGiftCartItemsCommand { Ids = [GiftId] });
+    public static RejectGiftCartItemsCommand CreateRejectGiftCartItemsCommand()
+    {
+        var command = AbstractTypeFactory<RejectGiftCartItemsCommand>.TryCreateInstance();
+        command.Ids = [GiftId];
+
+        return CartBenchmarkFixtures.WithCartContext(command);
+    }
 
     // ── SavedForLater (real service) ────────────────────────────────────────────────────────────────
 
@@ -164,7 +175,7 @@ internal static class GiftsSavedDynamicBenchmarkFixtures
 
     public static MoveToSavedForLaterItemsCommand CreateMoveToSavedForLaterCommand()
     {
-        var command = new MoveToSavedForLaterItemsCommand();
+        var command = AbstractTypeFactory<MoveToSavedForLaterItemsCommand>.TryCreateInstance();
         StampMoveContext(command);
 
         return command;
@@ -177,7 +188,7 @@ internal static class GiftsSavedDynamicBenchmarkFixtures
 
     public static MoveFromSavedForLaterItemsCommand CreateMoveFromSavedForLaterCommand()
     {
-        var command = new MoveFromSavedForLaterItemsCommand();
+        var command = AbstractTypeFactory<MoveFromSavedForLaterItemsCommand>.TryCreateInstance();
         StampMoveContext(command);
 
         return command;
@@ -196,21 +207,25 @@ internal static class GiftsSavedDynamicBenchmarkFixtures
     public static UpdateCartDynamicPropertiesCommandHandler CreateUpdateCartDynamicPropertiesHandler(int lineItemCount, CartShape shape) =>
         new(CartBenchmarkFixtures.CreateMutationHarness(lineItemCount, shape).Repository);
 
-    public static UpdateCartDynamicPropertiesCommand CreateUpdateCartDynamicPropertiesCommand() =>
-        CartBenchmarkFixtures.WithCartContext(new UpdateCartDynamicPropertiesCommand
-        {
-            DynamicProperties = CreateDynamicPropertyValues(),
-        });
+    public static UpdateCartDynamicPropertiesCommand CreateUpdateCartDynamicPropertiesCommand()
+    {
+        var command = AbstractTypeFactory<UpdateCartDynamicPropertiesCommand>.TryCreateInstance();
+        command.DynamicProperties = CreateDynamicPropertyValues();
+
+        return CartBenchmarkFixtures.WithCartContext(command);
+    }
 
     /// <summary>Real <see cref="UpdateCartItemDynamicPropertiesCommandHandler"/> over the shared mutation
     /// harness, targeting the first line item (li-0).</summary>
     public static UpdateCartItemDynamicPropertiesCommandHandler CreateUpdateCartItemDynamicPropertiesHandler(int lineItemCount, CartShape shape) =>
         new(CartBenchmarkFixtures.CreateMutationHarness(lineItemCount, shape).Repository);
 
-    public static UpdateCartItemDynamicPropertiesCommand CreateUpdateCartItemDynamicPropertiesCommand() =>
-        CartBenchmarkFixtures.WithCartContext(new UpdateCartItemDynamicPropertiesCommand
-        {
-            LineItemId = "li-0",
-            DynamicProperties = CreateDynamicPropertyValues(),
-        });
+    public static UpdateCartItemDynamicPropertiesCommand CreateUpdateCartItemDynamicPropertiesCommand()
+    {
+        var command = AbstractTypeFactory<UpdateCartItemDynamicPropertiesCommand>.TryCreateInstance();
+        command.LineItemId = "li-0";
+        command.DynamicProperties = CreateDynamicPropertyValues();
+
+        return CartBenchmarkFixtures.WithCartContext(command);
+    }
 }

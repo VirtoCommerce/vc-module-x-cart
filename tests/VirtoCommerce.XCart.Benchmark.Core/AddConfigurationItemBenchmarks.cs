@@ -1,9 +1,9 @@
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Data.Commands;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
@@ -24,10 +24,10 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Configuration)]
-public class AddConfigurationItemBenchmarks
+public abstract class AddConfigurationItemBenchmarksBase : CartBenchmarkBase
 {
-    private AddConfigurationItemCommandHandler _handler = null!;
-    private readonly AddConfigurationItemCommand _command = ConfigurationBenchmarkFixtures.CreateAddConfigurationItemCommand();
+    private IMediator _mediator = null!;
+    private AddConfigurationItemCommand _command = null!;
 
     [Params(1, 5, 20, 100)]
     public int LineItemCount { get; set; }
@@ -36,8 +36,12 @@ public class AddConfigurationItemBenchmarks
     public CartShape Shape { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _handler = ConfigurationBenchmarkFixtures.CreateAddConfigurationItemHandler(LineItemCount);
+    public void Setup()
+    {
+        _mediator = BuildProvider(LineItemCount, Shape).GetRequiredService<IMediator>();
+        _command = ConfigurationBenchmarkFixtures.CreateAddConfigurationItemCommand();
+    }
 
     [Benchmark]
-    public Task<CartAggregate> AddConfigurationItem() => _handler.Handle(_command, CancellationToken.None);
+    public Task<CartAggregate> AddConfigurationItem() => _mediator.Send(_command);
 }

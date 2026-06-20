@@ -1,9 +1,9 @@
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Data.Commands;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
@@ -14,22 +14,26 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// update name, skip scope (no scope → all if-branches in <c>UpdateScopeAsync</c> are skipped),
 /// then save.
 ///
-/// Complements <see cref="RenameWishlistBenchmarks"/>: <c>changeWishlist</c> is the newer
+/// Complements <see cref="RenameWishlistBenchmarksBase"/>: <c>changeWishlist</c> is the newer
 /// mutation that also handles scope/sharing; the rename-only branch is the common case.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Wishlist)]
-public class ChangeWishlistBenchmarks
+public abstract class ChangeWishlistBenchmarksBase : CartBenchmarkBase
 {
-    private ChangeWishlistCommandHandler _handler = null!;
-    private readonly ChangeWishlistCommand _command = WishlistBenchmarkFixtures.CreateChangeWishlistCommand();
+    private IMediator _mediator = null!;
+    private ChangeWishlistCommand _command = null!;
 
     [Params(1, 5, 20, 100)]
     public int LineItemCount { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _handler = WishlistBenchmarkFixtures.CreateChangeWishlistHandler(LineItemCount);
+    public void Setup()
+    {
+        _mediator = BuildProvider(LineItemCount, CartShape.Flat).GetRequiredService<IMediator>();
+        _command = WishlistBenchmarkFixtures.CreateChangeWishlistCommand();
+    }
 
     [Benchmark]
-    public Task<CartAggregate> ChangeWishlist() => _handler.Handle(_command, CancellationToken.None);
+    public Task<CartAggregate> ChangeWishlist() => _mediator.Send(_command);
 }

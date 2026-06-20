@@ -1,9 +1,9 @@
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Data.Commands;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
@@ -20,10 +20,10 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.SavedForLater)]
-public class MoveToSavedForLaterItemsBenchmarks
+public abstract class MoveToSavedForLaterItemsBenchmarksBase : CartBenchmarkBase
 {
-    private MoveToSavedForLaterItemsCommandHandler _handler = null!;
-    private readonly MoveToSavedForLaterItemsCommand _command = GiftsSavedDynamicBenchmarkFixtures.CreateMoveToSavedForLaterCommand();
+    private IMediator _mediator = null!;
+    private MoveToSavedForLaterItemsCommand _command = null!;
 
     [Params(1, 5, 20, 100)]
     public int LineItemCount { get; set; }
@@ -32,8 +32,12 @@ public class MoveToSavedForLaterItemsBenchmarks
     public CartShape Shape { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _handler = GiftsSavedDynamicBenchmarkFixtures.CreateMoveToSavedForLaterHandler(LineItemCount, Shape);
+    public void Setup()
+    {
+        _mediator = BuildProvider(LineItemCount, Shape).GetRequiredService<IMediator>();
+        _command = GiftsSavedDynamicBenchmarkFixtures.CreateMoveToSavedForLaterCommand();
+    }
 
     [Benchmark]
-    public Task<CartAggregateWithList> MoveToSavedForLaterItems() => _handler.Handle(_command, CancellationToken.None);
+    public Task<CartAggregateWithList> MoveToSavedForLaterItems() => _mediator.Send(_command);
 }

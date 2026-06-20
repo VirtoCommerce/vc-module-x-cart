@@ -1,9 +1,9 @@
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Data.Commands;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
@@ -21,10 +21,10 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.DynamicProperties)]
-public class UpdateCartDynamicPropertiesBenchmarks
+public abstract class UpdateCartDynamicPropertiesBenchmarksBase : CartBenchmarkBase
 {
-    private UpdateCartDynamicPropertiesCommandHandler _handler = null!;
-    private readonly UpdateCartDynamicPropertiesCommand _command = GiftsSavedDynamicBenchmarkFixtures.CreateUpdateCartDynamicPropertiesCommand();
+    private IMediator _mediator = null!;
+    private UpdateCartDynamicPropertiesCommand _command = null!;
 
     [Params(1, 5, 20, 100)]
     public int LineItemCount { get; set; }
@@ -33,8 +33,12 @@ public class UpdateCartDynamicPropertiesBenchmarks
     public CartShape Shape { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _handler = GiftsSavedDynamicBenchmarkFixtures.CreateUpdateCartDynamicPropertiesHandler(LineItemCount, Shape);
+    public void Setup()
+    {
+        _mediator = BuildProvider(LineItemCount, Shape).GetRequiredService<IMediator>();
+        _command = GiftsSavedDynamicBenchmarkFixtures.CreateUpdateCartDynamicPropertiesCommand();
+    }
 
     [Benchmark]
-    public Task<CartAggregate> UpdateCartDynamicProperties() => _handler.Handle(_command, CancellationToken.None);
+    public Task<CartAggregate> UpdateCartDynamicProperties() => _mediator.Send(_command);
 }

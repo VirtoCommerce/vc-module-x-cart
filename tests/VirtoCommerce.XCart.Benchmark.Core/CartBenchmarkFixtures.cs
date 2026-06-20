@@ -321,17 +321,22 @@ public static class CartBenchmarkFixtures
     /// An <c>addCartItems</c> command of <paramref name="itemCount"/> items with no CartId
     /// (create-new path). The count is the bulk dimension: 1 = single add, &gt;1 = bulk.
     /// </summary>
-    public static AddCartItemsCommand CreateAddCartItemsCommand(int itemCount) =>
-        new()
-        {
-            StoreId = StoreId,
-            CurrencyCode = Currency.Code,
-            CultureName = "en-US",
-            UserId = "benchmark-user",
-            CartItems = Enumerable.Range(0, itemCount)
-                .Select(i => new NewCartItem($"product-{i}", quantity: 2))
-                .ToArray(),
-        };
+    public static AddCartItemsCommand CreateAddCartItemsCommand(int itemCount)
+    {
+        // Built via the factory (not new) so a consumer's OverrideCommandType<AddCartItemsCommand, …>
+        // yields the consumer's command subtype — MediatR dispatches on the runtime type, so this is
+        // what routes a Send to the overridden handler.
+        var command = AbstractTypeFactory<AddCartItemsCommand>.TryCreateInstance();
+        command.StoreId = StoreId;
+        command.CurrencyCode = Currency.Code;
+        command.CultureName = "en-US";
+        command.UserId = "benchmark-user";
+        command.CartItems = Enumerable.Range(0, itemCount)
+            .Select(i => new NewCartItem($"product-{i}", quantity: 2))
+            .ToArray();
+
+        return command;
+    }
 
     // ── mutate-existing-cart harness ─────────────────────────────────────────────────────────────
     // Mutation handlers (change-quantity, change-price, remove-item, configuration, ...) reach the
@@ -467,8 +472,14 @@ public static class CartBenchmarkFixtures
     /// <summary>A <c>changeCartItemQuantity</c> command targeting the first line item of the loaded
     /// cart (<c>li-0</c>), set to a new non-zero quantity (so it takes the change-quantity path, not
     /// the remove-on-zero path).</summary>
-    public static ChangeCartItemQuantityCommand CreateChangeCartItemQuantityCommand() =>
-        WithCartContext(new ChangeCartItemQuantityCommand { LineItemId = "li-0", Quantity = 5 });
+    public static ChangeCartItemQuantityCommand CreateChangeCartItemQuantityCommand()
+    {
+        var command = AbstractTypeFactory<ChangeCartItemQuantityCommand>.TryCreateInstance();
+        command.LineItemId = "li-0";
+        command.Quantity = 5;
+
+        return WithCartContext(command);
+    }
 
     /// <summary>Real <see cref="ChangeCartItemPriceCommandHandler"/> over the shared mutation harness.</summary>
     public static ChangeCartItemPriceCommandHandler CreateChangeCartItemPriceHandler(int lineItemCount, CartShape shape) =>
@@ -479,8 +490,14 @@ public static class CartBenchmarkFixtures
     /// value differs by shape — flat is 9, but a configured item's price is the sum of its variation
     /// sections (~36 for the 3-variation fixture). The manual price must clear the larger (configured)
     /// value so the success path is measured for both shapes; 100 gives headroom.</summary>
-    public static ChangeCartItemPriceCommand CreateChangeCartItemPriceCommand() =>
-        WithCartContext(new ChangeCartItemPriceCommand { LineItemId = "li-0", Price = 100m });
+    public static ChangeCartItemPriceCommand CreateChangeCartItemPriceCommand()
+    {
+        var command = AbstractTypeFactory<ChangeCartItemPriceCommand>.TryCreateInstance();
+        command.LineItemId = "li-0";
+        command.Price = 100m;
+
+        return WithCartContext(command);
+    }
 
     /// <summary>Real <see cref="ChangeCartItemCommentCommandHandler"/> over the shared mutation harness
     /// (it also needs the product service for its existence check before applying the comment).</summary>
@@ -491,22 +508,39 @@ public static class CartBenchmarkFixtures
     }
 
     /// <summary>A <c>changeCartItemComment</c> command setting a comment on the first line item.</summary>
-    public static ChangeCartItemCommentCommand CreateChangeCartItemCommentCommand() =>
-        WithCartContext(new ChangeCartItemCommentCommand { LineItemId = "li-0", Comment = "benchmark comment" });
+    public static ChangeCartItemCommentCommand CreateChangeCartItemCommentCommand()
+    {
+        var command = AbstractTypeFactory<ChangeCartItemCommentCommand>.TryCreateInstance();
+        command.LineItemId = "li-0";
+        command.Comment = "benchmark comment";
+
+        return WithCartContext(command);
+    }
 
     /// <summary>Real <see cref="ChangeCartItemSelectedCommandHandler"/> over the shared mutation harness.</summary>
     public static ChangeCartItemSelectedCommandHandler CreateChangeCartItemSelectedHandler(int lineItemCount, CartShape shape) =>
         new(CreateMutationHarness(lineItemCount, shape).Repository);
 
     /// <summary>A <c>changeCartItemSelected</c> command toggling the first line item's checkout selection off.</summary>
-    public static ChangeCartItemSelectedCommand CreateChangeCartItemSelectedCommand() =>
-        WithCartContext(new ChangeCartItemSelectedCommand { LineItemId = "li-0", SelectedForCheckout = false });
+    public static ChangeCartItemSelectedCommand CreateChangeCartItemSelectedCommand()
+    {
+        var command = AbstractTypeFactory<ChangeCartItemSelectedCommand>.TryCreateInstance();
+        command.LineItemId = "li-0";
+        command.SelectedForCheckout = false;
+
+        return WithCartContext(command);
+    }
 
     /// <summary>Real <see cref="RemoveCartItemCommandHandler"/> over the shared mutation harness.</summary>
     public static RemoveCartItemCommandHandler CreateRemoveCartItemHandler(int lineItemCount, CartShape shape) =>
         new(CreateMutationHarness(lineItemCount, shape).Repository);
 
     /// <summary>A <c>removeCartItem</c> command removing the first line item of the loaded cart.</summary>
-    public static RemoveCartItemCommand CreateRemoveCartItemCommand() =>
-        WithCartContext(new RemoveCartItemCommand { LineItemId = "li-0" });
+    public static RemoveCartItemCommand CreateRemoveCartItemCommand()
+    {
+        var command = AbstractTypeFactory<RemoveCartItemCommand>.TryCreateInstance();
+        command.LineItemId = "li-0";
+
+        return WithCartContext(command);
+    }
 }

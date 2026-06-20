@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using VirtoCommerce.Xapi.Core.Pipelines;
 using VirtoCommerce.XCart.Core;
@@ -10,7 +11,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// <see cref="CartAggregate"/> with a mocked, no-op pipeline launcher — upstream recalculate runs no
 /// per-item middleware chain.
 /// </summary>
-internal sealed class UpstreamCartBenchmarkSetup : ICartModuleBenchmarkSetup
+public sealed class UpstreamCartBenchmarkSetup : ICartModuleBenchmarkSetup
 {
     public void RegisterTypes()
     {
@@ -32,4 +33,15 @@ internal sealed class UpstreamCartBenchmarkSetup : ICartModuleBenchmarkSetup
             context.FileUploadService,
             context.CartSharingService,
             context.CartValidationContextFactory);
+
+    /// <summary>
+    /// Un-extended XCart: the base <see cref="CartAggregate"/> and a no-op pipeline launcher (upstream
+    /// recalculate runs no per-item middleware chain). No <c>AbstractTypeFactory</c> overrides — the
+    /// factory resolves the base cart-graph models and commands via its fallback.
+    /// </summary>
+    public void ConfigureServices(IServiceCollection services)
+    {
+        services.AddSingleton(Mock.Of<IGenericPipelineLauncher>());
+        services.AddTransient<CartAggregate>();
+    }
 }

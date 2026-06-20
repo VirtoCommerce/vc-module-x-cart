@@ -1,19 +1,18 @@
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Data.Commands;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
 /// <summary>
-/// Command-level microbenchmark of the <c>addCartAddress</c> GraphQL mutation
-/// (<see cref="AddCartAddressCommandHandler.Handle"/>): the upsert-by-address-type path — load the
-/// cart (real build + recalc), find or create an address by AddressType (Shipping), apply the
-/// address, save (recalc).
+/// Command-level microbenchmark of the <c>addCartAddress</c> GraphQL mutation, resolved through
+/// <see cref="IMediator"/>: the upsert-by-address-type path — load the cart (real build + recalc),
+/// find or create an address by AddressType (Shipping), apply the address, save (recalc).
 ///
-/// NOTE: differs from <see cref="AddOrUpdateCartAddressBenchmarks"/> which uses
+/// NOTE: differs from <see cref="AddOrUpdateCartAddressBenchmarksBase"/> which uses
 /// <c>AddOrUpdateCartAddressAsync</c> (match by Key) — <c>AddCartAddressCommandHandler</c> calls
 /// <c>AddOrUpdateCartAddressByTypeAsync</c> instead, exercising a distinct lookup path that replaces
 /// any existing address of the same type rather than matching on the Key field.
@@ -22,11 +21,10 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Checkout)]
-public class AddCartAddressBenchmarks
+public abstract class AddCartAddressBenchmarksBase : CartBenchmarkBase
 {
-    private AddCartAddressCommandHandler _handler = null!;
-    private readonly AddCartAddressCommand _command =
-        CheckoutBenchmarkFixtures.CreateAddCartAddressCommand();
+    private IMediator _mediator = null!;
+    private AddCartAddressCommand _command = null!;
 
     [Params(1, 5, 20, 100)]
     public int LineItemCount { get; set; }
@@ -35,10 +33,12 @@ public class AddCartAddressBenchmarks
     public CartShape Shape { get; set; }
 
     [GlobalSetup]
-    public void Setup() =>
-        _handler = CheckoutBenchmarkFixtures.CreateAddCartAddressHandler(LineItemCount, Shape);
+    public void Setup()
+    {
+        _mediator = BuildProvider(LineItemCount, Shape).GetRequiredService<IMediator>();
+        _command = CheckoutBenchmarkFixtures.CreateAddCartAddressCommand();
+    }
 
     [Benchmark]
-    public Task<CartAggregate> AddCartAddress() =>
-        _handler.Handle(_command, CancellationToken.None);
+    public Task<CartAggregate> AddCartAddress() => _mediator.Send(_command);
 }

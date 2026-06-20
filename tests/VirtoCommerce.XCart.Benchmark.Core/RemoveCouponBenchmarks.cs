@@ -1,27 +1,24 @@
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Data.Commands;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
 /// <summary>
-/// Command-level microbenchmark of the <c>removeCoupon</c> GraphQL mutation
-/// (<see cref="RemoveCouponCommandHandler.Handle"/>): the mutate-existing-cart path — load (real
-/// build + recalc), remove the coupon code from <c>Cart.Coupons</c> (pure list op), save (recalc
-/// again). Only I/O leaves are mocked. Idempotent without [IterationSetup]: the fixture cart has
-/// no coupons so <c>RemoveCouponAsync</c> calls <c>Coupons.Remove(null)</c> (no-op) every
-/// invocation — the recalculate cycle is the dominant cost, not the coupon list op itself. Flat
-/// vs Configured surfaces configured-product regressions; count surfaces super-linear growth.
+/// Command-level microbenchmark of the <c>removeCoupon</c> GraphQL mutation, resolved through
+/// <see cref="IMediator"/>: load (real build + recalc), remove the coupon code from <c>Cart.Coupons</c>
+/// (pure list op), save (recalc again). Only I/O leaves are mocked. Idempotent without [IterationSetup]
+/// (fresh cart per call); the recalculate cycle dominates. Flat vs Configured; count axis.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Coupon)]
-public class RemoveCouponBenchmarks
+public abstract class RemoveCouponBenchmarksBase : CartBenchmarkBase
 {
-    private RemoveCouponCommandHandler _handler = null!;
-    private readonly RemoveCouponCommand _command = CouponBenchmarkFixtures.CreateRemoveCouponCommand();
+    private IMediator _mediator = null!;
+    private RemoveCouponCommand _command = null!;
 
     [Params(1, 5, 20, 100)]
     public int LineItemCount { get; set; }
@@ -30,8 +27,12 @@ public class RemoveCouponBenchmarks
     public CartShape Shape { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _handler = CouponBenchmarkFixtures.CreateRemoveCouponHandler(LineItemCount, Shape);
+    public void Setup()
+    {
+        _mediator = BuildProvider(LineItemCount, Shape).GetRequiredService<IMediator>();
+        _command = CouponBenchmarkFixtures.CreateRemoveCouponCommand();
+    }
 
     [Benchmark]
-    public Task<CartAggregate> RemoveCoupon() => _handler.Handle(_command, CancellationToken.None);
+    public Task<CartAggregate> RemoveCoupon() => _mediator.Send(_command);
 }

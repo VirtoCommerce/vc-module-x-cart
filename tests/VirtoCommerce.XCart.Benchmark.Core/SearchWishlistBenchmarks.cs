@@ -1,9 +1,9 @@
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
-using VirtoCommerce.XCart.Data.Queries;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
@@ -21,14 +21,18 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Wishlist)]
-public class SearchWishlistBenchmarks
+public abstract class SearchWishlistBenchmarksBase : CartBenchmarkBase
 {
-    private SearchWishlistQueryHandler _handler = null!;
-    private readonly SearchWishlistQuery _query = WishlistBenchmarkFixtures.CreateSearchWishlistQuery();
+    private IMediator _mediator = null!;
+    private SearchWishlistQuery _query = null!;
 
     [GlobalSetup]
-    public void Setup() => _handler = WishlistBenchmarkFixtures.CreateSearchWishlistHandler();
+    public void Setup()
+    {
+        _mediator = BuildProvider(0, CartShape.Flat).GetRequiredService<IMediator>();
+        _query = WishlistBenchmarkFixtures.CreateSearchWishlistQuery();
+    }
 
     [Benchmark]
-    public Task<SearchCartResponse> SearchWishlists() => _handler.Handle(_query, CancellationToken.None);
+    public Task<SearchCartResponse> SearchWishlists() => _mediator.Send(_query);
 }

@@ -1,9 +1,9 @@
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Data.Commands;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
@@ -25,10 +25,10 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.CartState)]
-public class ChangePurchaseOrderNumberBenchmarks
+public abstract class ChangePurchaseOrderNumberBenchmarksBase : CartBenchmarkBase
 {
-    private ChangePurchaseOrderNumberCommandHandler _handler = null!;
-    private readonly ChangePurchaseOrderNumberCommand _command = CartStateBenchmarkFixtures.CreateChangePurchaseOrderNumberCommand();
+    private IMediator _mediator = null!;
+    private ChangePurchaseOrderNumberCommand _command = null!;
 
     [Params(1, 5, 20, 100)]
     public int LineItemCount { get; set; }
@@ -37,8 +37,12 @@ public class ChangePurchaseOrderNumberBenchmarks
     public CartShape Shape { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _handler = CartStateBenchmarkFixtures.CreateChangePurchaseOrderNumberHandler(LineItemCount, Shape);
+    public void Setup()
+    {
+        _mediator = BuildProvider(LineItemCount, Shape).GetRequiredService<IMediator>();
+        _command = CartStateBenchmarkFixtures.CreateChangePurchaseOrderNumberCommand();
+    }
 
     [Benchmark]
-    public Task<CartAggregate> ChangePurchaseOrderNumber() => _handler.Handle(_command, CancellationToken.None);
+    public Task<CartAggregate> ChangePurchaseOrderNumber() => _mediator.Send(_command);
 }

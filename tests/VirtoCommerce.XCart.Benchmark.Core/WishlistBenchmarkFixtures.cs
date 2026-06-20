@@ -231,8 +231,13 @@ internal static class WishlistBenchmarkFixtures
 
     /// <summary>A <c>createWishlist</c> command with a valid list name and no scope (private by
     /// default). No CartId so the handler creates a new cart each invocation.</summary>
-    public static CreateWishlistCommand CreateWishlistCommand() =>
-        WithWishlistContext(new CreateWishlistCommand { ListName = WishlistName }, isCreatePath: true);
+    public static CreateWishlistCommand CreateWishlistCommand()
+    {
+        var command = AbstractTypeFactory<CreateWishlistCommand>.TryCreateInstance();
+        command.ListName = WishlistName;
+
+        return WithWishlistContext(command, isCreatePath: true);
+    }
 
     /// <summary>Real <see cref="CloneWishlistCommandHandler"/> — reads source wishlist, creates new.</summary>
     public static CloneWishlistCommandHandler CreateCloneWishlistHandler(int lineItemCount) =>
@@ -244,8 +249,13 @@ internal static class WishlistBenchmarkFixtures
 
     /// <summary>A <c>cloneWishlist</c> command. <c>ListId</c> is the source wishlist id; no
     /// <c>CartId</c> so the handler creates the clone as a new cart.</summary>
-    public static CloneWishlistCommand CreateCloneWishlistCommand() =>
-        WithWishlistContext(new CloneWishlistCommand { ListName = WishlistName + " (clone)" }, isCreatePath: true);
+    public static CloneWishlistCommand CreateCloneWishlistCommand()
+    {
+        var command = AbstractTypeFactory<CloneWishlistCommand>.TryCreateInstance();
+        command.ListName = WishlistName + " (clone)";
+
+        return WithWishlistContext(command, isCreatePath: true);
+    }
 
     /// <summary>
     /// Real <see cref="CreateCartFromWishlistCommandHandler"/> — reads source wishlist then creates a
@@ -256,8 +266,12 @@ internal static class WishlistBenchmarkFixtures
         new(CreateWishlistCreateHarness(lineItemCount));
 
     /// <summary>A <c>createCartFromWishlist</c> command whose source is the fixture wishlist.</summary>
-    public static CreateCartFromWishlistCommand CreateCartFromWishlistCommand() =>
-        WithWishlistContext(new CreateCartFromWishlistCommand(), isCreatePath: true);
+    public static CreateCartFromWishlistCommand CreateCartFromWishlistCommand()
+    {
+        var command = AbstractTypeFactory<CreateCartFromWishlistCommand>.TryCreateInstance();
+
+        return WithWishlistContext(command, isCreatePath: true);
+    }
 
     // ── Handler factories: mutate-existing paths ──────────────────────────────────────────────────
 
@@ -279,8 +293,14 @@ internal static class WishlistBenchmarkFixtures
     }
 
     /// <summary>An <c>addWishlistItem</c> command with a valid product ID and default quantity 1.</summary>
-    public static AddWishlistItemCommand CreateAddWishlistItemCommand() =>
-        WithWishlistContext(new AddWishlistItemCommand { ProductId = WishlistProductId, Quantity = 1 });
+    public static AddWishlistItemCommand CreateAddWishlistItemCommand()
+    {
+        var command = AbstractTypeFactory<AddWishlistItemCommand>.TryCreateInstance();
+        command.ProductId = WishlistProductId;
+        command.Quantity = 1;
+
+        return WithWishlistContext(command);
+    }
 
     /// <summary>Real <see cref="RenameWishlistCommandHandler"/> — loads the wishlist, renames it.</summary>
     public static RenameWishlistCommandHandler CreateRenameWishlistHandler(int lineItemCount) =>
@@ -302,8 +322,14 @@ internal static class WishlistBenchmarkFixtures
 
     /// <summary>A <c>changeWishlist</c> command that renames the list. No scope → private path (no-op
     /// in UpdateScopeAsync — Scope = null skips all branches).</summary>
-    public static ChangeWishlistCommand CreateChangeWishlistCommand() =>
-        WithWishlistContext(new ChangeWishlistCommand { ListName = WishlistName + " (changed)", Scope = null });
+    public static ChangeWishlistCommand CreateChangeWishlistCommand()
+    {
+        var command = AbstractTypeFactory<ChangeWishlistCommand>.TryCreateInstance();
+        command.ListName = WishlistName + " (changed)";
+        command.Scope = null;
+
+        return WithWishlistContext(command);
+    }
 
     /// <summary>Real <see cref="RemoveWishlistCommandHandler"/> — deletes the wishlist by id.</summary>
     public static RemoveWishlistCommandHandler CreateRemoveWishlistHandler() =>
@@ -324,8 +350,13 @@ internal static class WishlistBenchmarkFixtures
     /// <summary>A <c>removeWishlistItem</c> command targeting the first line item. The benchmark
     /// measures the load + remove + recalc path; the harness returns a fresh cart each call so
     /// the item is always present.</summary>
-    public static RemoveWishlistItemCommand CreateRemoveWishlistItemCommand() =>
-        WithWishlistContext(new RemoveWishlistItemCommand { LineItemId = "li-0" });
+    public static RemoveWishlistItemCommand CreateRemoveWishlistItemCommand()
+    {
+        var command = AbstractTypeFactory<RemoveWishlistItemCommand>.TryCreateInstance();
+        command.LineItemId = "li-0";
+
+        return WithWishlistContext(command);
+    }
 
     /// <summary>Real <see cref="MoveWishListItemCommandHandler"/> — loads source + destination wishlists,
     /// moves one item. Both carts are served by the shared harness (a single mock that returns fresh carts
@@ -351,11 +382,13 @@ internal static class WishlistBenchmarkFixtures
     /// The handler loops over the command's Items and calls <c>ChangeItemQuantityAsync</c> per item;
     /// the benchmark covers the single-item update so the item-count axis drives cart size, not
     /// the number of items updated.</summary>
-    public static UpdateWishlistItemsCommand CreateUpdateWishlistItemsCommand() =>
-        WithWishlistContext(new UpdateWishlistItemsCommand
-        {
-            Items = [new WishListItem { LineItemId = "li-0", Quantity = 3 }],
-        });
+    public static UpdateWishlistItemsCommand CreateUpdateWishlistItemsCommand()
+    {
+        var command = AbstractTypeFactory<UpdateWishlistItemsCommand>.TryCreateInstance();
+        command.Items = [new WishListItem { LineItemId = "li-0", Quantity = 3 }];
+
+        return WithWishlistContext(command);
+    }
 
     // ── Query handler factories ───────────────────────────────────────────────────────────────────
 
@@ -365,13 +398,15 @@ internal static class WishlistBenchmarkFixtures
         new(CreateWishlistMutationHarness(lineItemCount).Repository);
 
     /// <summary>A <c>getWishlist</c> query for the fixture wishlist.</summary>
-    public static GetWishlistQuery CreateGetWishlistQuery() =>
-        new()
-        {
-            ListId = WishlistId,
-            CultureName = "en-US",
-            IncludeFields = [],
-        };
+    public static GetWishlistQuery CreateGetWishlistQuery()
+    {
+        var query = AbstractTypeFactory<GetWishlistQuery>.TryCreateInstance();
+        query.ListId = WishlistId;
+        query.CultureName = "en-US";
+        query.IncludeFields = [];
+
+        return query;
+    }
 
     /// <summary>Real <see cref="SearchWishlistQueryHandler"/> — searches carts via
     /// <c>SearchCartAsync</c>. The search service returns an empty result set so the handler
@@ -415,16 +450,18 @@ internal static class WishlistBenchmarkFixtures
     }
 
     /// <summary>A <c>searchWishlists</c> query with minimal required fields.</summary>
-    public static SearchWishlistQuery CreateSearchWishlistQuery() =>
-        new()
-        {
-            StoreId = CartBenchmarkFixtures.StoreId,
-            UserId = "benchmark-user",
-            CurrencyCode = CartBenchmarkFixtures.Currency.Code,
-            CultureName = "en-US",
-            IncludeFields = [],
-            Take = 20,
-        };
+    public static SearchWishlistQuery CreateSearchWishlistQuery()
+    {
+        var query = AbstractTypeFactory<SearchWishlistQuery>.TryCreateInstance();
+        query.StoreId = CartBenchmarkFixtures.StoreId;
+        query.UserId = "benchmark-user";
+        query.CurrencyCode = CartBenchmarkFixtures.Currency.Code;
+        query.CultureName = "en-US";
+        query.IncludeFields = [];
+        query.Take = 20;
+
+        return query;
+    }
 
     // ── Private harness builders ──────────────────────────────────────────────────────────────────
 

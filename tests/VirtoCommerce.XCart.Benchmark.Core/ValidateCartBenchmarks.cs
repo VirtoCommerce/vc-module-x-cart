@@ -1,38 +1,28 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using FluentValidation.Results;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
 /// <summary>
-/// Aggregate-direct microbenchmark of <see cref="CartAggregate.ValidateAsync(string)"/> — the
-/// hot path called by <c>CartType.validationErrors</c> resolver on every full-cart GraphQL
-/// response. The measured compute = build the <see cref="VirtoCommerce.XCart.Core.Validators.CartValidationContext"/>
-/// (via the mocked <see cref="VirtoCommerce.XCart.Core.Validators.ICartValidationContextFactory"/>
-/// → includes the AllCartProducts projection), then run the full
-/// <see cref="VirtoCommerce.XCart.Core.Validators.CartValidator"/> against the
-/// <see cref="ReadLoadBenchmarkFixtures.ItemsRuleSet"/> rule set — exercising per-item
-/// <see cref="VirtoCommerce.XCart.Core.Validators.CartLineItemValidator"/> for every selected line
-/// item. No I/O: the context factory is a mock that returns a synchronously-built context.
+/// Aggregate-direct microbenchmark of <see cref="CartAggregate.ValidateAsync(string)"/> — the hot path
+/// called by <c>CartType.validationErrors</c> on every full-cart GraphQL response. Resolves the concrete
+/// aggregate (base or a consumer's subclass) from <c>Func&lt;CartAggregate&gt;</c>; the validation
+/// benchmark overrides the host's loose <c>ICartValidationContextFactory</c> with a working one (via the
+/// <c>customizeServices</c> hook) so <c>CartValidator</c>'s per-item rules run on real CartProduct data,
+/// measuring the full rule evaluation rather than a short-circuiting empty-product path.
 ///
-/// Idempotent without [IterationSetup]: <see cref="CartAggregate.ValidateAsync(string)"/> caches
-/// results per rule-set in <c>ValidationErrorsByRuleSet</c>. To measure the uncached (real) path
-/// each invocation, the aggregate is reset by clearing the cache between calls.
-///
-/// Two axes: <b>shape</b> (Flat vs Configured — configured items carry a ConfigurationItems list
-/// that <c>ApplyRuleForOrderCreate</c> → <c>ValidateConfiguredLineItems</c> walks) and cart size.
-///
-/// Design note: this is the most involved subject. The context factory mock supplies live
-/// CartProduct instances (active/buyable/priced) built from the aggregate's own line items so the
-/// <c>CartLineItemValidator</c>'s buyability, availability, and quantity rules see real data and
-/// produce clean (no-error) results on the success path — measuring the full rule evaluation cost,
-/// not a trivially-short-circuiting empty-product path.
+/// Idempotent: <see cref="CartAggregate.ValidateAsync(string)"/> caches per rule-set, so the benchmark
+/// clears the cache each invocation to measure the real (uncached) path. Two axes: shape (Flat vs
+/// Configured) and cart size.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Validation)]
-public class ValidateCartBenchmarks
+public abstract class ValidateCartBenchmarksBase : CartBenchmarkBase
 {
     private CartAggregate _aggregate = null!;
 
@@ -43,22 +33,26 @@ public class ValidateCartBenchmarks
     public CartShape Shape { get; set; }
 
     [GlobalSetup]
-    public void Setup() =>
-        _aggregate = ReadLoadBenchmarkFixtures.BuildValidateCartAggregate(LineItemCount, Shape);
+    public void Setup()
+    {
+        var provider = BuildProvider(
+            LineItemCount,
+            Shape,
+            customizeServices: services => services.AddSingleton(ReadLoadBenchmarkFixtures.CreateValidationContextFactory()));
 
-    /// <summary>
-    /// Validates the cart with the Items rule set — the per-line-item hot path exercised by
-    /// <c>CartType.validationErrors</c> and <c>CartAggregate.GetLineItemValidationErrorsAsync</c>.
-    ///
-    /// The validation cache is cleared before each call so BDN invokes the real
-    /// <see cref="VirtoCommerce.XCart.Core.Validators.CartValidator.ValidateAsync"/> path every time
-    /// (not the cached-result short-circuit). The clear is synchronous and cheap (Dictionary.Clear).
-    /// </summary>
+        _aggregate = provider.GetRequiredService<Func<CartAggregate>>()();
+
+        var cart = CartBenchmarkFixtures.CreateCart(LineItemCount, Shape);
+        _aggregate.GrabCart(cart, CartBenchmarkFixtures.CreateStore(), member: null, CartBenchmarkFixtures.Currency);
+
+        // Settle totals synchronously — GlobalSetup cannot await.
+        _aggregate.RecalculateAsync().GetAwaiter().GetResult();
+    }
+
     [Benchmark]
     public async Task<IList<ValidationFailure>> ValidateCart()
     {
-        // Clear the per-ruleSet cache so each BDN invocation runs the real FluentValidation path
-        // (rather than returning the Dictionary.TryGetValue cached-result short-circuit).
+        // Clear the per-ruleSet cache so each invocation runs the real FluentValidation path.
         _aggregate.ClearValidationCache();
 
         return await _aggregate.ValidateAsync(ReadLoadBenchmarkFixtures.ItemsRuleSet);

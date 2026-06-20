@@ -46,12 +46,14 @@ internal static class ConfigurationBenchmarkFixtures
     /// so this succeeds without additional wiring). Passes <c>ValidateConfigurationSections</c>
     /// because <c>Option.ProductId</c> is non-empty.
     /// </summary>
-    public static AddConfigurationItemCommand CreateAddConfigurationItemCommand() =>
-        CartBenchmarkFixtures.WithCartContext(new AddConfigurationItemCommand
-        {
-            LineItemId = "li-0",
-            ConfigurationSection = CreateVariationSection("s-add", quantity: 1),
-        });
+    public static AddConfigurationItemCommand CreateAddConfigurationItemCommand()
+    {
+        var command = AbstractTypeFactory<AddConfigurationItemCommand>.TryCreateInstance();
+        command.LineItemId = "li-0";
+        command.ConfigurationSection = CreateVariationSection("s-add", quantity: 1);
+
+        return CartBenchmarkFixtures.WithCartContext(command);
+    }
 
     // ── UpdateConfigurationItem ───────────────────────────────────────────────────────────────────
 
@@ -68,12 +70,14 @@ internal static class ConfigurationBenchmarkFixtures
     /// <c>ValidateConfigurationSections</c> (ProductId non-empty). The product mock returns a
     /// CartProduct for that ID, so <c>ApplyConfigurationSectionAsync</c> succeeds.
     /// </summary>
-    public static UpdateConfigurationItemCommand CreateUpdateConfigurationItemCommand() =>
-        CartBenchmarkFixtures.WithCartContext(new UpdateConfigurationItemCommand
-        {
-            LineItemId = "li-0",
-            ConfigurationSection = CreateVariationSection(sectionId: null, quantity: 2),
-        });
+    public static UpdateConfigurationItemCommand CreateUpdateConfigurationItemCommand()
+    {
+        var command = AbstractTypeFactory<UpdateConfigurationItemCommand>.TryCreateInstance();
+        command.LineItemId = "li-0";
+        command.ConfigurationSection = CreateVariationSection(sectionId: null, quantity: 2);
+
+        return CartBenchmarkFixtures.WithCartContext(command);
+    }
 
     // ── RemoveConfigurationItem ───────────────────────────────────────────────────────────────────
 
@@ -88,12 +92,14 @@ internal static class ConfigurationBenchmarkFixtures
     /// rule). The cart is rebuilt fresh per invocation by the never-cache + GetAsync mock, so the
     /// removal is idempotent across benchmark invocations — no [IterationSetup] needed.
     /// </summary>
-    public static RemoveConfigurationItemCommand CreateRemoveConfigurationItemCommand() =>
-        CartBenchmarkFixtures.WithCartContext(new RemoveConfigurationItemCommand
-        {
-            LineItemId = "li-0",
-            ConfigurationSection = CreateVariationSection(sectionId: null, quantity: 1),
-        });
+    public static RemoveConfigurationItemCommand CreateRemoveConfigurationItemCommand()
+    {
+        var command = AbstractTypeFactory<RemoveConfigurationItemCommand>.TryCreateInstance();
+        command.LineItemId = "li-0";
+        command.ConfigurationSection = CreateVariationSection(sectionId: null, quantity: 1);
+
+        return CartBenchmarkFixtures.WithCartContext(command);
+    }
 
     // ── ChangeCartConfiguredLineItem ──────────────────────────────────────────────────────────────
 
@@ -145,13 +151,15 @@ internal static class ConfigurationBenchmarkFixtures
     /// returns a fresh item with the fixture's default config); a non-empty list is used here to keep
     /// the benchmark representative of the typical production code path.
     /// </summary>
-    public static ChangeCartConfiguredLineItemCommand CreateChangeCartConfiguredLineItemCommand() =>
-        CartBenchmarkFixtures.WithCartContext(new ChangeCartConfiguredLineItemCommand
-        {
-            LineItemId = "li-0",
-            Quantity = 3,
-            ConfigurationSections = [CreateVariationSection(sectionId: null, quantity: 1)],
-        });
+    public static ChangeCartConfiguredLineItemCommand CreateChangeCartConfiguredLineItemCommand()
+    {
+        var command = AbstractTypeFactory<ChangeCartConfiguredLineItemCommand>.TryCreateInstance();
+        command.LineItemId = "li-0";
+        command.Quantity = 3;
+        command.ConfigurationSections = [CreateVariationSection(sectionId: null, quantity: 1)];
+
+        return CartBenchmarkFixtures.WithCartContext(command);
+    }
 
     // ── ChangeCartConfigurationItemSelected ───────────────────────────────────────────────────────
 
@@ -166,13 +174,15 @@ internal static class ConfigurationBenchmarkFixtures
     /// state (<c>SelectedForCheckout</c> is not set in the fixture → defaults to false already, so
     /// the toggle flips to true then back each reload — no accumulation).
     /// </summary>
-    public static ChangeCartConfigurationItemSelectedCommand CreateChangeCartConfigurationItemSelectedCommand() =>
-        CartBenchmarkFixtures.WithCartContext(new ChangeCartConfigurationItemSelectedCommand
-        {
-            LineItemId = "li-0",
-            ConfigurationSection = CreateVariationSection(sectionId: null, quantity: 1),
-            SelectedForCheckout = true,
-        });
+    public static ChangeCartConfigurationItemSelectedCommand CreateChangeCartConfigurationItemSelectedCommand()
+    {
+        var command = AbstractTypeFactory<ChangeCartConfigurationItemSelectedCommand>.TryCreateInstance();
+        command.LineItemId = "li-0";
+        command.ConfigurationSection = CreateVariationSection(sectionId: null, quantity: 1);
+        command.SelectedForCheckout = true;
+
+        return CartBenchmarkFixtures.WithCartContext(command);
+    }
 
     /// <summary>
     /// A Variation configuration section targeting <c>variation-0-0</c>, built via

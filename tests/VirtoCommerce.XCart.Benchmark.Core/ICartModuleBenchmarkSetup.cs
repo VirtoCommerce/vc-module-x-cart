@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 
 namespace VirtoCommerce.XCart.Benchmark;
@@ -27,4 +28,14 @@ public interface ICartModuleBenchmarkSetup
     /// heavier subclass is decided; the fixtures stay module-agnostic.
     /// </summary>
     CartAggregate CreateAggregate(CartAggregateContext context);
+
+    /// <summary>
+    /// Contributes the module's registrations to the benchmark DI container built by
+    /// <see cref="CartBenchmarkHost"/>: the concrete <see cref="CartAggregate"/> (base or a subclass),
+    /// the recalculate pipeline launcher (mocked upstream, real for a consumer), and any command/type
+    /// overrides (<c>OverrideCommandType</c>/<c>UseCommandType().WithCommandHandler()</c>,
+    /// <c>AbstractTypeFactory</c> overrides). Called AFTER Core has registered the base XCart handlers
+    /// and the shared mocked I/O leaves, so registrations here win by DI last-registration semantics.
+    /// </summary>
+    void ConfigureServices(IServiceCollection services);
 }

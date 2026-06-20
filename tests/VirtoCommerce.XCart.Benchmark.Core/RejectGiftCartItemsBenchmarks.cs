@@ -1,9 +1,9 @@
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Data.Commands;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
@@ -20,10 +20,10 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Gifts)]
-public class RejectGiftCartItemsBenchmarks
+public abstract class RejectGiftCartItemsBenchmarksBase : CartBenchmarkBase
 {
-    private RejectGiftCartItemsCommandHandler _handler = null!;
-    private readonly RejectGiftCartItemsCommand _command = GiftsSavedDynamicBenchmarkFixtures.CreateRejectGiftCartItemsCommand();
+    private IMediator _mediator = null!;
+    private RejectGiftCartItemsCommand _command = null!;
 
     [Params(1, 5, 20, 100)]
     public int LineItemCount { get; set; }
@@ -32,8 +32,12 @@ public class RejectGiftCartItemsBenchmarks
     public CartShape Shape { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _handler = GiftsSavedDynamicBenchmarkFixtures.CreateRejectGiftCartItemsHandler(LineItemCount, Shape);
+    public void Setup()
+    {
+        _mediator = BuildProvider(LineItemCount, Shape).GetRequiredService<IMediator>();
+        _command = GiftsSavedDynamicBenchmarkFixtures.CreateRejectGiftCartItemsCommand();
+    }
 
     [Benchmark]
-    public Task<CartAggregate> RejectGiftCartItems() => _handler.Handle(_command, CancellationToken.None);
+    public Task<CartAggregate> RejectGiftCartItems() => _mediator.Send(_command);
 }

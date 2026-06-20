@@ -1,9 +1,9 @@
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Data.Commands;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
@@ -19,9 +19,9 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Wishlist)]
-public class CloneWishlistBenchmarks
+public abstract class CloneWishlistBenchmarksBase : CartBenchmarkBase
 {
-    private CloneWishlistCommandHandler _handler = null!;
+    private IMediator _mediator = null!;
     private CloneWishlistCommand _command = null!;
 
     [Params(1, 5, 20, 100)]
@@ -30,10 +30,10 @@ public class CloneWishlistBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        _handler = WishlistBenchmarkFixtures.CreateCloneWishlistHandler(LineItemCount);
+        _mediator = BuildProvider(LineItemCount, CartShape.Flat).GetRequiredService<IMediator>();
         _command = WishlistBenchmarkFixtures.CreateCloneWishlistCommand();
     }
 
     [Benchmark]
-    public Task<CartAggregate> CloneWishlist() => _handler.Handle(_command, CancellationToken.None);
+    public Task<CartAggregate> CloneWishlist() => _mediator.Send(_command);
 }

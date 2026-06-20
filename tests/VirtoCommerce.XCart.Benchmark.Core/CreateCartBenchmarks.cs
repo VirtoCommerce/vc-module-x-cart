@@ -1,9 +1,9 @@
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Data.Commands;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
@@ -27,10 +27,10 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.CartState)]
-public class CreateCartBenchmarks
+public abstract class CreateCartBenchmarksBase : CartBenchmarkBase
 {
-    private CreateCartCommandHandler _handler = null!;
-    private readonly CreateCartCommand _command = CartStateBenchmarkFixtures.CreateCreateCartCommand();
+    private IMediator _mediator = null!;
+    private CreateCartCommand _command = null!;
 
     // LineItemCount is kept for param-axis consistency; it does not affect the measured cart
     // (the new cart is always empty). Only shape=Flat applies — new cart has no items.
@@ -38,8 +38,12 @@ public class CreateCartBenchmarks
     public int LineItemCount { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _handler = CartStateBenchmarkFixtures.CreateCreateCartHandler();
+    public void Setup()
+    {
+        _mediator = BuildProvider(LineItemCount, CartShape.Flat).GetRequiredService<IMediator>();
+        _command = CartStateBenchmarkFixtures.CreateCreateCartCommand();
+    }
 
     [Benchmark]
-    public Task<CartAggregate> CreateCart() => _handler.Handle(_command, CancellationToken.None);
+    public Task<CartAggregate> CreateCart() => _mediator.Send(_command);
 }

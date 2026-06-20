@@ -1,9 +1,9 @@
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
-using VirtoCommerce.XCart.Data.Commands;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
@@ -29,10 +29,10 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.CartState)]
-public class ChangeCartCurrencyBenchmarks
+public abstract class ChangeCartCurrencyBenchmarksBase : CartBenchmarkBase
 {
-    private ChangeCartCurrencyCommandHandler _handler = null!;
-    private readonly ChangeCartCurrencyCommand _command = CartStateBenchmarkFixtures.CreateChangeCartCurrencyCommand();
+    private IMediator _mediator = null!;
+    private ChangeCartCurrencyCommand _command = null!;
 
     [Params(1, 5, 20, 100)]
     public int LineItemCount { get; set; }
@@ -41,8 +41,12 @@ public class ChangeCartCurrencyBenchmarks
     public CartShape Shape { get; set; }
 
     [GlobalSetup]
-    public void Setup() => _handler = CartStateBenchmarkFixtures.CreateChangeCartCurrencyHandler(LineItemCount, Shape);
+    public void Setup()
+    {
+        _mediator = BuildProvider(LineItemCount, Shape).GetRequiredService<IMediator>();
+        _command = CartStateBenchmarkFixtures.CreateChangeCartCurrencyCommand();
+    }
 
     [Benchmark]
-    public Task<CartAggregate> ChangeCartCurrency() => _handler.Handle(_command, CancellationToken.None);
+    public Task<CartAggregate> ChangeCartCurrency() => _mediator.Send(_command);
 }
