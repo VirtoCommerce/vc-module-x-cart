@@ -15,13 +15,11 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// Only I/O leaves are mocked; the totals calculator is real.
 ///
 /// <b>Second-cart wiring</b>: The handler calls <c>GetCartById(request.SecondCartId, ...)</c> via
-/// the same repository. A local harness (in <see cref="CartStateBenchmarkFixtures"/>) dispatches
-/// <c>GetAsync</c> by cart ID — returning a distinct <c>"second-cart"</c> instance so the handler's
-/// <c>secondCart.Id != cartAggr.Id</c> guard passes and the actual merge runs. The shared
-/// <see cref="CartBenchmarkFixtures.CreateMutationHarness"/> would return Id="benchmark-cart" for
-/// every call, skipping the merge body and measuring only two loads — that was fixed in the local
-/// harness. <c>DeleteAfterMerge=false</c> keeps the benchmark focused on merge compute (no delete
-/// path).
+/// the same repository. The host's <c>IShoppingCartService.GetAsync</c> mock returns a cart whose Id
+/// mirrors the requested id (see <see cref="CartBenchmarkHost"/>), so the load for <c>"second-cart"</c>
+/// yields a distinct instance and the handler's <c>secondCart.Id != cartAggr.Id</c> guard passes —
+/// the actual merge runs rather than short-circuiting on two identical ids.
+/// <c>DeleteAfterMerge=false</c> keeps the benchmark focused on merge compute (no delete path).
 ///
 /// Two axes: <b>Shape</b> (Flat vs Configured — the post-merge recalc walks the doubled item set,
 /// and configured items carry configuration-item graphs) and <b>LineItemCount</b> (the merged cart

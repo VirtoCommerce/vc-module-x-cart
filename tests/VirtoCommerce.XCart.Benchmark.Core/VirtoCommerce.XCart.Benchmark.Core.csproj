@@ -9,6 +9,8 @@
          benchmark classes via a (local) NuGet feed and run them under their own setup. -->
     <IsPackable>true</IsPackable>
     <!-- TreatWarningsAsErrors is inherited from Directory.Build.props (true); this project builds clean. -->
+    <!-- Bundle the source generator (below) into the nupkg's analyzers folder so NuGet consumers get it. -->
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_PackBenchmarkSourceGen</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
 
   <ItemGroup>
@@ -37,6 +39,24 @@
   <ItemGroup>
     <ProjectReference Include="$(XCartSrc)\VirtoCommerce.XCart.Core\VirtoCommerce.XCart.Core.csproj" />
     <ProjectReference Include="$(XCartSrc)\VirtoCommerce.XCart.Data\VirtoCommerce.XCart.Data.csproj" />
+    <!-- The source generator. Referenced as an Analyzer (no runtime dependency) so the generator DLL is
+         built and surfaces in @(Analyzer); the _PackBenchmarkSourceGen target below puts it in the nupkg.
+         Running on Core's own (library, no [assembly: BenchmarkSetup]) compilation is a no-op — the
+         generator emits nothing without a setup attribute. -->
+    <ProjectReference Include="..\VirtoCommerce.XCart.Benchmark.SourceGen\VirtoCommerce.XCart.Benchmark.SourceGen.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
+
+  <!-- Pack the generator DLL into analyzers/dotnet/cs so NuGet consumers (XOrder, LEO runners) that
+       reference this package get the generator and produce their own concrete benchmark subclasses. -->
+  <Target Name="_PackBenchmarkSourceGen" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="@(Analyzer)"
+                              Condition="'%(Filename)' == 'VirtoCommerce.XCart.Benchmark.SourceGen'">
+        <PackagePath>analyzers/dotnet/cs/%(Filename)%(Extension)</PackagePath>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target>
 
 </Project>

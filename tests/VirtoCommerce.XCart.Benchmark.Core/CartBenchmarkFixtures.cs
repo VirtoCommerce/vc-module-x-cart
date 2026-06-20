@@ -1,43 +1,24 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using AutoMapper;
-using FluentValidation.Results;
-using MediatR;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Primitives;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
-using VirtoCommerce.CartModule.Core.Model.Search;
-using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CartModule.Data.Services;
 using VirtoCommerce.CatalogModule.Core.Model;
-using VirtoCommerce.CatalogModule.Core.Model.Configuration;
-using VirtoCommerce.CatalogModule.Core.Model.Search;
-using VirtoCommerce.CatalogModule.Core.Search;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
-using VirtoCommerce.CustomerModule.Core.Services;
-using VirtoCommerce.FileExperienceApi.Core.Services;
-using VirtoCommerce.MarketingModule.Core.Model.Promotions;
-using VirtoCommerce.MarketingModule.Core.Services;
 using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.StoreModule.Core.Model;
-using VirtoCommerce.StoreModule.Core.Services;
-using VirtoCommerce.TaxModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Models;
-using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
-using VirtoCommerce.XCart.Core.Validators;
-using VirtoCommerce.XCart.Data.Commands;
 using VirtoCommerce.XCart.Data.Mapping;
-using VirtoCommerce.XCart.Data.Services;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
@@ -58,59 +39,6 @@ public static class CartBenchmarkFixtures
     };
 
     public static Store CreateStore() => new() { Id = StoreId, Settings = [] };
-
-    /// <summary>
-    /// Builds a <see cref="CartAggregate"/> with the real totals calculator and all I/O leaves
-    /// mocked. <paramref name="mapper"/> is required only by the add path (<c>AddItemAsync</c> maps
-    /// <c>CartProduct</c> → <c>LineItem</c>); the recalculate path never maps, so callers that only
-    /// recalculate may pass a mock mapper. <paramref name="cartProductService"/> is the aggregate's
-    /// OWN product service (distinct from the repository's): the configured load path calls
-    /// <c>UpdateConfiguredLineItemPrice</c> → <c>_cartProductService.GetCartProductsAsync</c> to
-    /// fetch variation products, so the mutate-existing-cart harness must pass a working one here —
-    /// a loose mock returns a null dictionary and NREs. Callers that never load a configured cart
-    /// (recalculate, create-new add) may leave it null (→ loose mock).
-    /// </summary>
-    public static CartAggregate CreateAggregate(IMapper mapper, ICartProductService cartProductService = null)
-    {
-        // The real totals calculator resolves each line item's currency via
-        // GetAllCurrenciesAsync().First(c => c.Code == lineItem.Currency) and uses its
-        // RoundingPolicy — so the mock must return the fixture currency, not an empty list.
-        var currencyService = new Mock<ICurrencyService>();
-        currencyService.Setup(x => x.GetAllCurrenciesAsync()).ReturnsAsync([Currency]);
-        var totalsCalculator = new DefaultShoppingCartTotalsCalculator(currencyService.Object);
-
-        // EvaluatePromotionAsync returns Task<PromotionResult>; a loose mock would yield a null
-        // result and NRE on .Rewards in RecalculateAsync. Return an empty result (no rewards).
-        var marketingEvaluator = new Mock<IMarketingPromoEvaluator>();
-        marketingEvaluator
-            .Setup(x => x.EvaluatePromotionAsync(It.IsAny<PromotionEvaluationContext>()))
-            .ReturnsAsync(new PromotionResult());
-
-        // AddConfiguredItemAsync validates the configured line item; a loose mock would return a
-        // null ValidationResult and NRE. Return a passing result.
-        var configurationItemValidator = new Mock<IConfigurationItemValidator>();
-        configurationItemValidator
-            .Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        // The active module setup decides the concrete aggregate (plain CartAggregate upstream, a
-        // heavier subclass for a consuming module) and supplies its own pipeline launcher. The shared
-        // leaves below — real totals calculator, mocked I/O — are identical across modules.
-        var context = new CartAggregateContext(
-            marketingEvaluator.Object,
-            totalsCalculator,
-            Mock.Of<IOptionalDependency<ITaxProviderSearchService>>(), // HasValue defaults to false → tax branch skipped
-            cartProductService ?? Mock.Of<ICartProductService>(),
-            Mock.Of<IDynamicPropertyUpdaterService>(),
-            mapper,
-            Mock.Of<IMemberService>(),
-            configurationItemValidator.Object,
-            Mock.Of<IFileUploadService>(),
-            Mock.Of<ICartSharingService>(),
-            Mock.Of<ICartValidationContextFactory>());
-
-        return BenchmarkEnvironment.Current.CreateAggregate(context);
-    }
 
     /// <summary>
     /// Builds a shopping cart with <paramref name="lineItemCount"/> selected line items of the
@@ -136,6 +64,7 @@ public static class CartBenchmarkFixtures
             item.ListPrice = 10m;
             item.SalePrice = 9m;
             item.SelectedForCheckout = true;
+            item.DynamicProperties = []; // never null on a real loaded item — changeCartCurrency's CopyItems does DynamicProperties.SelectMany unguarded
 
             if (shape == CartShape.Configured)
             {
@@ -212,112 +141,6 @@ public static class CartBenchmarkFixtures
     }
 
     /// <summary>
-    /// Builds the real <see cref="AddCartItemsCommandHandler"/> over a real
-    /// <see cref="CartAggregateRepository"/> with every I/O leaf mocked. The search service returns
-    /// no carts, so each <c>Handle</c> takes the create-new-cart path (empty CartId) and builds a
-    /// fresh aggregate — the benchmark stays free of cross-invocation item accumulation, and the
-    /// empty-Id cart skips the aggregate cache entirely.
-    ///
-    /// <paramref name="shape"/> selects the add path: <see cref="CartShape.Flat"/> exercises the
-    /// plain <c>AddItemAsync</c> branch; <see cref="CartShape.Configured"/> makes the product-
-    /// configuration search return a config per product so the handler routes through the
-    /// <c>CreateConfiguredLineItem</c> mediator send + <c>AddConfiguredItemAsync</c> branch.
-    /// </summary>
-    public static AddCartItemsCommandHandler CreateAddCartItemsHandler(CartShape shape)
-    {
-        var mapper = CreateMapper();
-
-        var storeService = new Mock<IStoreService>();
-        storeService
-            .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
-            .ReturnsAsync([CreateStore()]); // GetByIdAsync extension delegates to GetAsync
-
-        var currencyService = new Mock<ICurrencyService>();
-        currencyService.Setup(x => x.GetAllCurrenciesAsync()).ReturnsAsync([Currency]);
-
-        // Empty result → GetCartAsync returns null → handler creates a new cart each invocation.
-        var searchService = new Mock<IShoppingCartSearchService>();
-        searchService
-            .Setup(x => x.SearchAsync(It.IsAny<ShoppingCartSearchCriteria>(), It.IsAny<bool>()))
-            .ReturnsAsync(new ShoppingCartSearchResult());
-
-        var cartProductService = new Mock<ICartProductService>();
-        cartProductService
-            .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string, string)>>()))
-            .ReturnsAsync((CartAggregate aggregate, IList<(string CurrencyCode, string ProductId)> pairs) =>
-                pairs.ToDictionary(
-                    p => aggregate.GetCartProductKey(p.ProductId, p.CurrencyCode),
-                    p => CreateCartProduct(p.ProductId)));
-
-        var repository = new CartAggregateRepository(
-            cartAggregateFactory: () => CreateAggregate(mapper),
-            shoppingCartSearchService: searchService.Object,
-            shoppingCartService: Mock.Of<IShoppingCartService>(), // SaveChangesAsync → loose Task (DB write dropped)
-            currencyService: currencyService.Object,
-            memberResolver: Mock.Of<IMemberResolver>(),            // ResolveMemberByIdAsync → null (anonymous)
-            storeService: storeService.Object,
-            cartProductsService: cartProductService.Object,
-            platformMemoryCache: Mock.Of<IPlatformMemoryCache>(),  // never hit — empty-Id carts skip the cache
-            fileUploadService: Mock.Of<IFileUploadService>());
-
-        var configurationSearchService = new Mock<IProductConfigurationSearchService>();
-        var mediator = new Mock<IMediator>();
-
-        if (shape == CartShape.Configured)
-        {
-            // A config per requested product → handler takes the configured branch for every item.
-            configurationSearchService
-                .Setup(x => x.SearchAsync(It.IsAny<ProductConfigurationSearchCriteria>(), It.IsAny<bool>()))
-                .ReturnsAsync((ProductConfigurationSearchCriteria criteria, bool _) =>
-                {
-                    var results = (criteria.ProductIds ?? [])
-                        .Select(productId => new ProductConfiguration { ProductId = productId })
-                        .ToList();
-                    return new ProductConfigurationSearchResult { Results = results, TotalCount = results.Count };
-                });
-
-            // CreateConfiguredLineItemCommand → a freshly-built configured line item per send
-            // (AddConfiguredItemAsync mutates and adds it to the cart, so it can't be shared).
-            mediator
-                .Setup(x => x.Send(It.IsAny<CreateConfiguredLineItemCommand>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync((CreateConfiguredLineItemCommand command, CancellationToken _) =>
-                    new ExpConfigurationLineItem { Item = CreateConfiguredLineItem(command.ConfigurableProductId) });
-        }
-        else
-        {
-            // Empty config search → no active product-configuration → flat-SKU branch (AddItemAsync).
-            configurationSearchService
-                .Setup(x => x.SearchAsync(It.IsAny<ProductConfigurationSearchCriteria>(), It.IsAny<bool>()))
-                .ReturnsAsync(new ProductConfigurationSearchResult());
-        }
-
-        return new AddCartItemsCommandHandler(
-            repository,
-            cartProductService.Object,
-            mediator.Object,
-            configurationSearchService.Object);
-    }
-
-    /// <summary>A configured line item as the CreateConfiguredLineItem mediator response would
-    /// return it — IsConfigured with a priced configuration-item set. AddConfiguredItemAsync sets
-    /// Id/Quantity/SelectedForCheckout itself.</summary>
-    private static LineItem CreateConfiguredLineItem(string productId)
-    {
-        var item = AbstractTypeFactory<LineItem>.TryCreateInstance();
-        item.ProductId = productId;
-        item.CatalogId = "catalog";
-        item.Sku = $"SKU-{productId}";
-        item.Name = $"Product {productId}";
-        item.Currency = Currency.Code;
-        item.ListPrice = 10m;
-        item.SalePrice = 9m;
-        item.IsConfigured = true;
-        item.ConfigurationItems = CreateConfigurationItems(0);
-
-        return item;
-    }
-
-    /// <summary>
     /// An <c>addCartItems</c> command of <paramref name="itemCount"/> items with no CartId
     /// (create-new path). The count is the bulk dimension: 1 = single add, &gt;1 = bulk.
     /// </summary>
@@ -347,14 +170,6 @@ public static class CartBenchmarkFixtures
     // real load+recalc runs each time) and a GetAsync mock that returns a FRESH populated cart per
     // call (so a mutation never accumulates across invocations). No [IterationSetup] needed → Mean
     // precision is preserved (InvocationCount is not forced to 1).
-
-    /// <summary>The handler plus the <see cref="ICartProductService"/> it also needs — both share the
-    /// one product mock so a handler's own product lookup and the repository load path agree.</summary>
-    public sealed class MutationHarness
-    {
-        public required CartAggregateRepository Repository { get; init; }
-        public required ICartProductService CartProductService { get; init; }
-    }
 
     /// <summary>
     /// A never-cache <see cref="IPlatformMemoryCache"/>: <c>TryGetValue</c> always misses (so
@@ -397,57 +212,6 @@ public static class CartBenchmarkFixtures
         return mock;
     }
 
-    /// <summary>
-    /// Builds the shared mutate-existing-cart harness for a cart of <paramref name="lineItemCount"/>
-    /// items of the given <paramref name="shape"/>. The real <see cref="CartAggregateRepository"/>
-    /// runs (load+recalc+save), the totals calculator is real, and every I/O leaf is mocked: the
-    /// store/currency/member loads, the no-op SaveChangesAsync, the never-cache, and a GetAsync that
-    /// yields a brand-new populated cart on EACH call so the mutation stays idempotent.
-    /// </summary>
-    public static MutationHarness CreateMutationHarness(int lineItemCount, CartShape shape)
-    {
-        var mapper = CreateMapper();
-
-        var storeService = new Mock<IStoreService>();
-        storeService
-            .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
-            .ReturnsAsync([CreateStore()]); // GetByIdAsync extension delegates to GetAsync
-
-        var currencyService = new Mock<ICurrencyService>();
-        currencyService.Setup(x => x.GetAllCurrenciesAsync()).ReturnsAsync([Currency]);
-
-        // GetByIdAsync(cartId, rg) → GetAsync([cartId], rg, clone) — return a fresh cart per call so
-        // each Handle loads its own instance and the mutation never accumulates across invocations.
-        var shoppingCartService = new Mock<IShoppingCartService>();
-        shoppingCartService
-            .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
-            .ReturnsAsync(() => [CreateCart(lineItemCount, shape)]);
-
-        var cartProductService = CartProductServiceMock();
-
-        // Returns an empty (non-null) search result. The CartId load path never searches, but the
-        // SearchAllAsync extension (used by e.g. the saved-for-later list lookup) reads .Results on
-        // the result — a loose Mock.Of would return null and NRE there.
-        var searchService = new Mock<IShoppingCartSearchService>();
-        searchService
-            .Setup(x => x.SearchAsync(It.IsAny<ShoppingCartSearchCriteria>(), It.IsAny<bool>()))
-            .ReturnsAsync(new ShoppingCartSearchResult());
-
-        var repository = new CartAggregateRepository(
-            // The aggregate's own product service must resolve configured variation products — see CreateAggregate.
-            cartAggregateFactory: () => CreateAggregate(mapper, cartProductService.Object),
-            shoppingCartSearchService: searchService.Object,
-            shoppingCartService: shoppingCartService.Object,
-            currencyService: currencyService.Object,
-            memberResolver: Mock.Of<IMemberResolver>(),            // ResolveMemberByIdAsync → null (anonymous)
-            storeService: storeService.Object,
-            cartProductsService: cartProductService.Object,
-            platformMemoryCache: NeverCacheMock().Object,          // always-miss → real load+recalc every call
-            fileUploadService: Mock.Of<IFileUploadService>());
-
-        return new MutationHarness { Repository = repository, CartProductService = cartProductService.Object };
-    }
-
     /// <summary>Stamps the shared cart context (target cart id + store/currency/culture/user) onto
     /// any <see cref="CartCommand"/> so every mutation command resolves the same loaded cart.</summary>
     public static T WithCartContext<T>(T command)
@@ -462,13 +226,6 @@ public static class CartBenchmarkFixtures
         return command;
     }
 
-    /// <summary>Real <see cref="ChangeCartItemQuantityCommandHandler"/> over the shared mutation harness.</summary>
-    public static ChangeCartItemQuantityCommandHandler CreateChangeCartItemQuantityHandler(int lineItemCount, CartShape shape)
-    {
-        var harness = CreateMutationHarness(lineItemCount, shape);
-        return new ChangeCartItemQuantityCommandHandler(harness.Repository, harness.CartProductService);
-    }
-
     /// <summary>A <c>changeCartItemQuantity</c> command targeting the first line item of the loaded
     /// cart (<c>li-0</c>), set to a new non-zero quantity (so it takes the change-quantity path, not
     /// the remove-on-zero path).</summary>
@@ -480,10 +237,6 @@ public static class CartBenchmarkFixtures
 
         return WithCartContext(command);
     }
-
-    /// <summary>Real <see cref="ChangeCartItemPriceCommandHandler"/> over the shared mutation harness.</summary>
-    public static ChangeCartItemPriceCommandHandler CreateChangeCartItemPriceHandler(int lineItemCount, CartShape shape) =>
-        new(CreateMutationHarness(lineItemCount, shape).Repository);
 
     /// <summary>A <c>changeCartItemPrice</c> command setting a manual price on the first line item.
     /// The Strict ruleset rejects a price below the line item's current SalePrice, and that loaded
@@ -499,14 +252,6 @@ public static class CartBenchmarkFixtures
         return WithCartContext(command);
     }
 
-    /// <summary>Real <see cref="ChangeCartItemCommentCommandHandler"/> over the shared mutation harness
-    /// (it also needs the product service for its existence check before applying the comment).</summary>
-    public static ChangeCartItemCommentCommandHandler CreateChangeCartItemCommentHandler(int lineItemCount, CartShape shape)
-    {
-        var harness = CreateMutationHarness(lineItemCount, shape);
-        return new ChangeCartItemCommentCommandHandler(harness.Repository, harness.CartProductService);
-    }
-
     /// <summary>A <c>changeCartItemComment</c> command setting a comment on the first line item.</summary>
     public static ChangeCartItemCommentCommand CreateChangeCartItemCommentCommand()
     {
@@ -517,10 +262,6 @@ public static class CartBenchmarkFixtures
         return WithCartContext(command);
     }
 
-    /// <summary>Real <see cref="ChangeCartItemSelectedCommandHandler"/> over the shared mutation harness.</summary>
-    public static ChangeCartItemSelectedCommandHandler CreateChangeCartItemSelectedHandler(int lineItemCount, CartShape shape) =>
-        new(CreateMutationHarness(lineItemCount, shape).Repository);
-
     /// <summary>A <c>changeCartItemSelected</c> command toggling the first line item's checkout selection off.</summary>
     public static ChangeCartItemSelectedCommand CreateChangeCartItemSelectedCommand()
     {
@@ -530,10 +271,6 @@ public static class CartBenchmarkFixtures
 
         return WithCartContext(command);
     }
-
-    /// <summary>Real <see cref="RemoveCartItemCommandHandler"/> over the shared mutation harness.</summary>
-    public static RemoveCartItemCommandHandler CreateRemoveCartItemHandler(int lineItemCount, CartShape shape) =>
-        new(CreateMutationHarness(lineItemCount, shape).Repository);
 
     /// <summary>A <c>removeCartItem</c> command removing the first line item of the loaded cart.</summary>
     public static RemoveCartItemCommand CreateRemoveCartItemCommand()

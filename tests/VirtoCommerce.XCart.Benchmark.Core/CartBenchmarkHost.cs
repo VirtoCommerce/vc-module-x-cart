@@ -97,12 +97,19 @@ public static class CartBenchmarkHost
 
         // GetByIdAsync(cartId, rg) → GetAsync([cartId], rg, clone): a fresh populated cart per call so
         // each Handle loads its own instance (mutation stays idempotent, no [IterationSetup] needed).
+        // The returned cart's Id mirrors the REQUESTED id (as a real service does), so a handler that
+        // loads two carts and branches on their ids — mergeCart's secondCart.Id != cartAggr.Id guard —
+        // sees distinct carts and actually runs the merge body rather than short-circuiting.
         var cartService = new Mock<IShoppingCartService>();
         cartService
             .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
-            .ReturnsAsync(() =>
+            .ReturnsAsync((IList<string> ids, string _, bool _) =>
             {
                 var cart = CartBenchmarkFixtures.CreateCart(lineItemCount, shape);
+                if (ids is { Count: > 0 })
+                {
+                    cart.Id = ids[0];
+                }
                 customizeCart?.Invoke(cart);
 
                 return [cart];
