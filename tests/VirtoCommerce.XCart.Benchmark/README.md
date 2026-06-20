@@ -117,6 +117,15 @@ so the **same** operations run against the consumer's graph. Both sides run out-
 toolchain — run each into separate `--artifacts` and diff the `Allocated` column (deterministic; `Mean`
 from a short run is noise):
 
+A consumer whose real workload is a richer cart (a parent→child line-item hierarchy, not flat SKUs) can
+also override `ICartModuleBenchmarkSetup.CreateCart(lineItemCount, shape)` to feed that graph into the
+loaded-cart benchmark paths (mutation / recalculate / validate / checklist), so its recalc pipeline and
+validators do real per-item work instead of early-returning on Core's generic shape. The default returns
+`null` (Core's `CartBenchmarkFixtures.CreateCart` shape). **Id contract**: a consumer cart MUST still
+expose selected line items at ids `li-0..li-{lineItemCount-1}` / products `product-0..`, because the
+shared mutation fixtures target `li-0` by id — a graph that omits them makes those benchmarks silently
+early-return. Only the loaded-cart path is affected; the add path's products still come from the host mock.
+
 ```bash
 # upstream baseline (this runner)
 dotnet run -c Release -- --filter "*ChangeCartItemQuantity*" --short --artifacts ./upstream

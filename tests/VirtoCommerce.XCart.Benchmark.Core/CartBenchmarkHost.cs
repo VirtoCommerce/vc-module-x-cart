@@ -105,7 +105,8 @@ public static class CartBenchmarkHost
             .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync((IList<string> ids, string _, bool _) =>
             {
-                var cart = CartBenchmarkFixtures.CreateCart(lineItemCount, shape);
+                // The consumer's graph if it supplies one (real recalc/validate work), else Core's generic shape.
+                var cart = setup.CreateCart(lineItemCount, shape) ?? CartBenchmarkFixtures.CreateCart(lineItemCount, shape);
                 if (ids is { Count: > 0 })
                 {
                     cart.Id = ids[0];

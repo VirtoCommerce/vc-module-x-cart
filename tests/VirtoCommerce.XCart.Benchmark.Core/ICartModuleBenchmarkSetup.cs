@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.XCart.Core;
 
 namespace VirtoCommerce.XCart.Benchmark;
@@ -21,4 +22,23 @@ public interface ICartModuleBenchmarkSetup
     /// and the shared mocked I/O leaves, so registrations here win by DI last-registration semantics.
     /// </summary>
     void ConfigureServices(IServiceCollection services);
+
+    /// <summary>
+    /// Optional hook letting a consumer supply its own loaded-cart graph for the loaded-cart benchmark
+    /// paths (mutation / recalculate / validate / checklist). Returning <c>null</c> (the default) uses
+    /// Core's generic <see cref="CartBenchmarkFixtures.CreateCart"/> shape; a consumer overrides it to
+    /// feed its domain graph (e.g. a parent→child line-item hierarchy) so its recalculate pipeline and
+    /// validators do real per-item work instead of early-returning on the generic shape.
+    ///
+    /// <para><b>Id contract</b>: a consumer-supplied cart MUST expose selected line items with ids
+    /// <c>li-0..li-{lineItemCount-1}</c> (and product ids <c>product-0..</c>), because the shared
+    /// mutation command fixtures target <c>li-0</c> by id. A cart that omits those ids makes the
+    /// id-targeted mutation benchmarks silently early-return — measuring nothing — so any richer graph
+    /// must still place valid mutation targets at those ids.</para>
+    ///
+    /// <para>Only the loaded-cart path is affected; the add path's products still come from the host's
+    /// product-loader mock. <paramref name="shape"/> carries the same Flat/Configured intent as Core's
+    /// default — a consumer is free to interpret it in its own domain terms.</para>
+    /// </summary>
+    ShoppingCart CreateCart(int lineItemCount, CartShape shape) => null;
 }
