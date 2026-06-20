@@ -1,0 +1,162 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.Text;
+
+namespace VirtoCommerce.XCart.Benchmark.SourceGen;
+
+/// <summary>
+/// Emits one concrete BenchmarkDotNet subclass per Core <c>*BenchmarksBase</c>. The benchmark logic
+/// ([Benchmark]/[Params]) lives in abstract bases in VirtoCommerce.XCart.Benchmark.Core; a runner exe
+/// declares <c>[assembly: BenchmarkSetup(typeof(TSetup))]</c>, and this generator produces, for each
+/// base, a <c>sealed</c> subclass (the base name with "Base" dropped) whose <c>CreateSetup()</c> returns
+/// <c>new TSetup()</c>. BenchmarkDotNet discovers the subclasses in the runner assembly and rebuilds the
+/// runner's own .csproj for the out-of-process child — so the baked setup is active there.
+/// </summary>
+[Generator(LanguageNames.CSharp)]
+public sealed class BenchmarkSubclassGenerator : IIncrementalGenerator
+{
+    private const string BaseClassMetadataName = "VirtoCommerce.XCart.Benchmark.CartBenchmarkBase";
+    private const string SetupAttributeMetadataName = "VirtoCommerce.XCart.Benchmark.BenchmarkSetupAttribute";
+    private const string SetupInterfaceFqn = "global::VirtoCommerce.XCart.Benchmark.ICartModuleBenchmarkSetup";
+    private const string BaseSuffix = "Base";
+
+    private static readonly DiagnosticDescriptor _missingSetup = new(
+        id: "XCARTBM001",
+        title: "Benchmark runner is missing a [assembly: BenchmarkSetup]",
+        messageFormat: "Benchmark runner exe '{0}' references VirtoCommerce.XCart.Benchmark.Core but declares no "
+            + "[assembly: BenchmarkSetup(typeof(...))]; no benchmark subclasses were generated and the suite is empty",
+        category: "Benchmark",
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public void Initialize(IncrementalGeneratorInitializationContext context)
+    {
+        // The bases live in a referenced assembly (Core), not in this compilation's syntax trees, so the
+        // generator walks the compilation's symbol graph rather than a SyntaxProvider. Correctness over
+        // fine-grained incrementality — runners are not edited in a hot IDE loop.
+        context.RegisterSourceOutput(context.CompilationProvider, Execute);
+    }
+
+    private static void Execute(SourceProductionContext context, Compilation compilation)
+    {
+        var baseClass = compilation.GetTypeByMetadataName(BaseClassMetadataName);
+        var setupAttribute = compilation.GetTypeByMetadataName(SetupAttributeMetadataName);
+
+        // No Core reference at all — nothing to do (e.g. an unrelated project that pulled in the analyzer).
+        if (baseClass is null || setupAttribute is null)
+        {
+            return;
+        }
+
+        var setupType = FindSetupType(compilation, setupAttribute);
+        if (setupType is null)
+        {
+            // Core itself (a library) references this generator only so the DLL gets packed into its
+            // nupkg; it has no setup and must compile clean. A runner exe that forgets the attribute,
+            // however, would silently produce an empty suite — fail it loudly instead.
+            if (IsApplication(compilation.Options.OutputKind))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(_missingSetup, Location.None, compilation.AssemblyName));
+            }
+
+            return;
+        }
+
+        var setupFqn = setupType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+        var bases = EnumerateNamedTypes(baseClass.ContainingAssembly.GlobalNamespace)
+            .Where(x => x.IsAbstract
+                && x.TypeKind == TypeKind.Class
+                && x.Name.EndsWith("BenchmarksBase", StringComparison.Ordinal)
+                && InheritsFrom(x, baseClass))
+            .OrderBy(x => x.Name, StringComparer.Ordinal);
+
+        foreach (var baseType in bases)
+        {
+            context.AddSource(baseType.Name + ".g.cs", Render(baseType, setupFqn));
+        }
+    }
+
+    private static INamedTypeSymbol? FindSetupType(Compilation compilation, INamedTypeSymbol setupAttribute)
+    {
+        var attribute = compilation.Assembly.GetAttributes()
+            .FirstOrDefault(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, setupAttribute));
+
+        if (attribute is null || attribute.ConstructorArguments.Length == 0)
+        {
+            return null;
+        }
+
+        return attribute.ConstructorArguments[0].Value as INamedTypeSymbol;
+    }
+
+    private static SourceText Render(INamedTypeSymbol baseType, string setupFqn)
+    {
+        // Drop the trailing "Base" so the concrete class — and thus the BenchmarkDotNet report name —
+        // matches the pre-inheritance class name (report continuity across the model change).
+        var concreteName = baseType.Name.Substring(0, baseType.Name.Length - BaseSuffix.Length);
+        var baseFqn = baseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var ns = baseType.ContainingNamespace.IsGlobalNamespace
+            ? null
+            : baseType.ContainingNamespace.ToDisplayString();
+
+        var builder = new StringBuilder();
+        builder.AppendLine("// <auto-generated/>");
+        builder.AppendLine("#nullable enable");
+
+        if (ns is not null)
+        {
+            builder.Append("namespace ").Append(ns).AppendLine(";").AppendLine();
+        }
+
+        builder.Append("/// <summary>Source-generated concrete runner for <see cref=\"")
+            .Append(baseFqn)
+            .AppendLine("\"/>.</summary>");
+        // NOT sealed: BenchmarkDotNet generates an instrumented subclass of the benchmark type, so the
+        // declaring class must be inheritable ("Declaring type must be unsealed").
+        builder.Append("public class ").Append(concreteName).Append(" : ").AppendLine(baseFqn);
+        builder.AppendLine("{");
+        builder.Append("    protected override ").Append(SetupInterfaceFqn)
+            .Append(" CreateSetup() => new ").Append(setupFqn).AppendLine("();");
+        builder.AppendLine("}");
+
+        return SourceText.From(builder.ToString(), Encoding.UTF8);
+    }
+
+    private static bool IsApplication(OutputKind kind) =>
+        kind == OutputKind.ConsoleApplication || kind == OutputKind.WindowsApplication;
+
+    private static bool InheritsFrom(INamedTypeSymbol type, INamedTypeSymbol target)
+    {
+        for (var current = type.BaseType; current is not null; current = current.BaseType)
+        {
+            if (SymbolEqualityComparer.Default.Equals(current, target))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static IEnumerable<INamedTypeSymbol> EnumerateNamedTypes(INamespaceSymbol root)
+    {
+        foreach (var member in root.GetMembers())
+        {
+            if (member is INamespaceSymbol childNamespace)
+            {
+                foreach (var nested in EnumerateNamedTypes(childNamespace))
+                {
+                    yield return nested;
+                }
+            }
+            else if (member is INamedTypeSymbol type)
+            {
+                yield return type;
+            }
+        }
+    }
+}
