@@ -96,7 +96,7 @@ public static class CartBenchmarkFixtures
     public static List<ConfigurationItem> CreateConfigurationItems(int lineItemIndex)
     {
         // Enough object graph to make the configured shape diverge from flat without modelling a
-        // full LEO design→garment tree.
+        // full design→garment tree.
         return Enumerable.Range(0, 3).Select(v =>
         {
             var item = AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();

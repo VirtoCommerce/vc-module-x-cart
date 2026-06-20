@@ -108,7 +108,7 @@ Use `--smoke` (Job.Dry) to validate and `--short` (Job.ShortRun) for a fast real
 
 ## Comparing a consuming module against upstream (module-agnostic engine)
 
-Because the benchmark logic lives in the Core library, a consuming module (XOrder, LEO, …) references
+Because the benchmark logic lives in the Core library, a consuming module (e.g. XOrder) references
 the Core package, implements `ICartModuleBenchmarkSetup.ConfigureServices` to contribute its own
 registrations (subclassed models via `AbstractTypeFactory`, a heavier aggregate, overridden command
 handlers, extra recalculate middleware), and declares it once via `[assembly: BenchmarkSetup]`. The
