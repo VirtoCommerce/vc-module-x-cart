@@ -2,11 +2,14 @@ using System.Collections.Generic;
 using System.Linq;
 using AutoMapper;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Data.Services;
 using VirtoCommerce.CatalogModule.Core.Model;
+using VirtoCommerce.CatalogModule.Core.Model.Search;
+using VirtoCommerce.CatalogModule.Core.Search;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.Platform.Core.Caching;
@@ -305,5 +308,60 @@ public static class CartBenchmarkFixtures
         command.LineItemIds = Enumerable.Range(0, lineItemCount).Select(i => $"li-{i}").ToArray();
 
         return WithCartContext(command);
+    }
+
+    /// <summary>
+    /// An <c>addCartItemsBulk</c> command of <paramref name="itemCount"/> items, each addressed by SKU
+    /// (<c>SKU-bulk-{i}</c>) the way the storefront bulk-add (e.g. quick-order / CSV) issues it. The
+    /// handler resolves the SKUs to products via the indexed search (see <see cref="AddBulkProductSearchMock"/>),
+    /// dedups, then delegates to <c>addCartItems</c> — so the count axis drives the SKU-resolution +
+    /// dedup envelope plus the inner real add+recalc.
+    /// </summary>
+    public static AddCartItemsBulkCommand CreateAddCartItemsBulkCommand(int itemCount)
+    {
+        var command = AbstractTypeFactory<AddCartItemsBulkCommand>.TryCreateInstance();
+        command.StoreId = StoreId;
+        command.CurrencyCode = Currency.Code;
+        command.CultureName = "en-US";
+        command.UserId = "benchmark-user";
+        command.CartItems = Enumerable.Range(0, itemCount)
+            .Select(i => new NewBulkCartItem { ProductSku = $"SKU-bulk-{i}", Quantity = 2 })
+            .ToList();
+
+        return command;
+    }
+
+    /// <summary>
+    /// Registers the <see cref="IProductIndexedSearchService"/> the bulk-add handler uses to resolve SKUs
+    /// to products — the one leaf the singular add path never touches. Returns one active/buyable
+    /// <see cref="CatalogProduct"/> per <c>SKU-bulk-{i}</c> (id <c>product-bulk-{i}</c>, which the shared
+    /// <see cref="CartProductServiceMock"/> then prices on the inner add), honoring the criteria's
+    /// Skip/Take so the handler's paging loop terminates without duplicates. Pass via the
+    /// <c>customizeServices</c> hook so it stays scoped to the bulk-add scenario.
+    /// </summary>
+    public static void AddBulkProductSearchMock(IServiceCollection services, int itemCount)
+    {
+        var products = Enumerable.Range(0, itemCount).Select(i =>
+        {
+            var product = AbstractTypeFactory<CatalogProduct>.TryCreateInstance();
+            product.Id = $"product-bulk-{i}";
+            product.Code = $"SKU-bulk-{i}";
+            product.CatalogId = "catalog";
+            product.Name = $"Bulk product {i}";
+            product.IsActive = true;
+            product.IsBuyable = true;
+            product.TrackInventory = false;
+            return product;
+        }).ToList();
+
+        var search = new Mock<IProductIndexedSearchService>();
+        search
+            .Setup(x => x.SearchAsync(It.IsAny<ProductIndexedSearchCriteria>()))
+            .ReturnsAsync((ProductIndexedSearchCriteria criteria) => new ProductIndexedSearchResult
+            {
+                Items = products.Skip(criteria.Skip).Take(criteria.Take).ToArray(),
+                TotalCount = products.Count,
+            });
+        services.AddSingleton(search.Object);
     }
 }
