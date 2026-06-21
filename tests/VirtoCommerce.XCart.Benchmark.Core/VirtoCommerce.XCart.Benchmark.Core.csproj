@@ -26,19 +26,21 @@
     <PackageReference Include="VirtoCommerce.CartModule.Data" Version="3.1005.0" />
   </ItemGroup>
 
-  <!-- $(XCartSrc) defaults to the in-repo source. The before/after comparison mode (the Core
+  <!-- $(BaselineSrc) defaults to the in-repo source. The before/after comparison mode (the Core
        BenchmarkProgram baseline-src flag) overrides it per BenchmarkDotNet job via
-       /p:XCartSrc=(baseline-worktree)/src, so the "before" job builds XCart.Core/Data from the
-       baseline revision. ProjectReference (not a bare DLL HintPath) is deliberate: the benchmark uses
-       ~16 packages that XCart.Core/Data bring transitively, and only ProjectReference restores that
-       transitive graph. See README "Comparing before/after a change". -->
+       /p:BaselineSrc=(baseline-worktree)/src, so the "before" job builds XCart.Core/Data from the
+       baseline revision. The property is named by ROLE (the baseline source tree), not by module, so
+       every module's benchmark Core uses the same name (the .csproj appends its own module subpath).
+       ProjectReference (not a bare DLL HintPath) is deliberate: the benchmark uses ~16 packages that
+       XCart.Core/Data bring transitively, and only ProjectReference restores that transitive graph.
+       See README "Comparing before/after a change". -->
   <PropertyGroup>
-    <XCartSrc Condition="'$(XCartSrc)' == ''">..\..\src</XCartSrc>
+    <BaselineSrc Condition="'$(BaselineSrc)' == ''">..\..\src</BaselineSrc>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="$(XCartSrc)\VirtoCommerce.XCart.Core\VirtoCommerce.XCart.Core.csproj" />
-    <ProjectReference Include="$(XCartSrc)\VirtoCommerce.XCart.Data\VirtoCommerce.XCart.Data.csproj" />
+    <ProjectReference Include="$(BaselineSrc)\VirtoCommerce.XCart.Core\VirtoCommerce.XCart.Core.csproj" />
+    <ProjectReference Include="$(BaselineSrc)\VirtoCommerce.XCart.Data\VirtoCommerce.XCart.Data.csproj" />
     <!-- The source generator. Referenced as an Analyzer (no runtime dependency) so the generator DLL is
          built and surfaces in @(Analyzer); the _PackBenchmarkSourceGen target below puts it in the nupkg.
          Running on Core's own (library, no [assembly: BenchmarkSetup]) compilation is a no-op — the

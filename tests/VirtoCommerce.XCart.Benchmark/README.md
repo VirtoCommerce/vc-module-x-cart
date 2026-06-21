@@ -173,7 +173,7 @@ A single run's numbers are not a verdict — compare. Two ways:
    ```
    `--baseline-src <path>` is opt-in and additive — without it the run is unchanged. The path is the
    `src` root of the baseline checkout; the `before` job rebuilds `XCart.Core`/`XCart.Data` from it
-   via `/p:XCartSrc=<path>` (a `ProjectReference` swap, so the full transitive package graph still
+   via `/p:BaselineSrc=<path>` (a `ProjectReference` swap, so the full transitive package graph still
    restores — a bare DLL reference would not). The `before` job is the baseline, so an `Alloc Ratio`
    of `0.85` on an `after` row means the change allocates ~15% less. Valid only when the change keeps
    the public API these benchmarks call stable (same namespaces and signatures).

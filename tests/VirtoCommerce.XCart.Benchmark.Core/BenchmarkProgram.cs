@@ -26,9 +26,10 @@ public static class BenchmarkProgram
     {
         // Opt-in before/after comparison: `--baseline-src <src>` adds a "before" job that rebuilds the
         // benchmarked source from <src> (a git worktree on the baseline revision) alongside the current
-        // "after" source, yielding Ratio / Alloc-Ratio in one run. The `/p:XCartSrc` MSBuild property
-        // flows from the generated child build through the runner's ProjectReference graph into the
-        // XCart source references. When absent the config is a single default job.
+        // "after" source, yielding Ratio / Alloc-Ratio in one run. The `/p:BaselineSrc` MSBuild property
+        // (named by role, not module, so every module's benchmark Core shares it) flows from the
+        // generated child build through the runner's ProjectReference graph into the source references.
+        // When absent the config is a single default job.
         var (baselineSrc, afterBaseline) = ExtractOption(args, "--baseline-src");
 
         // --smoke = Job.Dry (run each case once — correctness check). --short = Job.ShortRun (bounded,
@@ -59,7 +60,7 @@ public static class BenchmarkProgram
         else
         {
             config = config
-                .AddJob(baseJob.WithMsBuildArguments($"/p:XCartSrc={baselineSrc}").WithId("before").AsBaseline())
+                .AddJob(baseJob.WithMsBuildArguments($"/p:BaselineSrc={baselineSrc}").WithId("before").AsBaseline())
                 .AddJob(baseJob.WithId("after"));
         }
 
