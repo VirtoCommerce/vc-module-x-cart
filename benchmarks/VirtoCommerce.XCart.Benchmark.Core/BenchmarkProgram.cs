@@ -39,12 +39,30 @@ public static class BenchmarkProgram
         var config = ManualConfig.Create(DefaultConfig.Instance).AddColumn(CategoriesColumn.Default);
         if (baselineSrc is not null)
         {
-            // --baseline-src needs two jobs with identical settings (only the source differs), so it
-            // pins Job.Default for both rather than reading the --job flag — it is the "quick eyeball
-            // Ratio" path, where a measured job is what you want anyway.
+            // before+after differ ONLY by source, so the job is chosen here — extracted from args, NOT
+            // left for the switcher's --job (that would append a third, unpaired job). Default to Dry:
+            // allocations are deterministic at any job, so a Dry before/after yields a byte-exact Alloc
+            // Ratio in seconds (the cheap routine check, and the alloc axis is the trustworthy one). The
+            // time Ratio at Dry/Short is NOT a verdict (cold JIT / too few iterations) — escalate to
+            // `--job Default` only when a trustworthy Mean comparison is the point.
+            var (jobName, restAfterJob) = ExtractOption(rest, "--job");
+            rest = restAfterJob;
+            var normalized = (jobName ?? "dry").ToLowerInvariant();
+            var baselineJob = normalized switch
+            {
+                "dry" => Job.Dry,
+                "short" => Job.ShortRun,
+                "default" or "measured" => Job.Default,
+                _ => throw new ArgumentException($"--job must be Dry|Short|Default with --baseline-src; got '{jobName}'."),
+            };
+            if (normalized is not ("default" or "measured"))
+            {
+                Console.Error.WriteLine($"// --baseline-src on --job {normalized}: Alloc Ratio is exact; the time " +
+                    "Ratio is directional only (not a verdict) — re-run with `--job Default` for a trustworthy Mean.");
+            }
             config = config
-                .AddJob(Job.Default.WithMsBuildArguments($"/p:BaselineSrc={baselineSrc}").WithId("before").AsBaseline())
-                .AddJob(Job.Default.WithId("after"));
+                .AddJob(baselineJob.WithMsBuildArguments($"/p:BaselineSrc={baselineSrc}").WithId("before").AsBaseline())
+                .AddJob(baselineJob.WithId("after"));
         }
 
         BenchmarkSwitcher.FromAssembly(benchmarkAssembly).Run(rest, config);

@@ -179,10 +179,14 @@ A single run's numbers are not a verdict — compare. Two ways:
    of `0.85` on an `after` row means the change allocates ~15% less. Valid only when the change keeps
    the public API these benchmarks call stable (same namespaces and signatures).
 
-   Do **not** add `--job <preset>` here — `--baseline-src` pins `Job.Default` for both the before and
-   after jobs (only the source differs between them), so a CLI `--job` would just append a third,
-   unpaired job. `Allocated` / `Alloc Ratio` are the deterministic signal; for a stricter `Mean`
-   comparison (symmetric invocation counts) add `--apples --iterationCount N`.
+   `--baseline-src` **defaults to `--job Dry`**: allocations are deterministic at any job, so a Dry
+   before/after gives a byte-exact `Alloc Ratio` in **seconds** — the cheap routine check, and the
+   trustworthy axis. The Dry/Short time `Ratio` is **directional only, not a verdict** (cold JIT / too
+   few iterations); the runner prints a reminder to that effect. Pass `--job Short` for a rough
+   same-machine time direction, or **`--job Default` for a trustworthy `Mean`** (tens of minutes) — the
+   chosen job applies to **both** the before and after jobs (it is consumed by `--baseline-src`, not
+   forwarded to BDN, so it does not append a third unpaired job). For a stricter `Mean` add
+   `--apples --iterationCount N` on top of `--job Default`.
 
 Allocations catch garbage/GC regressions; the time `Ratio` (in a controlled run) catches pure-CPU
 regressions that allocate nothing — read both.
