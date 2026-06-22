@@ -96,7 +96,7 @@ abstract `*BenchmarksBase` classes (so other modules can reference and run the s
 their own setup). This project is a thin runner exe over it. The concrete subclasses BenchmarkDotNet
 discovers are **source-generated** into this runner: a single `[assembly: BenchmarkSetup(typeof(...))]`
 in `Program.cs` tells the generator (shipped in the Core package's `analyzers/` folder) which
-`ICartModuleBenchmarkSetup` to bake, and it emits one concrete `*Benchmarks` subclass per Core base.
+`ICartBenchmarkSetup` to bake, and it emits one concrete `*Benchmarks` subclass per Core base.
 
 Because the concrete subclasses live in *this* exe whose `.csproj` filename matches its assembly name,
 the run uses BenchmarkDotNet's **stock out-of-process toolchain** — no custom toolchain, no in-process
@@ -110,7 +110,7 @@ Job selection is BenchmarkDotNet's native `--job Dry|Short|Default` (there are n
 ## Comparing a consuming module against upstream (module-agnostic engine)
 
 Because the benchmark logic lives in the Core library, a consuming module (e.g. XOrder) references
-the Core package, implements `ICartModuleBenchmarkSetup.ConfigureServices` to contribute its own
+the Core package, implements `ICartBenchmarkSetup.ConfigureServices` to contribute its own
 registrations (subclassed models via `AbstractTypeFactory`, a heavier aggregate, overridden command
 handlers, extra recalculate middleware), and declares it once via `[assembly: BenchmarkSetup]`. The
 generator (shipped in the Core package) emits the same benchmark definitions into the consumer's runner,
@@ -119,7 +119,7 @@ toolchain — run each into separate `--artifacts` and diff the `Allocated` colu
 from a short run is noise):
 
 A consumer whose real workload is a richer cart (a parent→child line-item hierarchy, not flat SKUs) can
-also override `ICartModuleBenchmarkSetup.CreateCart(lineItemCount, shape)` to feed that graph into the
+also override `ICartBenchmarkSetup.CreateCart(lineItemCount, shape)` to feed that graph into the
 loaded-cart benchmark paths (mutation / recalculate / validate / checklist), so its recalc pipeline and
 validators do real per-item work instead of early-returning on Core's generic shape. The default returns
 `null` (Core's `CartBenchmarkFixtures.CreateCart` shape). **Id contract**: a consumer cart MUST still
@@ -192,7 +192,7 @@ regressions that allocate nothing — read both.
 The reusable plumbing — `BenchmarkProgram`, `BenchmarkSetupAttribute`, the source generator
 (`BenchmarkSubclassGenerator`), and the host/base scaffolding — is **generic** but currently lives in
 `VirtoCommerce.XCart.Benchmark.Core` under the `VirtoCommerce.XCart.Benchmark` namespace, and the
-generator is hardcoded to `CartBenchmarkBase` / `ICartModuleBenchmarkSetup`. Consequences:
+generator is hardcoded to `CartBenchmarkBase` / `ICartBenchmarkSetup`. Consequences:
 
 - A non-cart consumer (XOrder, a future catalog/customer suite) has to reference **XCart**'s benchmark
   package just to get the generator and entry-point plumbing — semantically wrong (its benchmarks don't
@@ -203,7 +203,7 @@ generator is hardcoded to `CartBenchmarkBase` / `ICartModuleBenchmarkSetup`. Con
 
 Extract the generic pieces into a new module-agnostic package `VirtoCommerce.Xapi.Benchmark.Core`
 (+ its `.SourceGen`), generalize the generator to discover any `*BenchmarksBase` with a `CreateSetup()`
-seam (any `I*ModuleBenchmarkSetup`), and have each module's `*.Benchmark.Core` reference it. That
+seam (any `I*BenchmarkSetup`), and have each module's `*.Benchmark.Core` reference it. That
 unblocks, **as one publish-gated batch** (it requires republishing the Benchmark.Core packages and
 bumping every consumer's package ref in lockstep — the CLI/plumbing change can't land piecemeal):
 

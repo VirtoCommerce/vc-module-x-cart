@@ -11,7 +11,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// <summary>
 /// Shared entry-point plumbing for the XCart benchmark runners. Each runner's <c>Main</c> is a one-liner
 /// over <see cref="Run"/>, passing its OWN assembly: the concrete benchmark subclasses (one per Core
-/// <c>*BenchmarksBase</c>, source-generated, each baking the runner's <see cref="ICartModuleBenchmarkSetup"/>)
+/// <c>*BenchmarksBase</c>, source-generated, each baking the runner's <see cref="ICartBenchmarkSetup"/>)
 /// live in the runner exe. So <see cref="BenchmarkSwitcher.FromAssembly"/> discovers them there, and the
 /// stock out-of-process toolchain rebuilds the runner's own <c>.csproj</c> for the child process — no
 /// custom toolchain, no in-process mode, no process-global state.

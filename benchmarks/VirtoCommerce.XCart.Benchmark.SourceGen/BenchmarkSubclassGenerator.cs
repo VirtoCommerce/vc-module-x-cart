@@ -20,7 +20,7 @@ public sealed class BenchmarkSubclassGenerator : IIncrementalGenerator
 {
     private const string BaseClassMetadataName = "VirtoCommerce.XCart.Benchmark.CartBenchmarkBase";
     private const string SetupAttributeMetadataName = "VirtoCommerce.XCart.Benchmark.BenchmarkSetupAttribute";
-    private const string SetupInterfaceFqn = "global::VirtoCommerce.XCart.Benchmark.ICartModuleBenchmarkSetup";
+    private const string SetupInterfaceFqn = "global::VirtoCommerce.XCart.Benchmark.ICartBenchmarkSetup";
     private const string BaseSuffix = "Base";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)

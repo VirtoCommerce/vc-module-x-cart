@@ -45,7 +45,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 ///
 /// <para>Composition order matters for overrides: the base XCart handlers are registered first (MediatR
 /// assembly scan), the shared mocked I/O leaves next, and the active module setup's
-/// <see cref="ICartModuleBenchmarkSetup.ConfigureServices"/> <b>last</b> — so a consumer's
+/// <see cref="ICartBenchmarkSetup.ConfigureServices"/> <b>last</b> — so a consumer's
 /// <c>OverrideCommandType</c>/<c>UseCommandType().WithCommandHandler()</c> registration (a later
 /// <c>AddTransient(IRequestHandler&lt;,&gt;)</c>) wins by DI last-registration semantics, and its
 /// <c>AbstractTypeFactory</c> + aggregate + recalculate-pipeline overrides take effect. The benchmark
@@ -67,7 +67,7 @@ public static class CartBenchmarkHost
     /// so an op can override a leaf for its scenario — e.g. an avail-methods mock returning a matching
     /// shipping rate, or a working validation-context factory. Wins by DI last-registration.</param>
     public static IServiceProvider BuildProvider(
-        ICartModuleBenchmarkSetup setup,
+        ICartBenchmarkSetup setup,
         int lineItemCount,
         CartShape shape,
         Action<ShoppingCart> customizeCart = null,

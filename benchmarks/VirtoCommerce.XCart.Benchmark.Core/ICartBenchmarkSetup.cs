@@ -11,7 +11,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// module: which registrations to contribute to the benchmark DI container so the consumer's own
 /// handlers, type overrides, and recalculate pipeline are what the benchmarks measure.
 /// </summary>
-public interface ICartModuleBenchmarkSetup
+public interface ICartBenchmarkSetup
 {
     /// <summary>
     /// Contributes the module's registrations to the benchmark DI container built by

@@ -27,7 +27,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// tax branch + ApplyTaxRates run. No <c>AbstractTypeFactory</c> overrides — the factory resolves the
 /// base cart-graph models and commands via its fallback.
 /// </summary>
-public sealed class UpstreamCartBenchmarkSetup : ICartModuleBenchmarkSetup
+public sealed class XCartBenchmarkSetup : ICartBenchmarkSetup
 {
     public void ConfigureServices(IServiceCollection services)
     {

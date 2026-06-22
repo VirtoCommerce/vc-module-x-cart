@@ -13,14 +13,14 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// the baked setup is active there with no process-global state and no custom toolchain.
 ///
 /// <para><see cref="BuildProvider"/> composes the DI container (base XCart handlers + mocked I/O leaves
-/// + the module's <see cref="ICartModuleBenchmarkSetup.ConfigureServices"/> overrides); operations
+/// + the module's <see cref="ICartBenchmarkSetup.ConfigureServices"/> overrides); operations
 /// resolve <c>IMediator</c> (command/query benchmarks) or <c>Func&lt;CartAggregate&gt;</c>
 /// (aggregate-direct benchmarks) from it.</para>
 /// </summary>
 public abstract class CartBenchmarkBase
 {
     /// <summary>The module setup baked by the concrete runner subclass (upstream / a consumer).</summary>
-    protected abstract ICartModuleBenchmarkSetup CreateSetup();
+    protected abstract ICartBenchmarkSetup CreateSetup();
 
     /// <summary>
     /// Composes the benchmark DI container for a cart of the given size and shape. The optional

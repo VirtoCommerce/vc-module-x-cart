@@ -22,7 +22,7 @@
     <!-- CartModule.Data is NOT referenced by XCart (it only needs CartModule.Core's
          IShoppingCartTotalsCalculator interface). The benchmark needs the real
          DefaultShoppingCartTotalsCalculator implementation, so reference Data explicitly,
-         aligned with the CartModule.Core version XCart.Core brings (3.1005.0). -->
+         aligned with the CartModule.Core version XCart.Core brings. -->
     <PackageReference Include="VirtoCommerce.CartModule.Data" Version="3.1005.0" />
   </ItemGroup>
 
