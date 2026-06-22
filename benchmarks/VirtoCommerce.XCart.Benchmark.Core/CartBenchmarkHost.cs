@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using AutoMapper;
 using FluentValidation.Results;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,8 +18,6 @@ using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.MarketingModule.Core.Services;
-using VirtoCommerce.Platform.Core.Caching;
-using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.SearchModule.Core.Services;
 using VirtoCommerce.ShippingModule.Core.Services;
@@ -31,7 +28,7 @@ using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
-using VirtoCommerce.XCart.Data.Commands;
+using VirtoCommerce.XCart.Data;
 using VirtoCommerce.XCart.Data.Services;
 
 namespace VirtoCommerce.XCart.Benchmark;
@@ -61,11 +58,6 @@ public static class CartBenchmarkHost
     /// forces a real load+recalc each call — the same idempotency contract the hand-built mutation
     /// harness provided.
     /// </summary>
-    /// <param name="customizeCart">Optional mutation applied to the loaded cart before each
-    /// <c>GetAsync</c> returns it — e.g. an op that needs a pre-seeded shipment/payment.</param>
-    /// <param name="customizeServices">Optional registrations applied LAST (after the module setup),
-    /// so an op can override a leaf for its scenario — e.g. an avail-methods mock returning a matching
-    /// shipping rate, or a working validation-context factory. Wins by DI last-registration.</param>
     public static IServiceProvider BuildProvider(
         ICartBenchmarkSetup setup,
         int lineItemCount,
@@ -75,8 +67,12 @@ public static class CartBenchmarkHost
     {
         var services = new ServiceCollection();
 
-        // Base XCart command/query handlers — MediatR scans the Data assembly (where the handlers live).
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(AddCartItemsCommandHandler).Assembly));
+        // Base handlers — register MediatR from the Core AND Data assemblies, mirroring the module's
+        // production AddSchema(typeof(CoreAssemblyMarker), typeof(DataAssemblyMarker)). Anchor on the
+        // assembly marker types, not specific handlers that could be renamed/removed.
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(
+            typeof(CoreAssemblyMarker).Assembly,
+            typeof(DataAssemblyMarker).Assembly));
 
         // ── Real compute ────────────────────────────────────────────────────────────────────────
         var currencyService = new Mock<ICurrencyService>();
@@ -145,7 +141,7 @@ public static class CartBenchmarkHost
         // AddConfiguredItemAsync validates the configured line item → return a passing result.
         var configurationItemValidator = new Mock<IConfigurationItemValidator>();
         configurationItemValidator
-            .Setup(x => x.ValidateAsync(It.IsAny<VirtoCommerce.CartModule.Core.Model.LineItem>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ValidationResult());
         services.AddSingleton(configurationItemValidator.Object);
 

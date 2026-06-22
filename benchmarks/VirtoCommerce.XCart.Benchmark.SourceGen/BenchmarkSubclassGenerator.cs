@@ -18,10 +18,10 @@ namespace VirtoCommerce.XCart.Benchmark.SourceGen;
 [Generator(LanguageNames.CSharp)]
 public sealed class BenchmarkSubclassGenerator : IIncrementalGenerator
 {
-    private const string BaseClassMetadataName = "VirtoCommerce.XCart.Benchmark.CartBenchmarkBase";
-    private const string SetupAttributeMetadataName = "VirtoCommerce.XCart.Benchmark.BenchmarkSetupAttribute";
-    private const string SetupInterfaceFqn = "global::VirtoCommerce.XCart.Benchmark.ICartBenchmarkSetup";
-    private const string BaseSuffix = "Base";
+    private const string _baseClassMetadataName = "VirtoCommerce.XCart.Benchmark.CartBenchmarkBase";
+    private const string _setupAttributeMetadataName = "VirtoCommerce.XCart.Benchmark.BenchmarkSetupAttribute";
+    private const string _setupInterfaceFqn = "global::VirtoCommerce.XCart.Benchmark.ICartBenchmarkSetup";
+    private const string _baseSuffix = "Base";
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -33,8 +33,8 @@ public sealed class BenchmarkSubclassGenerator : IIncrementalGenerator
 
     private static void Execute(SourceProductionContext context, Compilation compilation)
     {
-        var baseClass = compilation.GetTypeByMetadataName(BaseClassMetadataName);
-        var setupAttribute = compilation.GetTypeByMetadataName(SetupAttributeMetadataName);
+        var baseClass = compilation.GetTypeByMetadataName(_baseClassMetadataName);
+        var setupAttribute = compilation.GetTypeByMetadataName(_setupAttributeMetadataName);
 
         // No Core reference at all — nothing to do (e.g. an unrelated project that pulled in the analyzer).
         if (baseClass is null || setupAttribute is null)
@@ -86,7 +86,7 @@ public sealed class BenchmarkSubclassGenerator : IIncrementalGenerator
     {
         // Drop the trailing "Base" so the concrete class — and thus the BenchmarkDotNet report name —
         // matches the pre-inheritance class name (report continuity across the model change).
-        var concreteName = baseType.Name.Substring(0, baseType.Name.Length - BaseSuffix.Length);
+        var concreteName = baseType.Name.Substring(0, baseType.Name.Length - _baseSuffix.Length);
         var baseFqn = baseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         var ns = baseType.ContainingNamespace.IsGlobalNamespace
             ? null
@@ -108,7 +108,7 @@ public sealed class BenchmarkSubclassGenerator : IIncrementalGenerator
         // declaring class must be inheritable ("Declaring type must be unsealed").
         builder.Append("public class ").Append(concreteName).Append(" : ").AppendLine(baseFqn);
         builder.AppendLine("{");
-        builder.Append("    protected override ").Append(SetupInterfaceFqn)
+        builder.Append("    protected override ").Append(_setupInterfaceFqn)
             .Append(" CreateSetup() => new ").Append(setupFqn).AppendLine("();");
         builder.AppendLine("}");
 
