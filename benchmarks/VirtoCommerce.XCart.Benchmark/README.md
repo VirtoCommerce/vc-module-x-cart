@@ -57,14 +57,14 @@ the process-cached shared aggregate. These are single-threaded, in-memory measur
 ## Running
 
 ```bash
-cd tests/VirtoCommerce.XCart.Benchmark
+cd benchmarks/VirtoCommerce.XCart.Benchmark
 
-# validate first — compiles + executes each case once, no measurement
-dotnet run -c Release -- --filter "*" --smoke
+# validate first — compiles + executes each case once, no measurement (Job.Dry)
+dotnet run -c Release -- --filter "*" --job Dry
 
-# fast-but-real job — bounded 3 warmup + 3 measurement iterations (Job.ShortRun). Prefer over the
+# fast-but-real job — bounded warmup + measurement iterations (Job.ShortRun). Prefer over the
 # default job for quick reads
-dotnet run -c Release -- --filter "*RecalculateAsync*" --short
+dotnet run -c Release -- --filter "*RecalculateAsync*" --job Short
 
 # all benchmarks
 dotnet run -c Release -- --filter "*" --noOverwrite > benchmark.log 2>&1
@@ -103,8 +103,9 @@ the run uses BenchmarkDotNet's **stock out-of-process toolchain** — no custom 
 mode, no process-global state. BDN rebuilds this runner's own project for each child process, which
 re-runs the generator, so the baked setup is active there too.
 
-Use `--smoke` (Job.Dry) to validate and `--short` (Job.ShortRun) for a fast real measurement; a bare
-`--job <preset>` also works since everything is the stock toolchain.
+Job selection is BenchmarkDotNet's native `--job Dry|Short|Default` (there are no custom
+`--smoke`/`--short` aliases): `--job Dry` to validate, `--job Short` for a fast real measurement,
+`--job Default` (or omitting `--job`) for the full measured job. Everything is the stock toolchain.
 
 ## Comparing a consuming module against upstream (module-agnostic engine)
 
@@ -128,9 +129,9 @@ early-return. Only the loaded-cart path is affected; the add path's products sti
 
 ```bash
 # upstream baseline (this runner)
-dotnet run -c Release -- --filter "*ChangeCartItemQuantity*" --short --artifacts ./upstream
+dotnet run -c Release -- --filter "*ChangeCartItemQuantity*" --job Short --artifacts ./upstream
 # consumer (from its own runner, which declares [assembly: BenchmarkSetup(typeof(ConsumerSetup))])
-dotnet run -c Release -- --filter "*ChangeCartItemQuantity*" --short --artifacts ./consumer
+dotnet run -c Release -- --filter "*ChangeCartItemQuantity*" --job Short --artifacts ./consumer
 ```
 
 **Validity rule — compare full operations, not isolated reimplemented methods.** The seam is
@@ -178,11 +179,35 @@ A single run's numbers are not a verdict — compare. Two ways:
    of `0.85` on an `after` row means the change allocates ~15% less. Valid only when the change keeps
    the public API these benchmarks call stable (same namespaces and signatures).
 
-   Do **not** add `--job <preset>` here — besides appending an extra job rather than reconfiguring the
-   before/after pair, a CLI `--job` uses the default toolchain that can't resolve the library project
-   (see "Layout and toolchain"). `Allocated` / `Alloc Ratio` are the deterministic signal; for a
-   stricter `Mean` comparison (symmetric invocation counts) add `--apples --iterationCount N`, or
-   `--smoke` for a fast before/after correctness pass.
+   Do **not** add `--job <preset>` here — `--baseline-src` pins `Job.Default` for both the before and
+   after jobs (only the source differs between them), so a CLI `--job` would just append a third,
+   unpaired job. `Allocated` / `Alloc Ratio` are the deterministic signal; for a stricter `Mean`
+   comparison (symmetric invocation counts) add `--apples --iterationCount N`.
 
 Allocations catch garbage/GC regressions; the time `Ratio` (in a controlled run) catches pure-CPU
 regressions that allocate nothing — read both.
+
+## TODO — extract the engine to a module-agnostic `VirtoCommerce.Xapi.Benchmark.Core`
+
+The reusable plumbing — `BenchmarkProgram`, `BenchmarkSetupAttribute`, the source generator
+(`BenchmarkSubclassGenerator`), and the host/base scaffolding — is **generic** but currently lives in
+`VirtoCommerce.XCart.Benchmark.Core` under the `VirtoCommerce.XCart.Benchmark` namespace, and the
+generator is hardcoded to `CartBenchmarkBase` / `ICartModuleBenchmarkSetup`. Consequences:
+
+- A non-cart consumer (XOrder, a future catalog/customer suite) has to reference **XCart**'s benchmark
+  package just to get the generator and entry-point plumbing — semantically wrong (its benchmarks don't
+  depend on cart).
+- XOrder therefore cannot source-generate its concrete subclasses (the cart generator doesn't recognize
+  `CreateOrderFromCartBenchmarksBase`), so it hand-writes the subclass; and XOrder still keeps its own
+  inline copy of the `--baseline-src` entry-point logic instead of sharing `BenchmarkProgram`.
+
+Extract the generic pieces into a new module-agnostic package `VirtoCommerce.Xapi.Benchmark.Core`
+(+ its `.SourceGen`), generalize the generator to discover any `*BenchmarksBase` with a `CreateSetup()`
+seam (any `I*ModuleBenchmarkSetup`), and have each module's `*.Benchmark.Core` reference it. That
+unblocks, **as one publish-gated batch** (it requires republishing the Benchmark.Core packages and
+bumping every consumer's package ref in lockstep — the CLI/plumbing change can't land piecemeal):
+
+- XOrder migrating onto the shared `BenchmarkProgram` (dropping its inline `--baseline-src` copy);
+- XOrder source-generating its subclass (dropping the hand-written one);
+- a clean home for the now-shared native-`--job` `BenchmarkProgram` so no module's package name leaks
+  into another's benchmark suite.

@@ -19,8 +19,11 @@ namespace VirtoCommerce.XCart.Benchmark;
 public static class BenchmarkProgram
 {
     /// <summary>
-    /// Parses the opt-in flags (<c>--baseline-src</c>, <c>--smoke</c>, <c>--short</c>), builds the config,
-    /// and runs the concrete benchmarks discovered in <paramref name="benchmarkAssembly"/>.
+    /// Parses the one opt-in option (<c>--baseline-src</c>), builds the config, and runs the concrete
+    /// benchmarks discovered in <paramref name="benchmarkAssembly"/>. Job selection is BenchmarkDotNet's
+    /// own <c>--job Dry|Short|Default</c> CLI flag (forwarded untouched to the switcher) — there are no
+    /// custom <c>--smoke</c>/<c>--short</c> aliases, so every module's runner shares one job-selection
+    /// mechanism and the perf-benchmark helpers don't have to special-case a runner dialect.
     /// </summary>
     public static void Run(Assembly benchmarkAssembly, string[] args)
     {
@@ -29,39 +32,19 @@ public static class BenchmarkProgram
         // "after" source, yielding Ratio / Alloc-Ratio in one run. The `/p:BaselineSrc` MSBuild property
         // (named by role, not module, so every module's benchmark Core shares it) flows from the
         // generated child build through the runner's ProjectReference graph into the source references.
-        // When absent the config is a single default job.
-        var (baselineSrc, afterBaseline) = ExtractOption(args, "--baseline-src");
-
-        // --smoke = Job.Dry (run each case once — correctness check). --short = Job.ShortRun (bounded,
-        // fast-but-real). Both run on the stock toolchain: the concrete subclasses live in the runner
-        // exe whose .csproj name matches its assembly name, so BDN's default resolver locates the project.
-        var (smoke, afterSmoke) = ExtractFlag(afterBaseline, "--smoke");
-        var (shortJob, rest) = ExtractFlag(afterSmoke, "--short");
-
-        Job baseJob;
-        if (smoke)
-        {
-            baseJob = Job.Dry;
-        }
-        else if (shortJob)
-        {
-            baseJob = Job.ShortRun;
-        }
-        else
-        {
-            baseJob = Job.Default;
-        }
+        // When absent the config carries no job, so BenchmarkDotNet uses its `--job` CLI flag (default
+        // Job.Default).
+        var (baselineSrc, rest) = ExtractOption(args, "--baseline-src");
 
         var config = ManualConfig.Create(DefaultConfig.Instance).AddColumn(CategoriesColumn.Default);
-        if (baselineSrc is null)
+        if (baselineSrc is not null)
         {
-            config = config.AddJob(baseJob);
-        }
-        else
-        {
+            // --baseline-src needs two jobs with identical settings (only the source differs), so it
+            // pins Job.Default for both rather than reading the --job flag — it is the "quick eyeball
+            // Ratio" path, where a measured job is what you want anyway.
             config = config
-                .AddJob(baseJob.WithMsBuildArguments($"/p:BaselineSrc={baselineSrc}").WithId("before").AsBaseline())
-                .AddJob(baseJob.WithId("after"));
+                .AddJob(Job.Default.WithMsBuildArguments($"/p:BaselineSrc={baselineSrc}").WithId("before").AsBaseline())
+                .AddJob(Job.Default.WithId("after"));
         }
 
         BenchmarkSwitcher.FromAssembly(benchmarkAssembly).Run(rest, config);
@@ -86,19 +69,5 @@ public static class BenchmarkProgram
         var rest = args.Where((_, i) => i != index && i != index + 1).ToArray();
 
         return (value, rest);
-    }
-
-    // Removes a valueless flag from args, returning whether it was present.
-    private static (bool, string[]) ExtractFlag(string[] args, string name)
-    {
-        var index = Array.IndexOf(args, name);
-        if (index < 0)
-        {
-            return (false, args);
-        }
-
-        var rest = args.Where((_, i) => i != index).ToArray();
-
-        return (true, rest);
     }
 }
