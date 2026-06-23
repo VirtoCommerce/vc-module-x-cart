@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
@@ -9,7 +8,6 @@ using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Model.Configuration;
 using VirtoCommerce.CatalogModule.Core.Model.Search;
 using VirtoCommerce.CatalogModule.Core.Search;
-using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Models;
@@ -44,6 +42,12 @@ namespace VirtoCommerce.XCart.Tests.Handlers
             var cartProperty = typeof(CartAggregate).GetProperty(nameof(CartAggregate.Cart));
             cartProperty.SetValue(mock.Object, new ShoppingCart { Id = "cart-1" });
 
+            mock.Setup(x => x.GetCartProductKey(It.IsAny<string>(), It.IsAny<string>()))
+                .Returns((string productId, string currencyCode) =>
+                {
+                    return CartAggregate.FormatGetCartProductKey(productId, currencyCode);
+                });
+
             return mock;
         }
 
@@ -57,11 +61,17 @@ namespace VirtoCommerce.XCart.Tests.Handlers
                 .ReturnsAsync(cartAggregateMock.Object);
 
             _cartProductServiceMock
-                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
-                .ReturnsAsync(new List<CartProduct>
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
                 {
-                    new(new CatalogProduct { Id = "prod-1" }),
-                    new(new CatalogProduct { Id = "prod-2" }),
+                    var cartProduct1 = new CartProduct(new CatalogProduct { Id = "prod-1" });
+                    var cartProduct2 = new CartProduct(new CatalogProduct { Id = "prod-2" });
+
+                    return new Dictionary<string, CartProduct>
+                    {
+                        { CartAggregate.FormatGetCartProductKey(cartProduct1.Id, "USD"), cartProduct1 },
+                        { CartAggregate.FormatGetCartProductKey(cartProduct2.Id, "USD"), cartProduct2 },
+                    };
                 });
 
             // No configurations
@@ -73,7 +83,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
             var request = new AddCartItemsCommand
             {
                 CartId = "cart-1",
-                CartItems = [new("prod-1", 1), new("prod-2", 2)],
+                CartItems = [new("prod-1", 1) { ItemCurrencyCode = "USD" }, new("prod-2", 2) { ItemCurrencyCode = "USD" }],
             };
 
             // Act
@@ -89,13 +99,22 @@ namespace VirtoCommerce.XCart.Tests.Handlers
         {
             // Arrange
             var cartAggregateMock = CreateCartAggregateMock();
+
             _cartAggregateRepositoryMock
                 .Setup(x => x.GetCartByIdAsync(It.IsAny<string>(), It.IsAny<string>()))
                 .ReturnsAsync(cartAggregateMock.Object);
 
             _cartProductServiceMock
-                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
-                .ReturnsAsync(new List<CartProduct> { new(new CatalogProduct { Id = "prod-1" }) });
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
+                {
+                    var cartProduct = new CartProduct(new CatalogProduct { Id = "prod-1", });
+
+                    return new Dictionary<string, CartProduct>
+                    {
+                        { CartAggregate.FormatGetCartProductKey(cartProduct.Id, "USD"), cartProduct },
+                    };
+                });
 
             var config = new ProductConfiguration { ProductId = "prod-1", IsActive = true };
             _configSearchServiceMock
@@ -112,7 +131,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
                 CartId = "cart-1",
                 StoreId = "store-1",
                 UserId = "user-1",
-                CartItems = [new("prod-1", 1)],
+                CartItems = [new("prod-1", 1) { ItemCurrencyCode = "USD" }],
             };
 
             // Act
@@ -136,11 +155,17 @@ namespace VirtoCommerce.XCart.Tests.Handlers
                 .ReturnsAsync(cartAggregateMock.Object);
 
             _cartProductServiceMock
-                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
-                .ReturnsAsync(new List<CartProduct>
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
                 {
-                    new(new CatalogProduct { Id = "configurable-1" }),
-                    new(new CatalogProduct { Id = "regular-1" }),
+                    var cartProduct1 = new CartProduct(new CatalogProduct { Id = "configurable-1" });
+                    var cartProduct2 = new CartProduct(new CatalogProduct { Id = "regular-1" });
+
+                    return new Dictionary<string, CartProduct>
+                    {
+                        { CartAggregate.FormatGetCartProductKey(cartProduct1.Id, "USD"), cartProduct1 },
+                        { CartAggregate.FormatGetCartProductKey(cartProduct2.Id, "USD"), cartProduct2 },
+                    };
                 });
 
             var config = new ProductConfiguration { ProductId = "configurable-1", IsActive = true };
@@ -157,7 +182,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
             {
                 CartId = "cart-1",
                 StoreId = "store-1",
-                CartItems = [new("configurable-1", 1), new("regular-1", 2)],
+                CartItems = [new("configurable-1", 1) { ItemCurrencyCode = "USD" }, new("regular-1", 2) { ItemCurrencyCode = "USD" }],
             };
 
             // Act
@@ -178,8 +203,8 @@ namespace VirtoCommerce.XCart.Tests.Handlers
                 .ReturnsAsync(cartAggregateMock.Object);
 
             _cartProductServiceMock
-                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
-                .ReturnsAsync(new List<CartProduct>()); // no products found
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync(new Dictionary<string, CartProduct>()); // no products found
 
             _configSearchServiceMock
                 .Setup(x => x.SearchAsync(It.IsAny<ProductConfigurationSearchCriteria>(), It.IsAny<bool>()))
@@ -189,7 +214,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
             var request = new AddCartItemsCommand
             {
                 CartId = "cart-1",
-                CartItems = [new("missing-prod", 1)],
+                CartItems = [new("missing-prod", 1) { ItemCurrencyCode = "USD" }],
             };
 
             // Act
@@ -212,8 +237,16 @@ namespace VirtoCommerce.XCart.Tests.Handlers
                 .ReturnsAsync(cartAggregateMock.Object);
 
             _cartProductServiceMock
-                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
-                .ReturnsAsync(new List<CartProduct> { new(new CatalogProduct { Id = "prod-1" }) });
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
+                {
+                    var cartProduct = new CartProduct(new CatalogProduct { Id = "prod-1", });
+
+                    return new Dictionary<string, CartProduct>
+                    {
+                        { CartAggregate.FormatGetCartProductKey(cartProduct.Id, "USD"), cartProduct },
+                    };
+                });
 
             var config = new ProductConfiguration { ProductId = "prod-1", IsActive = true };
             _configSearchServiceMock
@@ -229,7 +262,7 @@ namespace VirtoCommerce.XCart.Tests.Handlers
             {
                 CartId = "cart-1",
                 StoreId = "store-1",
-                CartItems = [new("prod-1", 1)], // no ConfigurationSections set
+                CartItems = [new("prod-1", 1) { ItemCurrencyCode = "USD" }], // no ConfigurationSections set
             };
 
             // Act

@@ -9,6 +9,7 @@ using FluentAssertions;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Model;
+using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.FileExperienceApi.Core.Models;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
@@ -101,10 +102,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var shoppingCart = _fixture.Create<ShoppingCart>();
             shoppingCart.Items = Enumerable.Empty<LineItem>().ToList();
 
-            _cartProductServiceMock
-                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), new[] { productId }))
-                .ReturnsAsync(new List<CartProduct> { new(new CatalogProduct()) });
-
             // Act
             var aggregateAfterAddItem = await _aggregate.AddItemAsync(newCartItem);
 
@@ -131,14 +128,18 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var newCartItems = new List<NewCartItem> { newCartItem1, newCartItem2 };
 
             _cartProductServiceMock
-                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), new[] { productId1, productId2 }))
-                .ReturnsAsync(
-                    new List<CartProduct>
-                    {
-                        new(new CatalogProduct { Id = productId1, IsActive = true, IsBuyable = true }),
-                        new(new CatalogProduct { Id = productId2, IsActive = true, IsBuyable = true }),
-                    });
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
+                {
+                    var cartProduct1 = new CartProduct(new CatalogProduct { Id = productId1, IsActive = true, IsBuyable = true });
+                    var cartProduct2 = new CartProduct(new CatalogProduct { Id = productId2, IsActive = true, IsBuyable = true });
 
+                    return new Dictionary<string, CartProduct>
+                    {
+                        { CartAggregate.FormatGetCartProductKey(cartProduct1.Id, "USD"), cartProduct1 },
+                        { CartAggregate.FormatGetCartProductKey(cartProduct2.Id, "USD"), cartProduct2 }
+                    };
+                });
 
             _mapperMock
                 .Setup(m => m.Map(It.IsAny<CartProduct>(), It.IsAny<Action<IMappingOperationOptions<object, LineItem>>>()))
@@ -166,8 +167,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var newCartItems = new List<NewCartItem> { new("missing-product", 1) };
 
             _cartProductServiceMock
-                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
-                .ReturnsAsync(new List<CartProduct>());
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync(new Dictionary<string, CartProduct>());
 
             var cartAggregate = GetValidCartAggregate();
             cartAggregate.ValidationRuleSet = ["default"];
@@ -195,9 +196,14 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
 
             var product = new CartProduct(new CatalogProduct { Id = "prod-1", IsActive = true, IsBuyable = true });
+            var products = new Dictionary<string, CartProduct>
+            {
+                { CartAggregate.FormatGetCartProductKey(product.Id, "USD"), product },
+            };
+
             _cartProductServiceMock
-                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
-                .ReturnsAsync(new List<CartProduct> { product });
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync(products);
 
             _mapperMock
                 .Setup(m => m.Map(It.IsAny<CartProduct>(), It.IsAny<Action<IMappingOperationOptions<object, LineItem>>>()))
@@ -575,14 +581,13 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             sourceAggregate.Cart.Shipments = Enumerable.Empty<Shipment>().ToList();
             sourceAggregate.Cart.Payments = Enumerable.Empty<Payment>().ToList();
 
+            var currencyCode = "USD";
+
             var sourceProduct1 = _fixture.Create<CartProduct>();
             var sourceProduct2 = _fixture.Create<CartProduct>();
 
             sourceProduct1.Id = "source1";
             sourceProduct2.Id = "source2";
-
-            sourceAggregate.CartProducts.Add(sourceProduct1.Id, sourceProduct1);
-            sourceAggregate.CartProducts.Add(sourceProduct2.Id, sourceProduct2);
 
             var sourceLineItem1 = _fixture.Create<LineItem>();
             sourceLineItem1.ProductId = sourceProduct1.Id;
@@ -592,7 +597,12 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             sourceLineItem2.ProductId = sourceProduct2.Id;
             sourceLineItem2.IsConfigured = false;
 
+            sourceLineItem1.Currency = sourceLineItem2.Currency = currencyCode;
+
             sourceAggregate.Cart.Items = new List<LineItem> { sourceLineItem1, sourceLineItem2 };
+
+            sourceAggregate.CartProducts.Add(sourceAggregate.GetCartProductKey(sourceLineItem1), sourceProduct1);
+            sourceAggregate.CartProducts.Add(sourceAggregate.GetCartProductKey(sourceLineItem2), sourceProduct2);
 
             var destinationAggregate = GetValidCartAggregate();
 
@@ -607,6 +617,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             destinationLineItem2.ProductId = sourceProduct2.Id;
             destinationLineItem2.IsConfigured = false;
             var quantity = destinationLineItem2.Quantity;
+
+            destinationLineItem1.Currency = destinationLineItem2.Currency = currencyCode;
 
             destinationAggregate.Cart.Items = new List<LineItem> { destinationLineItem1, destinationLineItem2 };
 
@@ -762,7 +774,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var sharedProduct = _fixture.Create<CartProduct>();
             sharedProduct.Id = "shared-product";
-            sourceAggregate.CartProducts.Add(sharedProduct.Id, sharedProduct);
 
             var sourceConfiguredItem = _fixture.Create<LineItem>();
             sourceConfiguredItem.ProductId = sharedProduct.Id;
@@ -774,6 +785,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var sourceQuantity = sourceConfiguredItem.Quantity;
 
             sourceAggregate.Cart.Items = new List<LineItem> { sourceConfiguredItem };
+            sourceAggregate.CartProducts.Add(sourceAggregate.GetCartProductKey(sourceConfiguredItem), sharedProduct);
 
             var destinationAggregate = GetValidCartAggregate();
 
@@ -811,7 +823,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var sharedProduct = _fixture.Create<CartProduct>();
             sharedProduct.Id = "shared-product";
-            sourceAggregate.CartProducts.Add(sharedProduct.Id, sharedProduct);
 
             var sourceConfiguredItem = _fixture.Create<LineItem>();
             sourceConfiguredItem.ProductId = sharedProduct.Id;
@@ -823,6 +834,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var sourceQuantity = sourceConfiguredItem.Quantity;
 
             sourceAggregate.Cart.Items = new List<LineItem> { sourceConfiguredItem };
+            sourceAggregate.CartProducts.Add(sourceAggregate.GetCartProductKey(sourceConfiguredItem), sharedProduct);
 
             var destinationAggregate = GetValidCartAggregate();
 
@@ -858,7 +870,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var sharedProduct = _fixture.Create<CartProduct>();
             sharedProduct.Id = "shared-product";
-            sourceAggregate.CartProducts.Add(sharedProduct.Id, sharedProduct);
 
             var sourceSimpleItem = _fixture.Create<LineItem>();
             sourceSimpleItem.ProductId = sharedProduct.Id;
@@ -867,6 +878,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var sourceQuantity = sourceSimpleItem.Quantity;
 
             sourceAggregate.Cart.Items = new List<LineItem> { sourceSimpleItem };
+            sourceAggregate.CartProducts.Add(sourceAggregate.GetCartProductKey(sourceSimpleItem), sharedProduct);
 
             var destinationAggregate = GetValidCartAggregate();
 
@@ -917,6 +929,116 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
         #endregion ValidateAsync
 
+        #region GetLineItemValidationErrorsAsync
+
+        [Fact]
+        public async Task GetLineItemValidationErrorsAsync_AfterCacheCleared_RevalidatesAndReturnsLineItemErrors()
+        {
+            // Arrange
+            // Regression guard for VCST-5234: after a save clears the validation cache, the per-line
+            // validationErrors/isValid resolvers must still re-validate (like the cart-level resolver)
+            // instead of reading the now-empty obsolete sync store.
+            var cartAggregate = GetValidCartAggregate();
+            cartAggregate.ValidationRuleSet = ["default"];
+
+            var invalidLineItem = new LineItem
+            {
+                Id = "line-1",
+                ProductId = "product-1",
+                Currency = CURRENCY_CODE,
+                IsGift = false,
+                SelectedForCheckout = true,
+                Quantity = ModuleConstants.LineItemQualityLimit + 1,
+            };
+            cartAggregate.Cart.Items = new List<LineItem> { invalidLineItem };
+
+            _cartValidationContextFactoryMock
+                .Setup(x => x.CreateValidationContextAsync(cartAggregate))
+                .ReturnsAsync(new CartValidationContext());
+
+            // Simulate CartAggregateRepository.SaveAsync(), which clears the validation cache.
+            cartAggregate.ClearValidationCache();
+
+            // Act
+            var errors = await cartAggregate.GetLineItemValidationErrorsAsync(invalidLineItem);
+
+            // Assert
+            errors.Should().Contain(x => x.ErrorCode == "LINE_ITEM_LIMIT" && x.ObjectId == invalidLineItem.Id);
+        }
+
+        #endregion GetLineItemValidationErrorsAsync
+
+        #region ValidateAsync extensibility
+
+        [Fact]
+        public async Task ValidateAsync_DerivedOverridesContextOverload_OverrideParticipatesInValidation()
+        {
+            // Arrange
+            // Extensibility guard: derived aggregates (module customizations) override the virtual
+            // ValidateAsync(CartValidationContext, string) to append their own validation results.
+            // The ruleSet-only overload must delegate to it so those customizations keep working.
+            var aggregate = new ExtendedCartAggregate(
+                _marketingPromoEvaluatorMock.Object,
+                _shoppingCartTotalsCalculatorMock.Object,
+                _taxProviderSearchServiceMock.Object,
+                _cartProductServiceMock.Object,
+                _dynamicPropertyUpdaterService.Object,
+                _mapperMock.Object,
+                _memberService.Object,
+                _genericPipelineLauncherMock.Object,
+                _configurationItemValidatorMock.Object,
+                _fileUploadService.Object,
+                _cartSharingService.Object,
+                _cartValidationContextFactoryMock.Object);
+            aggregate.GrabCart(GetCart(), GetStore(), GetMember(), GetCurrency());
+
+            _cartValidationContextFactoryMock
+                .Setup(x => x.CreateValidationContextAsync(aggregate))
+                .ReturnsAsync(new CartValidationContext());
+
+            // Act
+            var errors = await aggregate.ValidateAsync("default");
+
+            // Assert
+            errors.Should().Contain(x => x.ErrorCode == ExtendedCartAggregate.CustomErrorCode);
+        }
+
+        private class ExtendedCartAggregate : CartAggregate
+        {
+            public const string CustomErrorCode = "CUSTOM_VALIDATION_ERROR";
+
+            public ExtendedCartAggregate(
+                VirtoCommerce.MarketingModule.Core.Services.IMarketingPromoEvaluator marketingEvaluator,
+                VirtoCommerce.CartModule.Core.Services.IShoppingCartTotalsCalculator cartTotalsCalculator,
+                VirtoCommerce.Platform.Core.Modularity.IOptionalDependency<VirtoCommerce.TaxModule.Core.Services.ITaxProviderSearchService> taxProviderSearchService,
+                VirtoCommerce.XCart.Core.Services.ICartProductService cartProductService,
+                VirtoCommerce.Xapi.Core.Services.IDynamicPropertyUpdaterService dynamicPropertyUpdaterService,
+                IMapper mapper,
+                VirtoCommerce.CustomerModule.Core.Services.IMemberService memberService,
+                VirtoCommerce.Xapi.Core.Pipelines.IGenericPipelineLauncher pipeline,
+                IConfigurationItemValidator configurationItemValidator,
+                VirtoCommerce.FileExperienceApi.Core.Services.IFileUploadService fileUploadService,
+                VirtoCommerce.XCart.Core.Services.ICartSharingService cartSharingService,
+                ICartValidationContextFactory cartValidationContextFactory)
+                : base(marketingEvaluator, cartTotalsCalculator, taxProviderSearchService, cartProductService, dynamicPropertyUpdaterService, mapper, memberService, pipeline,
+                    configurationItemValidator, fileUploadService, cartSharingService, cartValidationContextFactory)
+            {
+            }
+
+#pragma warning disable VC0009 // The obsolete overload remains the virtual extension point during the deprecation window
+            public override async Task<IList<FluentValidation.Results.ValidationFailure>> ValidateAsync(CartValidationContext validationContext, string ruleSet)
+            {
+                var errors = await base.ValidateAsync(validationContext, ruleSet);
+
+                return errors
+                    .Concat(new[] { new CartValidationError("TestEntity", "test-id", "Custom validation error", CustomErrorCode) })
+                    .ToList();
+            }
+#pragma warning restore VC0009
+        }
+
+        #endregion ValidateAsync extensibility
+
         #region ValidateCouponAsync
 
         [Fact]
@@ -924,7 +1046,9 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         {
             // Arrange
             var cartAggregate = GetValidCartAggregate();
-            cartAggregate.Cart.Items = new List<LineItem> { _fixture.Create<LineItem>() };
+            var lineItem = _fixture.Create<LineItem>();
+            lineItem.SelectedForCheckout = true;
+            cartAggregate.Cart.Items = [lineItem];
 
             var coupon = _fixture.Create<string>();
             var context = new PromotionEvaluationContext
@@ -959,6 +1083,80 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             result.Should().BeTrue();
         }
 
+        // VCST-5233: a coupon stored in non-uppercase case (the promotion engine + DB match
+        // case-insensitively and DynamicPromotion stamps the reward with the stored canonical
+        // code) must still validate when the entered code differs only in case. Mirrors the
+        // case-insensitive handling already used by AddCouponAsync/RemoveCouponAsync.
+        [Fact]
+        public async Task ValidateCouponAsync_CaseInsensitiveMatch_CouponValidated()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var lineItem = _fixture.Create<LineItem>();
+            lineItem.SelectedForCheckout = true;
+            cartAggregate.Cart.Items = [lineItem];
+
+            // Stored/canonical coupon code as returned by the promotion engine.
+            var storedCoupon = "agent";
+            // Entered code differs only in case (what the shopper submits).
+            var enteredCoupon = "AGENT";
+
+            var context = new PromotionEvaluationContext
+            {
+                Coupon = enteredCoupon,
+            };
+
+            var stub = new PromotionResult();
+            stub.Rewards.Add(new StubPromotionReward
+            {
+                Coupon = storedCoupon,
+                IsValid = true,
+            });
+
+            _mapperMock.Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
+                .Returns(context);
+
+            _marketingPromoEvaluatorMock
+               .Setup(x => x.EvaluatePromotionAsync(It.Is<PromotionEvaluationContext>(x => x.Coupon == enteredCoupon)))
+               .ReturnsAsync(stub);
+
+            _genericPipelineLauncherMock.Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
+                .Callback<PromotionEvaluationContextCartMap>(x =>
+                {
+                    x.PromotionEvaluationContext = _mapperMock.Object.Map<PromotionEvaluationContext>(cartAggregate);
+                });
+
+            // Act
+            var result = await cartAggregate.ValidateCouponAsync(enteredCoupon);
+
+            // Assert
+            result.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Coupons_CaseInsensitiveMatch_ReportsAppliedSuccessfully()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+
+            // Stored/canonical coupon code stamped onto the applied discount by the engine.
+            var storedCoupon = "agent";
+            // Entered code differs only in case (what the shopper added to the cart).
+            var enteredCoupon = "AGENT";
+
+            cartAggregate.Cart.Coupons = new List<string> { enteredCoupon };
+            cartAggregate.Cart.Discounts = new List<Discount>
+            {
+                new Discount { Coupon = storedCoupon },
+            };
+
+            // Act
+            var couponState = cartAggregate.Coupons.Single(x => x.Code == enteredCoupon);
+
+            // Assert
+            couponState.IsAppliedSuccessfully.Should().BeTrue();
+        }
+
         #endregion ValidateCouponAsync
 
         #region EvaluatePromotionsAsync(PromotionEvaluationContext evalContext)
@@ -968,7 +1166,9 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         {
             // Arrange
             var cartAggregate = GetValidCartAggregate();
-            cartAggregate.Cart.Items = new List<LineItem> { _fixture.Create<LineItem>() };
+            var lineItem = _fixture.Create<LineItem>();
+            lineItem.SelectedForCheckout = true;
+            cartAggregate.Cart.Items = [lineItem];
 
             var context = new PromotionEvaluationContext();
 
@@ -1202,6 +1402,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 ProductId = "configurable-product",
                 IsConfigured = true,
                 ConfigurationItems = new List<ConfigurationItem>(),
+                Currency = "USD",
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
@@ -1224,7 +1425,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var configSection = new ProductConfigurationSection
             {
@@ -1238,9 +1439,18 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 },
             };
 
+            var products = new Dictionary<string, CartProduct>
+            {
+                { CartAggregate.FormatGetCartProductKey(cartProduct.Id, "USD"), cartProduct }
+            };
+
             // Setup mock to return variation product when requested
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
-                .ReturnsAsync((CartAggregate _, string[] ids) => ids.Contains("shirt-size-M") ? [cartProduct] : Array.Empty<CartProduct>());
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
+                {
+                    return productPairs.Any(x => x.ProductId == "shirt-size-M") ? products : [];
+                });
 
             // Act
             await cartAggregate.AddConfigurationItemAsync(lineItem.Id, configSection);
@@ -1275,6 +1485,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 ProductId = "configurable-product",
                 IsConfigured = true,
                 ConfigurationItems = new List<ConfigurationItem> { existingConfigItem },
+                Currency = "USD",
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
@@ -1297,7 +1508,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var configSection = new ProductConfigurationSection
             {
@@ -1311,9 +1522,19 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 },
             };
 
+            var products = new Dictionary<string, CartProduct>
+            {
+                { CartAggregate.FormatGetCartProductKey(cartProduct.Id, "USD"), cartProduct }
+            };
+
             // Setup mock to return variation product when requested
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
-                .ReturnsAsync((CartAggregate _, string[] ids) => ids.Contains("shirt-size-M") ? [cartProduct] : Array.Empty<CartProduct>());
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
+                {
+                    return productPairs.Any(x => x.ProductId == "shirt-size-M") ? products : [];
+                });
+
 
             // Act
             await cartAggregate.AddConfigurationItemAsync(lineItem.Id, configSection);
@@ -1348,6 +1569,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 ProductId = "configurable-product",
                 IsConfigured = true,
                 ConfigurationItems = new List<ConfigurationItem> { existingConfigItem },
+                Currency = "USD",
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
@@ -1370,7 +1592,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var configSection = new ProductConfigurationSection
             {
@@ -1384,9 +1606,18 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 },
             };
 
+            var products = new Dictionary<string, CartProduct>
+            {
+                { CartAggregate.FormatGetCartProductKey(cartProduct.Id, "USD"), cartProduct }
+            };
+
             // Setup mock to return product when requested
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
-                .ReturnsAsync((CartAggregate _, string[] ids) => ids.Contains("new-color") || ids.Contains("old-color") ? [cartProduct] : Array.Empty<CartProduct>());
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
+                {
+                    return productPairs.Any(x => x.ProductId == "new-color" || x.ProductId == "old-color") ? products : [];
+                });
 
             // Act
             await cartAggregate.AddConfigurationItemAsync(lineItem.Id, configSection);
@@ -1435,6 +1666,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 ProductId = "configurable-product",
                 IsConfigured = true,
                 ConfigurationItems = new List<ConfigurationItem>(),
+                Currency = "USD",
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
@@ -1448,7 +1680,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var configSections = new List<ProductConfigurationSection>
             {
@@ -1484,25 +1716,24 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 }),
             };
 
-            // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
-
             // Setup mock to return products when requested
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
-                .ReturnsAsync((CartAggregate _, string[] ids) =>
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
                 {
-                    var result = new List<CartProduct>();
-                    if (ids.Contains("shirt-size-M"))
+                    var products = new Dictionary<string, CartProduct>();
+
+                    if (productPairs.Any(x => x.ProductId == "shirt-size-M"))
                     {
-                        result.Add(cartProducts[0]);
+                        products.Add(CartAggregate.FormatGetCartProductKey(cartProducts[0].Id, "USD"), cartProducts[0]);
                     }
 
-                    if (ids.Contains("shirt-size-L"))
+                    if (productPairs.Any(x => x.ProductId == "shirt-size-L"))
                     {
-                        result.Add(cartProducts[1]);
+                        products.Add(CartAggregate.FormatGetCartProductKey(cartProducts[1].Id, "USD"), cartProducts[1]);
                     }
 
-                    return result.ToArray();
+                    return products;
                 });
 
             // Act
@@ -1617,6 +1848,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 ProductId = "configurable-product",
                 IsConfigured = true,
                 ConfigurationItems = new List<ConfigurationItem> { configItem },
+                Currency = "USD",
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
@@ -1638,12 +1870,21 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 CategoryId = "category1",
             });
 
+            var products = new Dictionary<string, CartProduct>
+            {
+                { CartAggregate.FormatGetCartProductKey(cartProduct.Id, "USD"), cartProduct }
+            };
+
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             // Setup mock to return product when requested
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
-                .ReturnsAsync((CartAggregate _, string[] ids) => ids.Contains("shirt-size-M") ? [cartProduct] : Array.Empty<CartProduct>());
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
+                {
+                    return productPairs.Any(x => x.ProductId == "shirt-size-M") ? products : [];
+                });
 
             var configSection = new ProductConfigurationSection
             {
@@ -1673,10 +1914,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 ConfigurationItems = new List<ConfigurationItem>(),
             };
             cartAggregate.Cart.Items.Add(lineItem);
-
-            // Setup mock to return empty array (product not available)
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
-                .ReturnsAsync(Array.Empty<CartProduct>());
 
             var configSection = new ProductConfigurationSection
             {
@@ -1735,6 +1972,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 ProductId = "configurable-product",
                 IsConfigured = true,
                 ConfigurationItems = configItems,
+                Currency = "USD",
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
@@ -1748,7 +1986,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var cartProducts = new[]
             {
@@ -1769,22 +2007,24 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
 
             // Setup mock to return products when requested
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
-                .ReturnsAsync((CartAggregate _, string[] ids) =>
-                {
-                    var result = new List<CartProduct>();
-                    if (ids.Contains("shirt-size-M"))
-                    {
-                        result.Add(cartProducts[0]);
-                    }
+            _cartProductServiceMock
+                 .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                 .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
+                 {
+                     var products = new Dictionary<string, CartProduct>();
 
-                    if (ids.Contains("shirt-size-L"))
-                    {
-                        result.Add(cartProducts[1]);
-                    }
+                     if (productPairs.Any(x => x.ProductId == "shirt-size-M"))
+                     {
+                         products.Add(CartAggregate.FormatGetCartProductKey(cartProducts[0].Id, "USD"), cartProducts[0]);
+                     }
 
-                    return result.ToArray();
-                });
+                     if (productPairs.Any(x => x.ProductId == "shirt-size-L"))
+                     {
+                         products.Add(CartAggregate.FormatGetCartProductKey(cartProducts[1].Id, "USD"), cartProducts[1]);
+                     }
+
+                     return products;
+                 });
 
             var configSections = new List<ProductConfigurationSection>
             {
@@ -1851,6 +2091,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 ProductId = "configurable-product",
                 IsConfigured = true,
                 ConfigurationItems = new List<ConfigurationItem>(),
+                Currency = "USD",
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
@@ -1864,7 +2105,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var cartProduct = new CartProduct(new CatalogProduct
             {
@@ -1875,9 +2116,18 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 CategoryId = "category1",
             });
 
+            var products = new Dictionary<string, CartProduct>
+            {
+                { CartAggregate.FormatGetCartProductKey(cartProduct.Id, "USD"), cartProduct }
+            };
+
             // Setup mock to return product
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
-                .ReturnsAsync((CartAggregate _, string[] ids) => ids.Contains("shirt-size-M") ? [cartProduct] : Array.Empty<CartProduct>());
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
+                {
+                    return productPairs.Any(x => x.ProductId == "shirt-size-M") ? products : [];
+                });
 
             var configSections = new List<ProductConfigurationSection>
             {
@@ -1908,6 +2158,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 ProductId = "configurable-product",
                 IsConfigured = true,
                 ConfigurationItems = new List<ConfigurationItem>(),
+                Currency = "USD",
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
@@ -1921,7 +2172,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var cartProduct = new CartProduct(new CatalogProduct
             {
@@ -1932,9 +2183,18 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 CategoryId = "category1",
             });
 
+            var products = new Dictionary<string, CartProduct>
+            {
+                { CartAggregate.FormatGetCartProductKey(cartProduct.Id, "USD"), cartProduct }
+            };
+
             // Setup mock to return product
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
-                .ReturnsAsync((CartAggregate _, string[] ids) => ids.Contains("shirt-size-M") ? [cartProduct] : Array.Empty<CartProduct>());
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
+                {
+                    return productPairs.Any(x => x.ProductId == "shirt-size-M") ? products : [];
+                });
 
             var configSections = new List<ProductConfigurationSection>
             {
@@ -2077,7 +2337,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var configSections = new List<ProductConfigurationSection>
             {
@@ -2156,6 +2416,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 ProductId = "configurable-product",
                 IsConfigured = true,
                 ConfigurationItems = new List<ConfigurationItem>(),
+                Currency = "USD",
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
@@ -2169,7 +2430,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var cartProducts = new[]
             {
@@ -2189,21 +2450,23 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 }),
             };
 
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
-                .ReturnsAsync((CartAggregate _, string[] ids) =>
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
                 {
-                    var result = new List<CartProduct>();
-                    if (ids.Contains("shirt-size-M"))
+                    var products = new Dictionary<string, CartProduct>();
+
+                    if (productPairs.Any(x => x.ProductId == "shirt-size-M"))
                     {
-                        result.Add(cartProducts[0]);
+                        products.Add(CartAggregate.FormatGetCartProductKey(cartProducts[0].Id, "USD"), cartProducts[0]);
                     }
 
-                    if (ids.Contains("color-blue"))
+                    if (productPairs.Any(x => x.ProductId == "color-blue"))
                     {
-                        result.Add(cartProducts[1]);
+                        products.Add(CartAggregate.FormatGetCartProductKey(cartProducts[1].Id, "USD"), cartProducts[1]);
                     }
 
-                    return result.ToArray();
+                    return products;
                 });
 
             var configSections = new List<ProductConfigurationSection>
@@ -2268,6 +2531,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 ProductId = "configurable-product",
                 IsConfigured = true,
                 ConfigurationItems = existingConfigItems,
+                Currency = "USD",
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
@@ -2281,7 +2545,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var cartProducts = new[]
             {
@@ -2301,21 +2565,23 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 }),
             };
 
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
-                .ReturnsAsync((CartAggregate _, string[] ids) =>
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
                 {
-                    var result = new List<CartProduct>();
-                    if (ids.Contains("shirt-size-M"))
+                    var products = new Dictionary<string, CartProduct>();
+
+                    if (productPairs.Any(x => x.ProductId == "shirt-size-M"))
                     {
-                        result.Add(cartProducts[0]);
+                        products.Add(CartAggregate.FormatGetCartProductKey(cartProducts[0].Id, "USD"), cartProducts[0]);
                     }
 
-                    if (ids.Contains("shirt-size-L"))
+                    if (productPairs.Any(x => x.ProductId == "shirt-size-L"))
                     {
-                        result.Add(cartProducts[1]);
+                        products.Add(CartAggregate.FormatGetCartProductKey(cartProducts[1].Id, "USD"), cartProducts[1]);
                     }
 
-                    return result.ToArray();
+                    return products;
                 });
 
             var configSections = new List<ProductConfigurationSection>
@@ -2524,7 +2790,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var configSections = new List<ProductConfigurationSection>
             {
@@ -2550,10 +2816,18 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 CatalogId = "catalog1",
                 CategoryId = "category1",
             });
+            var products = new Dictionary<string, CartProduct>
+            {
+                { CartAggregate.FormatGetCartProductKey(remainingProduct.Id, "USD"), remainingProduct }
+            };
 
             // Setup mock to return remaining products after removal
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
-                .ReturnsAsync((CartAggregate _, string[] ids) => ids.Contains("shirt-size-XL") ? [remainingProduct] : Array.Empty<CartProduct>());
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync((CartAggregate _, IList<(string CurrencyCode, string ProductId)> productPairs) =>
+                {
+                    return productPairs.Any(x => x.ProductId == "shirt-size-XL") ? products : [];
+                });
 
             // Act
             await cartAggregate.RemoveConfigurationItemsAsync(lineItem.Id, configSections);
@@ -2596,7 +2870,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Add configurable product to CartProducts
-            cartAggregate.CartProducts["configurable-product"] = configurableProduct;
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey(lineItem)] = configurableProduct;
 
             var configSection = new ProductConfigurationSection
             {
@@ -2707,9 +2981,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 Type = "Variation",
                 Option = new ConfigurableProductOption { ProductId = "unavailable-product", Quantity = 1 },
             };
-
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<string[]>()))
-                .ReturnsAsync([]);
 
             // Act
             await cartAggregate.AddConfigurationItemAsync(lineItem.Id, configSection);
@@ -2934,15 +3205,16 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
-                .ReturnsAsync([]);
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync(new Dictionary<string, CartProduct>());
 
             // Act
             await cartAggregate.ChangeConfigurationItemSelectedAsync(lineItem.Id, VariationSectionRef("size", "p1"), false);
 
             // Assert
             configItem.SelectedForCheckout.Should().BeFalse();
-            _cartProductServiceMock.Verify(x => x.GetCartProductsByIdsAsync(cartAggregate, It.IsAny<IList<string>>()), Times.Once);
+            _cartProductServiceMock.Verify(x => x.GetCartProductsAsync(cartAggregate, It.IsAny<IList<(string CurrencyCode, string ProductId)>>()), Times.Once);
         }
 
         [Fact]
@@ -2959,9 +3231,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 ConfigurationItems = new List<ConfigurationItem> { textConfigItem },
             };
             cartAggregate.Cart.Items.Add(lineItem);
-
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
-                .ReturnsAsync([]);
 
             var textSection = new ProductConfigurationSection { SectionId = "label", Type = "Text" };
 
@@ -2989,8 +3258,9 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
-                .ReturnsAsync([]);
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync(new Dictionary<string, CartProduct>());
 
             // Act
             await cartAggregate.ChangeConfigurationItemsSelectedAsync(
@@ -3026,8 +3296,9 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 ConfigurationItems = new List<ConfigurationItem> { configInOther },
             });
 
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
-                .ReturnsAsync([]);
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync(new Dictionary<string, CartProduct>());
 
             // Act — section ref matches both lineItems' configItems, but lineItemId scopes the lookup.
             await cartAggregate.ChangeConfigurationItemsSelectedAsync("target-line", [VariationSectionRef("size", "p1")], false);
@@ -3048,7 +3319,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             // Assert
             cartAggregate.OperationValidationErrors.Should().Contain(x => x.ErrorCode == "CONFIGURED_LINE_ITEM_NOT_FOUND");
-            _cartProductServiceMock.Verify(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()), Times.Never);
+            _cartProductServiceMock.Verify(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()), Times.Never);
         }
 
         [Fact]
@@ -3071,7 +3342,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             // Assert
             configItem.SelectedForCheckout.Should().BeFalse();
-            _cartProductServiceMock.Verify(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()), Times.Never);
+            _cartProductServiceMock.Verify(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()), Times.Never);
         }
 
         [Fact]
@@ -3094,7 +3365,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             // Assert
             configItem.SelectedForCheckout.Should().BeTrue("no item matched, nothing should change");
-            _cartProductServiceMock.Verify(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()), Times.Never);
+            _cartProductServiceMock.Verify(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()), Times.Never);
         }
 
         [Fact]
@@ -3117,7 +3388,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             // Assert
             configItem.SelectedForCheckout.Should().BeTrue("empty section list must not flip anything");
-            _cartProductServiceMock.Verify(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()), Times.Never);
+            _cartProductServiceMock.Verify(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()), Times.Never);
         }
 
         [Fact]
@@ -3136,8 +3407,9 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
-            _cartProductServiceMock.Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
-                .ReturnsAsync([]);
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync(new Dictionary<string, CartProduct>());
 
             // Act
             await cartAggregate.ChangeAllConfigurationItemsSelectedAsync(lineItem.Id, false);
@@ -3145,7 +3417,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             // Assert
             configA.SelectedForCheckout.Should().BeFalse();
             configB.SelectedForCheckout.Should().BeFalse();
-            _cartProductServiceMock.Verify(x => x.GetCartProductsByIdsAsync(cartAggregate, It.IsAny<IList<string>>()), Times.Once);
+            _cartProductServiceMock.Verify(x => x.GetCartProductsAsync(cartAggregate, It.IsAny<IList<(string CurrencyCode, string ProductId)>>()), Times.Once);
         }
 
         [Fact]
@@ -3159,7 +3431,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             // Assert
             cartAggregate.OperationValidationErrors.Should().Contain(x => x.ErrorCode == "CONFIGURED_LINE_ITEM_NOT_FOUND");
-            _cartProductServiceMock.Verify(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()), Times.Never);
+            _cartProductServiceMock.Verify(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()), Times.Never);
         }
 
         [Fact]
@@ -3182,7 +3454,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             await cartAggregate.ChangeAllConfigurationItemsSelectedAsync(lineItem.Id, false);
 
             // Assert
-            _cartProductServiceMock.Verify(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()), Times.Never);
+            _cartProductServiceMock.Verify(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()), Times.Never);
         }
 
         #endregion ChangeConfigurationItemSelected
