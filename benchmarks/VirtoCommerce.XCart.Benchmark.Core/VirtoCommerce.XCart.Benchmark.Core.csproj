@@ -8,6 +8,12 @@
     <!-- Packable so consuming modules (XOrder, LEO) can reference the shared fixtures, seam, and
          benchmark classes via a (local) NuGet feed and run them under their own setup. -->
     <IsPackable>true</IsPackable>
+    <!-- The module CI packs the whole solution with `dotnet pack` in no-build mode (NoBuild=true).
+         Packing this project's ProjectReferences (XCart.Core/Data) would invoke their Build target under
+         NoBuild and fail with NETSDK1085. Skip building project references when NoBuild is set — pack still
+         reads their already-built identity for the nuspec deps. Unset for a normal build/run, so the
+         in-repo-source build and the BaselineSrc before/after swap are unaffected. -->
+    <BuildProjectReferences Condition="'$(NoBuild)' == 'true'">false</BuildProjectReferences>
     <!-- TreatWarningsAsErrors is inherited from Directory.Build.props (true); this project builds clean. -->
     <!-- Bundle the source generator (below) into the nupkg's analyzers folder so NuGet consumers get it. -->
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_PackBenchmarkSourceGen</TargetsForTfmSpecificContentInPackage>
