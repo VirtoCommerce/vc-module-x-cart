@@ -30,6 +30,7 @@ using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
 using VirtoCommerce.XCart.Data;
 using VirtoCommerce.XCart.Data.Services;
+using CartType = VirtoCommerce.CartModule.Core.ModuleConstants.CartType;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
@@ -113,12 +114,25 @@ public static class CartBenchmarkHost
             });
         services.AddSingleton(cartService.Object);
 
-        // Empty (non-null) search result: the CartId load path never searches, but SearchAllAsync reads
-        // .Results, and the create-new add path (empty CartId) takes the new-cart branch on an empty result.
+        // Empty (non-null) search result by default: the CartId load path never searches, SearchAllAsync
+        // reads .Results, and the create-new add path (empty CartId) takes the new-cart branch on empty.
+        // EXCEPT a Type==SavedForLater lookup: the saved-for-later move benchmarks search for their source
+        // list, so seed one (a fresh cart per call keeps the move idempotent — no [IterationSetup] needed).
         var searchService = new Mock<IShoppingCartSearchService>();
         searchService
             .Setup(x => x.SearchAsync(It.IsAny<ShoppingCartSearchCriteria>(), It.IsAny<bool>()))
-            .ReturnsAsync(new ShoppingCartSearchResult());
+            .ReturnsAsync((ShoppingCartSearchCriteria criteria, bool _) =>
+            {
+                if (criteria.Type != CartType.SavedForLater)
+                {
+                    return new ShoppingCartSearchResult();
+                }
+
+                var list = setup.CreateCart(lineItemCount, shape) ?? CartBenchmarkFixtures.CreateCart(lineItemCount, shape);
+                list.Type = CartType.SavedForLater;
+
+                return new ShoppingCartSearchResult { Results = [list], TotalCount = 1 };
+            });
         services.AddSingleton(searchService.Object);
 
         services.AddSingleton(CartBenchmarkFixtures.CartProductServiceMock().Object);
@@ -148,12 +162,17 @@ public static class CartBenchmarkHost
         services.AddSingleton(CreateProductConfigurationSearchService(shape));
 
         // Compute services the handlers need, real where pure-compute over the leaves above, mocked
-        // where they front I/O (shipping/payment/gift availability, saved-for-later persistence, phrase
-        // parsing) — matching the per-scenario mock choices the hand-built fixtures made.
+        // where they front I/O (shipping/payment/gift availability, phrase parsing) — matching the
+        // per-scenario mock choices the hand-built fixtures made.
         services.AddTransient<IConfiguredLineItemContainerService, ConfiguredLineItemContainerService>();
         services.AddSingleton<ICartResponseGroupParser, CartResponseGroupParser>();
         services.AddSingleton(new Mock<ICartAvailMethodsService> { DefaultValue = DefaultValue.Mock }.Object);
-        services.AddSingleton(Mock.Of<ISavedForLaterListService>());
+
+        // SavedForLaterListService runs for REAL: it orchestrates the move (load source list + destination
+        // cart, copy ordinary/configured items, remove from source, recalc + save both) over the real
+        // aggregate repository with mocked persistence leaves — the same work the move mutation does in
+        // production. The search mock above seeds the source list for its Type==SavedForLater lookup.
+        services.AddTransient<ISavedForLaterListService, SavedForLaterListService>();
         services.AddSingleton(Mock.Of<ISearchPhraseParser>());
         services.AddSingleton(Mock.Of<IPickupLocationService>());
         services.AddSingleton(Mock.Of<ICustomerPreferenceService>());

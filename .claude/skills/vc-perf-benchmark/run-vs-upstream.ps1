@@ -57,26 +57,27 @@ $CompareExtra = @()
 if ($AllocThreshold -ge 0) { $CompareExtra += @('--alloc-threshold', "$AllocThreshold") }
 if ($TimeThreshold -ge 0)  { $CompareExtra += @('--time-threshold', "$TimeThreshold") }
 
-$StockJson = [System.IO.Path]::GetTempFileName()
-$ClientJson = [System.IO.Path]::GetTempFileName()
+# Each side is the run's results DIRECTORY, not a single file: BenchmarkDotNet writes one
+# *-report-full-compressed.json per benchmark class, so a multi-class scope (-Categories, or a broad
+# -Filter) emits several. compare-reports.cs reads the whole directory and merges them. The stock and
+# client runners are distinct dirs, so their results never collide.
+$StockResults = Join-Path $StockDir 'BenchmarkDotNet.Artifacts/results'
+$ClientResults = Join-Path $ClientDir 'BenchmarkDotNet.Artifacts/results'
 
-function Invoke-Runner($Dir, $OutJson, $Label) {
+function Invoke-Runner($Dir, $Label) {
     Write-Host "[vs-stock] running $Label ($Dir)..." -ForegroundColor Cyan
     Push-Location $Dir
     try {
         if (Test-Path BenchmarkDotNet.Artifacts) { Remove-Item -Recurse -Force BenchmarkDotNet.Artifacts }
         dotnet run -c Release -- @JobFlags --filter $Filter @CatFlags --exporters json
-        $report = Get-ChildItem 'BenchmarkDotNet.Artifacts/results/*-report-full-compressed.json' | Select-Object -First 1
-        if (-not $report) { throw "No BenchmarkDotNet report produced in $Dir" }
-        Copy-Item $report.FullName $OutJson -Force
     } finally {
         Pop-Location
     }
 }
 
 Write-Host "[vs-stock] domain=$Domain job=$Job filter='$Filter' categories='$Categories'" -ForegroundColor Cyan
-Invoke-Runner $StockDir $StockJson 'stock (baseline)'
-Invoke-Runner $ClientDir $ClientJson 'client override (current)'
+Invoke-Runner $StockDir 'stock (baseline)'
+Invoke-Runner $ClientDir 'client override (current)'
 
-dotnet run "$ScriptDir/compare-reports.cs" -- $StockJson $ClientJson --match method --job-kind $JobKind @CompareExtra
+dotnet run "$ScriptDir/compare-reports.cs" -- $StockResults $ClientResults --match method --job-kind $JobKind @CompareExtra
 exit $LASTEXITCODE

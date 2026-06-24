@@ -10,7 +10,9 @@
 // net10 file-based app — no .csproj, no external packages (System.Text.Json is in the BCL).
 //
 // What it is: a MODULE-AGNOSTIC comparison primitive. It reads two BenchmarkDotNet full-JSON reports
-// (`*-report-full-compressed.json`, emitted by `--exporters json`), matches benchmark cases by their
+// (`*-report-full-compressed.json`, emitted by `--exporters json`) — each side is either a single such
+// file or a DIRECTORY of them (BenchmarkDotNet writes one per benchmark class, so a multi-class run
+// produces several; passing the results directory merges them). It matches benchmark cases by their
 // FullName, and produces a TWO-AXIS verdict:
 //   * Allocations — ALWAYS trustworthy: managed allocation is deterministic per code path, identical
 //     across Dry / Short / full runs and across machines. This axis always gates the verdict.
@@ -41,9 +43,11 @@ const double DefaultTimePct = 10.0;
 const int ReliableMinSamples = 10;   // Statistics.N at/above this ⇒ inferred "measured" (Default job ≈ 15+).
 
 const string Usage =
-    "Usage: dotnet run compare-reports.cs -- <baseline.json> <current.json> "
+    "Usage: dotnet run compare-reports.cs -- <baseline> <current> "
     + "[--alloc-threshold <pct>] [--time-threshold <pct>] [--job-kind measured|short|dry] "
-    + "[--match fullname|method]";
+    + "[--match fullname|method]\n"
+    + "  <baseline>/<current>: a *-report-full-compressed.json file, OR a directory of them "
+    + "(one per benchmark class — multi-class runs produce several; the directory merges them).";
 
 // ---------------- parse args ----------------
 var positional = new List<string>();
@@ -281,14 +285,44 @@ string? Key(Bench b) => matchMode == "method"
     return (Round(ratio, 4), Round(deltaPct, 2), status);
 }
 
+// A "side" is either a single full-JSON report file OR a directory of them. BenchmarkDotNet emits one
+// `*-report-full-compressed.json` per benchmark CLASS, so a multi-class run (--categories, or a broad
+// --filter that spans classes) produces several files — passing the results directory merges them all.
+// Merge = union of Benchmarks; host/title come from the first file (one run shares a single host).
 Report Load(string path)
 {
-    if (!File.Exists(path))
+    if (Directory.Exists(path))
     {
-        Console.Error.WriteLine($"File not found: {path}");
-        Environment.Exit(2);
+        var files = Directory.GetFiles(path, "*-report-full-compressed.json")
+            .OrderBy(x => x, StringComparer.Ordinal)
+            .ToList();
+        if (files.Count == 0)
+        {
+            Console.Error.WriteLine($"No *-report-full-compressed.json found in directory: {path}");
+            Environment.Exit(2);
+        }
+
+        var merged = LoadOne(files[0]);
+        foreach (var f in files.Skip(1))
+        {
+            merged.Benchmarks.AddRange(LoadOne(f).Benchmarks);
+        }
+
+        return merged;
     }
 
+    if (File.Exists(path))
+    {
+        return LoadOne(path);
+    }
+
+    Console.Error.WriteLine($"File or directory not found: {path}");
+    Environment.Exit(2);
+    return null!; // unreachable
+}
+
+Report LoadOne(string path)
+{
     try
     {
         var report = JsonSerializer.Deserialize(File.ReadAllText(path), InputCtx.Default.Report);

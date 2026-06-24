@@ -108,8 +108,12 @@ case "$JOB" in
 esac
 
 WORKTREE="$(mktemp -d)/upstream-baseline"
-BASE_JSON="$(mktemp --suffix=.json)"
-CUR_JSON="$(mktemp --suffix=.json)"
+# Each side is the run's results DIRECTORY, not a single file: BenchmarkDotNet writes one
+# *-report-full-compressed.json per benchmark class, so a multi-class scope (--categories, or a broad
+# --filter) emits several. compare-reports.cs reads the whole directory and merges them. The two runs use
+# distinct tree roots, so their results dirs never collide; compare runs before the worktree is removed.
+BASE_RESULTS="$WORKTREE/$RUNNER_DIR/BenchmarkDotNet.Artifacts/results"
+CUR_RESULTS="$UP_REPO/$RUNNER_DIR/BenchmarkDotNet.Artifacts/results"
 
 cleanup() {
     git -C "$UP_REPO" worktree remove --force "$WORKTREE" 2>/dev/null || true
@@ -119,23 +123,22 @@ trap cleanup EXIT
 echo "[upstream-before-after] upstream=$DOMAIN baseline=$BASELINE_REF job=$JOB filter='$FILTER' categories='${CATEGORIES[*]}'" >&2
 git -C "$UP_REPO" worktree add --detach "$WORKTREE" "$BASELINE_REF" >&2
 
-run_one() { # $1 = tree root, $2 = output json, $3 = label
-    local root="$1" out="$2" label="$3"
+run_one() { # $1 = tree root, $2 = label
+    local root="$1" label="$2"
     echo "[upstream-before-after] running $label ($root/$RUNNER_DIR)..." >&2
     (
         cd "$root/$RUNNER_DIR"
         rm -rf BenchmarkDotNet.Artifacts
         dotnet run -c Release -- "${JOB_FLAGS[@]}" --filter "$FILTER" "${CAT_FLAGS[@]}" --exporters json
     ) >&2
-    cp "$root/$RUNNER_DIR/BenchmarkDotNet.Artifacts/results/"*-report-full-compressed.json "$out"
 }
 
-run_one "$WORKTREE" "$BASE_JSON" "upstream baseline ($BASELINE_REF)"
-run_one "$UP_REPO" "$CUR_JSON" "upstream current"
+run_one "$WORKTREE" "upstream baseline ($BASELINE_REF)"
+run_one "$UP_REPO" "upstream current"
 
 # compare-reports.cs exit 1 = regression (a valid verdict) — don't let `set -e` abort on it.
 set +e
-dotnet run "$SCRIPT_DIR/compare-reports.cs" -- "$BASE_JSON" "$CUR_JSON" --match fullname --job-kind "$JOB_KIND" "${COMPARE_EXTRA[@]}"
+dotnet run "$SCRIPT_DIR/compare-reports.cs" -- "$BASE_RESULTS" "$CUR_RESULTS" --match fullname --job-kind "$JOB_KIND" "${COMPARE_EXTRA[@]}"
 rc=$?
 set -e
 exit "$rc"

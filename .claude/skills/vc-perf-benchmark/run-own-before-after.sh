@@ -89,8 +89,13 @@ if ! git -C "$REPO" cat-file -e "${BASELINE_REF}^{commit}" 2>/dev/null; then
 fi
 
 WORKTREE="$(mktemp -d)/module-baseline"
-BASE_JSON="$(mktemp --suffix=.json)"
-CUR_JSON="$(mktemp --suffix=.json)"
+# Each side is the run's results DIRECTORY, not a single file: BenchmarkDotNet writes one
+# *-report-full-compressed.json per benchmark class, so a multi-class scope (--categories, or a broad
+# --filter spanning classes) emits several. compare-reports.cs reads the whole directory and merges them.
+# The two runs use distinct tree roots, so their results dirs never collide; compare runs before the
+# worktree is removed (the cleanup trap fires on EXIT, after the comparison).
+BASE_RESULTS="$WORKTREE/$RUNNER_DIR/BenchmarkDotNet.Artifacts/results"
+CUR_RESULTS="$REPO/$RUNNER_DIR/BenchmarkDotNet.Artifacts/results"
 
 cleanup() {
     git -C "$REPO" worktree remove --force "$WORKTREE" 2>/dev/null || true
@@ -100,23 +105,22 @@ trap cleanup EXIT
 echo "[own-before-after] baseline=$BASELINE_REF runner=$RUNNER job=$JOB filter='$FILTER' categories='${CATEGORIES[*]}'" >&2
 git -C "$REPO" worktree add --detach "$WORKTREE" "$BASELINE_REF" >&2
 
-run_one() { # $1 = tree root, $2 = output json path, $3 = label
-    local root="$1" out="$2" label="$3"
+run_one() { # $1 = tree root, $2 = label
+    local root="$1" label="$2"
     echo "[own-before-after] running $label ($root/$RUNNER_DIR)..." >&2
     (
         cd "$root/$RUNNER_DIR"
         rm -rf BenchmarkDotNet.Artifacts
         dotnet run -c Release -- "${JOB_FLAGS[@]}" --filter "$FILTER" "${CAT_FLAGS[@]}" --exporters json
     ) >&2
-    cp "$root/$RUNNER_DIR/BenchmarkDotNet.Artifacts/results/"*-report-full-compressed.json "$out"
 }
 
-run_one "$WORKTREE" "$BASE_JSON" "baseline ($BASELINE_REF)"
-run_one "$REPO" "$CUR_JSON" "current (working tree)"
+run_one "$WORKTREE" "baseline ($BASELINE_REF)"
+run_one "$REPO" "current (working tree)"
 
 # compare-reports.cs exit 1 = regression (a valid verdict) — don't let `set -e` abort on it.
 set +e
-dotnet run "$SCRIPT_DIR/compare-reports.cs" -- "$BASE_JSON" "$CUR_JSON" --job-kind "$JOB_KIND" "${COMPARE_EXTRA[@]}"
+dotnet run "$SCRIPT_DIR/compare-reports.cs" -- "$BASE_RESULTS" "$CUR_RESULTS" --job-kind "$JOB_KIND" "${COMPARE_EXTRA[@]}"
 rc=$?
 set -e
 exit "$rc"

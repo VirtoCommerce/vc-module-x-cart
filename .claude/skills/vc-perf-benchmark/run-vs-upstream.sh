@@ -101,27 +101,30 @@ case "$JOB" in
     *) echo "--job must be dry|short|default, got '$JOB'." >&2; exit 2 ;;
 esac
 
-STOCK_JSON="$(mktemp --suffix=.json)"
-CLIENT_JSON="$(mktemp --suffix=.json)"
+# Each side is the run's results DIRECTORY, not a single file: BenchmarkDotNet writes one
+# *-report-full-compressed.json per benchmark class, so a multi-class scope (--categories, or a broad
+# --filter) emits several. compare-reports.cs reads the whole directory and merges them. The stock and
+# client runners are distinct dirs, so their results never collide.
+STOCK_RESULTS="$STOCK_DIR/BenchmarkDotNet.Artifacts/results"
+CLIENT_RESULTS="$CLIENT_DIR/BenchmarkDotNet.Artifacts/results"
 
-run_one() { # $1 = runner dir, $2 = output json, $3 = label
-    local dir="$1" out="$2" label="$3"
+run_one() { # $1 = runner dir, $2 = label
+    local dir="$1" label="$2"
     echo "[vs-stock] running $label ($dir)..." >&2
     (
         cd "$dir"
         rm -rf BenchmarkDotNet.Artifacts
         dotnet run -c Release -- "${JOB_FLAGS[@]}" --filter "$FILTER" "${CAT_FLAGS[@]}" --exporters json
     ) >&2
-    cp "$dir/BenchmarkDotNet.Artifacts/results/"*-report-full-compressed.json "$out"
 }
 
 echo "[vs-stock] domain=$DOMAIN job=$JOB filter='$FILTER' categories='${CATEGORIES[*]}'" >&2
-run_one "$STOCK_DIR" "$STOCK_JSON" "stock (baseline)"
-run_one "$CLIENT_DIR" "$CLIENT_JSON" "client override (current)"
+run_one "$STOCK_DIR" "stock (baseline)"
+run_one "$CLIENT_DIR" "client override (current)"
 
 # compare-reports.cs exit 1 = regression (the client override's overhead exceeds threshold) — a valid verdict.
 set +e
-dotnet run "$SCRIPT_DIR/compare-reports.cs" -- "$STOCK_JSON" "$CLIENT_JSON" --match method --job-kind "$JOB_KIND" "${COMPARE_EXTRA[@]}"
+dotnet run "$SCRIPT_DIR/compare-reports.cs" -- "$STOCK_RESULTS" "$CLIENT_RESULTS" --match method --job-kind "$JOB_KIND" "${COMPARE_EXTRA[@]}"
 rc=$?
 set -e
 exit "$rc"

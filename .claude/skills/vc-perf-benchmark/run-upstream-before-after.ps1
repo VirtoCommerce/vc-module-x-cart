@@ -63,19 +63,20 @@ if ($AllocThreshold -ge 0) { $CompareExtra += @('--alloc-threshold', "$AllocThre
 if ($TimeThreshold -ge 0)  { $CompareExtra += @('--time-threshold', "$TimeThreshold") }
 
 $Worktree = Join-Path ([System.IO.Path]::GetTempPath()) ("upstream-baseline-" + [System.IO.Path]::GetRandomFileName())
-$BaseJson = [System.IO.Path]::GetTempFileName()
-$CurJson = [System.IO.Path]::GetTempFileName()
+# Each side is the run's results DIRECTORY, not a single file: BenchmarkDotNet writes one
+# *-report-full-compressed.json per benchmark class, so a multi-class scope (-Categories, or a broad
+# -Filter) emits several. compare-reports.cs reads the whole directory and merges them. The two runs use
+# distinct tree roots, so their results dirs never collide; compare runs before the worktree is removed.
+$BaseResults = Join-Path (Join-Path $Worktree $RunnerDir) 'BenchmarkDotNet.Artifacts/results'
+$CurResults = Join-Path (Join-Path $UpRepo $RunnerDir) 'BenchmarkDotNet.Artifacts/results'
 
-function Invoke-Runner($Root, $OutJson, $Label) {
+function Invoke-Runner($Root, $Label) {
     $dir = Join-Path $Root $RunnerDir
     Write-Host "[upstream-before-after] running $Label ($dir)..." -ForegroundColor Cyan
     Push-Location $dir
     try {
         if (Test-Path BenchmarkDotNet.Artifacts) { Remove-Item -Recurse -Force BenchmarkDotNet.Artifacts }
         dotnet run -c Release -- @JobFlags --filter $Filter @CatFlags --exporters json
-        $report = Get-ChildItem 'BenchmarkDotNet.Artifacts/results/*-report-full-compressed.json' | Select-Object -First 1
-        if (-not $report) { throw "No BenchmarkDotNet report produced in $dir" }
-        Copy-Item $report.FullName $OutJson -Force
     } finally {
         Pop-Location
     }
@@ -85,9 +86,9 @@ $rc = 2
 try {
     Write-Host "[upstream-before-after] upstream=$Domain baseline=$BaselineRef job=$Job filter='$Filter' categories='$Categories'" -ForegroundColor Cyan
     git -C $UpRepo worktree add --detach $Worktree $BaselineRef | Out-Host
-    Invoke-Runner $Worktree $BaseJson "upstream baseline ($BaselineRef)"
-    Invoke-Runner $UpRepo $CurJson 'upstream current'
-    dotnet run "$ScriptDir/compare-reports.cs" -- $BaseJson $CurJson --match fullname --job-kind $JobKind @CompareExtra
+    Invoke-Runner $Worktree "upstream baseline ($BaselineRef)"
+    Invoke-Runner $UpRepo 'upstream current'
+    dotnet run "$ScriptDir/compare-reports.cs" -- $BaseResults $CurResults --match fullname --job-kind $JobKind @CompareExtra
     $rc = $LASTEXITCODE
 } finally {
     git -C $UpRepo worktree remove --force $Worktree 2>$null | Out-Null
