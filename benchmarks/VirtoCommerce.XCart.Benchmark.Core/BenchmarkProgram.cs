@@ -61,7 +61,7 @@ public static class BenchmarkProgram
                     "Ratio is directional only (not a verdict) — re-run with `--job Default` for a trustworthy Mean.");
             }
             config = config
-                .AddJob(baselineJob.WithMsBuildArguments($"/p:BaselineSrc={baselineSrc}").WithId("before").AsBaseline())
+                .AddJob(baselineJob.WithMsBuildArguments($"/p:BaselineSrc=\"{baselineSrc}\"").WithId("before").AsBaseline())
                 .AddJob(baselineJob.WithId("after"));
         }
 
