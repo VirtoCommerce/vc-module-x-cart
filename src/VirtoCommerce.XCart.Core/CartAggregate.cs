@@ -52,9 +52,9 @@ namespace VirtoCommerce.XCart.Core
         private readonly IMemberService _memberService;
         private readonly IMapper _mapper;
         private readonly IGenericPipelineLauncher _pipeline;
-        private readonly IConfigurationItemValidator _configurationItemValidator;
         private readonly IFileUploadService _fileUploadService;
         private readonly ICartSharingService _cartSharingService;
+        private readonly ICartValidatorRegistry _cartValidatorRegistry;
 
         public CartAggregate(
             IMarketingPromoEvaluator marketingEvaluator,
@@ -65,9 +65,9 @@ namespace VirtoCommerce.XCart.Core
             IMapper mapper,
             IMemberService memberService,
             IGenericPipelineLauncher pipeline,
-            IConfigurationItemValidator configurationItemValidator,
             IFileUploadService fileUploadService,
-            ICartSharingService cartSharingService)
+            ICartSharingService cartSharingService,
+            ICartValidatorRegistry cartValidatorRegistry)
         {
             _cartTotalsCalculator = cartTotalsCalculator;
             _marketingEvaluator = marketingEvaluator;
@@ -77,9 +77,9 @@ namespace VirtoCommerce.XCart.Core
             _mapper = mapper;
             _memberService = memberService;
             _pipeline = pipeline;
-            _configurationItemValidator = configurationItemValidator;
             _fileUploadService = fileUploadService;
             _cartSharingService = cartSharingService;
+            _cartValidatorRegistry = cartValidatorRegistry;
         }
 
         public Store Store { get; protected set; }
@@ -248,10 +248,10 @@ namespace VirtoCommerce.XCart.Core
             ArgumentNullException.ThrowIfNull(newCartItem);
             ArgumentNullException.ThrowIfNull(newConfiguredItem);
 
-            var validationResult = await _configurationItemValidator.ValidateAsync(newConfiguredItem);
-            if (!validationResult.IsValid)
+            var configurationErrors = await _cartValidatorRegistry.ValidateAsync(new ConfigurationItemValidationContext { LineItem = newConfiguredItem });
+            if (configurationErrors.Count > 0)
             {
-                OperationValidationErrors.AddRange(validationResult.Errors);
+                OperationValidationErrors.AddRange(configurationErrors);
 
                 if (!newCartItem.IgnoreValidationErrors)
                 {
@@ -294,10 +294,10 @@ namespace VirtoCommerce.XCart.Core
 
             EnsureCartExists();
 
-            var validationResult = await AbstractTypeFactory<NewCartItemValidator>.TryCreateInstance().ValidateAsync(newCartItem, options => options.IncludeRuleSets(ValidationRuleSet));
-            if (!validationResult.IsValid)
+            var validationErrors = await _cartValidatorRegistry.ValidateAsync(newCartItem, options => options.IncludeRuleSets(ValidationRuleSet));
+            if (validationErrors.Count > 0)
             {
-                OperationValidationErrors.AddRange(validationResult.Errors);
+                OperationValidationErrors.AddRange(validationErrors);
 
                 if (!newCartItem.IgnoreValidationErrors)
                 {
@@ -527,7 +527,7 @@ namespace VirtoCommerce.XCart.Core
             var lineItem = Cart.Items.FirstOrDefault(x => x.Id == priceAdjustment.LineItemId);
             if (lineItem != null)
             {
-                await AbstractTypeFactory<ChangeCartItemPriceValidator>.TryCreateInstance().ValidateAsync(priceAdjustment, options => options.IncludeRuleSets(ValidationRuleSet).ThrowOnFailures());
+                await _cartValidatorRegistry.ValidateAsync(priceAdjustment, options => options.IncludeRuleSets(ValidationRuleSet).ThrowOnFailures());
                 lineItem.ListPrice = priceAdjustment.NewPrice;
                 lineItem.SalePrice = priceAdjustment.NewPrice;
             }
@@ -539,10 +539,10 @@ namespace VirtoCommerce.XCart.Core
         {
             EnsureCartExists();
 
-            var validationResult = await AbstractTypeFactory<ItemQtyAdjustmentValidator>.TryCreateInstance().ValidateAsync(qtyAdjustment, options => options.IncludeRuleSets(ValidationRuleSet));
-            if (!validationResult.IsValid)
+            var validationErrors = await _cartValidatorRegistry.ValidateAsync(qtyAdjustment, options => options.IncludeRuleSets(ValidationRuleSet));
+            if (validationErrors.Count > 0)
             {
-                OperationValidationErrors.AddRange(validationResult.Errors);
+                OperationValidationErrors.AddRange(validationErrors);
             }
 
             var lineItem = Cart.Items.FirstOrDefault(i => i.Id == qtyAdjustment.LineItemId);
@@ -713,7 +713,7 @@ namespace VirtoCommerce.XCart.Core
                 Shipment = shipment,
                 AvailShippingRates = availRates
             };
-            await AbstractTypeFactory<CartShipmentValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(ValidationRuleSet).ThrowOnFailures());
+            await _cartValidatorRegistry.ValidateAsync(validationContext, options => options.IncludeRuleSets(ValidationRuleSet).ThrowOnFailures());
 
             await RemoveExistingShipmentAsync(shipment);
 
@@ -783,7 +783,7 @@ namespace VirtoCommerce.XCart.Core
                 Payment = payment,
                 AvailPaymentMethods = availPaymentMethods
             };
-            await AbstractTypeFactory<CartPaymentValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(ValidationRuleSet).ThrowOnFailures());
+            await _cartValidatorRegistry.ValidateAsync(validationContext, options => options.IncludeRuleSets(ValidationRuleSet).ThrowOnFailures());
 
             payment.Currency ??= Cart.Currency;
             await RemoveExistingPaymentAsync(payment);
@@ -893,13 +893,14 @@ namespace VirtoCommerce.XCart.Core
 
             EnsureCartExists();
             var rules = ruleSet?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            var result = await AbstractTypeFactory<CartValidator>.TryCreateInstance().ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
-            if (!result.IsValid)
+            var errors = await _cartValidatorRegistry.ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
+            if (errors.Count > 0)
             {
-                CartValidationErrors = result.Errors;
+                CartValidationErrors = errors;
             }
             IsValidated = true;
-            return result.Errors;
+
+            return errors;
         }
 
         public virtual async Task<bool> ValidateCouponAsync(string coupon)

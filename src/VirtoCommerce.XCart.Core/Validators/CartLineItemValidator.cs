@@ -8,8 +8,10 @@ using VirtoCommerce.XCart.Core.Specifications;
 
 namespace VirtoCommerce.XCart.Core.Validators
 {
-    public class CartLineItemValidator : AbstractValidator<LineItemValidationContext>
+    public class CartLineItemValidator : AbstractValidator<LineItemValidationContext>, ICartValidator<LineItemValidationContext>
     {
+        public int Order => ModuleConstants.ValidationOrder.Core;
+
         public CartLineItemValidator()
         {
             RuleFor(x => x).Custom((lineItemContext, context) =>

@@ -4,8 +4,10 @@ using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.XCart.Core.Validators
 {
-    public class CartPaymentValidator : AbstractValidator<PaymentValidationContext>
+    public class CartPaymentValidator : AbstractValidator<PaymentValidationContext>, ICartValidator<PaymentValidationContext>
     {
+        public int Order => ModuleConstants.ValidationOrder.Core;
+
         public CartPaymentValidator()
         {
             //To support the use case for partial payment update when user sets the address first.

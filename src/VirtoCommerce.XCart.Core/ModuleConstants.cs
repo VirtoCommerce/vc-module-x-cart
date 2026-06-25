@@ -24,6 +24,26 @@ namespace VirtoCommerce.XCart.Core
 
         public const int LineItemQualityLimit = 999999;
 
+        public static class ValidationRuleSets
+        {
+            public const string Default = "default";
+            public const string Strict = "strict";
+            public const string Items = "items";
+            public const string Shipments = "shipments";
+            public const string Payments = "payments";
+            public const string OrderCreate = "orderCreate";
+            public const string All = "*";
+        }
+
+        /// <summary>
+        /// Default order for the built-in validators
+        /// </summary>
+        public static class ValidationOrder
+        {
+            public const int Core = -1000;
+        }
+
+
         public static class Settings
         {
             public static class General

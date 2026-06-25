@@ -3,8 +3,10 @@ using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Validators
 {
-    public class ChangeCartItemPriceValidator : AbstractValidator<PriceAdjustment>
+    public class ChangeCartItemPriceValidator : AbstractValidator<PriceAdjustment>, ICartValidator<PriceAdjustment>
     {
+        public int Order => ModuleConstants.ValidationOrder.Core;
+
         public ChangeCartItemPriceValidator()
         {
             RuleFor(x => x.NewPrice).GreaterThanOrEqualTo(0);
