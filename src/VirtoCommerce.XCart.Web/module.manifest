@@ -3,8 +3,6 @@
   <id>VirtoCommerce.XCart</id>
   <version>3.1022.0</version>
   <version-tag></version-tag>
-
-
   <platformVersion>3.1039.0</platformVersion>
   <dependencies>
     <dependency id="VirtoCommerce.Cart" version="3.1006.0" />

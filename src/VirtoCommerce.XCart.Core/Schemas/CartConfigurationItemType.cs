@@ -8,6 +8,7 @@ using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.XCart.Core.Extensions;
+using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCatalog.Core.Models;
 using VirtoCommerce.XCatalog.Core.Schemas;
 
@@ -58,6 +59,16 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 }),
             };
             AddField(productField);
+
+            var configurationSectionField = new FieldType
+            {
+                Name = "configurationSection",
+                Description = "Configuration section that defines this configuration item",
+                Type = GraphTypeExtensionHelper.GetActualType<ConfigurationSectionType>(),
+                Resolver = new FuncFieldResolver<ConfigurationItem, IDataLoaderResult<ExpProductConfigurationSection>>(context =>
+                    dataLoader.LoadConfigurationSection(context, mediator, "cart_configurationItems_sections", context.Source.SectionId)),
+            };
+            AddField(configurationSectionField);
         }
     }
 }
