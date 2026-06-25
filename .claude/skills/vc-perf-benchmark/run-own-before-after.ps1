@@ -71,7 +71,7 @@ function Invoke-Runner($Root, $Label) {
     Push-Location $dir
     try {
         if (Test-Path BenchmarkDotNet.Artifacts) { Remove-Item -Recurse -Force BenchmarkDotNet.Artifacts }
-        dotnet run -c Release -- @JobFlags --filter $Filter @CatFlags --exporters json
+        dotnet run -c Release -- @JobFlags --filter "$Filter" @CatFlags --exporters json
         # $PSNativeCommandUseErrorActionPreference is off (so compare-reports.cs can exit 1 without
         # throwing), so a failed/partial benchmark run won't throw on its own — check it explicitly,
         # else compare-reports.cs would run on missing results and emit a misleading verdict.

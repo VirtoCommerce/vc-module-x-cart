@@ -35,7 +35,7 @@ Usage:
   --categories           Comma-separated BenchmarkCategory names (e.g. items,configuration) → BDN
                          --anyCategories. Scope to an AREA. Composes with --filter (intersection).
   --job                  dry (smoke, default) | short | default. Only `default` lets the TIME axis gate.
-  --upstream-root        workspace holding vc-module-x-cart / vc-module-x-order (default: 3 levels up).
+  --upstream-root        workspace holding vc-module-x-cart / vc-module-x-order (default: this repo's parent dir).
 
   SCOPE: prefer --filter (one operation) or --categories (one area). Do NOT run the full suite ('*')
   in the loop — it is ~13h measured. Measure only what your change touches.
@@ -75,7 +75,7 @@ CAT_FLAGS=()
 [[ ${#CATEGORIES[@]} -gt 0 ]] && CAT_FLAGS=(--anyCategories "${CATEGORIES[@]}")
 
 REPO="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
-[[ -z "$UPSTREAM_ROOT" ]] && UPSTREAM_ROOT="$(cd "$REPO/../../.." && pwd)"
+[[ -z "$UPSTREAM_ROOT" ]] && UPSTREAM_ROOT="$(cd "$REPO/.." && pwd)"
 
 case "$DOMAIN" in
     cart)
