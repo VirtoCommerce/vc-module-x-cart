@@ -1528,6 +1528,16 @@ namespace VirtoCommerce.XCart.Core
                 await DeleteConfigurationFiles(fileUrls);
 
                 lineItem.ConfigurationItems = configuredItem.ConfigurationItems.ToList();
+
+                // Carry the owning line item back-reference onto each freshly built configuration item.
+                // The CartConfigurationItemType money resolvers (listPrice/salePrice/extendedPrice) look up
+                // the line item currency by matching ConfigurationItem.LineItemId against cart.Items[].Id;
+                // without it the currency resolves to null and ToMoney(null) throws ARGUMENT_NULL on the
+                // mutation return path (VCST-5391). The persisted/query path already carries this id.
+                foreach (var configurationItem in lineItem.ConfigurationItems)
+                {
+                    configurationItem.LineItemId = lineItem.Id;
+                }
             }
 
             return this;
