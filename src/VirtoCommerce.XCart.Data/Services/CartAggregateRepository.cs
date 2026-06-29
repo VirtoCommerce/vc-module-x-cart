@@ -70,6 +70,12 @@ namespace VirtoCommerce.XCart.Data.Services
 
             await _shoppingCartService.SaveChangesAsync([cartAggregate.Cart]);
 
+            // SaveChangesAsync assigns ids to newly persisted line items in-memory but does not back-fill
+            // each configuration item's LineItemId. Stamp it centrally now (ids are real here) so the mutation
+            // response returned to the GraphQL resolvers carries a consistent back-reference for every path that
+            // builds configuration items — add-to-cart, move-from-saved-for-later and edit (VCST-5391).
+            cartAggregate.SetConfigurationItemsLineItemId();
+
             await UpdateConfigurationFiles(cartAggregate.Cart);
 
             // Clear validation cache — cart state changed, cached results are stale.

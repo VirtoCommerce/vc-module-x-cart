@@ -1529,14 +1529,10 @@ namespace VirtoCommerce.XCart.Core
 
                 lineItem.ConfigurationItems = configuredItem.ConfigurationItems.ToList();
 
-                // Carry the owning line item's id onto each freshly built configuration item. The
-                // CartConfigurationItemType money resolvers (listPrice, salePrice, extendedPrice) use it to
-                // look up the line item currency; without it the currency resolves to null and ToMoney throws
-                // ARGUMENT_NULL on the mutation return path (VCST-5391). The persisted and query paths already set it.
-                foreach (var configurationItem in lineItem.ConfigurationItems)
-                {
-                    configurationItem.LineItemId = lineItem.Id;
-                }
+                // Carry the owning line item's id onto each freshly built configuration item so the
+                // CartConfigurationItemType money resolvers can resolve the line item currency (VCST-5391).
+                // The same back-reference is stamped centrally on save for the add/move paths.
+                SetConfigurationItemsLineItemId(lineItem);
             }
 
             return this;
@@ -2017,6 +2013,38 @@ namespace VirtoCommerce.XCart.Core
         public virtual LineItem GetConfiguredLineItem(string lineItemId)
         {
             return Cart.Items.FirstOrDefault(x => x.Id == lineItemId && x.IsConfigured);
+        }
+
+        /// <summary>
+        /// Ensures every configuration item carries its owning line item's id (<see cref="ConfigurationItem.LineItemId"/>).
+        /// The <c>CartConfigurationItemType</c> money resolvers (listPrice, salePrice, extendedPrice) resolve the
+        /// configuration item's currency by matching <c>ConfigurationItem.LineItemId</c> against <c>cart.Items[].Id</c>
+        /// (see <c>ResolveFieldContextExtensions.GetConfiguratonItemCurrency</c>). The add-to-cart, move-from-saved-for-later
+        /// and edit paths all build configuration items in-memory without this back-reference, so on the mutation return
+        /// path the currency resolves to null and <c>ToMoney(null)</c> throws ARGUMENT_NULL (VCST-5391). Stamping it here
+        /// keeps the in-memory mutation result consistent with the persisted/re-read query result.
+        /// </summary>
+        public virtual CartAggregate SetConfigurationItemsLineItemId()
+        {
+            foreach (var lineItem in Cart?.Items ?? Enumerable.Empty<LineItem>())
+            {
+                SetConfigurationItemsLineItemId(lineItem);
+            }
+
+            return this;
+        }
+
+        protected static void SetConfigurationItemsLineItemId(LineItem lineItem)
+        {
+            if (lineItem?.ConfigurationItems is null)
+            {
+                return;
+            }
+
+            foreach (var configurationItem in lineItem.ConfigurationItems)
+            {
+                configurationItem.LineItemId = lineItem.Id;
+            }
         }
 
         public virtual async Task<CartAggregate> UpdateConfiguredLineItemPrice(IList<LineItem> configuredItems)
