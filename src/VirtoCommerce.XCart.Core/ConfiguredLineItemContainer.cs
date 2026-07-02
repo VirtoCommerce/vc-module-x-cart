@@ -256,7 +256,13 @@ namespace VirtoCommerce.XCart.Core
                 configurationItem.SectionId = section.SectionId;
             }
 
-            configurationItem.SectionName = section.SectionName;
+            // Never overwrite the snapshot with an empty name — preserve the existing SectionName
+            // (mirrors CartAggregate.GetOrCreateConfigurationItem and the Sku/ProductId/Name snapshot fields).
+            if (!string.IsNullOrEmpty(section.SectionName))
+            {
+                configurationItem.SectionName = section.SectionName;
+            }
+
             configurationItem.Type = section.Type;
 
             configurationItem.CatalogId = section.Item?.CatalogId;

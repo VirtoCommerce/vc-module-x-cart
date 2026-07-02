@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using VirtoCommerce.CartModule.Core.Model;
-using VirtoCommerce.CatalogModule.Core.Search;
 using VirtoCommerce.FileExperienceApi.Core.Extensions;
 using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
@@ -22,18 +21,18 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
     private readonly IConfiguredLineItemContainerService _configuredLineItemContainerService;
     private readonly ICartProductsLoaderService _cartProductService;
     private readonly IFileUploadService _fileUploadService;
-    private readonly IProductConfigurationSearchService _productConfigurationSearchService;
+    private readonly ICartConfigurationService _cartConfigurationService;
 
     public CreateConfiguredLineItemHandler(
        IConfiguredLineItemContainerService configuredLineItemContainerService,
        ICartProductsLoaderService cartProductService,
        IFileUploadService fileUploadService,
-       IProductConfigurationSearchService productConfigurationSearchService)
+       ICartConfigurationService cartConfigurationService)
     {
         _configuredLineItemContainerService = configuredLineItemContainerService;
         _cartProductService = cartProductService;
         _fileUploadService = fileUploadService;
-        _productConfigurationSearchService = productConfigurationSearchService;
+        _cartConfigurationService = cartConfigurationService;
     }
 
     public virtual async Task<ExpConfigurationLineItem> Handle(CreateConfiguredLineItemCommand request, CancellationToken cancellationToken)
@@ -55,7 +54,7 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
 
         // Enrich each section with its catalog name; the container stamps it onto each created
         // ConfigurationItem so the persisted SectionName snapshot needs no catalog round-trip on load.
-        await _productConfigurationSearchService.UpdateSectionsFromCatalogAsync(request.ConfigurableProductId, configurationSections);
+        await _cartConfigurationService.UpdateSectionsFromCatalogAsync(request.ConfigurableProductId, configurationSections);
 
         var selectedProductIds = configurationSections
             .Select(x => x.Option?.ProductId)

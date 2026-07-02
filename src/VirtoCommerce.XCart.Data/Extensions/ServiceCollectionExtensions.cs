@@ -39,6 +39,7 @@ namespace VirtoCommerce.XCart.Data.Extensions
             services.AddTransient<Func<CartAggregate>>(provider => () => provider.CreateScope().ServiceProvider.GetRequiredService<CartAggregate>());
             services.AddTransient<ICartItemBuilder, CartItemBuilder>();
             services.AddTransient<IConfiguredLineItemContainerService, ConfiguredLineItemContainerService>();
+            services.AddTransient<ICartConfigurationService, CartConfigurationService>();
             services.AddTransient<IConfigurationItemValidator, ConfigurationItemValidator>();
             services.AddSingleton<IFileAuthorizationRequirementFactory, ConfigurationItemFileAuthorizationRequirementFactory>();
 
