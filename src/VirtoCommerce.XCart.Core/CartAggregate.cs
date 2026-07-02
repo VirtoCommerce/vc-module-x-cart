@@ -1935,6 +1935,8 @@ namespace VirtoCommerce.XCart.Core
             if (configurationItem is null)
             {
                 configurationItem = CreateConfigurationItem(configurationSection, cartProduct);
+                configurationItem.SectionId = configurationSection.SectionId;
+                configurationItem.Type = configurationSection.Type;
                 lineItem.ConfigurationItems ??= new List<ConfigurationItem>();
                 lineItem.ConfigurationItems.Add(configurationItem);
             }

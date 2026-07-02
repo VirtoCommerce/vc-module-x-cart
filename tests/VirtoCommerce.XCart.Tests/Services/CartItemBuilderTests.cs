@@ -54,30 +54,26 @@ namespace VirtoCommerce.XCart.Tests.Services
         // === Direct builder — ConfigurationItem ===
 
         [Fact]
-        public void Create_ConfigurationItem_NoOverride_PopulatesSectionFields()
+        public void Create_ConfigurationItem_NoOverride_ReturnsBase()
         {
             var builder = new CartItemBuilder();
 
-            var result = builder.Create(new ProductConfigurationSection { SectionId = "S1", Type = "Product" });
+            var result = builder.Create(new ProductConfigurationSection());
 
             result.Should().BeOfType<ConfigurationItem>();
-            result.SectionId.Should().Be("S1");
-            result.Type.Should().Be("Product");
         }
 
         [Fact]
-        public void Create_ConfigurationItem_WithOverride_ReturnsSubtype_AndPopulatesSectionFields()
+        public void Create_ConfigurationItem_WithOverride_ReturnsSubtype()
         {
             AbstractTypeFactory<ConfigurationItem>.OverrideType<ConfigurationItem, TestConfigurationItem>();
             try
             {
                 var builder = new CartItemBuilder();
 
-                var result = builder.Create(new ProductConfigurationSection { SectionId = "S2", Type = "Text" });
+                var result = builder.Create(new ProductConfigurationSection());
 
                 result.Should().BeOfType<TestConfigurationItem>();
-                result.SectionId.Should().Be("S2");
-                result.Type.Should().Be("Text");
             }
             finally
             {
