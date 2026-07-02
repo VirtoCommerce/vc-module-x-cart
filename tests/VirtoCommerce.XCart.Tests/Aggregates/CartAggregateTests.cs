@@ -1067,14 +1067,16 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 IsValid = true,
             });
 
-            _mapperMock.Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
+            _mapperMock
+                .Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
                 .Returns(context);
 
             _marketingPromoEvaluatorMock
                .Setup(x => x.EvaluatePromotionAsync(It.Is<PromotionEvaluationContext>(x => x.Coupon == coupon)))
                .ReturnsAsync(stub);
 
-            _genericPipelineLauncherMock.Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
+            _genericPipelineLauncherMock
+                .Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
                 .Callback<PromotionEvaluationContextCartMap>(x =>
                 {
                     x.PromotionEvaluationContext = _mapperMock.Object.Map<PromotionEvaluationContext>(cartAggregate);
@@ -1117,14 +1119,16 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 IsValid = true,
             });
 
-            _mapperMock.Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
+            _mapperMock
+                .Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
                 .Returns(context);
 
             _marketingPromoEvaluatorMock
                .Setup(x => x.EvaluatePromotionAsync(It.Is<PromotionEvaluationContext>(x => x.Coupon == enteredCoupon)))
                .ReturnsAsync(stub);
 
-            _genericPipelineLauncherMock.Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
+            _genericPipelineLauncherMock
+                .Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
                 .Callback<PromotionEvaluationContextCartMap>(x =>
                 {
                     x.PromotionEvaluationContext = _mapperMock.Object.Map<PromotionEvaluationContext>(cartAggregate);
@@ -1184,14 +1188,16 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             promoResult.Rewards.Add(promoReward);
 
-            _mapperMock.Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
+            _mapperMock
+                .Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
                 .Returns(context);
 
             _marketingPromoEvaluatorMock
                .Setup(x => x.EvaluatePromotionAsync(It.Is<PromotionEvaluationContext>(x => x == context)))
                .ReturnsAsync(promoResult);
 
-            _genericPipelineLauncherMock.Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
+            _genericPipelineLauncherMock
+                .Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
                 .Callback<PromotionEvaluationContextCartMap>(x =>
                 {
                     x.PromotionEvaluationContext = _mapperMock.Object.Map<PromotionEvaluationContext>(cartAggregate);
@@ -1225,7 +1231,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             promoResult.Rewards.Add(promoReward);
 
-            _mapperMock.Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
+            _mapperMock
+                .Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
                 .Returns(context);
 
             _marketingPromoEvaluatorMock
@@ -1680,7 +1687,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 1, SelectedForCheckout = true },
             };
 
-            _cartProductServiceMock.Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string, string)>>()))
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string, string)>>()))
                 .ReturnsAsync((CartAggregate agg, IList<(string CurrencyCode, string ProductId)> pairs) =>
                     pairs.Where(p => p.ProductId == "shirt-size-M")
                         .ToDictionary(p => agg.GetCartProductKey(p.ProductId, p.CurrencyCode), _ => cartProduct));
@@ -1728,7 +1736,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 3, SelectedForCheckout = true },
             };
 
-            _cartProductServiceMock.Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string, string)>>()))
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string, string)>>()))
                 .ReturnsAsync((CartAggregate agg, IList<(string CurrencyCode, string ProductId)> pairs) =>
                     pairs.Where(p => p.ProductId == "shirt-size-M")
                         .ToDictionary(p => agg.GetCartProductKey(p.ProductId, p.CurrencyCode), _ => cartProduct));
@@ -2391,7 +2400,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                     OwnerEntityType = null
                 }
             };
-            _fileUploadService.Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
+            _fileUploadService
+                .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
                 .ReturnsAsync((IList<string> ids, string rg, bool c) => files)
                 .Verifiable();
 
@@ -2790,7 +2800,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 1, SelectedForCheckout = true },
             };
 
-            _cartProductServiceMock.Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string, string)>>()))
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string, string)>>()))
                 .ReturnsAsync((CartAggregate agg, IList<(string CurrencyCode, string ProductId)> pairs) =>
                     pairs.Where(p => p.ProductId == "shirt-size-M")
                         .ToDictionary(p => agg.GetCartProductKey(p.ProductId, p.CurrencyCode), _ => cartProduct));
@@ -3272,7 +3283,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                     OwnerEntityType = null
                 }
             };
-            _fileUploadService.Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
+            _fileUploadService
+                .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
                 .ReturnsAsync((IList<string> ids, string rg, bool c) => files)
                 .Verifiable();
 

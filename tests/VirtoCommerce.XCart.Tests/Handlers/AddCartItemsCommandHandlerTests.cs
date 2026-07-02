@@ -42,7 +42,8 @@ namespace VirtoCommerce.XCart.Tests.Handlers
             var cartProperty = typeof(CartAggregate).GetProperty(nameof(CartAggregate.Cart));
             cartProperty.SetValue(mock.Object, new ShoppingCart { Id = "cart-1" });
 
-            mock.Setup(x => x.GetCartProductKey(It.IsAny<string>(), It.IsAny<string>()))
+            mock
+                .Setup(x => x.GetCartProductKey(It.IsAny<string>(), It.IsAny<string>()))
                 .Returns((string productId, string currencyCode) =>
                 {
                     return CartAggregate.FormatGetCartProductKey(productId, currencyCode);

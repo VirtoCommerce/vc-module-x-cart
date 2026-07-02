@@ -202,7 +202,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 .ReturnsAsync(_fixture.Create<Organization>());
 
             _configurationItemValidatorMock = new Mock<IConfigurationItemValidator>();
-            _configurationItemValidatorMock.Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), CancellationToken.None))
+            _configurationItemValidatorMock
+                .Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), CancellationToken.None))
                 .ReturnsAsync(new FluentValidation.Results.ValidationResult());
 
             _fileUploadService = new Mock<IFileUploadService>();
