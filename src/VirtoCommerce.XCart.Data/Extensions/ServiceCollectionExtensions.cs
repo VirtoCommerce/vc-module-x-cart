@@ -15,6 +15,7 @@ using VirtoCommerce.XCart.Core.Validators;
 using VirtoCommerce.XCart.Data.Authorization;
 using VirtoCommerce.XCart.Data.Middlewares;
 using VirtoCommerce.XCart.Data.Services;
+using VirtoCommerce.XCart.Data.Validators;
 using VirtoCommerce.XCatalog.Core.Models;
 
 namespace VirtoCommerce.XCart.Data.Extensions
@@ -40,6 +41,16 @@ namespace VirtoCommerce.XCart.Data.Extensions
             services.AddTransient<IConfiguredLineItemContainerService, ConfiguredLineItemContainerService>();
             services.AddTransient<IConfigurationItemValidator, ConfigurationItemValidator>();
             services.AddSingleton<IFileAuthorizationRequirementFactory, ConfigurationItemFileAuthorizationRequirementFactory>();
+
+            services.AddTransient<ICartValidatorRegistry, CartValidatorRegistry>();
+            services.AddTransient<ICartValidator<CartValidationContext>, CartValidator>();
+            services.AddTransient<ICartValidator<LineItemValidationContext>, CartLineItemValidator>();
+            services.AddTransient<ICartValidator<PaymentValidationContext>, CartPaymentValidator>();
+            services.AddTransient<ICartValidator<ShipmentValidationContext>, CartShipmentValidator>();
+            services.AddTransient<ICartValidator<ConfigurationItemValidationContext>, ConfigurationItemContextValidator>();
+            services.AddTransient<ICartValidator<NewCartItem>, NewCartItemValidator>();
+            services.AddTransient<ICartValidator<ItemQtyAdjustment>, ItemQtyAdjustmentValidator>();
+            services.AddTransient<ICartValidator<PriceAdjustment>, ChangeCartItemPriceValidator>();
 
             services.AddPipeline<SearchProductResponse>(builder =>
             {
@@ -67,6 +78,29 @@ namespace VirtoCommerce.XCart.Data.Extensions
             });
 
             services.AddPipeline<ShipmentContextCartMap>();
+
+            return services;
+        }
+
+        /// <summary>
+        /// Replaces a single registration identified by both its service type and its concrete
+        /// implementation type. Use it to swap one specific link in the CartValidator 
+        /// </summary>
+        public static IServiceCollection ReplaceImplementation<TService, TOldImplementation, TNewImplementation>(
+            this IServiceCollection services)
+            where TService : class
+            where TOldImplementation : class, TService
+            where TNewImplementation : class, TService
+        {
+            for (var i = 0; i < services.Count; i++)
+            {
+                var descriptor = services[i];
+                if (descriptor.ServiceType == typeof(TService) && descriptor.ImplementationType == typeof(TOldImplementation))
+                {
+                    services[i] = ServiceDescriptor.Describe(typeof(TService), typeof(TNewImplementation), descriptor.Lifetime);
+                    break;
+                }
+            }
 
             return services;
         }

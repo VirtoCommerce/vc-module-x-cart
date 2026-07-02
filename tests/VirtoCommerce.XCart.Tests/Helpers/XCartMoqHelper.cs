@@ -4,6 +4,7 @@ using System.Threading;
 using AutoFixture;
 using AutoMapper;
 using Bogus;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Services;
@@ -31,6 +32,7 @@ using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
 using VirtoCommerce.XCart.Data.Services;
+using VirtoCommerce.XCart.Data.Validators;
 using VirtoCommerce.XCart.Tests.Helpers.Stubs;
 using Store = VirtoCommerce.StoreModule.Core.Model.Store;
 
@@ -58,6 +60,9 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         protected readonly Mock<ICartSharingService> _cartSharingService;
         protected readonly Mock<ICartValidationContextFactory> _cartValidationContextFactoryMock;
         protected readonly ICartItemBuilder _cartItemBuilder;
+
+        // Not a mock on purpose: it runs the real validator chain, as they did when validators were created via AbstractTypeFactory
+        protected readonly ICartValidatorRegistry _cartValidatorRegistry;
 
         protected readonly Randomizer Rand = new Randomizer();
 
@@ -208,6 +213,29 @@ namespace VirtoCommerce.XCart.Tests.Helpers
             _cartSharingService = new Mock<ICartSharingService>();
             _cartValidationContextFactoryMock = new Mock<ICartValidationContextFactory>();
             _cartItemBuilder = new CartItemBuilder();
+            _cartValidatorRegistry = BuildCartValidatorRegistry();
+        }
+
+        /// <summary>
+        /// Builds a real CartValidatorRegistry so unit tests exercise the actual validators,
+        /// as they did when validators were created via AbstractTypeFactory 
+        /// </summary>
+        private CartValidatorRegistry BuildCartValidatorRegistry()
+        {
+            var services = new ServiceCollection();
+
+            services.AddSingleton(_configurationItemValidatorMock.Object);
+
+            services.AddTransient<ICartValidator<CartValidationContext>, CartValidator>();
+            services.AddTransient<ICartValidator<LineItemValidationContext>, CartLineItemValidator>();
+            services.AddTransient<ICartValidator<PaymentValidationContext>, CartPaymentValidator>();
+            services.AddTransient<ICartValidator<ShipmentValidationContext>, CartShipmentValidator>();
+            services.AddTransient<ICartValidator<ConfigurationItemValidationContext>, ConfigurationItemContextValidator>();
+            services.AddTransient<ICartValidator<NewCartItem>, NewCartItemValidator>();
+            services.AddTransient<ICartValidator<ItemQtyAdjustment>, ItemQtyAdjustmentValidator>();
+            services.AddTransient<ICartValidator<PriceAdjustment>, ChangeCartItemPriceValidator>();
+
+            return new CartValidatorRegistry(services.BuildServiceProvider());
         }
 
         protected ShoppingCart GetCart() => _fixture.Create<ShoppingCart>();
@@ -266,11 +294,11 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 _mapperMock.Object,
                 _memberService.Object,
                 _genericPipelineLauncherMock.Object,
-                _configurationItemValidatorMock.Object,
                 _fileUploadService.Object,
                 _cartSharingService.Object,
                 _cartValidationContextFactoryMock.Object,
-                _cartItemBuilder);
+                _cartItemBuilder,
+                _cartValidatorRegistry);
 
             aggregate.GrabCart(cart ?? GetCart(), new Store(), null, currency ?? GetCurrency());
 
@@ -288,11 +316,11 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 _mapperMock.Object,
                 _memberService.Object,
                 _genericPipelineLauncherMock.Object,
-                _configurationItemValidatorMock.Object,
                 _fileUploadService.Object,
                 _cartSharingService.Object,
                 _cartValidationContextFactoryMock.Object,
-                _cartItemBuilder);
+                _cartItemBuilder,
+                _cartValidatorRegistry);
 
             aggregate.GrabCart(cart ?? GetCart(), new Store(), GetMember(), currency ?? GetCurrency());
 
