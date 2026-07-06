@@ -12,7 +12,7 @@ public class UpdateConfigurationItemCommand : CartCommand, ICartConfigurationCom
     public ProductConfigurationSection ConfigurationSection { get; set; }
 
     [SuppressMessage("Major Code Smell", "S1168:Empty arrays and collections should be returned instead of null",
-        Justification = "null is intentional and consistent with the nullable ICartConfigurationCommand contract (the plural commands return null too); the sole consumer CartConfigurationService.UpdateSectionsFromCatalogAsync guards IsNullOrEmpty, so null carries no NRE risk and avoids allocating a throwaway single-element list.")]
+        Justification = "null is intentional, consistent with the nullable ICartConfigurationCommand contract; the sole consumer guards IsNullOrEmpty, so null is safe and avoids a throwaway single-element list.")]
     public IList<ProductConfigurationSection> ConfigurationSections =>
         ConfigurationSection is null ? null : [ConfigurationSection];
 }

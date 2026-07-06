@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
 using GraphQL.Types;
@@ -16,6 +17,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
 {
     public class CartConfigurationItemType : ExtendableGraphType<ConfigurationItem>
     {
+        [SuppressMessage("Critical Code Smell", "S1699:Constructors should only call non-overridable methods",
+            Justification = "GraphQL schema types build fields via the virtual Field(...) builder in the ctor; inherent to graphql-dotnet, and the type is subclassed via OverrideGraphType so sealing does not apply.")]
         public CartConfigurationItemType(
             IMediator mediator,
             IDataLoaderContextAccessor dataLoader,
