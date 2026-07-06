@@ -167,3 +167,10 @@ dotnet_style_prefer_inferred_anonymous_type_member_names = true:suggestion
 dotnet_style_prefer_compound_assignment = true:suggestion
 dotnet_style_prefer_simplified_interpolation = true:suggestion
 dotnet_style_namespace_match_folder = true:suggestion
+
+# GraphQL schema types build their fields by calling the virtual Field(...) builder in the
+# constructor. This is inherent to graphql-dotnet, and these types are designed to be subclassed
+# (OverrideGraphType), so S1699's "seal the class / make the method non-overridable" fix does not
+# apply. Scope the suppression to the Schemas layer so S1699 still guards ordinary domain constructors.
+[**/Schemas/**.cs]
+dotnet_diagnostic.S1699.severity = none
