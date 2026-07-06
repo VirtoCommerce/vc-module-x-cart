@@ -43,7 +43,6 @@ public class CreateConfiguredLineItemHandler : IRequestHandler<CreateConfiguredL
         productsRequest.ProductIds = [request.ConfigurableProductId];
         productsRequest.EvaluatePromotions = request.EvaluatePromotions;
         productsRequest.OrganizationId = request.OrganizationId;
-        productsRequest.ProductsIncludeFields = request.ProductsIncludeFields;
 
         var product = (await _cartProductService.GetCartProductsAsync(productsRequest)).FirstOrDefault();
 

@@ -18,8 +18,6 @@ public class CreateConfiguredLineItemCommand : ICommand<ExpConfigurationLineItem
 
     public string ConfigurableProductId { get; set; }
 
-    public IList<string> ProductsIncludeFields { get; set; }
-
     public int Quantity { get; set; } = 1;
 
     public bool EvaluatePromotions { get; set; } = false;

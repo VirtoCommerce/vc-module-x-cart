@@ -63,7 +63,6 @@ namespace VirtoCommerce.XCart.Data.Commands
                 command.CultureName = request.CultureName;
                 command.CurrencyCode = itemCurrencyCode;
                 command.ConfigurableProductId = request.ProductId;
-                command.ProductsIncludeFields = cartAggregate.ProductsIncludeFields;
                 command.ConfigurationSections = request.ConfigurationSections;
                 command.CartId = cartAggregate.Cart.Id;
 
