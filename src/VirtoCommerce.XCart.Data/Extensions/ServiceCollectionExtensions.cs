@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.FileExperienceApi.Core.Authorization;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Infrastructure;
@@ -42,14 +43,21 @@ namespace VirtoCommerce.XCart.Data.Extensions
             services.AddSingleton<IFileAuthorizationRequirementFactory, ConfigurationItemFileAuthorizationRequirementFactory>();
 
             services.AddTransient<ICartValidatorRegistry, CartValidatorRegistry>();
-            services.AddTransient<ICartValidator<CartValidationContext>, CartValidator>();
-            services.AddTransient<ICartValidator<LineItemValidationContext>, CartLineItemValidator>();
-            services.AddTransient<ICartValidator<PaymentValidationContext>, CartPaymentValidator>();
-            services.AddTransient<ICartValidator<ShipmentValidationContext>, CartShipmentValidator>();
+
+            // Bridge each built-in validator through AbstractTypeFactory so a downstream
+            // AbstractTypeFactory<T>.OverrideType still applies.
+            services.AddTransient<ICartValidator<CartValidationContext>>(_ => AbstractTypeFactory<CartValidator>.TryCreateInstance());
+            services.AddTransient<ICartValidator<PaymentValidationContext>>(_ => AbstractTypeFactory<CartPaymentValidator>.TryCreateInstance());
+            services.AddTransient<ICartValidator<ShipmentValidationContext>>(_ => AbstractTypeFactory<CartShipmentValidator>.TryCreateInstance());
+            services.AddTransient<ICartValidator<NewCartItem>>(_ => AbstractTypeFactory<NewCartItemValidator>.TryCreateInstance());
+            services.AddTransient<ICartValidator<ItemQtyAdjustment>>(_ => AbstractTypeFactory<ItemQtyAdjustmentValidator>.TryCreateInstance());
+            services.AddTransient<ICartValidator<PriceAdjustment>>(_ => AbstractTypeFactory<ChangeCartItemPriceValidator>.TryCreateInstance());
+
+            // Pure DI: this wrapper has a constructor dependency the factory can't inject.
             services.AddTransient<ICartValidator<ConfigurationItemValidationContext>, ConfigurationItemContextValidator>();
-            services.AddTransient<ICartValidator<NewCartItem>, NewCartItemValidator>();
-            services.AddTransient<ICartValidator<ItemQtyAdjustment>, ItemQtyAdjustmentValidator>();
-            services.AddTransient<ICartValidator<PriceAdjustment>, ChangeCartItemPriceValidator>();
+
+            // No LineItemValidationContext link: the registry never dispatches it — CartValidator runs the nested
+            // CartLineItemValidator (override via AbstractTypeFactory<CartLineItemValidator>).
 
             services.AddPipeline<SearchProductResponse>(builder =>
             {
