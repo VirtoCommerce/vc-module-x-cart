@@ -304,7 +304,17 @@ namespace VirtoCommerce.XCart.Data.Services
 
                 if (aggregate.ProductsIncludeFields == null || aggregate.ProductsIncludeFields.FirstOrDefault() != "__none")
                 {
-                    var productPairs = aggregate.Cart.Items.Select(x => (x.Currency, x.ProductId)).Distinct().ToList();
+                    // Load products for all cart line items and their configuration items, keyed under
+                    // each owning line item's currency (mixed-currency carts store the same product
+                    // under multiple currency keys).
+                    var productPairs = aggregate.Cart.Items.Select(x => (x.Currency, x.ProductId))
+                        .Concat(aggregate.Cart.Items
+                            .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
+                            .SelectMany(x => x.ConfigurationItems, (lineItem, configurationItem) => (lineItem.Currency, configurationItem.ProductId)))
+                        .Where(x => !string.IsNullOrEmpty(x.ProductId))
+                        .Distinct()
+                        .ToList();
+
                     var products = await _cartProductsService.GetCartProductsAsync(aggregate, productPairs);
                     foreach (var product in products)
                     {

@@ -32,6 +32,7 @@ using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
+using VirtoCommerce.XCart.Data.Services;
 using VirtoCommerce.XCart.Data.Validators;
 using VirtoCommerce.XCart.Tests.Helpers.Stubs;
 using Store = VirtoCommerce.StoreModule.Core.Model.Store;
@@ -59,6 +60,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         protected readonly Mock<IFileUploadService> _fileUploadService;
         protected readonly Mock<ICartSharingService> _cartSharingService;
         protected readonly Mock<ICartValidationContextFactory> _cartValidationContextFactoryMock;
+        protected readonly ICartItemBuilder _cartItemBuilder;
 
         // Not a mock on purpose: it runs the real validator chain, as they did when validators were created via AbstractTypeFactory
         protected readonly ICartValidatorRegistry _cartValidatorRegistry;
@@ -162,6 +164,12 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                .Create());
 
             _cartProductServiceMock = new Mock<ICartProductService>();
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
+                .ReturnsAsync([]);
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string, string)>>()))
+                .ReturnsAsync(new Dictionary<string, CartProduct>());
 
             _currencyServiceMock = new Mock<ICurrencyService>();
             _currencyServiceMock
@@ -195,7 +203,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 .ReturnsAsync(_fixture.Create<Organization>());
 
             _configurationItemValidatorMock = new Mock<IConfigurationItemValidator>();
-            _configurationItemValidatorMock.Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), CancellationToken.None))
+            _configurationItemValidatorMock
+                .Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), CancellationToken.None))
                 .ReturnsAsync(new FluentValidation.Results.ValidationResult());
 
             _fileUploadService = new Mock<IFileUploadService>();
@@ -205,7 +214,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
 
             _cartSharingService = new Mock<ICartSharingService>();
             _cartValidationContextFactoryMock = new Mock<ICartValidationContextFactory>();
-
+            _cartItemBuilder = new CartItemBuilder();
             _cartValidatorRegistry = BuildCartValidatorRegistry();
         }
 
@@ -290,6 +299,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 _fileUploadService.Object,
                 _cartSharingService.Object,
                 _cartValidationContextFactoryMock.Object,
+                _cartItemBuilder,
                 _cartValidatorRegistry);
 
             aggregate.GrabCart(cart ?? GetCart(), new Store(), null, currency ?? GetCurrency());
@@ -311,6 +321,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 _fileUploadService.Object,
                 _cartSharingService.Object,
                 _cartValidationContextFactoryMock.Object,
+                _cartItemBuilder,
                 _cartValidatorRegistry);
 
             aggregate.GrabCart(cart ?? GetCart(), new Store(), GetMember(), currency ?? GetCurrency());

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using AutoFixture;
 using AutoMapper;
 using FluentAssertions;
+using FluentValidation.Results;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Model;
@@ -45,6 +46,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 _fileUploadService.Object,
                 _cartSharingService.Object,
                 _cartValidationContextFactoryMock.Object,
+                _cartItemBuilder,
                 _cartValidatorRegistry);
 
             var cart = GetCart();
@@ -989,6 +991,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 _fileUploadService.Object,
                 _cartSharingService.Object,
                 _cartValidationContextFactoryMock.Object,
+                _cartItemBuilder,
                 _cartValidatorRegistry);
             aggregate.GrabCart(GetCart(), GetStore(), GetMember(), GetCurrency());
 
@@ -1019,9 +1022,10 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 VirtoCommerce.FileExperienceApi.Core.Services.IFileUploadService fileUploadService,
                 VirtoCommerce.XCart.Core.Services.ICartSharingService cartSharingService,
                 ICartValidationContextFactory cartValidationContextFactory,
+                VirtoCommerce.XCart.Core.Services.ICartItemBuilder cartItemBuilder,
                 ICartValidatorRegistry cartValidatorRegistry)
                 : base(marketingEvaluator, cartTotalsCalculator, taxProviderSearchService, cartProductService, dynamicPropertyUpdaterService, mapper, memberService, pipeline,
-                    fileUploadService, cartSharingService, cartValidationContextFactory, cartValidatorRegistry)
+                    fileUploadService, cartSharingService, cartValidationContextFactory, cartItemBuilder, cartValidatorRegistry)
             {
             }
 
@@ -1063,14 +1067,16 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 IsValid = true,
             });
 
-            _mapperMock.Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
+            _mapperMock
+                .Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
                 .Returns(context);
 
             _marketingPromoEvaluatorMock
                .Setup(x => x.EvaluatePromotionAsync(It.Is<PromotionEvaluationContext>(x => x.Coupon == coupon)))
                .ReturnsAsync(stub);
 
-            _genericPipelineLauncherMock.Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
+            _genericPipelineLauncherMock
+                .Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
                 .Callback<PromotionEvaluationContextCartMap>(x =>
                 {
                     x.PromotionEvaluationContext = _mapperMock.Object.Map<PromotionEvaluationContext>(cartAggregate);
@@ -1113,14 +1119,16 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 IsValid = true,
             });
 
-            _mapperMock.Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
+            _mapperMock
+                .Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
                 .Returns(context);
 
             _marketingPromoEvaluatorMock
                .Setup(x => x.EvaluatePromotionAsync(It.Is<PromotionEvaluationContext>(x => x.Coupon == enteredCoupon)))
                .ReturnsAsync(stub);
 
-            _genericPipelineLauncherMock.Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
+            _genericPipelineLauncherMock
+                .Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
                 .Callback<PromotionEvaluationContextCartMap>(x =>
                 {
                     x.PromotionEvaluationContext = _mapperMock.Object.Map<PromotionEvaluationContext>(cartAggregate);
@@ -1180,14 +1188,16 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             promoResult.Rewards.Add(promoReward);
 
-            _mapperMock.Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
+            _mapperMock
+                .Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
                 .Returns(context);
 
             _marketingPromoEvaluatorMock
                .Setup(x => x.EvaluatePromotionAsync(It.Is<PromotionEvaluationContext>(x => x == context)))
                .ReturnsAsync(promoResult);
 
-            _genericPipelineLauncherMock.Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
+            _genericPipelineLauncherMock
+                .Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
                 .Callback<PromotionEvaluationContextCartMap>(x =>
                 {
                     x.PromotionEvaluationContext = _mapperMock.Object.Map<PromotionEvaluationContext>(cartAggregate);
@@ -1221,7 +1231,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             promoResult.Rewards.Add(promoReward);
 
-            _mapperMock.Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
+            _mapperMock
+                .Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
                 .Returns(context);
 
             _marketingPromoEvaluatorMock
@@ -1651,6 +1662,94 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             cartAggregate.OperationValidationErrors.Should().Contain(e => e.ErrorCode == "CONFIGURED_LINE_ITEM_NOT_FOUND");
         }
 
+        [Fact]
+        public async Task AddConfigurationItemAsync_WithSectionName_StampsSectionNameOnNewItem()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem>(),
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey("configurable-product", null)] = new CartProduct(new CatalogProduct { Id = "configurable-product", Code = "CONF-PROD" });
+
+            var cartProduct = new CartProduct(new CatalogProduct { Id = "shirt-size-M", Code = "SHIRT-M", Name = "Shirt Size M" });
+
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "size",
+                SectionName = "Size",
+                Type = "Variation",
+                Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 1, SelectedForCheckout = true },
+            };
+
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string, string)>>()))
+                .ReturnsAsync((CartAggregate agg, IList<(string CurrencyCode, string ProductId)> pairs) =>
+                    pairs.Where(p => p.ProductId == "shirt-size-M")
+                        .ToDictionary(p => agg.GetCartProductKey(p.ProductId, p.CurrencyCode), _ => cartProduct));
+
+            // Act
+            await cartAggregate.AddConfigurationItemAsync(lineItem.Id, configSection);
+
+            // Assert
+            lineItem.ConfigurationItems.Single().SectionName.Should().Be("Size",
+                "an enriched section must stamp its catalog SectionName onto the newly created ConfigurationItem");
+        }
+
+        [Fact]
+        public async Task AddConfigurationItemAsync_EmptySectionName_DoesNotWipeExistingSectionName()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var existingConfigItem = new ConfigurationItem
+            {
+                Id = "config-1",
+                ProductId = "shirt-size-M",
+                SectionId = "size",
+                Type = "Variation",
+                Quantity = 1,
+                SectionName = "Size",
+            };
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { existingConfigItem },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey("configurable-product", null)] = new CartProduct(new CatalogProduct { Id = "configurable-product", Code = "CONF-PROD" });
+
+            var cartProduct = new CartProduct(new CatalogProduct { Id = "shirt-size-M", Code = "SHIRT-M", Name = "Shirt Size M" });
+
+            // Section arrives un-enriched (no SectionName), matching the existing item by Type + SectionId
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "size",
+                SectionName = null,
+                Type = "Variation",
+                Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 3, SelectedForCheckout = true },
+            };
+
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string, string)>>()))
+                .ReturnsAsync((CartAggregate agg, IList<(string CurrencyCode, string ProductId)> pairs) =>
+                    pairs.Where(p => p.ProductId == "shirt-size-M")
+                        .ToDictionary(p => agg.GetCartProductKey(p.ProductId, p.CurrencyCode), _ => cartProduct));
+
+            // Act
+            await cartAggregate.AddConfigurationItemAsync(lineItem.Id, configSection);
+
+            // Assert
+            lineItem.ConfigurationItems.Single().SectionName.Should().Be("Size",
+                "an un-enriched (empty) SectionName must not overwrite the persisted one");
+        }
+
         #endregion AddConfigurationItemAsync
 
         #region AddConfigurationItemsAsync
@@ -1763,7 +1862,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
-            var sections = new List<ProductConfigurationSection>
+            var configurationSections = new List<ProductConfigurationSection>
             {
                 new()
                 {
@@ -1779,7 +1878,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                     [new FluentValidation.Results.ValidationFailure("ConfigurationItems", "Invalid configuration")]));
 
             // Act
-            await cartAggregate.AddConfigurationItemsAsync(lineItem.Id, sections);
+            await cartAggregate.AddConfigurationItemsAsync(lineItem.Id, configurationSections);
 
             // Assert
             cartAggregate.OperationValidationErrors.Should().NotBeEmpty();
@@ -1802,7 +1901,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
-            var sections = new List<ProductConfigurationSection>
+            var configurationSections = new List<ProductConfigurationSection>
             {
                 new()
                 {
@@ -1815,7 +1914,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             // Default validator mock returns valid (empty ValidationResult)
 
             // Act
-            await cartAggregate.AddConfigurationItemsAsync(lineItem.Id, sections);
+            await cartAggregate.AddConfigurationItemsAsync(lineItem.Id, configurationSections);
 
             // Assert
             cartAggregate.OperationValidationErrors.Should().BeEmpty();
@@ -2301,7 +2400,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                     OwnerEntityType = null
                 }
             };
-            _fileUploadService.Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
+            _fileUploadService
+                .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
                 .ReturnsAsync((IList<string> ids, string rg, bool c) => files)
                 .Verifiable();
 
@@ -2638,7 +2738,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
-            var sections = new List<ProductConfigurationSection>
+            var configurationSections = new List<ProductConfigurationSection>
             {
                 new()
                 {
@@ -2654,7 +2754,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                     [new FluentValidation.Results.ValidationFailure("ConfigurationItems", "Invalid configuration")]));
 
             // Act
-            await cartAggregate.UpdateConfigurationItemsAsync(lineItem.Id, sections);
+            await cartAggregate.UpdateConfigurationItemsAsync(lineItem.Id, configurationSections);
 
             // Assert
             cartAggregate.OperationValidationErrors.Should().NotBeEmpty();
@@ -2664,7 +2764,139 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             _fileUploadService.Verify(x => x.DeleteAsync(It.IsAny<IList<string>>(), It.IsAny<bool>()), Times.Never);
         }
 
+        [Fact]
+        public async Task UpdateConfigurationItemsAsync_WithSectionName_StampsSectionNameOnUpdatedItem()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var existingConfigItem = new ConfigurationItem
+            {
+                Id = "config-1",
+                ProductId = "shirt-size-M",
+                SectionId = "size",
+                Type = "Variation",
+                Quantity = 2,
+                SectionName = "Size",
+            };
+            var lineItem = new LineItem
+            {
+                Id = "line-item-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem> { existingConfigItem },
+            };
+            cartAggregate.Cart.Items.Add(lineItem);
+            cartAggregate.CartProducts[cartAggregate.GetCartProductKey("configurable-product", null)] = new CartProduct(new CatalogProduct { Id = "configurable-product", Code = "CONF-PROD" });
+
+            var cartProduct = new CartProduct(new CatalogProduct { Id = "shirt-size-M", Code = "SHIRT-M", Name = "Shirt Size M" });
+
+            // Update path with an enriched section (renamed in catalog) carrying a fresh SectionName.
+            // Same Type + SectionId + ProductId as the existing item, so it updates in place rather than adding a new one.
+            var configSection = new ProductConfigurationSection
+            {
+                SectionId = "size",
+                SectionName = "Garment Size",
+                Type = "Variation",
+                Option = new ConfigurableProductOption { ProductId = "shirt-size-M", Quantity = 1, SelectedForCheckout = true },
+            };
+
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string, string)>>()))
+                .ReturnsAsync((CartAggregate agg, IList<(string CurrencyCode, string ProductId)> pairs) =>
+                    pairs.Where(p => p.ProductId == "shirt-size-M")
+                        .ToDictionary(p => agg.GetCartProductKey(p.ProductId, p.CurrencyCode), _ => cartProduct));
+
+            // Act — bulk array update entrypoint
+            await cartAggregate.UpdateConfigurationItemsAsync(lineItem.Id, [configSection]);
+
+            // Assert
+            lineItem.ConfigurationItems.Single().SectionName.Should().Be("Garment Size",
+                "the bulk update path must stamp the enriched SectionName onto the matched ConfigurationItem");
+        }
+
         #endregion UpdateConfigurationItemsAsync
+
+        #region UpdateConfiguredLineItemAsync
+
+        [Fact]
+        public async Task UpdateConfiguredLineItemAsync_ValidConfiguration_ReplacesItemsCarryingSectionName()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var existing = new LineItem
+            {
+                Id = "line-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = new List<ConfigurationItem>
+                {
+                    new() { SectionId = "size", Type = "Variation", ProductId = "old", SectionName = "Size" },
+                },
+            };
+            cartAggregate.Cart.Items.Add(existing);
+
+            // The replacement item already carries SectionName (built upstream via CreateConfiguredLineItemHandler)
+            var configuredItem = new LineItem
+            {
+                ProductId = "configurable-product",
+                ConfigurationItems = new List<ConfigurationItem>
+                {
+                    new() { SectionId = "size", Type = "Variation", ProductId = "new", SectionName = "Size" },
+                },
+            };
+
+            // Act
+            await cartAggregate.UpdateConfiguredLineItemAsync("line-1", configuredItem);
+
+            // Assert
+            existing.ConfigurationItems.Single().ProductId.Should().Be("new");
+            existing.ConfigurationItems.Single().SectionName.Should().Be("Size",
+                "a valid replacement carries the upstream-stamped SectionName onto the line item");
+        }
+
+        [Fact]
+        public async Task UpdateConfiguredLineItemAsync_InvalidConfiguration_DoesNotReplaceOrWipeSectionName()
+        {
+            // Arrange
+            var cartAggregate = GetValidCartAggregate();
+            var originalItems = new List<ConfigurationItem>
+            {
+                new() { SectionId = "size", Type = "Variation", ProductId = "old", SectionName = "Size" },
+            };
+            var existing = new LineItem
+            {
+                Id = "line-1",
+                ProductId = "configurable-product",
+                IsConfigured = true,
+                ConfigurationItems = originalItems,
+            };
+            cartAggregate.Cart.Items.Add(existing);
+
+            // Section absent from the catalog → validator rejects (ConfigurationSectionNotFound)
+            _configurationItemValidatorMock
+                .Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), CancellationToken.None))
+                .ReturnsAsync(new ValidationResult([new ValidationFailure("ConfigurationItems", "Section not found")]));
+
+            var configuredItem = new LineItem
+            {
+                ProductId = "configurable-product",
+                ConfigurationItems = new List<ConfigurationItem>
+                {
+                    new() { SectionId = "unknown", Type = "Variation", ProductId = "x", SectionName = null },
+                },
+            };
+
+            // Act
+            await cartAggregate.UpdateConfiguredLineItemAsync("line-1", configuredItem);
+
+            // Assert
+            existing.ConfigurationItems.Should().BeSameAs(originalItems,
+                "a rejected configuration must not replace the persisted ConfigurationItems");
+            existing.ConfigurationItems.Single().SectionName.Should().Be("Size",
+                "the persisted SectionName must survive a rejected update — the validator gate prevents an empty-name overwrite");
+        }
+
+        #endregion UpdateConfiguredLineItemAsync
 
         #region RemoveConfigurationItemAsync
 
@@ -2906,7 +3138,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             cartAggregate.Cart.Items.Add(lineItem);
 
-            var sections = new List<ProductConfigurationSection>
+            var configurationSections = new List<ProductConfigurationSection>
             {
                 new()
                 {
@@ -2921,7 +3153,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                     [new FluentValidation.Results.ValidationFailure("ConfigurationItems", "Required section missing")]));
 
             // Act
-            await cartAggregate.RemoveConfigurationItemsAsync(lineItem.Id, sections);
+            await cartAggregate.RemoveConfigurationItemsAsync(lineItem.Id, configurationSections);
 
             // Assert
             cartAggregate.OperationValidationErrors.Should().NotBeEmpty();
@@ -3051,7 +3283,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                     OwnerEntityType = null
                 }
             };
-            _fileUploadService.Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
+            _fileUploadService
+                .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
                 .ReturnsAsync((IList<string> ids, string rg, bool c) => files)
                 .Verifiable();
 
@@ -3220,7 +3453,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         [Fact]
         public async Task ChangeConfigurationItemSelectedAsync_ShouldFlipFlag_OnTextSection()
         {
-            // Arrange — Text/File sections are unique by (Type, SectionId); Option.ProductId is irrelevant.
+            // Arrange — Text/File configurationSections are unique by (Type, SectionId); Option.ProductId is irrelevant.
             var cartAggregate = GetValidCartAggregate();
             var textConfigItem = new ConfigurationItem { Id = "text-1", SectionId = "label", Type = "Text", CustomText = "hello", SelectedForCheckout = true };
             var lineItem = new LineItem

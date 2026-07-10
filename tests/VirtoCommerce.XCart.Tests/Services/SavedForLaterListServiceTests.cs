@@ -30,7 +30,8 @@ public class SavedForLaterListServiceTests : XCartMoqHelper
         _service = new SavedForLaterListService(
             _cartAggregateRepositoryMock.Object,
             _cartProductServiceMock.Object,
-            _fileUploadService.Object);
+            _fileUploadService.Object,
+            _cartItemBuilder);
 
         SetupConfigurableProductLookup();
     }

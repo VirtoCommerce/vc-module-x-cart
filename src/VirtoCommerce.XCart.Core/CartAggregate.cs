@@ -56,6 +56,7 @@ namespace VirtoCommerce.XCart.Core
         private readonly IFileUploadService _fileUploadService;
         private readonly ICartSharingService _cartSharingService;
         private readonly ICartValidationContextFactory _cartValidationContextFactory;
+        private readonly ICartItemBuilder _cartItemBuilder;
         private readonly ICartValidatorRegistry _cartValidatorRegistry;
 
         private const char RuleSetSeparator = ',';
@@ -72,6 +73,7 @@ namespace VirtoCommerce.XCart.Core
             IFileUploadService fileUploadService,
             ICartSharingService cartSharingService,
             ICartValidationContextFactory cartValidationContextFactory,
+            ICartItemBuilder cartItemBuilder,
             ICartValidatorRegistry cartValidatorRegistry)
         {
             _cartTotalsCalculator = cartTotalsCalculator;
@@ -85,6 +87,7 @@ namespace VirtoCommerce.XCart.Core
             _fileUploadService = fileUploadService;
             _cartSharingService = cartSharingService;
             _cartValidationContextFactory = cartValidationContextFactory;
+            _cartItemBuilder = cartItemBuilder;
             _cartValidatorRegistry = cartValidatorRegistry;
         }
 
@@ -143,11 +146,13 @@ namespace VirtoCommerce.XCart.Core
         public bool HasSelectedLineItems => CartCurrencySelectedLineItems.Any();
 
         /// <summary>
-        /// Represents the dictionary of all CartProducts data for each  existing cart line item.
-        /// Key is a composite "{productId}:{CURRENCYCODE}" — built via <see cref="FormatGetCartProductKey(string, string)"/>.
-        /// This allows storing the same product under different currencies in the same cart.
+        /// Represents the dictionary of all CartProducts data for line items and their configuration items.
+        /// Key is a composite "{productId}:{CURRENCYCODE}" — built via <see cref="FormatGetCartProductKey(string, string)"/>;
+        /// this allows storing the same product under different currencies in the same cart.
+        /// Backed by <see cref="ConcurrentDictionary{TKey,TValue}"/> because cached aggregate instances
+        /// are shared between concurrent readers without locking.
         /// </summary>
-        public IDictionary<string, CartProduct> CartProducts { get; protected set; } = new Dictionary<string, CartProduct>().WithDefaultValue(null);
+        public IDictionary<string, CartProduct> CartProducts { get; protected set; } = new ConcurrentDictionary<string, CartProduct>().WithDefaultValue(null);
 
         /// <summary>
         /// Builds a CartProducts dictionary key from product id and currency code.
@@ -187,11 +192,15 @@ namespace VirtoCommerce.XCart.Core
         /// FluentValidation RuleSets allow you to group validation rules together which can be executed together as a group. You can set exists rule set name to evaluate default.
         /// <see cref="CartValidator"/>
         /// </summary>
-        public string[] ValidationRuleSet { get; set; } = { ModuleConstants.ValidationRuleSets.Default, ModuleConstants.ValidationRuleSets.Strict };
+        public string[] ValidationRuleSet { get; set; } =
+        [
+            ModuleConstants.ValidationRuleSets.Default,
+            ModuleConstants.ValidationRuleSets.Strict
+        ];
 
         /// <summary>
-        /// Per-ruleSet validation results cache. Populated by <see cref="ValidateAsync(CartValidationContext, string)"/>
-        /// and <see cref="GetValidationErrorsAsync"/>. Cleared by <see cref="ClearValidationCache"/>.
+        /// Per-ruleSet validation results cache. Populated by <see cref="ValidateAsync(CartValidationContext, string)"/>.
+        /// Cleared by <see cref="ClearValidationCache"/>.
         /// </summary>
         protected ConcurrentDictionary<string, IList<ValidationFailure>> ValidationErrorsByRuleSet { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -202,10 +211,10 @@ namespace VirtoCommerce.XCart.Core
 
         public IList<ValidationFailure> OperationValidationErrors { get; protected set; } = new List<ValidationFailure>();
 
-        [Obsolete("Use GetValidationErrorsAsync(ruleSet) or ValidationErrorsByRuleSet instead. This property only contains the last ValidateAsync call's results.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
+        [Obsolete("Use ValidationErrorsByRuleSet instead. This property only contains the last ValidateAsync call's results.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         public IList<ValidationFailure> CartValidationErrors { get; protected set; } = new List<ValidationFailure>();
 
-        [Obsolete("Use GetValidationErrorsAsync(ruleSet). The boolean flag does not track which ruleSet was validated.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
+        [Obsolete("Use ValidationErrorsByRuleSet instead. The boolean flag does not track which ruleSet was validated.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         public bool IsValidated { get; private set; }
 
         public IList<ValidationFailure> ValidationWarnings { get; protected set; } = new List<ValidationFailure>();
@@ -321,6 +330,8 @@ namespace VirtoCommerce.XCart.Core
 
             CartProducts[GetCartProductKey(newConfiguredItem)] = newCartItem.CartProduct;
 
+            await PopulateCartProductsAsync(newConfiguredItem);
+
             newConfiguredItem.Id = null;
             newConfiguredItem.SelectedForCheckout = IsSelectedForCheckout;
             newConfiguredItem.Quantity = newCartItem.Quantity;
@@ -372,6 +383,7 @@ namespace VirtoCommerce.XCart.Core
             {
                 options.Items.TryAdd("cultureName", Cart.LanguageCode);
                 options.Items.TryAdd("currencyCode", newCartItem.ItemCurrencyCode);
+                options.Items.TryAdd(ICartItemBuilder.MapperContextKey, _cartItemBuilder);
             });
 
             lineItem.Currency ??= Currency.Code;
@@ -437,7 +449,7 @@ namespace VirtoCommerce.XCart.Core
                             .Distinct()
                             .ToArray();
 
-            var productIds = giftRewards.Select(x => x.ProductId).Distinct().Where(x => !x.IsNullOrEmpty()).ToArray();
+            var productIds = giftRewards.Select(x => x.ProductId).Where(x => !x.IsNullOrEmpty()).Distinct().ToArray();
             if (productIds.Length == 0)
             {
                 return new List<GiftItem>();
@@ -462,7 +474,7 @@ namespace VirtoCommerce.XCart.Core
                     var result = _mapper.Map<GiftItem>(reward);
 
                     // if reward has assigned product, add data from product
-                    if (!reward.ProductId.IsNullOrEmpty() && products.TryGetValue(GetCartProductKey(reward.ProductId, Currency.Code), out var product))
+                    if (!string.IsNullOrEmpty(reward.ProductId) && products.TryGetValue(GetCartProductKey(reward.ProductId, Currency.Code), out var product))
                     {
                         result.CatalogId = product.Product.CatalogId;
                         result.CategoryId ??= product.Product.CategoryId;
@@ -899,6 +911,7 @@ namespace VirtoCommerce.XCart.Core
             await MergeCouponsFromCartAsync(otherCart);
             await MergeShipmentsFromCartAsync(otherCart);
             await MergePaymentsFromCartAsync(otherCart);
+
             return this;
         }
 
@@ -908,6 +921,8 @@ namespace VirtoCommerce.XCart.Core
             {
                 await InnerAddLineItemAsync(lineItem, overrideQuantity: false, product: otherCart.CartProducts[otherCart.GetCartProductKey(lineItem)]);
             }
+
+            await PopulateCartProductsAsync(Cart.Items);
         }
 
         protected virtual async Task MergeCouponsFromCartAsync(CartAggregate otherCart)
@@ -1528,6 +1543,8 @@ namespace VirtoCommerce.XCart.Core
                 await DeleteConfigurationFiles(fileUrls);
 
                 lineItem.ConfigurationItems = configuredItem.ConfigurationItems.ToList();
+
+                await PopulateCartProductsAsync(lineItem);
             }
 
             return this;
@@ -1572,19 +1589,11 @@ namespace VirtoCommerce.XCart.Core
             var cloneItem = lineItem.CloneTyped();
             cloneItem.ConfigurationItems ??= new List<ConfigurationItem>();
 
-            var productPairs = configurationSections
-                .Where(x => x.Type is ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation && !string.IsNullOrEmpty(x.Option?.ProductId))
-                .Select(x => (lineItem.Currency, x.Option.ProductId))
-                .Distinct()
-                .ToList();
+            await PopulateCartProductsAsync(configurationSections, lineItem.Currency);
 
-            var products = productPairs.Count > 0
-                ? await _cartProductService.GetCartProductsAsync(this, productPairs)
-                : null;
-
-            foreach (var section in configurationSections)
+            foreach (var configurationSection in configurationSections)
             {
-                await ApplyConfigurationSectionAsync(cloneItem, section, products);
+                await ApplyConfigurationSectionAsync(cloneItem, configurationSection);
             }
 
             if (OperationValidationErrors.Any())
@@ -1645,23 +1654,14 @@ namespace VirtoCommerce.XCart.Core
             var cloneItem = lineItem.CloneTyped();
             cloneItem.ConfigurationItems ??= new List<ConfigurationItem>();
 
-            // Load products for Product/Variation types (needed for both update and create)
-            var productPairs = configurationSections
-                .Where(x => x.Type is ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation && !string.IsNullOrEmpty(x.Option?.ProductId))
-                .Select(x => (lineItem.Currency, x.Option.ProductId))
-                .Distinct()
-                .ToList();
-
-            var products = productPairs.Count > 0
-                ? await _cartProductService.GetCartProductsAsync(this, productPairs)
-                : null;
+            await PopulateCartProductsAsync(configurationSections, lineItem.Currency);
 
             var fileUrlsToDelete = new List<string>();
 
             // Update or create configuration items
-            foreach (var section in configurationSections)
+            foreach (var configurationSection in configurationSections)
             {
-                await ApplyConfigurationSectionAsync(cloneItem, section, products, fileUrlsToDelete);
+                await ApplyConfigurationSectionAsync(cloneItem, configurationSection, fileUrlsToDelete);
             }
 
             if (OperationValidationErrors.Any())
@@ -1688,52 +1688,49 @@ namespace VirtoCommerce.XCart.Core
             return this;
         }
 
-        protected virtual async Task ApplyConfigurationSectionAsync(
+        protected virtual async Task<ConfigurationItem> ApplyConfigurationSectionAsync(
             LineItem lineItem,
-            ProductConfigurationSection section,
-            IDictionary<string, CartProduct> products,
+            ProductConfigurationSection configurationSection,
             IList<string> fileUrlsToDelete = null)
         {
-            switch (section.Type)
+            ConfigurationItem configurationItem = null;
+            switch (configurationSection.Type)
             {
-                case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
+                case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation when !string.IsNullOrEmpty(configurationSection.Option?.ProductId):
+                    var cartProduct = CartProducts[GetCartProductKey(configurationSection.Option.ProductId, lineItem.Currency)];
+                    if (cartProduct is null)
                     {
-                        if (products?.TryGetValue(GetCartProductKey(section.Option.ProductId, lineItem.Currency), out var cartProduct) != true)
-                        {
-                            OperationValidationErrors.Add(CartErrorDescriber.ProductUnavailableError(nameof(CatalogProduct), section.Option.ProductId));
-                            return;
-                        }
-
-                        var configurationItem = GetOrCreateConfigurationItem(lineItem, section);
-                        UpdateConfigurationItemForProduct(configurationItem, section, cartProduct);
-
-                        break;
+                        OperationValidationErrors.Add(CartErrorDescriber.ProductUnavailableError(nameof(CatalogProduct), configurationSection.Option.ProductId));
+                        return null;
                     }
+
+                    configurationItem = GetOrCreateConfigurationItem(lineItem, configurationSection, cartProduct);
+                    UpdateConfigurationItemForProduct(configurationItem, configurationSection, cartProduct);
+
+                    break;
 
                 case ConfigurationSectionTypeText:
-                    {
-                        var configurationItem = GetOrCreateConfigurationItem(lineItem, section);
-                        UpdateConfigurationItemForText(configurationItem, section);
+                    configurationItem = GetOrCreateConfigurationItem(lineItem, configurationSection);
+                    UpdateConfigurationItemForText(configurationItem, configurationSection);
 
-                        break;
-                    }
+                    break;
 
                 case ConfigurationSectionTypeFile:
+                    configurationItem = GetOrCreateConfigurationItem(lineItem, configurationSection);
+                    if (fileUrlsToDelete != null && !configurationItem.Files.IsNullOrEmpty())
                     {
-                        var configurationItem = GetOrCreateConfigurationItem(lineItem, section);
-                        if (fileUrlsToDelete != null && !configurationItem.Files.IsNullOrEmpty())
+                        foreach (var url in configurationItem.Files.Select(x => x.Url).Except(configurationSection.FileUrls))
                         {
-                            foreach (var url in configurationItem.Files.Select(x => x.Url).Except(section.FileUrls))
-                            {
-                                fileUrlsToDelete.Add(url);
-                            }
+                            fileUrlsToDelete.Add(url);
                         }
-
-                        await UpdateConfigurationItemForFilesAsync(configurationItem, section);
-
-                        break;
                     }
+
+                    await UpdateConfigurationItemForFilesAsync(configurationItem, configurationSection);
+
+                    break;
             }
+
+            return configurationItem;
         }
 
         public virtual Task<CartAggregate> ChangeConfigurationItemSelectedAsync(string lineItemId, ProductConfigurationSection configurationSection, bool selectedForCheckout)
@@ -1772,9 +1769,9 @@ namespace VirtoCommerce.XCart.Core
             }
 
             var changed = false;
-            foreach (var section in configurationSections)
+            foreach (var configurationSection in configurationSections)
             {
-                var configurationItem = FindConfigurationItem(lineItem, section);
+                var configurationItem = FindConfigurationItem(lineItem, configurationSection);
                 if (configurationItem is not null && configurationItem.SelectedForCheckout != selectedForCheckout)
                 {
                     configurationItem.SelectedForCheckout = selectedForCheckout;
@@ -1871,9 +1868,9 @@ namespace VirtoCommerce.XCart.Core
             var fileUrlsToDelete = new List<string>();
 
             // Find and remove matching items from clone
-            foreach (var section in configurationSections)
+            foreach (var configurationSection in configurationSections)
             {
-                var configurationItem = FindConfigurationItem(cloneItem, section);
+                var configurationItem = FindConfigurationItem(cloneItem, configurationSection);
                 if (configurationItem is null)
                 {
                     // Already removed - no error (idempotent delete)
@@ -1883,7 +1880,7 @@ namespace VirtoCommerce.XCart.Core
                 cloneItem.ConfigurationItems.Remove(configurationItem);
 
                 // Collect file URLs for deferred deletion
-                if (configurationItem.Type == ConfigurationSectionTypeFile && !configurationItem.Files.IsNullOrEmpty())
+                if (configurationItem.Type is ConfigurationSectionTypeFile && !configurationItem.Files.IsNullOrEmpty())
                 {
                     fileUrlsToDelete.AddRange(configurationItem.Files.Select(x => x.Url));
                 }
@@ -1910,12 +1907,12 @@ namespace VirtoCommerce.XCart.Core
 
         protected virtual void ValidateConfigurationSections(LineItem lineItem, IList<ProductConfigurationSection> configurationSections)
         {
-            foreach (var section in configurationSections)
+            foreach (var configurationSection in configurationSections)
             {
-                switch (section.Type)
+                switch (configurationSection.Type)
                 {
                     case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
-                        if (string.IsNullOrEmpty(section.Option?.ProductId))
+                        if (string.IsNullOrEmpty(configurationSection.Option?.ProductId))
                         {
                             OperationValidationErrors.Add(CartErrorDescriber.SelectedProductIsRequired(lineItem));
                         }
@@ -1926,48 +1923,53 @@ namespace VirtoCommerce.XCart.Core
                         break;
 
                     default:
-                        OperationValidationErrors.Add(CartErrorDescriber.ConfigurationSectionUnknownType(lineItem, section.Type, section.SectionId));
+                        OperationValidationErrors.Add(CartErrorDescriber.ConfigurationSectionUnknownType(lineItem, configurationSection.Type, configurationSection.SectionId));
                         break;
                 }
             }
         }
 
-        protected virtual ConfigurationItem GetOrCreateConfigurationItem(LineItem lineItem, ProductConfigurationSection section)
+        protected virtual ConfigurationItem GetOrCreateConfigurationItem(LineItem lineItem, ProductConfigurationSection configurationSection, CartProduct cartProduct = null)
         {
-            var configurationItem = FindConfigurationItem(lineItem, section);
+            var configurationItem = FindConfigurationItem(lineItem, configurationSection);
             if (configurationItem is null)
             {
-                configurationItem = CreateConfigurationItem(section);
+                configurationItem = CreateConfigurationItem(configurationSection, cartProduct);
+                configurationItem.SectionId = configurationSection.SectionId;
+                configurationItem.Type = configurationSection.Type;
                 lineItem.ConfigurationItems ??= new List<ConfigurationItem>();
                 lineItem.ConfigurationItems.Add(configurationItem);
+            }
+
+            if (!string.IsNullOrEmpty(configurationSection.SectionName))
+            {
+                configurationItem.SectionName = configurationSection.SectionName;
             }
 
             return configurationItem;
         }
 
-        protected virtual ConfigurationItem FindConfigurationItem(LineItem lineItem, ProductConfigurationSection section)
+        protected virtual ConfigurationItem FindConfigurationItem(LineItem lineItem, ProductConfigurationSection configurationSection)
         {
-            return section.Type == ConfigurationSectionTypeVariation
+            return configurationSection.Type is ConfigurationSectionTypeVariation
                 // For Variation: search by Type + SectionId + ProductId (multiple variations can exist)
-                ? lineItem.ConfigurationItems?.FirstOrDefault(x => x.Type == section.Type && x.SectionId == section.SectionId && x.ProductId == section.Option?.ProductId)
+                ? lineItem.ConfigurationItems?.FirstOrDefault(x =>
+                    x.Type == configurationSection.Type && x.SectionId == configurationSection.SectionId && x.ProductId == configurationSection.Option?.ProductId)
                 // For Product, Text and File: search only by Type + SectionId
-                : lineItem.ConfigurationItems?.FirstOrDefault(x => x.Type == section.Type && x.SectionId == section.SectionId);
+                : lineItem.ConfigurationItems?.FirstOrDefault(x =>
+                    x.Type == configurationSection.Type && x.SectionId == configurationSection.SectionId);
         }
 
-        protected virtual ConfigurationItem CreateConfigurationItem(ProductConfigurationSection section)
+        protected virtual ConfigurationItem CreateConfigurationItem(ProductConfigurationSection configurationSection, CartProduct cartProduct)
         {
-            var item = AbstractTypeFactory<ConfigurationItem>.TryCreateInstance();
-            item.SectionId = section.SectionId;
-            item.Type = section.Type;
-
-            return item;
+            return _cartItemBuilder.Create(configurationSection, cartProduct);
         }
 
-        protected virtual void UpdateConfigurationItemForProduct(ConfigurationItem item, ProductConfigurationSection section, CartProduct cartProduct)
+        protected virtual void UpdateConfigurationItemForProduct(ConfigurationItem item, ProductConfigurationSection configurationSection, CartProduct cartProduct)
         {
-            item.ProductId = section.Option.ProductId;
-            item.Quantity = section.Option.Quantity;
-            item.SelectedForCheckout = section.Option.SelectedForCheckout;
+            item.ProductId = configurationSection.Option.ProductId;
+            item.Quantity = configurationSection.Option.Quantity;
+            item.SelectedForCheckout = configurationSection.Option.SelectedForCheckout;
             item.Name = cartProduct.GetName(Cart.LanguageCode);
             item.Sku = cartProduct.Product.Code;
             item.ImageUrl = cartProduct.Product.ImgSrc;
@@ -1976,20 +1978,20 @@ namespace VirtoCommerce.XCart.Core
 
             if (cartProduct.Price != null)
             {
-                var tierPrice = cartProduct.Price.GetTierPrice(section.Option.Quantity);
+                var tierPrice = cartProduct.Price.GetTierPrice(configurationSection.Option.Quantity);
                 item.ListPrice = tierPrice.Price.Amount;
                 item.SalePrice = tierPrice.ActualPrice.Amount;
             }
         }
 
-        protected virtual void UpdateConfigurationItemForText(ConfigurationItem item, ProductConfigurationSection section)
+        protected virtual void UpdateConfigurationItemForText(ConfigurationItem item, ProductConfigurationSection configurationSection)
         {
-            item.CustomText = section.CustomText;
+            item.CustomText = configurationSection.CustomText;
         }
 
-        protected virtual async Task UpdateConfigurationItemForFilesAsync(ConfigurationItem item, ProductConfigurationSection section)
+        protected virtual async Task UpdateConfigurationItemForFilesAsync(ConfigurationItem item, ProductConfigurationSection configurationSection)
         {
-            item.Files = await GetConfigurationFilesAsync(section.FileUrls);
+            item.Files = await GetConfigurationFilesAsync(configurationSection.FileUrls);
         }
 
         protected virtual async Task<IList<ConfigurationItemFile>> GetConfigurationFilesAsync(IList<string> fileUrls)
@@ -2012,19 +2014,11 @@ namespace VirtoCommerce.XCart.Core
 
         public virtual async Task<CartAggregate> UpdateConfiguredLineItemPrice(IList<LineItem> configuredItems)
         {
-            var configProductPairs = configuredItems
-                .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
-                .SelectMany(x => x.ConfigurationItems.Where(c => c.ProductId != null).Select(c => (x.Currency, c.ProductId)))
-                .Distinct()
-                .ToList();
-
-            var configProducts = configProductPairs.Count > 0
-                ? await _cartProductService.GetCartProductsAsync(this, configProductPairs)
-                : new Dictionary<string, CartProduct>();
+            await PopulateCartProductsAsync(configuredItems);
 
             foreach (var configurationLineItem in configuredItems)
             {
-                var container = CreateConfiguredLineItemContainer(configurationLineItem, configProducts);
+                var container = CreateConfiguredLineItemContainer(configurationLineItem);
                 container.UpdatePrice(configurationLineItem);
                 container.SyncConfigurationPrices(configurationLineItem);
             }
@@ -2032,33 +2026,110 @@ namespace VirtoCommerce.XCart.Core
             return this;
         }
 
-        protected virtual ConfiguredLineItemContainer CreateConfiguredLineItemContainer(LineItem configurationLineItem, IDictionary<string, CartProduct> configProducts)
+        /// <summary>
+        /// Loads <see cref="CartProduct"/>s for the given (currency, productId) pairs that are not already
+        /// in <see cref="CartProducts"/>, and writes them into <see cref="CartProducts"/> keyed by the
+        /// composite cart-product key (see <see cref="FormatGetCartProductKey(string, string)"/>).
+        /// </summary>
+        public virtual async Task PopulateCartProductsAsync(IList<(string CurrencyCode, string ProductId)> productKeys)
+        {
+            if (productKeys.IsNullOrEmpty())
+            {
+                return;
+            }
+
+            var missingKeys = productKeys
+                .Where(x => !string.IsNullOrEmpty(x.ProductId) && !CartProducts.ContainsKey(GetCartProductKey(x.ProductId, x.CurrencyCode)))
+                .Distinct()
+                .ToList();
+            if (missingKeys.Count == 0)
+            {
+                return;
+            }
+
+            var products = await _cartProductService.GetCartProductsAsync(this, missingKeys);
+            foreach (var product in products)
+            {
+                CartProducts[product.Key] = product.Value;
+            }
+        }
+
+        /// <summary>
+        /// Loads <see cref="CartProduct"/>s referenced by the given line items and their configuration items into
+        /// <see cref="CartProducts"/>, each keyed under the owning line item's currency. Skips items with empty ProductId.
+        /// </summary>
+        protected virtual Task PopulateCartProductsAsync(ICollection<LineItem> lineItems)
+        {
+            if (lineItems.IsNullOrEmpty())
+            {
+                return Task.CompletedTask;
+            }
+
+            var productKeys = lineItems.Select(x => (x.Currency, x.ProductId))
+                .Concat(lineItems
+                    .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
+                    .SelectMany(x => x.ConfigurationItems, (lineItem, configurationItem) => (lineItem.Currency, configurationItem.ProductId)))
+                .Where(x => !string.IsNullOrEmpty(x.ProductId))
+                .Distinct()
+                .ToList();
+
+            return PopulateCartProductsAsync(productKeys);
+        }
+
+        /// <summary>
+        /// Loads <see cref="CartProduct"/>s referenced by the line item and its configuration items into
+        /// <see cref="CartProducts"/>, keyed under the line item's currency.
+        /// </summary>
+        protected virtual Task PopulateCartProductsAsync(LineItem lineItem)
+        {
+            return lineItem is null ? Task.CompletedTask : PopulateCartProductsAsync([lineItem]);
+        }
+
+        /// <summary>
+        /// Loads <see cref="CartProduct"/>s referenced by Product/Variation-typed configuration
+        /// sections into <see cref="CartProducts"/> under <paramref name="currencyCode"/>. Text and File
+        /// sections are skipped — they don't reference catalog products.
+        /// </summary>
+        protected virtual Task PopulateCartProductsAsync(ICollection<ProductConfigurationSection> configurationSections, string currencyCode)
+        {
+            if (configurationSections.IsNullOrEmpty())
+            {
+                return Task.CompletedTask;
+            }
+
+            var productKeys = configurationSections
+                .Where(x => !string.IsNullOrEmpty(x.Option?.ProductId))
+                .Select(x => (currencyCode, x.Option.ProductId))
+                .Distinct()
+                .ToList();
+
+            return PopulateCartProductsAsync(productKeys);
+        }
+
+        protected virtual ConfiguredLineItemContainer CreateConfiguredLineItemContainer(LineItem configurationLineItem)
         {
             var container = AbstractTypeFactory<ConfiguredLineItemContainer>.TryCreateInstance();
             container.Currency = GetCurrencyByCode(configurationLineItem.Currency);
             container.Store = Store;
-
-            if (CartProducts.TryGetValue(GetCartProductKey(configurationLineItem), out var configurableProduct))
-            {
-                container.ConfigurableProduct = configurableProduct;
-            }
+            container.CartItemBuilder = _cartItemBuilder;
+            container.ConfigurableProduct = CartProducts[GetCartProductKey(configurationLineItem)];
 
             foreach (var configurationItem in configurationLineItem.ConfigurationItems ?? [])
             {
                 switch (configurationItem.Type)
                 {
-                    case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation:
+                    case ConfigurationSectionTypeProduct or ConfigurationSectionTypeVariation when !string.IsNullOrEmpty(configurationItem.ProductId):
+                        if (CartProducts[GetCartProductKey(configurationItem.ProductId, configurationLineItem.Currency)] is { } product)
                         {
-                            if (configProducts.TryGetValue(GetCartProductKey(configurationItem.ProductId, configurationLineItem.Currency), out var product))
-                            {
-                                container.AddProductSectionLineItem(product, configurationItem);
-                            }
-
-                            break;
+                            container.AddProductSectionLineItem(product, configurationItem);
                         }
+
+                        break;
+
                     case ConfigurationSectionTypeText:
                         container.AddTextSectionLineItem(configurationItem);
                         break;
+
                     case ConfigurationSectionTypeFile:
                         container.AddFileSectionLineItem(configurationItem);
                         break;
@@ -2126,7 +2197,9 @@ namespace VirtoCommerce.XCart.Core
             var result = (CartAggregate)MemberwiseClone();
 
             result.Cart = Cart?.CloneTyped();
-            result.CartProducts = CartProducts.ToDictionary(kvp => kvp.Key, kvp => kvp.Value?.CloneTyped());
+            result.CartProducts = new ConcurrentDictionary<string, CartProduct>(
+                    CartProducts.ToDictionary(kvp => kvp.Key, kvp => kvp.Value?.CloneTyped()))
+                .WithDefaultValue(null);
             result.Currency = Currency.CloneTyped();
             result.Member = Member?.CloneTyped();
             result.Store = Store.CloneTyped();
