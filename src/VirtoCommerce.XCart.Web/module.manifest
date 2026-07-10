@@ -5,7 +5,7 @@
   <version-tag></version-tag>
   <platformVersion>3.1039.0</platformVersion>
   <dependencies>
-    <dependency id="VirtoCommerce.Cart" version="3.1007.0-alpha.805-configurationitem-sectionname" />
+    <dependency id="VirtoCommerce.Cart" version="3.1007.0" />
     <dependency id="VirtoCommerce.Catalog" version="3.1029.0" />
     <dependency id="VirtoCommerce.FileExperienceApi" version="3.1003.0" />
     <dependency id="VirtoCommerce.Inventory" version="3.1003.0" />
