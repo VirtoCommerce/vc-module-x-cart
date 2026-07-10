@@ -6,7 +6,7 @@ namespace VirtoCommerce.XCart.Core.Commands.BaseCommands
 {
     /// <summary>
     /// Base handler for configuration-item mutations. Enriches the request's configuration sections with their
-    /// catalog names (a single, guaranteed step for every subclass) before delegating the actual aggregate
+    /// catalog names (a single step shared by every subclass) before delegating the actual aggregate
     /// mutation to <see cref="ApplyConfigurationAsync"/>.
     /// </summary>
     public abstract class CartConfigurationCommandHandler<TCommand> : CartCommandHandler<TCommand>
@@ -22,7 +22,7 @@ namespace VirtoCommerce.XCart.Core.Commands.BaseCommands
             _cartConfigurationService = cartConfigurationService;
         }
 
-        public sealed override async Task<CartAggregate> Handle(TCommand request, CancellationToken cancellationToken)
+        public override async Task<CartAggregate> Handle(TCommand request, CancellationToken cancellationToken)
         {
             var cartAggregate = await GetOrCreateCartFromCommandAsync(request);
 
