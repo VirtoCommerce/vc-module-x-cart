@@ -19,6 +19,7 @@ using VirtoCommerce.InventoryModule.Core.Model;
 using VirtoCommerce.MarketingModule.Core.Services;
 using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.PaymentModule.Core.Services;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.ShippingModule.Core.Services;
@@ -227,14 +228,14 @@ namespace VirtoCommerce.XCart.Tests.Helpers
 
             services.AddSingleton(_configurationItemValidatorMock.Object);
 
-            services.AddTransient<ICartValidator<CartValidationContext>, CartValidator>();
-            services.AddTransient<ICartValidator<LineItemValidationContext>, CartLineItemValidator>();
-            services.AddTransient<ICartValidator<PaymentValidationContext>, CartPaymentValidator>();
-            services.AddTransient<ICartValidator<ShipmentValidationContext>, CartShipmentValidator>();
+            // Mirror production AddXCart wiring.
+            services.AddTransient<ICartValidator<CartValidationContext>>(_ => AbstractTypeFactory<CartValidator>.TryCreateInstance());
+            services.AddTransient<ICartValidator<PaymentValidationContext>>(_ => AbstractTypeFactory<CartPaymentValidator>.TryCreateInstance());
+            services.AddTransient<ICartValidator<ShipmentValidationContext>>(_ => AbstractTypeFactory<CartShipmentValidator>.TryCreateInstance());
+            services.AddTransient<ICartValidator<NewCartItem>>(_ => AbstractTypeFactory<NewCartItemValidator>.TryCreateInstance());
+            services.AddTransient<ICartValidator<ItemQtyAdjustment>>(_ => AbstractTypeFactory<ItemQtyAdjustmentValidator>.TryCreateInstance());
+            services.AddTransient<ICartValidator<PriceAdjustment>>(_ => AbstractTypeFactory<ChangeCartItemPriceValidator>.TryCreateInstance());
             services.AddTransient<ICartValidator<ConfigurationItemValidationContext>, ConfigurationItemContextValidator>();
-            services.AddTransient<ICartValidator<NewCartItem>, NewCartItemValidator>();
-            services.AddTransient<ICartValidator<ItemQtyAdjustment>, ItemQtyAdjustmentValidator>();
-            services.AddTransient<ICartValidator<PriceAdjustment>, ChangeCartItemPriceValidator>();
 
             return new CartValidatorRegistry(services.BuildServiceProvider());
         }
