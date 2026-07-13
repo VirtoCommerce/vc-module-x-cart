@@ -1,6 +1,5 @@
 using System.Linq;
 using GraphQL;
-using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Extensions;
@@ -52,19 +51,13 @@ namespace VirtoCommerce.XCart.Core.Extensions
                 return null;
             }
 
-            var lineItemId = context.Source.LineItemId;
-            var lineItem = cart.Cart?.Items?.FirstOrDefault(x => x.Id == lineItemId);
-            if (lineItem == null)
-            {
-                return null;
-            }
-
-            if (lineItem.Currency.IsNullOrEmpty())
+            var lineItem = cart.Cart?.Items?.FirstOrDefault(x => x.Id == context.Source.LineItemId);
+            if (lineItem == null || lineItem.Currency.IsNullOrEmpty())
             {
                 return cart.Currency;
             }
 
-            return cart.AllCurrencies?.FirstOrDefault(x => x.Code.EqualsIgnoreCase(lineItem.Currency));
+            return cart.AllCurrencies?.FirstOrDefault(x => x.Code.EqualsIgnoreCase(lineItem.Currency)) ?? cart.Currency;
         }
 
         public static Money GetTotal(this IResolveFieldContext<CartAggregate> context, decimal number)
