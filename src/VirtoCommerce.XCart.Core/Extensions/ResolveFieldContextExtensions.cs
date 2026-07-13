@@ -1,5 +1,6 @@
 using System.Linq;
 using GraphQL;
+using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Extensions;
