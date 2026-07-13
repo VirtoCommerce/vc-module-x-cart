@@ -1544,6 +1544,8 @@ namespace VirtoCommerce.XCart.Core
 
                 lineItem.ConfigurationItems = configuredItem.ConfigurationItems.ToList();
 
+                SetConfigurationItemsLineItemId(lineItem);
+
                 await PopulateCartProductsAsync(lineItem);
             }
 
@@ -2010,6 +2012,38 @@ namespace VirtoCommerce.XCart.Core
         public virtual LineItem GetConfiguredLineItem(string lineItemId)
         {
             return Cart.Items.FirstOrDefault(x => x.Id == lineItemId && x.IsConfigured);
+        }
+
+        /// <summary>
+        /// Ensures every configuration item carries its owning line item's id (<see cref="ConfigurationItem.LineItemId"/>).
+        /// The <c>CartConfigurationItemType</c> money resolvers (listPrice, salePrice, extendedPrice) resolve the
+        /// configuration item's currency by matching <c>ConfigurationItem.LineItemId</c> against <c>cart.Items[].Id</c>
+        /// (see <c>ResolveFieldContextExtensions.GetConfiguratonItemCurrency</c>). The add-to-cart, move-from-saved-for-later
+        /// and edit paths all build configuration items in-memory without this back-reference, so on the mutation return
+        /// path the currency resolves to null and <c>ToMoney(null)</c> throws ARGUMENT_NULL (VCST-5391). Stamping it here
+        /// keeps the in-memory mutation result consistent with the persisted/re-read query result.
+        /// </summary>
+        public virtual CartAggregate SetConfigurationItemsLineItemId()
+        {
+            foreach (var lineItem in Cart?.Items ?? Enumerable.Empty<LineItem>())
+            {
+                SetConfigurationItemsLineItemId(lineItem);
+            }
+
+            return this;
+        }
+
+        protected static void SetConfigurationItemsLineItemId(LineItem lineItem)
+        {
+            if (lineItem?.ConfigurationItems is null)
+            {
+                return;
+            }
+
+            foreach (var configurationItem in lineItem.ConfigurationItems)
+            {
+                configurationItem.LineItemId = lineItem.Id;
+            }
         }
 
         public virtual async Task<CartAggregate> UpdateConfiguredLineItemPrice(IList<LineItem> configuredItems)
