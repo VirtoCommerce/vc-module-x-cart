@@ -67,7 +67,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 Description = "Configuration section that defines this configuration item",
                 Type = GraphTypeExtensionHelper.GetActualType<ConfigurationSectionType>(),
                 Resolver = new FuncFieldResolver<ConfigurationItem, IDataLoaderResult<ExpProductConfigurationSection>>(context =>
-                    dataLoader.LoadConfigurationSection(context, mediator, "cart_configurationItems_sections", context.Source.SectionId)),
+                    dataLoader.LoadConfigurationSection(context, "cart_configurationItems_sections", context.Source.SectionId)),
             };
             AddField(configurationSectionField);
         }

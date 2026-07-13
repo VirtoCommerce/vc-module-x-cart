@@ -1,14 +1,20 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
 using VirtoCommerce.CatalogModule.Core.Model.Configuration;
 using VirtoCommerce.CatalogModule.Core.Search;
+using VirtoCommerce.Xapi.Core.Services;
+using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Queries;
 using Xunit;
+using static VirtoCommerce.CatalogModule.Core.ModuleConstants;
 using CatalogProductConfigurationSection = VirtoCommerce.CatalogModule.Core.Model.Configuration.ProductConfigurationSection;
 
 namespace VirtoCommerce.XCart.Tests.Queries
@@ -18,6 +24,11 @@ namespace VirtoCommerce.XCart.Tests.Queries
         private readonly Mock<IProductConfigurationSearchService> _searchServiceMock = new(MockBehavior.Strict);
         private readonly Mock<IConfiguredLineItemContainerService> _containerServiceMock = new(MockBehavior.Strict);
         private readonly Mock<ICartProductsLoaderService> _cartProductServiceMock = new(MockBehavior.Strict);
+        // Real caching implementation, shared across every handler this fixture builds — so two sends resolving
+        // the same option-products key dedup the load (see Handle_SharedRequestCache_* below). The test
+        // project has no reference to VirtoCommerce.Xapi.Data (only Xapi.Core), so this fakes the platform's
+        // IRequestScopedCache with the same GetOrAdd-once-per-key semantics rather than mocking it away.
+        private readonly IRequestScopedCache _requestScopedCache = new FakeRequestScopedCache();
 
         /// <summary>
         /// Exposes the protected <c>GetResponseGroup</c> and bypasses the search service by returning a canned configuration,
@@ -31,8 +42,9 @@ namespace VirtoCommerce.XCart.Tests.Queries
                 IProductConfigurationSearchService searchService,
                 IConfiguredLineItemContainerService containerService,
                 ICartProductsLoaderService cartProductService,
+                IRequestScopedCache requestScopedCache,
                 ProductConfiguration configuration)
-                : base(searchService, containerService, cartProductService)
+                : base(searchService, containerService, cartProductService, requestScopedCache)
             {
                 _configuration = configuration;
             }
@@ -43,8 +55,26 @@ namespace VirtoCommerce.XCart.Tests.Queries
                 => Task.FromResult(_configuration);
         }
 
+        /// <summary>
+        /// Minimal stand-in for <c>VirtoCommerce.Xapi.Data.Services.RequestScopedCache</c> (Xapi.Data isn't
+        /// referenced by this test project): same cache-once-per-key contract via <see cref="Lazy{T}"/>,
+        /// so <see cref="Handle_SharedRequestCache_DedupsSameKeyAndReloadsOnDifferentKey"/> exercises real
+        /// dedup semantics rather than a pass-through mock.
+        /// </summary>
+        private sealed class FakeRequestScopedCache : IRequestScopedCache
+        {
+            private readonly ConcurrentDictionary<string, Lazy<Task<object>>> _cache = new();
+
+            public async Task<T> GetOrAddAsync<T>(string key, Func<Task<T>> factory)
+            {
+                var lazy = _cache.GetOrAdd(key, _ => new Lazy<Task<object>>(async () => await factory()));
+
+                return (T)await lazy.Value;
+            }
+        }
+
         private TestableHandler CreateHandler(ProductConfiguration configuration = null)
-            => new(_searchServiceMock.Object, _containerServiceMock.Object, _cartProductServiceMock.Object, configuration);
+            => new(_searchServiceMock.Object, _containerServiceMock.Object, _cartProductServiceMock.Object, _requestScopedCache, configuration);
 
         [Theory]
         // No field selection (e.g. the standalone product configuration query) -> load the full graph.
@@ -138,5 +168,66 @@ namespace VirtoCommerce.XCart.Tests.Queries
             result.ConfigurationSections.Should().ContainSingle();
             result.ConfigurationSections[0].Id.Should().Be("section-A");
         }
+
+        [Fact]
+        public async Task Handle_SharedRequestCache_DedupsSameKeyAndReloadsOnDifferentKey()
+        {
+            // Arrange
+            _containerServiceMock
+                .Setup(x => x.CreateContainerAsync(It.IsAny<ICartProductContainerRequest>()))
+                .ReturnsAsync(new ConfiguredLineItemContainer { CultureName = "en-US" });
+
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartProductsRequest>()))
+                .ReturnsAsync(new List<CartProduct>());
+
+            var handler = CreateHandler(BuildProductConfiguration(optionProductId: "opt-1"));
+            var request = new GetProductConfigurationQuery
+            {
+                ConfigurableProductId = "configurable-1",
+                IncludeFields = ["options", "options.product.id"],
+            };
+
+            // Act — two sends against the same handler (same shared IRequestScopedCache instance) resolve
+            // to the same option-products cache key (same ProductIds/store/currency/culture/etc).
+            await handler.Handle(request, CancellationToken.None);
+            await handler.Handle(request, CancellationToken.None);
+
+            // Assert — the second send dedups against the first via the shared request cache.
+            _cartProductServiceMock.Verify(x => x.GetCartProductsAsync(It.IsAny<CartProductsRequest>()), Times.Once);
+
+            // Act — a third send, from a handler sharing the same request cache but resolving a DIFFERING
+            // key (different option ProductIds).
+            var differingHandler = CreateHandler(BuildProductConfiguration(optionProductId: "opt-2"));
+            var differingRequest = new GetProductConfigurationQuery
+            {
+                ConfigurableProductId = "configurable-2",
+                IncludeFields = ["options", "options.product.id"],
+            };
+
+            await differingHandler.Handle(differingRequest, CancellationToken.None);
+
+            // Assert — the differing key is not found in the cache, so the loader runs again.
+            _cartProductServiceMock.Verify(x => x.GetCartProductsAsync(It.IsAny<CartProductsRequest>()), Times.Exactly(2));
+        }
+
+        private static ProductConfiguration BuildProductConfiguration(string optionProductId) => new()
+        {
+            ProductId = "configurable-1",
+            Sections =
+            [
+                new CatalogProductConfigurationSection
+                {
+                    Id = "section-1",
+                    Name = "Add-ons",
+                    Type = ConfigurationSectionTypeProduct,
+                    DisplayOrder = 0,
+                    Options =
+                    [
+                        new ProductConfigurationOption { Id = "option-1", ProductId = optionProductId, Quantity = 1 },
+                    ],
+                },
+            ],
+        };
     }
 }

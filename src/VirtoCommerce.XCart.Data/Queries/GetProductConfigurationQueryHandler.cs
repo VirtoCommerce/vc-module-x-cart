@@ -8,6 +8,7 @@ using VirtoCommerce.CatalogModule.Core.Model.Search;
 using VirtoCommerce.CatalogModule.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Infrastructure;
+using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
@@ -22,15 +23,18 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
     private readonly IProductConfigurationSearchService _productConfigurationSearchService;
     private readonly IConfiguredLineItemContainerService _configuredLineItemContainerService;
     private readonly ICartProductsLoaderService _cartProductService;
+    private readonly IRequestScopedCache _requestScopedCache;
 
     public GetProductConfigurationQueryHandler(
         IProductConfigurationSearchService productConfigurationSearchService,
         IConfiguredLineItemContainerService configuredLineItemContainerService,
-        ICartProductsLoaderService cartProductService)
+        ICartProductsLoaderService cartProductService,
+        IRequestScopedCache requestScopedCache)
     {
         _productConfigurationSearchService = productConfigurationSearchService;
         _configuredLineItemContainerService = configuredLineItemContainerService;
         _cartProductService = cartProductService;
+        _requestScopedCache = requestScopedCache;
     }
 
     public virtual async Task<ProductConfigurationQueryResponse> Handle(GetProductConfigurationQuery request, CancellationToken cancellationToken)
@@ -71,7 +75,11 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
                 .Distinct()
                 .ToArray();
 
-            var cartProducts = await _cartProductService.GetCartProductsAsync(productsRequest);
+            // Dedup the option-product load: within one GraphQL request the same ~N option products are
+            // requested once per distinct configurable product, all sharing this Scoped request cache.
+            var cartProducts = await _requestScopedCache.GetOrAddAsync(
+                BuildOptionProductsCacheKey(productsRequest),
+                () => _cartProductService.GetCartProductsAsync(productsRequest));
             productByIds = cartProducts.ToDictionary(x => x.Product.Id, x => x);
         }
 
@@ -89,6 +97,25 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         }
 
         return result;
+    }
+
+    // Stable, order-independent key over the CartProductsRequest fields that affect the loaded products.
+    private static string BuildOptionProductsCacheKey(CartProductsRequest request)
+    {
+        var productIds = request.ProductIds is null
+            ? string.Empty
+            : string.Join(',', request.ProductIds.Distinct().OrderBy(x => x, StringComparer.Ordinal));
+
+        var includeFields = request.ProductsIncludeFields is null
+            ? string.Empty
+            : string.Join(',', request.ProductsIncludeFields.OrderBy(x => x, StringComparer.Ordinal));
+
+        // Resolve store/currency the same way the loader does (CartProductService prefers the object forms),
+        // otherwise the key drops them on the ConfiguredLineItemContainer path where only Store/Currency are set.
+        var storeId = request.Store?.Id ?? request.StoreId;
+        var currencyCode = request.Currency?.Code ?? request.CurrencyCode;
+
+        return $"cfg_option_products:{storeId}|{currencyCode}|{request.CultureName}|{request.UserId}|{request.OrganizationId}|{request.LoadPrice}|{request.LoadInventory}|{request.EvaluatePromotions}|{includeFields}|{productIds}";
     }
 
     protected virtual ProductConfigurationResponseGroup GetResponseGroup(GetProductConfigurationQuery request)

@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using GraphQL;
 using GraphQL.DataLoader;
-using MediatR;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
@@ -16,11 +15,16 @@ public static class ConfigurationDataLoaderExtensions
     public static IDataLoader<string, ExpProductConfigurationSection> GetProductConfigurationSectionDataLoader(
         this IDataLoaderContextAccessor dataLoader,
         IResolveFieldContext context,
-        IMediator mediator,
         string loaderKey)
     {
         var loader = dataLoader.Context.GetOrAddBatchLoader<string, ExpProductConfigurationSection>(loaderKey, async sectionIds =>
         {
+            // Resolve IMediator from the request scope, not via constructor injection: this type is a
+            // singleton graph type, so a ctor-injected mediator is root-bound and resolves the query
+            // handler from the root provider — which fails once that handler takes a scoped dependency
+            // (the request-scoped configuration cache).
+            var mediator = context.GetMediator();
+
             var cartAggregate = context.GetValueForSource<CartAggregate>();
             var cart = cartAggregate.Cart;
 
@@ -77,7 +81,6 @@ public static class ConfigurationDataLoaderExtensions
     public static IDataLoaderResult<ExpProductConfigurationSection> LoadConfigurationSection(
         this IDataLoaderContextAccessor dataLoader,
         IResolveFieldContext context,
-        IMediator mediator,
         string loaderKey,
         string sectionId)
     {
@@ -86,7 +89,7 @@ public static class ConfigurationDataLoaderExtensions
             return _defaultConfigurationSectionResult;
         }
 
-        var loader = dataLoader.GetProductConfigurationSectionDataLoader(context, mediator, loaderKey);
+        var loader = dataLoader.GetProductConfigurationSectionDataLoader(context, loaderKey);
 
         return loader.LoadAsync(sectionId);
     }
