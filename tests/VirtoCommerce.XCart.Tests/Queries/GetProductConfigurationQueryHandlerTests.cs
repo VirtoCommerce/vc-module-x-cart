@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +7,7 @@ using Moq;
 using VirtoCommerce.CatalogModule.Core.Model.Configuration;
 using VirtoCommerce.CatalogModule.Core.Search;
 using VirtoCommerce.Xapi.Core.Services;
+using VirtoCommerce.Xapi.Data.Services;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
@@ -25,10 +25,8 @@ namespace VirtoCommerce.XCart.Tests.Queries
         private readonly Mock<IConfiguredLineItemContainerService> _containerServiceMock = new(MockBehavior.Strict);
         private readonly Mock<ICartProductsLoaderService> _cartProductServiceMock = new(MockBehavior.Strict);
         // Real caching implementation, shared across every handler this fixture builds — so two sends resolving
-        // the same option-products key dedup the load (see Handle_SharedRequestCache_* below). The test
-        // project has no reference to VirtoCommerce.Xapi.Data (only Xapi.Core), so this fakes the platform's
-        // IRequestScopedCache with the same GetOrAdd-once-per-key semantics rather than mocking it away.
-        private readonly IRequestScopedCache _requestScopedCache = new FakeRequestScopedCache();
+        // the same option-products key dedup the load (see Handle_SharedRequestCache_* below).
+        private readonly IRequestScopedCache _requestScopedCache = new RequestScopedCache();
 
         /// <summary>
         /// Exposes the protected <c>GetResponseGroup</c> and bypasses the search service by returning a canned configuration,
@@ -53,24 +51,6 @@ namespace VirtoCommerce.XCart.Tests.Queries
 
             protected override Task<ProductConfiguration> GetConfiguration(GetProductConfigurationQuery request, ProductConfigurationResponseGroup responseGroup)
                 => Task.FromResult(_configuration);
-        }
-
-        /// <summary>
-        /// Minimal stand-in for <c>VirtoCommerce.Xapi.Data.Services.RequestScopedCache</c> (Xapi.Data isn't
-        /// referenced by this test project): same cache-once-per-key contract via <see cref="Lazy{T}"/>,
-        /// so <see cref="Handle_SharedRequestCache_DedupsSameKeyAndReloadsOnDifferentKey"/> exercises real
-        /// dedup semantics rather than a pass-through mock.
-        /// </summary>
-        private sealed class FakeRequestScopedCache : IRequestScopedCache
-        {
-            private readonly ConcurrentDictionary<string, Lazy<Task<object>>> _cache = new();
-
-            public async Task<T> GetOrAddAsync<T>(string key, Func<Task<T>> factory)
-            {
-                var lazy = _cache.GetOrAdd(key, _ => new Lazy<Task<object>>(async () => await factory()));
-
-                return (T)await lazy.Value;
-            }
         }
 
         private TestableHandler CreateHandler(ProductConfiguration configuration = null)

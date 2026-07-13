@@ -19,10 +19,6 @@ public static class ConfigurationDataLoaderExtensions
     {
         var loader = dataLoader.Context.GetOrAddBatchLoader<string, ExpProductConfigurationSection>(loaderKey, async sectionIds =>
         {
-            // Resolve IMediator from the request scope, not via constructor injection: this type is a
-            // singleton graph type, so a ctor-injected mediator is root-bound and resolves the query
-            // handler from the root provider — which fails once that handler takes a scoped dependency
-            // (the request-scoped configuration cache).
             var mediator = context.GetMediator();
 
             var cartAggregate = context.GetValueForSource<CartAggregate>();
