@@ -6,6 +6,8 @@ public class ProductConfigurationSection
 {
     public string SectionId { get; set; }
 
+    public string SectionName { get; set; }
+
     public string Type { get; set; }
 
     public ConfigurableProductOption Option { get; set; }

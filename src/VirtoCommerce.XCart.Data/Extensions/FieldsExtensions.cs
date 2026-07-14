@@ -8,19 +8,13 @@ namespace VirtoCommerce.XCart.Data.Extensions
     {
         public static IList<string> ItemsToProductIncludeField(this IList<string> includeFields)
         {
-            if (includeFields == null)
-            {
-                return null;
-            }
-
-            var result = includeFields
-                    .Where(x => ProductFields().Match(x).Success)
-                    .Select(x => ProductFields().Replace(x, string.Empty)).ToList();
+            var result = includeFields?.Where(x => ProductFields().IsMatch(x))
+                .Select(x => ProductFields().Replace(x, string.Empty)).ToList();
 
             return result;
         }
 
-        [GeneratedRegex(@"^(items\.)?items\.product\.")]
+        [GeneratedRegex(@"^(items\.)?items\.(configurationItems\.)?product\.")]
         private static partial Regex ProductFields();
     }
 }

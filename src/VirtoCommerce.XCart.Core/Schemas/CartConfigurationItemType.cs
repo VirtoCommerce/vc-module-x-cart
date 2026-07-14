@@ -8,6 +8,7 @@ using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.XCart.Core.Extensions;
+using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCatalog.Core.Models;
 using VirtoCommerce.XCatalog.Core.Schemas;
 
@@ -22,6 +23,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
         {
             Field(x => x.Id, nullable: false).Description("Configuration item ID");
             Field(x => x.SectionId, nullable: false).Description("Configuration item section ID");
+            Field(x => x.SectionName, nullable: true).Description("Configuration item section name");
             Field(x => x.Type, nullable: false).Description("Configuration item type. Possible values: 'Product', 'Variation', 'Text', 'File'");
             Field(x => x.ProductId, nullable: true).Description("Configuration item product ID");
             Field(x => x.Name, nullable: true).Description("Configuration item name");
@@ -58,6 +60,16 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 }),
             };
             AddField(productField);
+
+            var configurationSectionField = new FieldType
+            {
+                Name = "configurationSection",
+                Description = "Configuration section that defines this configuration item",
+                Type = GraphTypeExtensionHelper.GetActualType<ConfigurationSectionType>(),
+                Resolver = new FuncFieldResolver<ConfigurationItem, IDataLoaderResult<ExpProductConfigurationSection>>(context =>
+                    dataLoader.LoadConfigurationSection(context, mediator, "cart_configurationItems_sections", context.Source.SectionId)),
+            };
+            AddField(configurationSectionField);
         }
     }
 }

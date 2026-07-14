@@ -70,6 +70,12 @@ namespace VirtoCommerce.XCart.Data.Services
 
             await _shoppingCartService.SaveChangesAsync([cartAggregate.Cart]);
 
+            // SaveChangesAsync assigns ids to newly persisted line items in-memory but does not back-fill
+            // each configuration item's LineItemId. Stamp it centrally now (ids are real here) so the mutation
+            // response returned to the GraphQL resolvers carries a consistent back-reference for every path that
+            // builds configuration items — add-to-cart, move-from-saved-for-later and edit (VCST-5391).
+            cartAggregate.SetConfigurationItemsLineItemId();
+
             await UpdateConfigurationFiles(cartAggregate.Cart);
 
             // Clear validation cache — cart state changed, cached results are stale.
@@ -304,7 +310,17 @@ namespace VirtoCommerce.XCart.Data.Services
 
                 if (aggregate.ProductsIncludeFields == null || aggregate.ProductsIncludeFields.FirstOrDefault() != "__none")
                 {
-                    var productPairs = aggregate.Cart.Items.Select(x => (x.Currency, x.ProductId)).Distinct().ToList();
+                    // Load products for all cart line items and their configuration items, keyed under
+                    // each owning line item's currency (mixed-currency carts store the same product
+                    // under multiple currency keys).
+                    var productPairs = aggregate.Cart.Items.Select(x => (x.Currency, x.ProductId))
+                        .Concat(aggregate.Cart.Items
+                            .Where(x => !x.ConfigurationItems.IsNullOrEmpty())
+                            .SelectMany(x => x.ConfigurationItems, (lineItem, configurationItem) => (lineItem.Currency, configurationItem.ProductId)))
+                        .Where(x => !string.IsNullOrEmpty(x.ProductId))
+                        .Distinct()
+                        .ToList();
+
                     var products = await _cartProductsService.GetCartProductsAsync(aggregate, productPairs);
                     foreach (var product in products)
                     {
