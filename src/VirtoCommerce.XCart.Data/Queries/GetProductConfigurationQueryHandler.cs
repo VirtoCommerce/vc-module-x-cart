@@ -115,7 +115,9 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         var storeId = request.Store?.Id ?? request.StoreId;
         var currencyCode = request.Currency?.Code ?? request.CurrencyCode;
 
-        return $"cfg_option_products:{storeId}|{currencyCode}|{request.CultureName}|{request.UserId}|{request.OrganizationId}|{request.LoadPrice}|{request.LoadInventory}|{request.EvaluatePromotions}|{includeFields}|{productIds}";
+        // Prefix from the declaring type + this builder method (nameof, collision-free and rename-safe),
+        // mirroring the platform CacheKey.With(typeof(X), ...) convention rather than a hand-typed literal.
+        return $"{nameof(GetProductConfigurationQueryHandler)}:{nameof(BuildOptionProductsCacheKey)}:{storeId}|{currencyCode}|{request.CultureName}|{request.UserId}|{request.OrganizationId}|{request.LoadPrice}|{request.LoadInventory}|{request.EvaluatePromotions}|{includeFields}|{productIds}";
     }
 
     protected virtual ProductConfigurationResponseGroup GetResponseGroup(GetProductConfigurationQuery request)
