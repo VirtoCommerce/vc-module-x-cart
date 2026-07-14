@@ -83,7 +83,7 @@ public static class ConfigurationDataLoaderExtensions
         IMediator mediator,
         string loaderKey)
     {
-        return dataLoader.GetProductConfigurationSectionDataLoader(context, loaderKey);
+        return GetProductConfigurationSectionDataLoader(dataLoader, context, loaderKey);
     }
 
     public static IDataLoaderResult<ExpProductConfigurationSection> LoadConfigurationSection(
@@ -97,7 +97,7 @@ public static class ConfigurationDataLoaderExtensions
             return _defaultConfigurationSectionResult;
         }
 
-        var loader = dataLoader.GetProductConfigurationSectionDataLoader(context, loaderKey);
+        var loader = GetProductConfigurationSectionDataLoader(dataLoader, context, loaderKey);
 
         return loader.LoadAsync(sectionId);
     }
@@ -110,6 +110,6 @@ public static class ConfigurationDataLoaderExtensions
         string loaderKey,
         string sectionId)
     {
-        return dataLoader.LoadConfigurationSection(context, loaderKey, sectionId);
+        return LoadConfigurationSection(dataLoader, context, loaderKey, sectionId);
     }
 }

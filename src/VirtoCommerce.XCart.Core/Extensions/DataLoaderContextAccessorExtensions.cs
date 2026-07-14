@@ -62,7 +62,7 @@ public static class DataLoaderContextAccessorExtensions
         ICurrencyService currencyService,
         string loaderKey)
     {
-        return dataLoader.GetCartProductDataLoader(context, currencyService, loaderKey);
+        return GetCartProductDataLoader(dataLoader, context, currencyService, loaderKey);
     }
 
     public static IDataLoaderResult<ExpProduct> LoadCartProduct(
@@ -77,7 +77,7 @@ public static class DataLoaderContextAccessorExtensions
             return _defaultProductResult;
         }
 
-        var loader = dataLoader.GetCartProductDataLoader(context, currencyService, loaderKey);
+        var loader = GetCartProductDataLoader(dataLoader, context, currencyService, loaderKey);
 
         return loader.LoadAsync(productId);
     }
@@ -91,7 +91,7 @@ public static class DataLoaderContextAccessorExtensions
         string loaderKey,
         string productId)
     {
-        return dataLoader.LoadCartProduct(context, currencyService, loaderKey, productId);
+        return LoadCartProduct(dataLoader, context, currencyService, loaderKey, productId);
     }
 
     public static IDataLoader<(string CurrencyCode, string ProductId), ExpProduct> GetCartCurrencyProductDataLoader(
@@ -156,7 +156,7 @@ public static class DataLoaderContextAccessorExtensions
         ICurrencyService currencyService,
         string loaderKey)
     {
-        return dataLoader.GetCartCurrencyProductDataLoader(context, currencyService, loaderKey);
+        return GetCartCurrencyProductDataLoader(dataLoader, context, currencyService, loaderKey);
     }
 
     public static IDataLoaderResult<ExpProduct> LoadCartProduct(
@@ -171,7 +171,7 @@ public static class DataLoaderContextAccessorExtensions
             return _defaultProductResult;
         }
 
-        var loader = dataLoader.GetCartCurrencyProductDataLoader(context, currencyService, loaderKey);
+        var loader = GetCartCurrencyProductDataLoader(dataLoader, context, currencyService, loaderKey);
 
         return loader.LoadAsync(productCurrencyPair);
     }
@@ -185,6 +185,6 @@ public static class DataLoaderContextAccessorExtensions
         string loaderKey,
         (string CurrencyCode, string ProductId) productCurrencyPair)
     {
-        return dataLoader.LoadCartProduct(context, currencyService, loaderKey, productCurrencyPair);
+        return LoadCartProduct(dataLoader, context, currencyService, loaderKey, productCurrencyPair);
     }
 }
