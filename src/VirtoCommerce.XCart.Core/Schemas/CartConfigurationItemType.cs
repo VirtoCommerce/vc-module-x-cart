@@ -1,6 +1,8 @@
+using System;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
 using GraphQL.Types;
+using MediatR;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.Xapi.Core.Extensions;
@@ -68,6 +70,12 @@ namespace VirtoCommerce.XCart.Core.Schemas
                     dataLoader.LoadConfigurationSection(context, "cart_configurationItems_sections", context.Source.SectionId)),
             };
             AddField(configurationSectionField);
+        }
+
+        [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+        public CartConfigurationItemType(IMediator mediator, IDataLoaderContextAccessor dataLoader, ICurrencyService currencyService)
+            : this(dataLoader, currencyService)
+        {
         }
     }
 }

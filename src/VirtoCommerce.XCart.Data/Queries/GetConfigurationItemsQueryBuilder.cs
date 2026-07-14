@@ -1,5 +1,7 @@
+using System;
 using System.Threading.Tasks;
 using GraphQL;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.Xapi.Core.BaseQueries;
 using VirtoCommerce.Xapi.Core.Extensions;
@@ -19,6 +21,12 @@ public class GetConfigurationItemsQueryBuilder : QueryBuilder<GetConfigurationIt
         : base(authorizationService)
     {
         _userManagerCore = userManagerCore;
+    }
+
+    [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public GetConfigurationItemsQueryBuilder(IMediator mediator, IAuthorizationService authorizationService, IUserManagerCore userManagerCore)
+        : this(authorizationService, userManagerCore)
+    {
     }
 
     protected override string Name => "configurationItems";

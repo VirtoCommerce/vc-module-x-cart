@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using GraphQL;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.Xapi.Core.BaseQueries;
 using VirtoCommerce.Xapi.Core.Extensions;
@@ -18,6 +19,12 @@ namespace VirtoCommerce.XCart.Data.Commands;
 public class MoveToSavedForLaterItemsCommandBuilder(IAuthorizationService authorizationService, ICartAggregateRepository cartRepository, IDistributedLockService distributedLockService)
     : CommandBuilder<MoveToSavedForLaterItemsCommand, CartAggregateWithList, InputSaveForLaterType, CartWithListType>(authorizationService)
 {
+    [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public MoveToSavedForLaterItemsCommandBuilder(IMediator mediator, IAuthorizationService authorizationService, ICartAggregateRepository cartRepository, IDistributedLockService distributedLockService)
+        : this(authorizationService, cartRepository, distributedLockService)
+    {
+    }
+
     protected override string Name => "moveToSavedForLater";
 
     protected override MoveToSavedForLaterItemsCommand GetRequest(IResolveFieldContext<object> context)

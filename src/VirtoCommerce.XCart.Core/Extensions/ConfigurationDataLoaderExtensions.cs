@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using GraphQL;
 using GraphQL.DataLoader;
+using MediatR;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
@@ -74,6 +76,16 @@ public static class ConfigurationDataLoaderExtensions
         return loader;
     }
 
+    [Obsolete("Use the overload without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public static IDataLoader<string, ExpProductConfigurationSection> GetProductConfigurationSectionDataLoader(
+        this IDataLoaderContextAccessor dataLoader,
+        IResolveFieldContext context,
+        IMediator mediator,
+        string loaderKey)
+    {
+        return dataLoader.GetProductConfigurationSectionDataLoader(context, loaderKey);
+    }
+
     public static IDataLoaderResult<ExpProductConfigurationSection> LoadConfigurationSection(
         this IDataLoaderContextAccessor dataLoader,
         IResolveFieldContext context,
@@ -88,5 +100,16 @@ public static class ConfigurationDataLoaderExtensions
         var loader = dataLoader.GetProductConfigurationSectionDataLoader(context, loaderKey);
 
         return loader.LoadAsync(sectionId);
+    }
+
+    [Obsolete("Use the overload without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public static IDataLoaderResult<ExpProductConfigurationSection> LoadConfigurationSection(
+        this IDataLoaderContextAccessor dataLoader,
+        IResolveFieldContext context,
+        IMediator mediator,
+        string loaderKey,
+        string sectionId)
+    {
+        return dataLoader.LoadConfigurationSection(context, loaderKey, sectionId);
     }
 }

@@ -1,8 +1,10 @@
+using System;
 using System.Linq;
 using GraphQL;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
 using GraphQL.Types;
+using MediatR;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
@@ -72,6 +74,12 @@ namespace VirtoCommerce.XCart.Core.Schemas
                     return loader.LoadAsync(context.Source.ProductId);
                 })
             });
+        }
+
+        [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+        public GiftItemType(IMediator mediator, IDataLoaderContextAccessor dataLoader, IDynamicPropertyResolverService dynamicPropertyResolverService)
+            : this(dataLoader, dynamicPropertyResolverService)
+        {
         }
     }
 }

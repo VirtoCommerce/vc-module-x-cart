@@ -1,6 +1,8 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using GraphQL;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.Platform.Core.Common;
@@ -28,6 +30,16 @@ public class GetProductConfigurationQueryBuilder : QueryBuilder<GetProductConfig
     {
         _storeService = storeService;
         _currencyService = currencyService;
+    }
+
+    [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public GetProductConfigurationQueryBuilder(
+        IMediator mediator,
+        IAuthorizationService authorizationService,
+        IStoreService storeService,
+        ICurrencyService currencyService)
+        : this(authorizationService, storeService, currencyService)
+    {
     }
 
     protected override async Task BeforeMediatorSend(IResolveFieldContext<object> context, GetProductConfigurationQuery request)
