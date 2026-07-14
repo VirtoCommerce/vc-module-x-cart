@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using GraphQL;
 using GraphQL.DataLoader;
-using MediatR;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Extensions;
@@ -18,7 +17,6 @@ public static class DataLoaderContextAccessorExtensions
     public static IDataLoader<string, ExpProduct> GetCartProductDataLoader(
         this IDataLoaderContextAccessor dataLoader,
         IResolveFieldContext context,
-        IMediator mediator,
         ICurrencyService currencyService,
         string loaderKey)
     {
@@ -46,7 +44,7 @@ public static class DataLoaderContextAccessorExtensions
             context.UserContext.TryAdd("store", cartAggregate.Store);
             context.UserContext.TryAdd("cultureName", cultureName);
 
-            var response = await mediator.Send(request);
+            var response = await context.GetMediator().Send(request);
 
             return response.Products.ToDictionary(x => x.Id);
         });
@@ -57,7 +55,6 @@ public static class DataLoaderContextAccessorExtensions
     public static IDataLoaderResult<ExpProduct> LoadCartProduct(
         this IDataLoaderContextAccessor dataLoader,
         IResolveFieldContext context,
-        IMediator mediator,
         ICurrencyService currencyService,
         string loaderKey,
         string productId)
@@ -67,7 +64,7 @@ public static class DataLoaderContextAccessorExtensions
             return _defaultProductResult;
         }
 
-        var loader = dataLoader.GetCartProductDataLoader(context, mediator, currencyService, loaderKey);
+        var loader = dataLoader.GetCartProductDataLoader(context, currencyService, loaderKey);
 
         return loader.LoadAsync(productId);
     }
@@ -75,7 +72,6 @@ public static class DataLoaderContextAccessorExtensions
     public static IDataLoader<(string CurrencyCode, string ProductId), ExpProduct> GetCartCurrencyProductDataLoader(
         this IDataLoaderContextAccessor dataLoader,
         IResolveFieldContext context,
-        IMediator mediator,
         ICurrencyService currencyService,
         string loaderKey)
     {
@@ -108,7 +104,7 @@ public static class DataLoaderContextAccessorExtensions
                     OrganizationId = context.GetCurrentOrganizationId(),
                 };
 
-                var response = await mediator.Send(request);
+                var response = await context.GetMediator().Send(request);
 
                 foreach (var item in currencyLineItems)
                 {
@@ -130,7 +126,6 @@ public static class DataLoaderContextAccessorExtensions
     public static IDataLoaderResult<ExpProduct> LoadCartProduct(
         this IDataLoaderContextAccessor dataLoader,
         IResolveFieldContext context,
-        IMediator mediator,
         ICurrencyService currencyService,
         string loaderKey,
         (string CurrencyCode, string ProductId) productCurrencyPair)
@@ -140,7 +135,7 @@ public static class DataLoaderContextAccessorExtensions
             return _defaultProductResult;
         }
 
-        var loader = dataLoader.GetCartCurrencyProductDataLoader(context, mediator, currencyService, loaderKey);
+        var loader = dataLoader.GetCartCurrencyProductDataLoader(context, currencyService, loaderKey);
 
         return loader.LoadAsync(productCurrencyPair);
     }

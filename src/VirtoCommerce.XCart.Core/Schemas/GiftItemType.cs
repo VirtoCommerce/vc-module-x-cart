@@ -3,7 +3,6 @@ using GraphQL;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
 using GraphQL.Types;
-using MediatR;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
@@ -18,7 +17,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
 {
     public class GiftItemType : ExtendableGraphType<GiftItem>
     {
-        public GiftItemType(IMediator mediator, IDataLoaderContextAccessor dataLoader, IDynamicPropertyResolverService dynamicPropertyResolverService)
+        public GiftItemType(IDataLoaderContextAccessor dataLoader, IDynamicPropertyResolverService dynamicPropertyResolverService)
         {
             Field(x => x.PromotionId).Description("Promotion ID");
             Field(x => x.Quantity).Description("Number of gifts in the reward");
@@ -66,7 +65,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
                             IncludeFields = includeFields.ToArray()
                         };
 
-                        var response = await mediator.Send(request);
+                        var response = await context.GetMediator().Send(request);
 
                         return response.Products.ToDictionary(x => x.Id);
                     });

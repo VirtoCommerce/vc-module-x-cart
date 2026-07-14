@@ -6,7 +6,6 @@ using GraphQL;
 using GraphQL.Builders;
 using GraphQL.Resolvers;
 using GraphQL.Types;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
@@ -36,7 +35,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
 {
     public class PurchaseSchema : ISchemaBuilder
     {
-        private readonly IMediator _mediator;
         private readonly IAuthorizationService _authorizationService;
         private readonly IShoppingCartService _cartService;
         private readonly IShoppingCartSearchService _shoppingCartSearchService;
@@ -48,7 +46,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
         public const string CartPrefix = "Cart";
 
         public PurchaseSchema(
-            IMediator mediator,
             IAuthorizationService authorizationService,
             IShoppingCartService cartService,
             IShoppingCartSearchService shoppingCartSearchService,
@@ -57,7 +54,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
             IMemberResolver memberResolver,
             ICartSharingService cartSharingService)
         {
-            _mediator = mediator;
             _authorizationService = authorizationService;
             _cartService = cartService;
             _shoppingCartSearchService = shoppingCartSearchService;
@@ -104,7 +100,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                               var cartAggregate = await _mediator.Send(cartCommand);
+                                               var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                //store cart aggregate in the user context for future usage in the graph types resolvers
                                                context.SetExpandedObjectGraph(cartAggregate);
@@ -124,7 +120,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                    await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                    //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                   var cartAggregate = await _mediator.Send(cartCommand);
+                                   var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                    //store cart aggregate in the user context for future usage in the graph types resolvers
                                    context.SetExpandedObjectGraph(cartAggregate);
@@ -144,7 +140,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                     await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                    var cartAggregate = await _mediator.Send(cartCommand);
+                    var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                     //store cart aggregate in the user context for future usage in the graph types resolvers
                     context.SetExpandedObjectGraph(cartAggregate);
@@ -162,7 +158,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                     await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                    var cartAggregate = await _mediator.Send(cartCommand);
+                    var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                     //store cart aggregate in the user context for future usage in the graph types resolvers
                     context.SetExpandedObjectGraph(cartAggregate);
@@ -196,7 +192,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                  await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                  //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                 var cartAggregate = await _mediator.Send(cartCommand);
+                                                 var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                  //store cart aggregate in the user context for future usage in the graph types resolvers
                                                  context.SetExpandedObjectGraph(cartAggregate);
@@ -231,7 +227,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                      await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                      //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                     var cartAggregate = await _mediator.Send(cartCommand);
+                                                     var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                      //store cart aggregate in the user context for future usage in the graph types resolvers
                                                      context.SetExpandedObjectGraph(cartAggregate);
@@ -268,7 +264,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                            await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                            //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                           var cartAggregate = await _mediator.Send(cartCommand);
+                                                           var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                            //store cart aggregate in the user context for future usage in the graph types resolvers
                                                            context.SetExpandedObjectGraph(cartAggregate);
@@ -304,7 +300,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                               await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                               //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                              var cartAggregate = await _mediator.Send(cartCommand);
+                                                              var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                               //store cart aggregate in the user context for future usage in the graph types resolvers
                                                               context.SetExpandedObjectGraph(cartAggregate);
@@ -323,7 +319,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                               await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                               //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                              var cartAggregate = await _mediator.Send(cartCommand);
+                                                              var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                               //store cart aggregate in the user context for future usage in the graph types resolvers
                                                               context.SetExpandedObjectGraph(cartAggregate);
@@ -341,7 +337,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                   await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                   //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                  var cartAggregate = await _mediator.Send(cartCommand);
+                                                  var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                   //store cart aggregate in the user context for future usage in the graph types resolvers
                                                   context.SetExpandedObjectGraph(cartAggregate);
@@ -377,7 +373,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                               await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                               //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                              var cartAggregate = await _mediator.Send(cartCommand);
+                                                              var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                               //store cart aggregate in the user context for future usage in the graph types resolvers
                                                               context.SetExpandedObjectGraph(cartAggregate);
@@ -414,7 +410,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                               await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                              var cartAggregate = await _mediator.Send(cartCommand);
+                                                              var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                               context.SetExpandedObjectGraph(cartAggregate);
                                                               return cartAggregate;
@@ -431,7 +427,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                   await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                  var cartAggregate = await _mediator.Send(cartCommand);
+                                                  var cartAggregate = await context.GetMediator().Send(cartCommand);
                                                   context.SetExpandedObjectGraph(cartAggregate);
 
                                                   return cartAggregate;
@@ -447,7 +443,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                     await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                    var cartAggregate = await _mediator.Send(cartCommand);
+                                                    var cartAggregate = await context.GetMediator().Send(cartCommand);
                                                     context.SetExpandedObjectGraph(cartAggregate);
 
                                                     return cartAggregate;
@@ -464,7 +460,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                      await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                     var cartAggregate = await _mediator.Send(cartCommand);
+                                                     var cartAggregate = await context.GetMediator().Send(cartCommand);
                                                      context.SetExpandedObjectGraph(cartAggregate);
 
                                                      return cartAggregate;
@@ -480,7 +476,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                        await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                       var cartAggregate = await _mediator.Send(cartCommand);
+                                                       var cartAggregate = await context.GetMediator().Send(cartCommand);
                                                        context.SetExpandedObjectGraph(cartAggregate);
 
                                                        return cartAggregate;
@@ -516,7 +512,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                       await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                       //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                      var cartAggregate = await _mediator.Send(cartCommand);
+                                                      var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                       //store cart aggregate in the user context for future usage in the graph types resolvers
                                                       context.SetExpandedObjectGraph(cartAggregate);
@@ -534,7 +530,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                       await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                       //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                      var cartAggregate = await _mediator.Send(cartCommand);
+                                                      var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                       //store cart aggregate in the user context for future usage in the graph types resolvers
                                                       context.SetExpandedObjectGraph(cartAggregate);
@@ -569,7 +565,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                  await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                  //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                 var cartAggregate = await _mediator.Send(cartCommand);
+                                                 var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                  //store cart aggregate in the user context for future usage in the graph types resolvers
                                                  context.SetExpandedObjectGraph(cartAggregate);
@@ -604,7 +600,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                     await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                     //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                    var cartAggregate = await _mediator.Send(cartCommand);
+                                                    var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                     //store cart aggregate in the user context for future usage in the graph types resolvers
                                                     context.SetExpandedObjectGraph(cartAggregate);
@@ -639,7 +635,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                       await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                       //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                      var cartAggregate = await _mediator.Send(cartCommand);
+                                                      var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                       //store cart aggregate in the user context for future usage in the graph types resolvers
                                                       context.SetExpandedObjectGraph(cartAggregate);
@@ -713,7 +709,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                                await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                                //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                               var cartAggregate = await _mediator.Send(cartCommand);
+                                                               var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                                //store cart aggregate in the user context for future usage in the graph types resolvers
                                                                context.SetExpandedObjectGraph(cartAggregate);
@@ -780,7 +776,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                                await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                                //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                               var cartAggregate = await _mediator.Send(cartCommand);
+                                                               var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                                //store cart aggregate in the user context for future usage in the graph types resolvers
                                                                context.SetExpandedObjectGraph(cartAggregate);
@@ -810,7 +806,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                     await CheckAuthByCartParamsAsync(context, query);
 
-                    return await _mediator.Send(query);
+                    return await context.GetMediator().Send(query);
                 })
             };
             schema.Query.AddField(validateCouponQueryField);
@@ -841,7 +837,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                  await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                  //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                 var cartAggregate = await _mediator.Send(cartCommand);
+                                                 var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                  //store cart aggregate in the user context for future usage in the graph types resolvers
                                                  context.SetExpandedObjectGraph(cartAggregate);
@@ -859,7 +855,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                      await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                      //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                     var cartAggregate = await _mediator.Send(cartCommand);
+                                     var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                      //store cart aggregate in the user context for future usage in the graph types resolvers
                                      context.SetExpandedObjectGraph(cartAggregate);
@@ -887,7 +883,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                   await CheckAuthAsyncByCartId(context, command.CartId);
 
-                                                  return await _mediator.Send(command);
+                                                  return await context.GetMediator().Send(command);
                                               })
                                               .FieldType;
 
@@ -913,7 +909,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                       await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                       //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                      var cartAggregate = await _mediator.Send(cartCommand);
+                                                      var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                       //store cart aggregate in the user context for future usage in the graph types resolvers
                                                       context.SetExpandedObjectGraph(cartAggregate);
@@ -943,7 +939,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                       await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                       //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                      var cartAggregate = await _mediator.Send(cartCommand);
+                                                      var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                       //store cart aggregate in the user context for future usage in the graph types resolvers
                                                       context.SetExpandedObjectGraph(cartAggregate);
@@ -981,7 +977,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                       await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                       //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                                      var cartAggregate = await _mediator.Send(cartCommand);
+                                                      var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                       //store cart aggregate in the user context for future usage in the graph types resolvers
                                                       context.SetExpandedObjectGraph(cartAggregate);
@@ -1011,7 +1007,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                   await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                  var cartAggregate = await _mediator.Send(cartCommand);
+                                                  var cartAggregate = await context.GetMediator().Send(cartCommand);
                                                   context.SetExpandedObjectGraph(cartAggregate);
                                                   return cartAggregate;
                                               })
@@ -1055,7 +1051,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                      await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                     var cartAggregate = await _mediator.Send(cartCommand);
+                                                     var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                      context.SetExpandedObjectGraph(cartAggregate);
 
@@ -1103,7 +1099,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                          await CheckAuthByCartParamsAsync(context, cartCommand);
                                                      }
 
-                                                     var result = await _mediator.Send(cartCommand);
+                                                     var result = await context.GetMediator().Send(cartCommand);
 
                                                      context.SetExpandedObjectGraph(result.Cart);
 
@@ -1140,7 +1136,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                      await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                     var cartAggregate = await _mediator.Send(cartCommand);
+                                                     var cartAggregate = await context.GetMediator().Send(cartCommand);
                                                      context.SetExpandedObjectGraph(cartAggregate);
                                                      return cartAggregate;
                                                  })
@@ -1156,7 +1152,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                          await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                         var cartAggregate = await _mediator.Send(cartCommand);
+                                                         var cartAggregate = await context.GetMediator().Send(cartCommand);
                                                          context.SetExpandedObjectGraph(cartAggregate);
                                                          return cartAggregate;
                                                      })
@@ -1172,7 +1168,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                             await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                            var cartAggregate = await _mediator.Send(cartCommand);
+                                                            var cartAggregate = await context.GetMediator().Send(cartCommand);
                                                             context.SetExpandedObjectGraph(cartAggregate);
                                                             return cartAggregate;
                                                         })
@@ -1188,7 +1184,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                                 await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                                var cartAggregate = await _mediator.Send(cartCommand);
+                                                                var cartAggregate = await context.GetMediator().Send(cartCommand);
                                                                 context.SetExpandedObjectGraph(cartAggregate);
                                                                 return cartAggregate;
                                                             })
@@ -1204,7 +1200,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                                                    await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                                                   var cartAggregate = await _mediator.Send(cartCommand);
+                                                                   var cartAggregate = await context.GetMediator().Send(cartCommand);
                                                                    context.SetExpandedObjectGraph(cartAggregate);
                                                                    return cartAggregate;
                                                                })
@@ -1220,7 +1216,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
                                          await CheckAuthByCartCommandAsync(context, cartCommand);
 
-                                         var cartAggregate = await _mediator.Send(cartCommand);
+                                         var cartAggregate = await context.GetMediator().Send(cartCommand);
                                          context.SetExpandedObjectGraph(cartAggregate);
                                          return cartAggregate;
                                      })
@@ -1256,7 +1252,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                await CheckAuthByCartCommandAsync(context, cartCommand);
 
                                                //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
-                                               var cartAggregate = await _mediator.Send(cartCommand);
+                                               var cartAggregate = await context.GetMediator().Send(cartCommand);
 
                                                //store cart aggregate in the user context for future usage in the graph types resolvers
                                                context.SetExpandedObjectGraph(cartAggregate);
@@ -1284,7 +1280,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                     getListQuery.IncludeFields = context.SubFields.Values.GetAllNodesPaths(context).ToArray();
                     context.CopyArgumentsToUserContext();
 
-                    var cartAggregate = await _mediator.Send(getListQuery);
+                    var cartAggregate = await context.GetMediator().Send(getListQuery);
 
                     if (cartAggregate == null)
                     {
@@ -1315,7 +1311,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                     getSharedListQuery.IncludeFields = context.SubFields.Values.GetAllNodesPaths(context).ToArray();
                     context.CopyArgumentsToUserContext();
 
-                    var cartAggregate = await _mediator.Send(getSharedListQuery);
+                    var cartAggregate = await context.GetMediator().Send(getSharedListQuery);
 
                     if (cartAggregate == null)
                     {
@@ -1343,7 +1339,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                 .Argument<StringGraphType>("sort", "The sort expression")
                 .PageSize(Connections.DefaultPageSize);
 
-            listConnectionBuilder.ResolveAsync(async context => await ResolveListConnectionAsync(_mediator, context));
+            listConnectionBuilder.ResolveAsync(async context => await ResolveListConnectionAsync(context));
             schema.Query.AddField(listConnectionBuilder.FieldType);
 
             // Mutations
@@ -1355,7 +1351,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                       var commandType = GenericTypeHelper.GetActualType<CreateWishlistCommand>();
                                                       var command = (CreateWishlistCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
                                                       await AuthorizeByListIdAsync(context, command, command.Scope);
-                                                      var cartAggregate = await _mediator.Send(command);
+                                                      var cartAggregate = await context.GetMediator().Send(command);
                                                       context.SetExpandedObjectGraph(cartAggregate);
                                                       return cartAggregate;
                                                   })
@@ -1372,7 +1368,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                     var command = (CloneWishlistCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
 
                                                     await AuthorizeByListIdAsync(context, command, command.Scope);
-                                                    var cartAggregate = await _mediator.Send(command);
+                                                    var cartAggregate = await context.GetMediator().Send(command);
                                                     context.SetExpandedObjectGraph(cartAggregate);
                                                     return cartAggregate;
                                                 })
@@ -1389,7 +1385,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                      var command = (ChangeWishlistCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
 
                                                      await AuthorizeByListIdAsync(context, command, command.Scope);
-                                                     var cartAggregate = await _mediator.Send(command);
+                                                     var cartAggregate = await context.GetMediator().Send(command);
                                                      context.SetExpandedObjectGraph(cartAggregate);
                                                      return cartAggregate;
                                                  })
@@ -1405,7 +1401,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                              var commandType = GenericTypeHelper.GetActualType<RemoveWishlistCommand>();
                              var command = (RemoveWishlistCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
                              await AuthorizeByListIdAsync(context, command);
-                             await _mediator.Send(command);
+                             await context.GetMediator().Send(command);
                              return true;
                          })
                          .FieldType;
@@ -1419,7 +1415,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                          {
                              var commandType = GenericTypeHelper.GetActualType<AddWishlistItemCommand>();
                              var command = (AddWishlistItemCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
-                             var cartAggregate = await _mediator.Send(command);
+                             var cartAggregate = await context.GetMediator().Send(command);
                              context.UserContext["storeId"] = cartAggregate.Cart.StoreId;
                              await AuthorizeByListIdAsync(context, command);
                              context.SetExpandedObjectGraph(cartAggregate);
@@ -1436,7 +1432,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                          {
                              var commandType = GenericTypeHelper.GetActualType<UpdateWishlistItemsCommand>();
                              var command = (UpdateWishlistItemsCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
-                             var cartAggregate = await _mediator.Send(command);
+                             var cartAggregate = await context.GetMediator().Send(command);
                              context.UserContext["storeId"] = cartAggregate.Cart.StoreId;
                              await AuthorizeByListIdAsync(context, command);
                              context.SetExpandedObjectGraph(cartAggregate);
@@ -1454,7 +1450,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                     var commandType = GenericTypeHelper.GetActualType<AddWishlistBulkItemCommand>();
                     var command = (AddWishlistBulkItemCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
                     await AuthorizeByListIdsAsync(context, command, command.ListIds);
-                    var cartAggregateList = await _mediator.Send(command);
+                    var cartAggregateList = await context.GetMediator().Send(command);
 
                     foreach (var cartAggregate in cartAggregateList.CartAggregates)
                     {
@@ -1473,7 +1469,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                      {
                                          var command = context.GetArgument<AddWishlistItemsCommand>(SchemaConstants.CommandName);
                                          await AuthorizeByListIdAsync(context, command);
-                                         var cartAggregate = await _mediator.Send(command);
+                                         var cartAggregate = await context.GetMediator().Send(command);
                                          context.SetExpandedObjectGraph(cartAggregate.Cart);
                                          return cartAggregate;
                                      })
@@ -1489,7 +1485,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                              var commandType = GenericTypeHelper.GetActualType<RemoveWishlistItemCommand>();
                              var command = (RemoveWishlistItemCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
                              await AuthorizeByListIdAsync(context, command);
-                             var cartAggregate = await _mediator.Send(command);
+                             var cartAggregate = await context.GetMediator().Send(command);
                              context.SetExpandedObjectGraph(cartAggregate);
                              return cartAggregate;
                          })
@@ -1505,7 +1501,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                              var commandType = GenericTypeHelper.GetActualType<RemoveWishlistItemsCommand>();
                              var command = (RemoveWishlistItemsCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
                              await AuthorizeByListIdAsync(context, command);
-                             var cartAggregate = await _mediator.Send(command);
+                             var cartAggregate = await context.GetMediator().Send(command);
                              context.SetExpandedObjectGraph(cartAggregate);
                              return cartAggregate;
                          })
@@ -1521,7 +1517,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                          var commandType = GenericTypeHelper.GetActualType<MoveWishlistItemCommand>();
                          var command = (MoveWishlistItemCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
                          await AuthorizeByListIdsAsync(context, command, [command.ListId, command.DestinationListId]);
-                         var cartAggregate = await _mediator.Send(command);
+                         var cartAggregate = await context.GetMediator().Send(command);
                          context.SetExpandedObjectGraph(cartAggregate);
                          return cartAggregate;
                      })
@@ -1541,14 +1537,14 @@ namespace VirtoCommerce.XCart.Data.Schemas
                     var command = (InitializeCartPaymentCommand)context.GetArgument(type, SchemaConstants.CommandName);
                     await CheckAuthAsyncByCartId(context, command.CartId);
 
-                    var result = await _mediator.Send(command);
+                    var result = await context.GetMediator().Send(command);
                     return result;
 
                 })
                 .FieldType);
         }
 
-        private async Task<object> ResolveListConnectionAsync(IMediator mediator, IResolveConnectionContext<object> context)
+        private async Task<object> ResolveListConnectionAsync(IResolveConnectionContext<object> context)
         {
             var first = context.First;
             var skip = Convert.ToInt32(context.After ?? 0.ToString());
@@ -1564,7 +1560,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             await AuthorizeAsync(context, query);
 
-            var response = await mediator.Send(query);
+            var response = await context.GetMediator().Send(query);
             foreach (var cartAggregate in response.Results)
             {
                 context.SetExpandedObjectGraph(cartAggregate);

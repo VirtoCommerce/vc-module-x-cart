@@ -1,7 +1,6 @@
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
 using GraphQL.Types;
-using MediatR;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.Xapi.Core.Extensions;
@@ -17,7 +16,6 @@ namespace VirtoCommerce.XCart.Core.Schemas
     public class CartConfigurationItemType : ExtendableGraphType<ConfigurationItem>
     {
         public CartConfigurationItemType(
-            IMediator mediator,
             IDataLoaderContextAccessor dataLoader,
             ICurrencyService currencyService)
         {
@@ -56,7 +54,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 Resolver = new FuncFieldResolver<ConfigurationItem, IDataLoaderResult<ExpProduct>>(context =>
                 {
                     var currency = context.GetConfiguratonItemCurrency();
-                    return dataLoader.LoadCartProduct(context, mediator, currencyService, "cart_configurationItems_products", (CurrencyCode: currency?.Code, context.Source.ProductId));
+                    return dataLoader.LoadCartProduct(context, currencyService, "cart_configurationItems_products", (CurrencyCode: currency?.Code, context.Source.ProductId));
                 }),
             };
             AddField(productField);

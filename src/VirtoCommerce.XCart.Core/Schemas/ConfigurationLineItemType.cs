@@ -4,7 +4,6 @@ using GraphQL;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
 using GraphQL.Types;
-using MediatR;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
@@ -19,7 +18,6 @@ namespace VirtoCommerce.XCart.Core.Schemas
     public class ConfigurationLineItemType : ExtendableGraphType<ExpConfigurationLineItem>
     {
         public ConfigurationLineItemType(
-            IMediator mediator,
             IDataLoaderContextAccessor dataLoader,
             ICurrencyService currencyService)
         {
@@ -63,7 +61,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
                         context.UserContext.TryAdd("storeId", storeId);
                         context.UserContext.TryAdd("cultureName", cultureName);
 
-                        var response = await mediator.Send(request);
+                        var response = await context.GetMediator().Send(request);
 
                         return response.Products.ToDictionary(x => x.Id);
                     });

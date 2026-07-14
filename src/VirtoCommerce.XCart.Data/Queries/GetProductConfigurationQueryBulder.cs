@@ -1,7 +1,6 @@
 using System.Linq;
 using System.Threading.Tasks;
 using GraphQL;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.Platform.Core.Common;
@@ -22,11 +21,10 @@ public class GetProductConfigurationQueryBuilder : QueryBuilder<GetProductConfig
     private readonly ICurrencyService _currencyService;
 
     public GetProductConfigurationQueryBuilder(
-        IMediator mediator,
         IAuthorizationService authorizationService,
         IStoreService storeService,
         ICurrencyService currencyService)
-        : base(mediator, authorizationService)
+        : base(authorizationService)
     {
         _storeService = storeService;
         _currencyService = currencyService;

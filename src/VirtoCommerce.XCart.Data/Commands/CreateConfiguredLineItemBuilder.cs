@@ -1,6 +1,5 @@
 using System.Threading.Tasks;
 using GraphQL;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.Xapi.Core.BaseQueries;
 using VirtoCommerce.Xapi.Core.Extensions;
@@ -12,8 +11,8 @@ namespace VirtoCommerce.XCart.Data.Commands;
 
 public class CreateConfiguredLineItemBuilder : CommandBuilder<CreateConfiguredLineItemCommand, ExpConfigurationLineItem, InputCreateConfiguredLineItemCommand, ConfigurationLineItemType>
 {
-    public CreateConfiguredLineItemBuilder(IMediator mediator, IAuthorizationService authorizationService)
-        : base(mediator, authorizationService)
+    public CreateConfiguredLineItemBuilder(IAuthorizationService authorizationService)
+        : base(authorizationService)
     {
     }
 

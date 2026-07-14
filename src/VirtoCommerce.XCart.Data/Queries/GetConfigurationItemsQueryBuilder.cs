@@ -1,6 +1,5 @@
 using System.Threading.Tasks;
 using GraphQL;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.Xapi.Core.BaseQueries;
 using VirtoCommerce.Xapi.Core.Extensions;
@@ -16,8 +15,8 @@ public class GetConfigurationItemsQueryBuilder : QueryBuilder<GetConfigurationIt
 {
     private readonly IUserManagerCore _userManagerCore;
 
-    public GetConfigurationItemsQueryBuilder(IMediator mediator, IAuthorizationService authorizationService, IUserManagerCore userManagerCore)
-        : base(mediator, authorizationService)
+    public GetConfigurationItemsQueryBuilder(IAuthorizationService authorizationService, IUserManagerCore userManagerCore)
+        : base(authorizationService)
     {
         _userManagerCore = userManagerCore;
     }

@@ -1,7 +1,6 @@
 using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Types;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.Xapi.Core.BaseQueries;
 using VirtoCommerce.Xapi.Core.Extensions;
@@ -26,11 +25,10 @@ namespace VirtoCommerce.XCart.Data.Commands.BaseCommands;
 /// - Setting expanded object graph for nested GraphQL resolvers
 /// </summary>
 public abstract class CartCommandBuilder<TCommand, TInputType>(
-    IMediator mediator,
     IAuthorizationService authorizationService,
     IDistributedLockService distributedLockService,
     ICartAggregateRepository cartRepository)
-    : CommandBuilder<TCommand, CartAggregate, TInputType, CartType>(mediator, authorizationService)
+    : CommandBuilder<TCommand, CartAggregate, TInputType, CartType>(authorizationService)
     where TCommand : CartCommand
     where TInputType : IInputObjectGraphType
 {

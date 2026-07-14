@@ -1,6 +1,5 @@
 using System.Threading.Tasks;
 using GraphQL;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.Xapi.Core.BaseQueries;
 using VirtoCommerce.Xapi.Core.Extensions;
@@ -12,8 +11,8 @@ using VirtoCommerce.XCart.Data.Authorization;
 
 namespace VirtoCommerce.XCart.Data.Queries;
 
-public class GetSavedForLaterListQueryBuilder(IMediator mediator, IAuthorizationService authorizationService)
-    : QueryBuilder<GetSavedForLaterListQuery, CartAggregate, CartType>(mediator, authorizationService)
+public class GetSavedForLaterListQueryBuilder(IAuthorizationService authorizationService)
+    : QueryBuilder<GetSavedForLaterListQuery, CartAggregate, CartType>(authorizationService)
 {
     protected override string Name => "getSavedForLater";
 

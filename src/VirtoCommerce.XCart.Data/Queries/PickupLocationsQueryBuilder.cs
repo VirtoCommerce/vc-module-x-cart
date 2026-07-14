@@ -1,4 +1,3 @@
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.ShippingModule.Core.Model;
 using VirtoCommerce.ShippingModule.Core.Model.Search;
@@ -8,8 +7,8 @@ using VirtoCommerce.XCart.Core.Schemas;
 
 namespace VirtoCommerce.XCart.Data.Queries;
 
-public class PickupLocationsQueryBuilder(IMediator mediator, IAuthorizationService authorizationService)
-    : SearchQueryBuilder<PickupLocationsQuery, PickupLocationSearchResult, PickupLocation, PickupLocationType>(mediator, authorizationService)
+public class PickupLocationsQueryBuilder(IAuthorizationService authorizationService)
+    : SearchQueryBuilder<PickupLocationsQuery, PickupLocationSearchResult, PickupLocation, PickupLocationType>(authorizationService)
 {
     protected override string Name => "pickupLocations";
 }

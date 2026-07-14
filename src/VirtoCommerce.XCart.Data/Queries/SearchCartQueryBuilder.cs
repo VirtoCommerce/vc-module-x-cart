@@ -1,6 +1,5 @@
 using System.Threading.Tasks;
 using GraphQL;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.Xapi.Core.BaseQueries;
@@ -22,11 +21,10 @@ namespace VirtoCommerce.XCart.Data.Queries
         private readonly IUserManagerCore _userManagerCore;
 
         public SearchCartQueryBuilder(
-            IMediator mediator,
             IAuthorizationService authorizationService,
             ICurrencyService currencyService,
             IUserManagerCore userManagerCore)
-            : base(mediator, authorizationService)
+            : base(authorizationService)
         {
             _currencyService = currencyService;
             _userManagerCore = userManagerCore;

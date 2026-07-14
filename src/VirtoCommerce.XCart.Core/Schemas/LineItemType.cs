@@ -3,7 +3,6 @@ using AutoMapper;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
 using GraphQL.Types;
-using MediatR;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Currency;
 using VirtoCommerce.CustomerModule.Core.Services;
@@ -21,7 +20,6 @@ namespace VirtoCommerce.XCart.Core.Schemas
     public class LineItemType : ExtendableGraphType<LineItem>
     {
         public LineItemType(
-            IMediator mediator,
             IDataLoaderContextAccessor dataLoader,
             IDynamicPropertyResolverService dynamicPropertyResolverService,
             IMapper mapper, IMemberService memberService,
@@ -32,7 +30,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 Name = "product",
                 Type = GraphTypeExtensionHelper.GetActualType<ProductType>(),
                 Resolver = new FuncFieldResolver<LineItem, IDataLoaderResult<ExpProduct>>(context =>
-                    dataLoader.LoadCartProduct(context, mediator, currencyService, "cart_lineItems_products", (CurrencyCode: context.Source.Currency, context.Source.ProductId))),
+                    dataLoader.LoadCartProduct(context, currencyService, "cart_lineItems_products", (CurrencyCode: context.Source.Currency, context.Source.ProductId))),
             };
             AddField(productField);
 

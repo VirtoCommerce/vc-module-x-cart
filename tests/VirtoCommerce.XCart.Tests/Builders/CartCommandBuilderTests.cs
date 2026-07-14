@@ -33,7 +33,6 @@ public class CartCommandBuilderTests
     private TestableCartCommandBuilder CreateBuilder()
     {
         return new TestableCartCommandBuilder(
-            _mediatorMock.Object,
             _authorizationServiceMock.Object,
             _lockServiceMock.Object,
             _cartRepositoryMock.Object);
@@ -299,12 +298,11 @@ public class CartCommandBuilderTests
     }
 
     private class TestableCartCommandBuilder(
-        IMediator mediator,
         IAuthorizationService authorizationService,
         IDistributedLockService distributedLockService,
         ICartAggregateRepository cartRepository)
         : CartCommandBuilder<TestCartCommand, InputObjectGraphType>(
-            mediator, authorizationService, distributedLockService, cartRepository)
+            authorizationService, distributedLockService, cartRepository)
     {
         public TestCartCommand Command { get; set; } = new();
         public CartAggregate AfterMediatorSendResponse { get; private set; }

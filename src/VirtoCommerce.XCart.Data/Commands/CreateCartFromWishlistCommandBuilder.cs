@@ -1,6 +1,5 @@
 using System.Threading.Tasks;
 using GraphQL;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Services;
@@ -29,10 +28,9 @@ public class CreateCartFromWishlistCommandBuilder : CommandBuilder<CreateCartFro
     public CreateCartFromWishlistCommandBuilder(
         IShoppingCartService cartService,
         IMemberResolver memberResolver,
-        IMediator mediator,
         IAuthorizationService authorizationService,
         ICartSharingService cartSharingService)
-        : base(mediator, authorizationService)
+        : base(authorizationService)
     {
         _cartService = cartService;
         _memberResolver = memberResolver;
