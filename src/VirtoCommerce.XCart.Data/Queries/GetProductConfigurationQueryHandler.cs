@@ -7,6 +7,7 @@ using VirtoCommerce.CatalogModule.Core.Model.Configuration;
 using VirtoCommerce.CatalogModule.Core.Model.Search;
 using VirtoCommerce.CatalogModule.Core.Search;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.XCart.Core;
@@ -80,9 +81,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
             productByIds = await _requestScopedCache.GetOrAddAsync<CartProduct>(
                 BuildOptionProductsKeyPrefix(productsRequest),
                 productsRequest.ProductIds,
-                x => x.Product.Id,
-                async missingIds =>
-                    await _cartProductService.GetCartProductsAsync(CloneForProductIds(productsRequest, missingIds)));
+                async missingIds => await _cartProductService.GetCartProductsAsync(CloneCartProductsRequest(productsRequest, missingIds)));
         }
 
         foreach (var section in orderedSections)
@@ -107,38 +106,35 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
     {
         var includeFields = request.ProductsIncludeFields is null
             ? string.Empty
-            : string.Join(',', request.ProductsIncludeFields.OrderBy(x => x, StringComparer.Ordinal));
+            : string.Join(',', request.ProductsIncludeFields.Order(StringComparer.Ordinal));
 
-        // Resolve store/currency the same way the loader does (CartProductService prefers the object forms),
-        // otherwise the key drops them on the ConfiguredLineItemContainer path where only Store/Currency are set.
+        // Resolve store/currency object-or-string the same way the loader does; the container path sets only the object forms.
         var storeId = request.Store?.Id ?? request.StoreId;
         var currencyCode = request.Currency?.Code ?? request.CurrencyCode;
 
-        // Prefix from the declaring type + this builder method (nameof, collision-free and rename-safe),
-        // mirroring the platform CacheKey.With(typeof(X), ...) convention rather than a hand-typed literal.
         return $"{nameof(GetProductConfigurationQueryHandler)}:{nameof(BuildOptionProductsKeyPrefix)}:{storeId}|{currencyCode}|{request.CultureName}|{request.UserId}|{request.OrganizationId}|{request.LoadPrice}|{request.LoadInventory}|{request.EvaluatePromotions}|{includeFields}";
     }
 
     // loadMissing may run concurrently under the by-id cache's per-id reservation, so mutating the shared
     // productsRequest.ProductIds would race - clone the request with only the not-yet-cached ids instead.
-    private static CartProductsRequest CloneForProductIds(CartProductsRequest request, IReadOnlyCollection<string> productIds)
+    protected virtual CartProductsRequest CloneCartProductsRequest(CartProductsRequest request, IReadOnlyCollection<string> productIds)
     {
-        return new CartProductsRequest
-        {
-            Store = request.Store,
-            StoreId = request.StoreId,
-            CultureName = request.CultureName,
-            Currency = request.Currency,
-            CurrencyCode = request.CurrencyCode,
-            Member = request.Member,
-            UserId = request.UserId,
-            OrganizationId = request.OrganizationId,
-            ProductsIncludeFields = request.ProductsIncludeFields,
-            LoadPrice = request.LoadPrice,
-            LoadInventory = request.LoadInventory,
-            EvaluatePromotions = request.EvaluatePromotions,
-            ProductIds = [.. productIds],
-        };
+        var productsRequest = AbstractTypeFactory<CartProductsRequest>.TryCreateInstance();
+        productsRequest.Store = request.Store;
+        productsRequest.StoreId = request.StoreId;
+        productsRequest.CultureName = request.CultureName;
+        productsRequest.Currency = request.Currency;
+        productsRequest.CurrencyCode = request.CurrencyCode;
+        productsRequest.Member = request.Member;
+        productsRequest.UserId = request.UserId;
+        productsRequest.OrganizationId = request.OrganizationId;
+        productsRequest.ProductsIncludeFields = request.ProductsIncludeFields;
+        productsRequest.LoadPrice = request.LoadPrice;
+        productsRequest.LoadInventory = request.LoadInventory;
+        productsRequest.EvaluatePromotions = request.EvaluatePromotions;
+        productsRequest.ProductIds = [.. productIds];
+
+        return productsRequest;
     }
 
     protected virtual ProductConfigurationResponseGroup GetResponseGroup(GetProductConfigurationQuery request)
