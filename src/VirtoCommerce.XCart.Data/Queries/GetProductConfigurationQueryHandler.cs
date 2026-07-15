@@ -63,7 +63,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         var loadOptions = responseGroup.HasFlag(ProductConfigurationResponseGroup.Options);
 
         ConfiguredLineItemContainer container = null;
-        var productByIds = new Dictionary<string, CartProduct>();
+        IReadOnlyDictionary<string, CartProduct> productByIds = new Dictionary<string, CartProduct>();
 
         if (loadOptions)
         {
@@ -77,10 +77,12 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
 
             // Dedup the option-product load: within one GraphQL request the same ~N option products are
             // requested once per distinct configurable product, all sharing this Scoped request cache.
-            var cartProducts = await _requestScopedCache.GetOrAddAsync(
-                BuildOptionProductsCacheKey(productsRequest),
-                () => _cartProductService.GetCartProductsAsync(productsRequest));
-            productByIds = cartProducts.ToDictionary(x => x.Product.Id, x => x);
+            productByIds = await _requestScopedCache.GetOrAddAsync<CartProduct>(
+                BuildOptionProductsKeyPrefix(productsRequest),
+                productsRequest.ProductIds,
+                x => x.Product.Id,
+                async missingIds =>
+                    await _cartProductService.GetCartProductsAsync(CloneForProductIds(productsRequest, missingIds)));
         }
 
         foreach (var section in orderedSections)
@@ -99,13 +101,10 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         return result;
     }
 
-    // Stable, order-independent key over the CartProductsRequest fields that affect the loaded products.
-    private static string BuildOptionProductsCacheKey(CartProductsRequest request)
+    // Stable, order-independent prefix over the CartProductsRequest fields that affect the loaded products.
+    // Product ids are no longer part of the prefix: they are now the per-id dimension of the by-id cache.
+    private static string BuildOptionProductsKeyPrefix(CartProductsRequest request)
     {
-        var productIds = request.ProductIds is null
-            ? string.Empty
-            : string.Join(',', request.ProductIds.Distinct().OrderBy(x => x, StringComparer.Ordinal));
-
         var includeFields = request.ProductsIncludeFields is null
             ? string.Empty
             : string.Join(',', request.ProductsIncludeFields.OrderBy(x => x, StringComparer.Ordinal));
@@ -117,7 +116,29 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
 
         // Prefix from the declaring type + this builder method (nameof, collision-free and rename-safe),
         // mirroring the platform CacheKey.With(typeof(X), ...) convention rather than a hand-typed literal.
-        return $"{nameof(GetProductConfigurationQueryHandler)}:{nameof(BuildOptionProductsCacheKey)}:{storeId}|{currencyCode}|{request.CultureName}|{request.UserId}|{request.OrganizationId}|{request.LoadPrice}|{request.LoadInventory}|{request.EvaluatePromotions}|{includeFields}|{productIds}";
+        return $"{nameof(GetProductConfigurationQueryHandler)}:{nameof(BuildOptionProductsKeyPrefix)}:{storeId}|{currencyCode}|{request.CultureName}|{request.UserId}|{request.OrganizationId}|{request.LoadPrice}|{request.LoadInventory}|{request.EvaluatePromotions}|{includeFields}";
+    }
+
+    // loadMissing may run concurrently under the by-id cache's per-id reservation, so mutating the shared
+    // productsRequest.ProductIds would race - clone the request with only the not-yet-cached ids instead.
+    private static CartProductsRequest CloneForProductIds(CartProductsRequest request, IReadOnlyCollection<string> productIds)
+    {
+        return new CartProductsRequest
+        {
+            Store = request.Store,
+            StoreId = request.StoreId,
+            CultureName = request.CultureName,
+            Currency = request.Currency,
+            CurrencyCode = request.CurrencyCode,
+            Member = request.Member,
+            UserId = request.UserId,
+            OrganizationId = request.OrganizationId,
+            ProductsIncludeFields = request.ProductsIncludeFields,
+            LoadPrice = request.LoadPrice,
+            LoadInventory = request.LoadInventory,
+            EvaluatePromotions = request.EvaluatePromotions,
+            ProductIds = [.. productIds],
+        };
     }
 
     protected virtual ProductConfigurationResponseGroup GetResponseGroup(GetProductConfigurationQuery request)
@@ -177,7 +198,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         return configurationsResult.Results.FirstOrDefault();
     }
 
-    protected virtual void AddProductOptions(CatalogProductConfigurationSection section, ExpProductConfigurationSection configurationSection, ConfiguredLineItemContainer container, Dictionary<string, CartProduct> productByIds)
+    protected virtual void AddProductOptions(CatalogProductConfigurationSection section, ExpProductConfigurationSection configurationSection, ConfiguredLineItemContainer container, IReadOnlyDictionary<string, CartProduct> productByIds)
     {
         if (section.Type == ConfigurationSectionTypeProduct && !section.Options.IsNullOrEmpty())
         {

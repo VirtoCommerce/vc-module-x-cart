@@ -24,8 +24,8 @@ namespace VirtoCommerce.XCart.Tests.Queries
         private readonly Mock<IProductConfigurationSearchService> _searchServiceMock = new(MockBehavior.Strict);
         private readonly Mock<IConfiguredLineItemContainerService> _containerServiceMock = new(MockBehavior.Strict);
         private readonly Mock<ICartProductsLoaderService> _cartProductServiceMock = new(MockBehavior.Strict);
-        // Real caching implementation, shared across every handler this fixture builds — so two sends resolving
-        // the same option-products key dedup the load (see Handle_SharedRequestCache_* below).
+        // Real caching implementation, shared across every handler this fixture builds — so two sends requesting
+        // the same option product ids dedup the load per-id (see Handle_SharedRequestCache_* below).
         private readonly IRequestScopedCache _requestScopedCache = new RequestScopedCache();
 
         /// <summary>
@@ -168,16 +168,16 @@ namespace VirtoCommerce.XCart.Tests.Queries
                 IncludeFields = ["options", "options.product.id"],
             };
 
-            // Act — two sends against the same handler (same shared IRequestScopedCache instance) resolve
-            // to the same option-products cache key (same ProductIds/store/currency/culture/etc).
+            // Act — two sends against the same handler (same shared IRequestScopedCache instance) request the
+            // same option product id under the same prefix (store/currency/culture/etc), so the by-id cache dedups.
             await handler.Handle(request, CancellationToken.None);
             await handler.Handle(request, CancellationToken.None);
 
             // Assert — the second send dedups against the first via the shared request cache.
             _cartProductServiceMock.Verify(x => x.GetCartProductsAsync(It.IsAny<CartProductsRequest>()), Times.Once);
 
-            // Act — a third send, from a handler sharing the same request cache but resolving a DIFFERING
-            // key (different option ProductIds).
+            // Act — a third send, from a handler sharing the same request cache but requesting a DIFFERENT
+            // option product id (not yet cached).
             var differingHandler = CreateHandler(BuildProductConfiguration(optionProductId: "opt-2"));
             var differingRequest = new GetProductConfigurationQuery
             {
@@ -187,7 +187,7 @@ namespace VirtoCommerce.XCart.Tests.Queries
 
             await differingHandler.Handle(differingRequest, CancellationToken.None);
 
-            // Assert — the differing key is not found in the cache, so the loader runs again.
+            // Assert — the new product id is not cached, so the loader runs again for it.
             _cartProductServiceMock.Verify(x => x.GetCartProductsAsync(It.IsAny<CartProductsRequest>()), Times.Exactly(2));
         }
 
