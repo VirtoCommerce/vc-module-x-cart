@@ -64,7 +64,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         var loadOptions = responseGroup.HasFlag(ProductConfigurationResponseGroup.Options);
 
         ConfiguredLineItemContainer container = null;
-        IReadOnlyDictionary<string, CartProduct> productByIds = new Dictionary<string, CartProduct>();
+        IDictionary<string, CartProduct> productByIds = new Dictionary<string, CartProduct>();
 
         if (loadOptions)
         {
@@ -78,10 +78,10 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
 
             // Dedup the option-product load: within one GraphQL request the same ~N option products are
             // requested once per distinct configurable product, all sharing this Scoped request cache.
-            productByIds = await _requestScopedCache.GetOrAddAsync<CartProduct>(
+            productByIds = await _requestScopedCache.GetOrLoadByIdsAsync<CartProduct>(
                 BuildOptionProductsKeyPrefix(productsRequest),
                 productsRequest.ProductIds,
-                async missingIds => await _cartProductService.GetCartProductsAsync(CloneCartProductsRequest(productsRequest, missingIds)));
+                missingIds => _cartProductService.GetCartProductsAsync(CloneCartProductsRequest(productsRequest, missingIds)));
         }
 
         foreach (var section in orderedSections)
@@ -117,7 +117,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
 
     // loadMissing may run concurrently under the by-id cache's per-id reservation, so mutating the shared
     // productsRequest.ProductIds would race - clone the request with only the not-yet-cached ids instead.
-    protected virtual CartProductsRequest CloneCartProductsRequest(CartProductsRequest request, IReadOnlyCollection<string> productIds)
+    protected virtual CartProductsRequest CloneCartProductsRequest(CartProductsRequest request, ICollection<string> productIds)
     {
         var productsRequest = AbstractTypeFactory<CartProductsRequest>.TryCreateInstance();
         productsRequest.Store = request.Store;
@@ -194,7 +194,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         return configurationsResult.Results.FirstOrDefault();
     }
 
-    protected virtual void AddProductOptions(CatalogProductConfigurationSection section, ExpProductConfigurationSection configurationSection, ConfiguredLineItemContainer container, IReadOnlyDictionary<string, CartProduct> productByIds)
+    protected virtual void AddProductOptions(CatalogProductConfigurationSection section, ExpProductConfigurationSection configurationSection, ConfiguredLineItemContainer container, IDictionary<string, CartProduct> productByIds)
     {
         if (section.Type == ConfigurationSectionTypeProduct && !section.Options.IsNullOrEmpty())
         {
