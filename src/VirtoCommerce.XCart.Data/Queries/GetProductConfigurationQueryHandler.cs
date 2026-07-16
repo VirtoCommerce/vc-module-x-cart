@@ -78,7 +78,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
 
             // Dedup the option-product load: within one GraphQL request the same ~N option products are
             // requested once per distinct configurable product, all sharing this Scoped request cache.
-            productByIds = await _requestScopedCache.GetOrLoadByIdsAsync<CartProduct>(
+            productByIds = await _requestScopedCache.GetOrLoadByIdsAsync(
                 BuildOptionProductsKeyPrefix(productsRequest),
                 productsRequest.ProductIds,
                 missingIds => _cartProductService.GetCartProductsAsync(CloneCartProductsRequest(productsRequest, missingIds)));
