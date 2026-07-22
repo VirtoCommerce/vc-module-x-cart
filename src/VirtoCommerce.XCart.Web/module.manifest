@@ -3,7 +3,7 @@
   <id>VirtoCommerce.XCart</id>
   <version>3.1027.0</version>
   <version-tag></version-tag>
-  <platformVersion>3.1047.0-alpha.13337-vcst-5468-request-scoped-cache</platformVersion>
+  <platformVersion>3.1047.0-alpha.13340-vcst-5468-request-scoped-cache</platformVersion>
   <dependencies>
     <dependency id="VirtoCommerce.Cart" version="3.1007.0" />
     <dependency id="VirtoCommerce.Catalog" version="3.1029.0" />
