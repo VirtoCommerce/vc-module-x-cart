@@ -22,6 +22,8 @@ public class Module : IModule, IHasConfiguration
 
     public void Initialize(IServiceCollection serviceCollection)
     {
+        serviceCollection.AddSingleton<CartChangedEventHandler>();
+
         var graphQlBuilder = new GraphQLBuilder(serviceCollection, builder =>
         {
             builder.AddSchema(serviceCollection, typeof(CoreAssemblyMarker), typeof(DataAssemblyMarker));
