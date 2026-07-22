@@ -5,7 +5,7 @@ using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.XCart.Core;
 
-namespace Heineken.XapiModule.Data.Handlers;
+namespace VirtoCommerce.XCart.Data.Handlers;
 
 public class CartChangedEventHandler : IEventHandler<CartChangedEvent>
 {

@@ -1,5 +1,4 @@
 using GraphQL.MicrosoftDI;
-using Heineken.XapiModule.Data.Handlers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +11,7 @@ using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Data;
 using VirtoCommerce.XCart.Data.Extensions;
+using VirtoCommerce.XCart.Data.Handlers;
 
 namespace VirtoCommerce.XCart.Web;
 
