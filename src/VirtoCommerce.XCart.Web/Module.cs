@@ -1,7 +1,10 @@
 using GraphQL.MicrosoftDI;
+using Heineken.XapiModule.Data.Handlers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using VirtoCommerce.CartModule.Core.Events;
+using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.StoreModule.Core.Model;
@@ -37,6 +40,8 @@ public class Module : IModule, IHasConfiguration
         var settingsRegistrar = serviceProvider.GetRequiredService<ISettingsRegistrar>();
         settingsRegistrar.RegisterSettings(ModuleConstants.Settings.General.AllSettings, ModuleInfo.Id);
         settingsRegistrar.RegisterSettingsForType(ModuleConstants.Settings.StoreLevelSettings, nameof(Store));
+
+        appBuilder.RegisterEventHandler<CartChangedEvent, CartChangedEventHandler>();
     }
 
     public void Uninstall()
