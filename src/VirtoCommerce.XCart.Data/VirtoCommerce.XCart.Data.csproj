@@ -9,8 +9,8 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.1047.0-alpha.13340-vcst-5468-request-scoped-cache" />
-    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.1047.0-alpha.13340-vcst-5468-request-scoped-cache" />
+    <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.1048.0" />
+    <PackageReference Include="VirtoCommerce.Platform.Security" Version="3.1048.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\VirtoCommerce.XCart.Core\VirtoCommerce.XCart.Core.csproj" />
