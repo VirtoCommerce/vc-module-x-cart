@@ -8,6 +8,7 @@ using GraphQL;
 using GraphQL.Types;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Extensions;
@@ -32,13 +33,12 @@ public class CartCommandBuilderTests
     private TestableCartCommandBuilder CreateBuilder()
     {
         return new TestableCartCommandBuilder(
-            _mediatorMock.Object,
             _authorizationServiceMock.Object,
             _lockServiceMock.Object,
             _cartRepositoryMock.Object);
     }
 
-    private static Mock<IResolveFieldContext<object>> CreateContextMock(bool authenticated)
+    private Mock<IResolveFieldContext<object>> CreateContextMock(bool authenticated)
     {
         var identity = authenticated
             ? new ClaimsIdentity("test")
@@ -48,6 +48,13 @@ public class CartCommandBuilderTests
 
         var mock = new Mock<IResolveFieldContext<object>>();
         mock.Setup(x => x.UserContext).Returns(userContext);
+
+        // RequestBuilder.GetResponseAsync resolves IMediator from context.RequestServices per request
+        // (the ctor-injected mediator is obsolete), so the context must carry a provider that resolves it.
+        var serviceProvider = new ServiceCollection()
+            .AddSingleton(_mediatorMock.Object)
+            .BuildServiceProvider();
+        mock.Setup(x => x.RequestServices).Returns(serviceProvider);
 
         return mock;
     }
@@ -291,12 +298,11 @@ public class CartCommandBuilderTests
     }
 
     private class TestableCartCommandBuilder(
-        IMediator mediator,
         IAuthorizationService authorizationService,
         IDistributedLockService distributedLockService,
         ICartAggregateRepository cartRepository)
         : CartCommandBuilder<TestCartCommand, InputObjectGraphType>(
-            mediator, authorizationService, distributedLockService, cartRepository)
+            authorizationService, distributedLockService, cartRepository)
     {
         public TestCartCommand Command { get; set; } = new();
         public CartAggregate AfterMediatorSendResponse { get; private set; }
