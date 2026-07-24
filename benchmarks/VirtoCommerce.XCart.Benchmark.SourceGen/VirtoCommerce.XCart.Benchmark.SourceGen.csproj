@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Roslyn source generator: emits one concrete BenchmarkDotNet subclass per Core *BenchmarksBase,
+       baking the runner's [assembly: BenchmarkSetup(typeof(TSetup))]. Targets netstandard2.0 because
+       analyzers/generators load into the compiler host, which is netstandard2.0. Not packable on its
+       own — VirtoCommerce.XCart.Benchmark.Core packs this DLL into its nupkg under analyzers/ so
+       NuGet consumers (XOrder, LEO runners) get the generator; the in-repo upstream runner references
+       it directly as an Analyzer (analyzers do not flow through ProjectReference). -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <!-- RS2008 (analyzer release tracking) is ceremony for publicly-distributed analyzer packages with
+         versioned diagnostic IDs; this generator is private to the benchmark suite. -->
+    <NoWarn>$(NoWarn);RS2008</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 4.8.0 ≤ the .NET 10 SDK's Roslyn (4.14.x), so the generator loads in the host compiler.
+         PrivateAssets="all" keeps the Roslyn assemblies out of any consuming graph. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

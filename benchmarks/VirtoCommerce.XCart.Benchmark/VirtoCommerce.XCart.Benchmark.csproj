@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- BenchmarkDotNet refuses to measure in Debug; only Release is meaningful. -->
+    <IsPackable>false</IsPackable>
+    <!-- Write the source-generated *Benchmarks subclasses to obj/.../generated/ so they're browsable on
+         disk and in the IDE (Roslyn keeps generator output in-memory by default). -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+
+  <!-- Thin runner over the un-extended XCart platform. The benchmark classes, fixtures, seam, and
+       baseline-src plumbing live in Core; this exe only provides the entry point. BenchmarkDotNet,
+       Moq, CartModule.Data, and the XCart source references all come transitively from Core. -->
+  <ItemGroup>
+    <ProjectReference Include="..\VirtoCommerce.XCart.Benchmark.Core\VirtoCommerce.XCart.Benchmark.Core.csproj" />
+    <!-- The source generator that emits one concrete *Benchmarks subclass per Core *BenchmarksBase from
+         the [assembly: BenchmarkSetup] in Program.cs. Analyzer (not a runtime reference); analyzers do
+         not flow through ProjectReference, so the in-repo runner references it directly. NuGet consumers
+         (XOrder, LEO) get the same generator packed inside the Core nupkg. -->
+    <ProjectReference Include="..\VirtoCommerce.XCart.Benchmark.SourceGen\VirtoCommerce.XCart.Benchmark.SourceGen.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

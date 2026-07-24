@@ -1,0 +1,70 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- Files keep namespace VirtoCommerce.XCart.Benchmark so benchmark full names (and the BDN
+         filter globs) are unchanged after the move out of the runner project. -->
+    <RootNamespace>VirtoCommerce.XCart.Benchmark</RootNamespace>
+    <!-- Packable so consuming modules (XOrder, LEO) can reference the shared fixtures, seam, and
+         benchmark classes via a (local) NuGet feed and run them under their own setup. -->
+    <IsPackable>true</IsPackable>
+    <!-- The module CI packs the whole solution with `dotnet pack` in no-build mode (NoBuild=true).
+         Packing this project's ProjectReferences (XCart.Core/Data) would invoke their Build target under
+         NoBuild and fail with NETSDK1085. Skip building project references when NoBuild is set — pack still
+         reads their already-built identity for the nuspec deps. Unset for a normal build/run, so the
+         in-repo-source build and the BaselineSrc before/after swap are unaffected. -->
+    <BuildProjectReferences Condition="'$(NoBuild)' == 'true'">false</BuildProjectReferences>
+    <!-- TreatWarningsAsErrors is inherited from Directory.Build.props (true); this project builds clean. -->
+    <!-- Bundle the source generator (below) into the nupkg's analyzers folder so NuGet consumers get it. -->
+    <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_PackBenchmarkSourceGen</TargetsForTfmSpecificContentInPackage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Version resolved by `dotnet add package BenchmarkDotNet` (latest compatible at scaffold
+         time). Bump via `dotnet add package` rather than hand-editing — keeps current-runtime/CLI
+         support. -->
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <!-- CartModule.Data is NOT referenced by XCart (it only needs CartModule.Core's
+         IShoppingCartTotalsCalculator interface). The benchmark needs the real
+         DefaultShoppingCartTotalsCalculator implementation, so reference Data explicitly,
+         aligned with the CartModule.Core version XCart.Core brings. -->
+    <PackageReference Include="VirtoCommerce.CartModule.Data" Version="3.1006.0" />
+  </ItemGroup>
+
+  <!-- $(BaselineSrc) defaults to the in-repo source. The before/after comparison mode (the Core
+       BenchmarkProgram baseline-src flag) overrides it per BenchmarkDotNet job via
+       /p:BaselineSrc=(baseline-worktree)/src, so the "before" job builds XCart.Core/Data from the
+       baseline revision. The property is named by ROLE (the baseline source tree), not by module, so
+       every module's benchmark Core uses the same name (the .csproj appends its own module subpath).
+       ProjectReference (not a bare DLL HintPath) is deliberate: the benchmark uses ~16 packages that
+       XCart.Core/Data bring transitively, and only ProjectReference restores that transitive graph.
+       See README "Comparing before/after a change". -->
+  <PropertyGroup>
+    <BaselineSrc Condition="'$(BaselineSrc)' == ''">..\..\src</BaselineSrc>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(BaselineSrc)\VirtoCommerce.XCart.Core\VirtoCommerce.XCart.Core.csproj" />
+    <ProjectReference Include="$(BaselineSrc)\VirtoCommerce.XCart.Data\VirtoCommerce.XCart.Data.csproj" />
+    <!-- The source generator. Referenced as an Analyzer (no runtime dependency) so the generator DLL is
+         built and surfaces in @(Analyzer); the _PackBenchmarkSourceGen target below puts it in the nupkg.
+         Running on Core's own (library, no [assembly: BenchmarkSetup]) compilation is a no-op — the
+         generator emits nothing without a setup attribute. -->
+    <ProjectReference Include="..\VirtoCommerce.XCart.Benchmark.SourceGen\VirtoCommerce.XCart.Benchmark.SourceGen.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <!-- Pack the generator DLL into analyzers/dotnet/cs so NuGet consumers (XOrder, LEO runners) that
+       reference this package get the generator and produce their own concrete benchmark subclasses. -->
+  <Target Name="_PackBenchmarkSourceGen" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <TfmSpecificPackageFile Include="@(Analyzer)"
+                              Condition="'%(Filename)' == 'VirtoCommerce.XCart.Benchmark.SourceGen'">
+        <PackagePath>analyzers/dotnet/cs/%(Filename)%(Extension)</PackagePath>
+      </TfmSpecificPackageFile>
+    </ItemGroup>
+  </Target>
+
+</Project>
