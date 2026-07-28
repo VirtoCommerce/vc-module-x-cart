@@ -20,7 +20,15 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
 
     protected virtual Task UpdateScopeAsync(CartAggregate cartAggregate, TCommand request)
     {
-        if (request.Scope?.EqualsIgnoreCase(CartSharingScope.AnyoneAnonymous) == true)
+        if (!string.IsNullOrEmpty(request.SharedWithId))
+        {
+            // Targeted share (e.g. a Sales Rep publishing to a specific customer): persist the requested scope
+            // together with the target. Access defaults to Read; the visibility rules for the scope are enforced
+            // by the ICartSharingService implementation (a downstream module overrides it for its own scope).
+            _cartSharingService.EnsureSharingSettings(cartAggregate.Cart, request.SharingKey, request.Scope, CartSharingAccess.Read, request.SharedWithId);
+            _cartSharingService.SetOwner(cartAggregate.Cart, request.WishlistUserContext.CurrentUserId, request.WishlistUserContext.CurrentContact.Name, null);
+        }
+        else if (request.Scope?.EqualsIgnoreCase(CartSharingScope.AnyoneAnonymous) == true)
         {
             _cartSharingService.EnsureSharingSettings(cartAggregate.Cart, request.SharingKey, CartSharingScope.AnyoneAnonymous, CartSharingAccess.Read);
             _cartSharingService.SetOwner(cartAggregate.Cart, request.WishlistUserContext.CurrentUserId, request.WishlistUserContext.CurrentContact.Name, null);

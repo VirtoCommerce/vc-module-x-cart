@@ -14,7 +14,7 @@ public interface ICartSharingService
     string GetSharingOwnerUserId(ShoppingCart cart);
     string GetSharingOwnerOrganizationId(ShoppingCart cart);
 
-    void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access);
+    void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access, string sharedWithId = null);
 
     Task<CartAggregate> GetWishlistBySharingKeyAsync(string sharingKey, IList<string> includeFields);
 }

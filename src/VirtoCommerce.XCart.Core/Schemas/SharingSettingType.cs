@@ -10,6 +10,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
         public SharingSettingType()
         {
             Field(x => x.Id, nullable: false).Description("Id (sharing key)");
+            Field(x => x.SharedWithId, nullable: true).Description("Id of the principal the list is shared with (id space defined by scope, e.g. a customer organization id); null for non-targeted scopes");
             Field<WishlistScopeType>("Scope").Description("Scope (private, organization, etc.)").Resolve(context => context.Source.Scope);
             Field<WishlistAccessType>("Access").Description("Access (read or write)").Resolve(context => context.Source.Access);
             Field<bool>("IsOwner", nullable: false).Description("Created by current user").Resolve(ResolveIsOwner);

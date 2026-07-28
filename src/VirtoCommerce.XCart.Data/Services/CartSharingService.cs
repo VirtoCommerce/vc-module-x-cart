@@ -96,7 +96,7 @@ public class CartSharingService(ICartAggregateRepository cartAggregateRepository
         return cart.OrganizationId;
     }
 
-    public virtual void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access)
+    public virtual void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access, string sharedWithId = null)
     {
         if (cart.SharingSettings.IsNullOrEmpty())
         {
@@ -106,6 +106,7 @@ public class CartSharingService(ICartAggregateRepository cartAggregateRepository
             sharingSetting.ShoppingCartId = cart.Id;
             sharingSetting.Scope = mode;
             sharingSetting.Access = access;
+            sharingSetting.SharedWithId = sharedWithId;
 
             cart.SharingSettings.Add(sharingSetting);
         }
@@ -120,6 +121,7 @@ public class CartSharingService(ICartAggregateRepository cartAggregateRepository
 
             sharingSetting.Scope = mode;
             sharingSetting.Access = access;
+            sharingSetting.SharedWithId = sharedWithId;
         }
     }
 
