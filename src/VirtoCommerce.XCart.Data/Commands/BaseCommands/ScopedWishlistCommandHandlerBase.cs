@@ -18,8 +18,12 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
         _cartSharingService = cartSharingService;
     }
 
-    protected virtual Task UpdateScopeAsync(CartAggregate cartAggregate, TCommand request)
+    protected virtual async Task UpdateScopeAsync(CartAggregate cartAggregate, TCommand request)
     {
+        // Authorize the requested scope/target before persisting it. The base pipeline permits nothing targeted;
+        // a downstream module (e.g. Sales Rep) enforces who may share with a given principal. Throws when denied.
+        await _cartSharingService.AuthorizeSharingAsync(request.Scope, request.SharedWithId, request.WishlistUserContext.CurrentUserId);
+
         if (!string.IsNullOrEmpty(request.SharedWithId))
         {
             // Targeted share (e.g. a Sales Rep publishing to a specific customer): persist the requested scope
@@ -43,7 +47,5 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
             _cartSharingService.EnsureSharingSettings(cartAggregate.Cart, null, CartSharingScope.Private, CartSharingAccess.Write);
             _cartSharingService.SetOwner(cartAggregate.Cart, request.WishlistUserContext.CurrentUserId, request.WishlistUserContext.CurrentContact.Name, null);
         }
-
-        return Task.CompletedTask;
     }
 }

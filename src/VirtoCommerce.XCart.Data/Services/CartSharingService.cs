@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -98,6 +99,8 @@ public class CartSharingService(ICartAggregateRepository cartAggregateRepository
 
     public virtual void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access, string sharedWithId = null)
     {
+        ValidateSharingSettings(mode, sharedWithId);
+
         if (cart.SharingSettings.IsNullOrEmpty())
         {
             var sharingSetting = AbstractTypeFactory<CartSharingSetting>.TryCreateInstance();
@@ -123,6 +126,37 @@ public class CartSharingService(ICartAggregateRepository cartAggregateRepository
             sharingSetting.Access = access;
             sharingSetting.SharedWithId = sharedWithId;
         }
+    }
+
+    public virtual Task AuthorizeSharingAsync(string scope, string sharedWithId, string currentUserId)
+    {
+        // The base pipeline has no targeted scope, so there is nothing caller-specific to authorize here; the
+        // structural guard in ValidateSharingSettings already rejects any target. A module that introduces a
+        // targeted scope overrides this to enforce who may target whom.
+        return Task.CompletedTask;
+    }
+
+    // Structural validity of a sharing setting the pipeline is about to persist. The built-in scopes are all
+    // non-targeted, so a target is never allowed and the scope must be one the pipeline supports; a module that
+    // adds a targeted scope overrides this to accept it.
+    protected virtual void ValidateSharingSettings(string scope, string sharedWithId)
+    {
+        if (!string.IsNullOrEmpty(sharedWithId))
+        {
+            throw new InvalidOperationException($"Sharing scope '{scope}' does not support a shared-with target.");
+        }
+
+        if (!string.IsNullOrEmpty(scope) && !IsSupportedScope(scope))
+        {
+            throw new InvalidOperationException($"Unsupported sharing scope '{scope}'.");
+        }
+    }
+
+    protected virtual bool IsSupportedScope(string scope)
+    {
+        return scope.EqualsIgnoreCase(CartSharingScope.Private)
+            || scope.EqualsIgnoreCase(CartSharingScope.AnyoneAnonymous)
+            || scope.EqualsIgnoreCase(CartSharingScope.Organization);
     }
 
     public virtual async Task<CartAggregate> GetWishlistBySharingKeyAsync(string sharingKey, IList<string> includeFields)
