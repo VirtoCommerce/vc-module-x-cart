@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Services;
 
@@ -16,11 +17,10 @@ public interface ICartSharingService
 
     void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access, string sharedWithId = null);
 
-    // Authorizes the caller to persist a sharing setting with the given scope and target before it is written.
-    // The base pipeline has no targeted scope and does nothing here; a module that adds a targeted scope (e.g. a
-    // Sales Rep publishing to a customer organization) overrides this to enforce who may target whom. Throws when
-    // the caller is not allowed.
-    Task AuthorizeSharingAsync(string scope, string sharedWithId, string currentUserId);
+    // Authorizes and applies the requested sharing scope to the cart (writes the sharing setting + owner). Throws
+    // when the scope is unsupported or the caller is not allowed to use it. A null/empty scope is a no-op (e.g. a
+    // rename-only edit that does not touch sharing).
+    Task UpdateScopeAsync(ShoppingCart cart, WishlistScopeContext context);
 
     Task<CartAggregate> GetWishlistBySharingKeyAsync(string sharingKey, IList<string> includeFields);
 }

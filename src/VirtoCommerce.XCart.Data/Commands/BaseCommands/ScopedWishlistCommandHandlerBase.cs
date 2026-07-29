@@ -1,8 +1,8 @@
 using System.Threading.Tasks;
-using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
+using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 
 namespace VirtoCommerce.XCart.Data.Commands.BaseCommands;
@@ -18,34 +18,24 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
         _cartSharingService = cartSharingService;
     }
 
-    protected virtual async Task UpdateScopeAsync(CartAggregate cartAggregate, TCommand request)
+    protected virtual Task UpdateScopeAsync(CartAggregate cartAggregate, TCommand request)
     {
-        // Authorize the requested scope/target before persisting it. The base pipeline permits nothing targeted;
-        // a downstream module (e.g. Sales Rep) enforces who may share with a given principal. Throws when denied.
-        await _cartSharingService.AuthorizeSharingAsync(request.Scope, request.SharedWithId, request.WishlistUserContext.CurrentUserId);
+        var context = CreateScopeContext(request);
 
-        if (!string.IsNullOrEmpty(request.SharedWithId))
-        {
-            // Targeted share (e.g. a Sales Rep publishing to a specific customer): persist the requested scope
-            // together with the target. Access defaults to Read; the visibility rules for the scope are enforced
-            // by the ICartSharingService implementation (a downstream module overrides it for its own scope).
-            _cartSharingService.EnsureSharingSettings(cartAggregate.Cart, request.SharingKey, request.Scope, CartSharingAccess.Read, request.SharedWithId);
-            _cartSharingService.SetOwner(cartAggregate.Cart, request.WishlistUserContext.CurrentUserId, request.WishlistUserContext.CurrentContact.Name, null);
-        }
-        else if (request.Scope?.EqualsIgnoreCase(CartSharingScope.AnyoneAnonymous) == true)
-        {
-            _cartSharingService.EnsureSharingSettings(cartAggregate.Cart, request.SharingKey, CartSharingScope.AnyoneAnonymous, CartSharingAccess.Read);
-            _cartSharingService.SetOwner(cartAggregate.Cart, request.WishlistUserContext.CurrentUserId, request.WishlistUserContext.CurrentContact.Name, null);
-        }
-        else if (request.Scope?.EqualsIgnoreCase(CartSharingScope.Organization) == true)
-        {
-            _cartSharingService.EnsureSharingSettings(cartAggregate.Cart, request.SharingKey, CartSharingScope.Organization, CartSharingAccess.Write);
-            _cartSharingService.SetOwner(cartAggregate.Cart, request.WishlistUserContext.CurrentUserId, request.WishlistUserContext.CurrentContact.Name, request.WishlistUserContext.CurrentOrganizationId);
-        }
-        else if (request.Scope?.EqualsIgnoreCase(CartSharingScope.Private) == true)
-        {
-            _cartSharingService.EnsureSharingSettings(cartAggregate.Cart, null, CartSharingScope.Private, CartSharingAccess.Write);
-            _cartSharingService.SetOwner(cartAggregate.Cart, request.WishlistUserContext.CurrentUserId, request.WishlistUserContext.CurrentContact.Name, null);
-        }
+        return _cartSharingService.UpdateScopeAsync(cartAggregate.Cart, context);
+    }
+
+    protected virtual WishlistScopeContext CreateScopeContext(TCommand request)
+    {
+        var context = AbstractTypeFactory<WishlistScopeContext>.TryCreateInstance();
+
+        context.Scope = request.Scope;
+        context.SharingKey = request.SharingKey;
+        context.SharedWithId = request.SharedWithId;
+        context.CurrentUserId = request.WishlistUserContext.CurrentUserId;
+        context.CustomerName = request.WishlistUserContext.CurrentContact.Name;
+        context.CurrentOrganizationId = request.WishlistUserContext.CurrentOrganizationId;
+
+        return context;
     }
 }

@@ -13,7 +13,7 @@ namespace VirtoCommerce.XPurchase.Schemas
             Field<StringGraphType>("currencyCode").Description("Currency code");
             Field<StringGraphType>("scope").Description("List scope (private or organization)");
             Field<StringGraphType>("sharingKey").Description("Sharing key (URL argument)");
-            Field<StringGraphType>("sharedWithId").Description("Id of the principal the list is shared with (id space defined by scope, e.g. a customer organization id)");
+            Field<StringGraphType>("sharedWithId").Description("Id of the principal the list is shared with (id space defined by scope)");
             Field<StringGraphType>("description").Description("List description");
         }
     }
