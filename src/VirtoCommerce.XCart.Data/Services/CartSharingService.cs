@@ -98,7 +98,13 @@ public class CartSharingService(ICartAggregateRepository cartAggregateRepository
         return cart.OrganizationId;
     }
 
-    public virtual void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access, string sharedWithId = null)
+    [Obsolete("Use the overload with sharedWithId (null for the built-in non-targeted scopes).", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public virtual void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access)
+    {
+        EnsureSharingSettings(cart, sharingKey, mode, access, sharedWithId: null);
+    }
+
+    public virtual void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access, string sharedWithId)
     {
         if (cart.SharingSettings.IsNullOrEmpty())
         {
@@ -129,9 +135,6 @@ public class CartSharingService(ICartAggregateRepository cartAggregateRepository
 
     public virtual Task UpdateScopeAsync(ShoppingCart cart, WishlistScopeContext context)
     {
-        // A null/empty scope means "don't touch sharing" (e.g. a rename-only edit); an unrecognized scope (ApplyScope
-        // returned false) is rejected. The base pipeline has no authorization concern — a module that introduces an
-        // authorizable scope overrides this method to gate it before delegating to base.
         if (!string.IsNullOrEmpty(context.Scope) && !ApplyScope(cart, context))
         {
             throw new InvalidOperationException($"Unsupported sharing scope '{context.Scope}'.");
@@ -140,28 +143,25 @@ public class CartSharingService(ICartAggregateRepository cartAggregateRepository
         return Task.CompletedTask;
     }
 
-    // Applies a recognized scope to the cart (sharing setting + owner) and returns true; returns false for a scope
-    // this pipeline does not know, which makes UpdateScopeAsync throw. A module that adds a scope overrides this,
-    // handles its own scope, and delegates the rest to base.
     protected virtual bool ApplyScope(ShoppingCart cart, WishlistScopeContext context)
     {
         if (CartSharingScope.AnyoneAnonymous.EqualsIgnoreCase(context.Scope))
         {
-            EnsureSharingSettings(cart, context.SharingKey, CartSharingScope.AnyoneAnonymous, CartSharingAccess.Read);
+            EnsureSharingSettings(cart, context.SharingKey, CartSharingScope.AnyoneAnonymous, CartSharingAccess.Read, sharedWithId: null);
             SetOwner(cart, context.CurrentUserId, context.CustomerName, null);
             return true;
         }
 
         if (CartSharingScope.Organization.EqualsIgnoreCase(context.Scope))
         {
-            EnsureSharingSettings(cart, context.SharingKey, CartSharingScope.Organization, CartSharingAccess.Write);
+            EnsureSharingSettings(cart, context.SharingKey, CartSharingScope.Organization, CartSharingAccess.Write, sharedWithId: null);
             SetOwner(cart, context.CurrentUserId, context.CustomerName, context.CurrentOrganizationId);
             return true;
         }
 
         if (CartSharingScope.Private.EqualsIgnoreCase(context.Scope))
         {
-            EnsureSharingSettings(cart, null, CartSharingScope.Private, CartSharingAccess.Write);
+            EnsureSharingSettings(cart, null, CartSharingScope.Private, CartSharingAccess.Write, sharedWithId: null);
             SetOwner(cart, context.CurrentUserId, context.CustomerName, null);
             return true;
         }

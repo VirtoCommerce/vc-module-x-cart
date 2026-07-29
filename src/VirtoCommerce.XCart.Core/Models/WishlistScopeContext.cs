@@ -1,7 +1,5 @@
 namespace VirtoCommerce.XCart.Core.Models;
 
-// Inputs for applying a wishlist sharing scope, decoupled from the command shape so ICartSharingService.UpdateScopeAsync
-// stays command-agnostic. Scope defines SharedWithId's id space (null for the built-in non-targeted scopes).
 public class WishlistScopeContext
 {
     public string Scope { get; set; }

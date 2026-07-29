@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
@@ -15,11 +16,11 @@ public interface ICartSharingService
     string GetSharingOwnerUserId(ShoppingCart cart);
     string GetSharingOwnerOrganizationId(ShoppingCart cart);
 
-    void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access, string sharedWithId = null);
+    [Obsolete("Use the overload with sharedWithId (null for the built-in non-targeted scopes).", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access);
 
-    // Authorizes and applies the requested sharing scope to the cart (writes the sharing setting + owner). Throws
-    // when the scope is unsupported or the caller is not allowed to use it. A null/empty scope is a no-op (e.g. a
-    // rename-only edit that does not touch sharing).
+    void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access, string sharedWithId);
+
     Task UpdateScopeAsync(ShoppingCart cart, WishlistScopeContext context);
 
     Task<CartAggregate> GetWishlistBySharingKeyAsync(string sharingKey, IList<string> includeFields);
