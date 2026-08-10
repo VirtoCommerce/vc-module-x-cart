@@ -38,11 +38,14 @@ namespace VirtoCommerce.XCart.Core.Schemas
         {
             var result = AbstractTypeFactory<CartSharingSetting>.TryCreateInstance();
 
-            result.Id = context.Source.Cart.SharingSettings.FirstOrDefault()?.Id ?? Guid.NewGuid().ToString();
+            var existingSetting = context.Source.Cart.SharingSettings.FirstOrDefault();
+
+            result.Id = existingSetting?.Id ?? Guid.NewGuid().ToString();
 
             result.CreatedBy = _cartSharingService.GetSharingOwnerUserId(context.Source.Cart);//TODO: refactor
             result.Scope = _cartSharingService.GetSharingScope(context.Source.Cart);
             result.Access = _cartSharingService.GetSharingAccess(context.Source.Cart, context.User.GetUserId());
+            result.SharedWithId = existingSetting?.SharedWithId;
 
             return result;
         }

@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
@@ -96,7 +98,13 @@ public class CartSharingService(ICartAggregateRepository cartAggregateRepository
         return cart.OrganizationId;
     }
 
+    [Obsolete("Use the overload with sharedWithId (null for the built-in non-targeted scopes).", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
     public virtual void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access)
+    {
+        EnsureSharingSettings(cart, sharingKey, mode, access, sharedWithId: null);
+    }
+
+    public virtual void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access, string sharedWithId)
     {
         if (cart.SharingSettings.IsNullOrEmpty())
         {
@@ -106,6 +114,7 @@ public class CartSharingService(ICartAggregateRepository cartAggregateRepository
             sharingSetting.ShoppingCartId = cart.Id;
             sharingSetting.Scope = mode;
             sharingSetting.Access = access;
+            sharingSetting.SharedWithId = sharedWithId;
 
             cart.SharingSettings.Add(sharingSetting);
         }
@@ -120,7 +129,44 @@ public class CartSharingService(ICartAggregateRepository cartAggregateRepository
 
             sharingSetting.Scope = mode;
             sharingSetting.Access = access;
+            sharingSetting.SharedWithId = sharedWithId;
         }
+    }
+
+    public virtual Task UpdateScopeAsync(ShoppingCart cart, WishlistScopeContext context)
+    {
+        if (!string.IsNullOrEmpty(context.Scope) && !ApplyScope(cart, context))
+        {
+            throw new InvalidOperationException($"Unsupported sharing scope '{context.Scope}'.");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    protected virtual bool ApplyScope(ShoppingCart cart, WishlistScopeContext context)
+    {
+        if (CartSharingScope.AnyoneAnonymous.EqualsIgnoreCase(context.Scope))
+        {
+            EnsureSharingSettings(cart, context.SharingKey, CartSharingScope.AnyoneAnonymous, CartSharingAccess.Read, sharedWithId: null);
+            SetOwner(cart, context.CurrentUserId, context.CustomerName, null);
+            return true;
+        }
+
+        if (CartSharingScope.Organization.EqualsIgnoreCase(context.Scope))
+        {
+            EnsureSharingSettings(cart, context.SharingKey, CartSharingScope.Organization, CartSharingAccess.Write, sharedWithId: null);
+            SetOwner(cart, context.CurrentUserId, context.CustomerName, context.CurrentOrganizationId);
+            return true;
+        }
+
+        if (CartSharingScope.Private.EqualsIgnoreCase(context.Scope))
+        {
+            EnsureSharingSettings(cart, null, CartSharingScope.Private, CartSharingAccess.Write, sharedWithId: null);
+            SetOwner(cart, context.CurrentUserId, context.CustomerName, null);
+            return true;
+        }
+
+        return false;
     }
 
     public virtual async Task<CartAggregate> GetWishlistBySharingKeyAsync(string sharingKey, IList<string> includeFields)
