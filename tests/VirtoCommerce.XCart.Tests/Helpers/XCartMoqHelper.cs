@@ -19,6 +19,7 @@ using VirtoCommerce.InventoryModule.Core.Model;
 using VirtoCommerce.MarketingModule.Core.Services;
 using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.PaymentModule.Core.Services;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.ShippingModule.Core.Services;
@@ -82,6 +83,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
 
             _fixture.Register(() =>
             {
+                AbstractTypeFactory<Xapi.Core.Models.ProductPrice>.RegisterType<Xapi.Core.Models.ProductPrice>();
+
                 var catalogProduct = _fixture.Create<CatalogProduct>();
 
                 catalogProduct.TrackInventory = true;

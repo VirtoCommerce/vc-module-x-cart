@@ -14,7 +14,7 @@
     <dependency id="VirtoCommerce.Payment" version="3.1000.0" />
     <dependency id="VirtoCommerce.Pricing" version="3.1000.0" />
     <dependency id="VirtoCommerce.Shipping" version="3.1000.0" />
-    <dependency id="VirtoCommerce.Xapi" version="3.1000.0" />
+    <dependency id="VirtoCommerce.Xapi" version="3.1003.3" />
     <dependency id="VirtoCommerce.XCatalog" version="3.1000.0" />
   </dependencies>
 

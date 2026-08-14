@@ -312,7 +312,7 @@ namespace VirtoCommerce.XCart.Core
 
             if (newCartItem.IsWishlist && newCartItem.CartProduct.Price == null)
             {
-                newCartItem.CartProduct.Price = new ProductPrice(Currency);
+                newCartItem.CartProduct.Price = AbstractTypeFactory<ProductPrice>.TryCreateInstance(nameof(ProductPrice), Currency);
             }
 
             var lineItem = _mapper.Map<LineItem>(newCartItem.CartProduct, options =>
