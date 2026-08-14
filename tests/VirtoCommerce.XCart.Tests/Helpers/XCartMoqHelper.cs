@@ -86,6 +86,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
 
             _fixture.Register(() =>
             {
+                AbstractTypeFactory<Xapi.Core.Models.ProductPrice>.RegisterType<Xapi.Core.Models.ProductPrice>();
+
                 var catalogProduct = _fixture.Create<CatalogProduct>();
 
                 catalogProduct.TrackInventory = true;
