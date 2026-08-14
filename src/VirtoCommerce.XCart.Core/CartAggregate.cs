@@ -376,7 +376,7 @@ namespace VirtoCommerce.XCart.Core
 
             if (newCartItem.IsWishlist && newCartItem.CartProduct.Price == null)
             {
-                newCartItem.CartProduct.Price = new ProductPrice(Currency);
+                newCartItem.CartProduct.Price = AbstractTypeFactory<ProductPrice>.TryCreateInstance(nameof(ProductPrice), Currency);
             }
 
             var lineItem = _mapper.Map<LineItem>(newCartItem.CartProduct, options =>
@@ -992,7 +992,7 @@ namespace VirtoCommerce.XCart.Core
             EnsureCartExists();
 
             var validationContext = await _cartValidationContextFactory.CreateValidationContextAsync(this);
-            
+
 #pragma warning disable VC0009 // Obsolete overload is intentionally kept as the virtual extension point
             return await ValidateAsync(validationContext, ruleSet);
 #pragma warning restore VC0009
