@@ -274,7 +274,7 @@ public class CartFilterMappingExtensionsTests
     {
         var criteria = new ShoppingCartSearchCriteria();
 
-        ((List<IFilter>)null).MapTo(criteria);
-        new List<IFilter>().MapTo(null);
+        FluentActions.Invoking(() => ((List<IFilter>)null).MapTo(criteria)).Should().NotThrow();
+        FluentActions.Invoking(() => new List<IFilter>().MapTo(null)).Should().NotThrow();
     }
 }
