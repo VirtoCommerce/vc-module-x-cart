@@ -79,12 +79,10 @@ namespace VirtoCommerce.XCart.Core.Models
             AllPrices = prices.Where(x => x.ProductId == Id)
                               .Select(x =>
                               {
-                                  var productPrice = new ProductPrice(currency)
-                                  {
-                                      PricelistId = x.PricelistId,
-                                      ListPrice = new Money(x.List, currency),
-                                      MinQuantity = x.MinQuantity
-                                  };
+                                  var productPrice = AbstractTypeFactory<ProductPrice>.TryCreateInstance(nameof(ProductPrice), currency);
+                                  productPrice.PricelistId = x.PricelistId;
+                                  productPrice.ListPrice = new Money(x.List, currency);
+                                  productPrice.MinQuantity = x.MinQuantity;
                                   productPrice.SalePrice = x.Sale == null ? productPrice.ListPrice : new Money(x.Sale.GetValueOrDefault(), currency);
 
                                   return productPrice;
