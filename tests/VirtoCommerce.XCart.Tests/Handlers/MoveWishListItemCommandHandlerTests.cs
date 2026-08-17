@@ -1,9 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture;
-using AutoMapper;
 using FluentAssertions;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
@@ -88,8 +86,8 @@ namespace VirtoCommerce.XCart.Tests.Handlers
                 });
 
             _mapperMock
-                .Setup(m => m.Map(It.IsAny<CartProduct>(), It.IsAny<Action<IMappingOperationOptions<object, LineItem>>>()))
-                .Returns<CartProduct, Action<IMappingOperationOptions<object, LineItem>>>((cartProduct, options) =>
+                .Setup(m => m.ToLineItem(It.IsAny<CartProduct>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ICartItemBuilder>()))
+                .Returns<CartProduct, string, string, ICartItemBuilder>((cartProduct, _, _, _) =>
                 {
                     return new LineItem { ProductId = cartProduct.Id };
                 });

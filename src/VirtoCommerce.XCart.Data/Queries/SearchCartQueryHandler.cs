@@ -1,6 +1,5 @@
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.Platform.Core.Common;
@@ -16,18 +15,15 @@ namespace VirtoCommerce.XCart.Data.Queries
     public class SearchCartQueryHandler : IQueryHandler<SearchCartQuery, SearchCartResponse>
     {
         private readonly ICartAggregateRepository _cartAggregateRepository;
-        private readonly IMapper _mapper;
         private readonly ISearchPhraseParser _searchPhraseParser;
         private readonly ICartResponseGroupParser _cartResponseGroupParser;
 
         public SearchCartQueryHandler(
             ICartAggregateRepository cartAggregateRepository,
-            IMapper mapper,
             ISearchPhraseParser searchPhraseParser,
             ICartResponseGroupParser cartResponseGroupParser)
         {
             _cartAggregateRepository = cartAggregateRepository;
-            _mapper = mapper;
             _searchPhraseParser = searchPhraseParser;
             _cartResponseGroupParser = cartResponseGroupParser;
         }
@@ -41,7 +37,7 @@ namespace VirtoCommerce.XCart.Data.Queries
 
         protected virtual ShoppingCartSearchCriteria GetSearchCriteria(SearchCartQuery request)
         {
-            return new CartSearchCriteriaBuilder(_searchPhraseParser, _mapper)
+            return new CartSearchCriteriaBuilder(_searchPhraseParser)
                                      .ParseFilters(request.Filter)
                                      .WithCurrency(request.CurrencyCode)
                                      .WithStore(request.StoreId)

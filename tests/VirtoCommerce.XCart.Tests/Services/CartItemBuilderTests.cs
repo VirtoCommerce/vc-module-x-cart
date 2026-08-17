@@ -1,4 +1,3 @@
-using AutoMapper;
 using FluentAssertions;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Model;
@@ -6,7 +5,6 @@ using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
-using VirtoCommerce.XCart.Data.Mapping;
 using VirtoCommerce.XCart.Data.Services;
 using Xunit;
 
@@ -99,21 +97,13 @@ namespace VirtoCommerce.XCart.Tests.Services
         }
 
         [Fact]
-        public void CartMappingProfile_WithoutBuilderInContext_FallsBackToTryCreateInstance()
+        public void XCartMapper_ToLineItem_WithoutBuilder_FallsBackToTryCreateInstance()
         {
-            // The lambda's `context.Items` access has always required the opts-overload
-            // (the existing `cultureName` lookup uses the same pattern). The fallback test
-            // verifies: when the caller uses the opts-overload but does NOT supply the
-            // ICartItemBuilder.MapperContextKey entry, the lambda still produces a valid
-            // LineItem via the `?? TryCreateInstance()` branch — zero behaviour regression.
-            var config = new MapperConfiguration(cfg => cfg.AddProfile<CartMappingProfile>());
-            var mapper = config.CreateMapper();
+            // Verifies: when the caller doesn't supply a builder, ToLineItem still produces
+            // a valid LineItem via the `?? TryCreateInstance()` branch - zero behaviour regression.
+            var mapper = new XCartMapper();
 
-            var lineItem = mapper.Map<LineItem>(BuildCartProduct(), opts =>
-            {
-                // Intentionally NOT populating Items["cartItemBuilder"] to exercise the fallback.
-                opts.Items.TryAdd("cultureName", "en-US");
-            });
+            var lineItem = mapper.ToLineItem(BuildCartProduct(), cultureName: "en-US", currencyCode: null, builder: null);
 
             lineItem.Should().BeOfType<LineItem>();
             lineItem.ProductId.Should().Be("p1");

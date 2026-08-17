@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using AutoFixture;
-using AutoMapper;
 using Bogus;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -53,7 +52,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         protected readonly Mock<IStoreService> _crudStoreServiceMock;
         protected readonly Mock<IOptionalDependency<ITaxProviderSearchService>> _taxProviderSearchServiceMock;
         protected readonly Mock<IDynamicPropertyUpdaterService> _dynamicPropertyUpdaterService;
-        protected readonly Mock<IMapper> _mapperMock;
+        protected readonly Mock<IXCartMapper> _mapperMock;
         protected readonly Mock<IMemberService> _memberService;
         protected readonly Mock<IGenericPipelineLauncher> _genericPipelineLauncherMock;
         protected readonly Mock<IConfigurationItemValidator> _configurationItemValidatorMock;
@@ -193,7 +192,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
             _taxProviderSearchServiceMock = new Mock<IOptionalDependency<ITaxProviderSearchService>>();
             _dynamicPropertyUpdaterService = new Mock<IDynamicPropertyUpdaterService>();
 
-            _mapperMock = new Mock<IMapper>();
+            _mapperMock = new Mock<IXCartMapper>();
 
             _genericPipelineLauncherMock = new Mock<IGenericPipelineLauncher>();
 

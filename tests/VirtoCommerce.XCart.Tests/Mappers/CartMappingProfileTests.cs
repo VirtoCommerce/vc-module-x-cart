@@ -1,29 +1,16 @@
-using AutoMapper;
 using FluentAssertions;
-using VirtoCommerce.XCart.Data.Mapping;
+using VirtoCommerce.XCart.Data.Services;
 using Xunit;
 using CartAddress = VirtoCommerce.CartModule.Core.Model.Address;
-using TaxAddress = VirtoCommerce.TaxModule.Core.Model.Address;
 
 namespace VirtoCommerce.XCart.Tests.Mappers;
 
 public class CartMappingProfileTests
 {
-    private readonly IMapper _mapper;
-
-    public CartMappingProfileTests()
-    {
-        var configuration = new MapperConfiguration(cfg =>
-        {
-            cfg.AddProfile<CartMappingProfile>();
-            cfg.AddProfile<CartTestDerivedMappingProfile>();
-        });
-
-        _mapper = configuration.CreateMapper();
-    }
+    private readonly XCartMapper _mapper = new();
 
     [Fact]
-    public void MappingProfile_Should_ConvertAddresses()
+    public void ToTaxAddress_CopiesAllFields()
     {
         // Arrange
         var cartAddress = new CartAddress()
@@ -31,49 +18,16 @@ public class CartMappingProfileTests
             Name = nameof(CartAddress),
         };
 
-        var taxAddress = new TaxAddress();
-
         // Act
-        _mapper.Map(cartAddress, taxAddress);
+        var taxAddress = _mapper.ToTaxAddress(cartAddress);
 
         // Assert
         taxAddress.Name.Should().Be(nameof(CartAddress));
     }
 
     [Fact]
-    public void MappingProfile_Should_ConvertExtendedAddresses()
+    public void ToTaxAddress_NullSource_ReturnsNull()
     {
-        // Arrange
-        var cartAddress = new CartAddress2()
-        {
-            Name = nameof(CartAddress),
-            Extension = nameof(CartAddress2),
-        };
-
-        var taxAddress = new TaxAddress2();
-
-        // Act
-        _mapper.Map((CartAddress)cartAddress, taxAddress);
-
-        // Assert
-        taxAddress.Extension.Should().Be(nameof(CartAddress2));
-    }
-}
-
-public class CartAddress2 : CartAddress
-{
-    public string Extension { get; set; }
-}
-
-public class TaxAddress2 : TaxAddress
-{
-    public string Extension { get; set; }
-}
-
-public class CartTestDerivedMappingProfile : Profile
-{
-    public CartTestDerivedMappingProfile()
-    {
-        CreateMap<CartAddress2, TaxAddress2>();
+        _mapper.ToTaxAddress(null).Should().BeNull();
     }
 }

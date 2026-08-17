@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using AutoMapper;
 using PipelineNet.Middleware;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
@@ -12,20 +11,19 @@ using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Pipelines;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
+using VirtoCommerce.XCart.Data.Services;
 
 namespace VirtoCommerce.XCart.Data.Middlewares
 {
     public class LoadCartToEvalContextMiddleware : IAsyncMiddleware<PromotionEvaluationContext>, IAsyncMiddleware<PriceEvaluationContext>, IAsyncMiddleware<TaxEvaluationContext>
     {
-        private readonly IMapper _mapper;
         private readonly ICartAggregateRepository _cartAggregateRepository;
         private readonly IGenericPipelineLauncher _pipeline;
 
-        public LoadCartToEvalContextMiddleware(IMapper mapper,
+        public LoadCartToEvalContextMiddleware(
             ICartAggregateRepository cartAggregateRepository,
             IGenericPipelineLauncher pipeline)
         {
-            _mapper = mapper;
             _cartAggregateRepository = cartAggregateRepository;
             _pipeline = pipeline;
         }
@@ -52,11 +50,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
         {
             var criteria = GetCartSearchCriteria(parameter);
 
-            var cartAggregate = await _cartAggregateRepository.GetCartAsync(criteria, parameter.Language);
-            if (cartAggregate != null)
-            {
-                _mapper.Map(cartAggregate, parameter);
-            }
+            await _cartAggregateRepository.GetCartAsync(criteria, parameter.Language);
 
             await next(parameter);
         }
@@ -68,8 +62,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             var cartAggregate = await _cartAggregateRepository.GetCartAsync(criteria, Language.InvariantLanguage.CultureName);
             if (cartAggregate != null)
             {
-                _mapper.Map(cartAggregate, parameter);
-
+                cartAggregate.MapTo(parameter);
             }
 
             await next(parameter);

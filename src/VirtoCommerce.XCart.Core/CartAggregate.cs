@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using AutoMapper;
 using FluentValidation;
 using FluentValidation.Results;
 using VirtoCommerce.CartModule.Core.Model;
@@ -51,7 +50,7 @@ namespace VirtoCommerce.XCart.Core
         private readonly ICartProductService _cartProductService;
         private readonly IDynamicPropertyUpdaterService _dynamicPropertyUpdaterService;
         private readonly IMemberService _memberService;
-        private readonly IMapper _mapper;
+        private readonly IXCartMapper _mapper;
         private readonly IGenericPipelineLauncher _pipeline;
         private readonly IFileUploadService _fileUploadService;
         private readonly ICartSharingService _cartSharingService;
@@ -67,7 +66,7 @@ namespace VirtoCommerce.XCart.Core
             IOptionalDependency<ITaxProviderSearchService> taxProviderSearchService,
             ICartProductService cartProductService,
             IDynamicPropertyUpdaterService dynamicPropertyUpdaterService,
-            IMapper mapper,
+            IXCartMapper mapper,
             IMemberService memberService,
             IGenericPipelineLauncher pipeline,
             IFileUploadService fileUploadService,
@@ -379,12 +378,7 @@ namespace VirtoCommerce.XCart.Core
                 newCartItem.CartProduct.Price = new ProductPrice(Currency);
             }
 
-            var lineItem = _mapper.Map<LineItem>(newCartItem.CartProduct, options =>
-            {
-                options.Items.TryAdd("cultureName", Cart.LanguageCode);
-                options.Items.TryAdd("currencyCode", newCartItem.ItemCurrencyCode);
-                options.Items.TryAdd(ICartItemBuilder.MapperContextKey, _cartItemBuilder);
-            });
+            var lineItem = _mapper.ToLineItem(newCartItem.CartProduct, Cart.LanguageCode, newCartItem.ItemCurrencyCode, _cartItemBuilder);
 
             lineItem.Currency ??= Currency.Code;
             lineItem.SelectedForCheckout = newCartItem.IsSelectedForCheckout ?? IsSelectedForCheckout;
@@ -471,7 +465,7 @@ namespace VirtoCommerce.XCart.Core
                 .Where(x => x.ProductId.IsNullOrEmpty() || availableProductsIds.Contains(x.ProductId))
                 .Select(reward =>
                 {
-                    var result = _mapper.Map<GiftItem>(reward);
+                    var result = _mapper.ToGiftItem(reward);
 
                     // if reward has assigned product, add data from product
                     if (!string.IsNullOrEmpty(reward.ProductId) && products.TryGetValue(GetCartProductKey(reward.ProductId, Currency.Code), out var product))
@@ -527,7 +521,7 @@ namespace VirtoCommerce.XCart.Core
                 var giftItem = GiftItems.FirstOrDefault(x => x.EqualsReward(availableGift));
                 if (giftItem == null)
                 {
-                    giftItem = _mapper.Map<GiftLineItem>(availableGift);
+                    giftItem = _mapper.ToGiftLineItem(availableGift);
 
                     if (giftItem is GiftLineItem giftLineItem)
                     {
@@ -1080,7 +1074,7 @@ namespace VirtoCommerce.XCart.Core
                 var taxProvider = await GetActiveTaxProviderAsync();
                 if (taxProvider != null)
                 {
-                    var taxEvalContext = _mapper.Map<TaxEvaluationContext>(this);
+                    var taxEvalContext = _mapper.ToTaxEvaluationContext(this);
                     result = taxProvider.CalculateRates(taxEvalContext);
                 }
             }

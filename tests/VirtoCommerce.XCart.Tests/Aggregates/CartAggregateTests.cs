@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture;
-using AutoMapper;
 using FluentAssertions;
 using FluentValidation.Results;
 using Moq;
@@ -19,6 +18,7 @@ using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.ShippingModule.Core.Model;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
+using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
 using VirtoCommerce.XCart.Tests.Helpers;
 using VirtoCommerce.XCart.Tests.Helpers.Stubs;
@@ -144,8 +144,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 });
 
             _mapperMock
-                .Setup(m => m.Map(It.IsAny<CartProduct>(), It.IsAny<Action<IMappingOperationOptions<object, LineItem>>>()))
-                .Returns<CartProduct, Action<IMappingOperationOptions<object, LineItem>>>((cartProduct, options) => new LineItem
+                .Setup(m => m.ToLineItem(It.IsAny<CartProduct>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ICartItemBuilder>()))
+                .Returns<CartProduct, string, string, ICartItemBuilder>((cartProduct, _, _, _) => new LineItem
                 {
                     ProductId = cartProduct.Id,
                 });
@@ -208,8 +208,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 .ReturnsAsync(products);
 
             _mapperMock
-                .Setup(m => m.Map(It.IsAny<CartProduct>(), It.IsAny<Action<IMappingOperationOptions<object, LineItem>>>()))
-                .Returns<CartProduct, Action<IMappingOperationOptions<object, LineItem>>>((cp, _) => new LineItem { ProductId = cp.Id });
+                .Setup(m => m.ToLineItem(It.IsAny<CartProduct>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ICartItemBuilder>()))
+                .Returns<CartProduct, string, string, ICartItemBuilder>((cp, _, _, _) => new LineItem { ProductId = cp.Id });
 
             var cartAggregate = GetValidCartAggregate();
             cartAggregate.ValidationRuleSet = ["default"];
@@ -1011,18 +1011,18 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             public const string CustomErrorCode = "CUSTOM_VALIDATION_ERROR";
 
             public ExtendedCartAggregate(
-                VirtoCommerce.MarketingModule.Core.Services.IMarketingPromoEvaluator marketingEvaluator,
-                VirtoCommerce.CartModule.Core.Services.IShoppingCartTotalsCalculator cartTotalsCalculator,
-                VirtoCommerce.Platform.Core.Modularity.IOptionalDependency<VirtoCommerce.TaxModule.Core.Services.ITaxProviderSearchService> taxProviderSearchService,
-                VirtoCommerce.XCart.Core.Services.ICartProductService cartProductService,
-                VirtoCommerce.Xapi.Core.Services.IDynamicPropertyUpdaterService dynamicPropertyUpdaterService,
-                IMapper mapper,
-                VirtoCommerce.CustomerModule.Core.Services.IMemberService memberService,
-                VirtoCommerce.Xapi.Core.Pipelines.IGenericPipelineLauncher pipeline,
-                VirtoCommerce.FileExperienceApi.Core.Services.IFileUploadService fileUploadService,
-                VirtoCommerce.XCart.Core.Services.ICartSharingService cartSharingService,
+                MarketingModule.Core.Services.IMarketingPromoEvaluator marketingEvaluator,
+                CartModule.Core.Services.IShoppingCartTotalsCalculator cartTotalsCalculator,
+                Platform.Core.Modularity.IOptionalDependency<TaxModule.Core.Services.ITaxProviderSearchService> taxProviderSearchService,
+                ICartProductService cartProductService,
+                Xapi.Core.Services.IDynamicPropertyUpdaterService dynamicPropertyUpdaterService,
+                IXCartMapper mapper,
+                CustomerModule.Core.Services.IMemberService memberService,
+                Xapi.Core.Pipelines.IGenericPipelineLauncher pipeline,
+                FileExperienceApi.Core.Services.IFileUploadService fileUploadService,
+                ICartSharingService cartSharingService,
                 ICartValidationContextFactory cartValidationContextFactory,
-                VirtoCommerce.XCart.Core.Services.ICartItemBuilder cartItemBuilder,
+                ICartItemBuilder cartItemBuilder,
                 ICartValidatorRegistry cartValidatorRegistry)
                 : base(marketingEvaluator, cartTotalsCalculator, taxProviderSearchService, cartProductService, dynamicPropertyUpdaterService, mapper, memberService, pipeline,
                     fileUploadService, cartSharingService, cartValidationContextFactory, cartItemBuilder, cartValidatorRegistry)
@@ -1030,7 +1030,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             }
 
 #pragma warning disable VC0009 // The obsolete overload remains the virtual extension point during the deprecation window
-            public override async Task<IList<FluentValidation.Results.ValidationFailure>> ValidateAsync(CartValidationContext validationContext, string ruleSet)
+            public override async Task<IList<ValidationFailure>> ValidateAsync(CartValidationContext validationContext, string ruleSet)
             {
                 var errors = await base.ValidateAsync(validationContext, ruleSet);
 
@@ -1067,10 +1067,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 IsValid = true,
             });
 
-            _mapperMock
-                .Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
-                .Returns(context);
-
             _marketingPromoEvaluatorMock
                .Setup(x => x.EvaluatePromotionAsync(It.Is<PromotionEvaluationContext>(x => x.Coupon == coupon)))
                .ReturnsAsync(stub);
@@ -1079,7 +1075,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 .Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
                 .Callback<PromotionEvaluationContextCartMap>(x =>
                 {
-                    x.PromotionEvaluationContext = _mapperMock.Object.Map<PromotionEvaluationContext>(cartAggregate);
+                    x.PromotionEvaluationContext = context;
                 });
 
             // Act
@@ -1119,10 +1115,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 IsValid = true,
             });
 
-            _mapperMock
-                .Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
-                .Returns(context);
-
             _marketingPromoEvaluatorMock
                .Setup(x => x.EvaluatePromotionAsync(It.Is<PromotionEvaluationContext>(x => x.Coupon == enteredCoupon)))
                .ReturnsAsync(stub);
@@ -1131,7 +1123,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 .Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
                 .Callback<PromotionEvaluationContextCartMap>(x =>
                 {
-                    x.PromotionEvaluationContext = _mapperMock.Object.Map<PromotionEvaluationContext>(cartAggregate);
+                    x.PromotionEvaluationContext = context;
                 });
 
             // Act
@@ -1188,10 +1180,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             promoResult.Rewards.Add(promoReward);
 
-            _mapperMock
-                .Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
-                .Returns(context);
-
             _marketingPromoEvaluatorMock
                .Setup(x => x.EvaluatePromotionAsync(It.Is<PromotionEvaluationContext>(x => x == context)))
                .ReturnsAsync(promoResult);
@@ -1200,7 +1188,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 .Setup(x => x.Execute(It.IsAny<PromotionEvaluationContextCartMap>()))
                 .Callback<PromotionEvaluationContextCartMap>(x =>
                 {
-                    x.PromotionEvaluationContext = _mapperMock.Object.Map<PromotionEvaluationContext>(cartAggregate);
+                    x.PromotionEvaluationContext = context;
                 });
 
             // Act
@@ -1221,8 +1209,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var cartAggregate = GetValidCartAggregate();
             cartAggregate.Cart.Items = new List<LineItem> { _fixture.Create<LineItem>() };
 
-            var context = new PromotionEvaluationContext();
-
             var promoResult = new PromotionResult();
             var promoReward = new StubPromotionReward
             {
@@ -1231,16 +1217,12 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             };
             promoResult.Rewards.Add(promoReward);
 
-            _mapperMock
-                .Setup(x => x.Map<PromotionEvaluationContext>(It.Is<CartAggregate>(x => x == cartAggregate)))
-                .Returns(context);
-
             _marketingPromoEvaluatorMock
-               .Setup(x => x.EvaluatePromotionAsync(It.Is<PromotionEvaluationContext>(x => x == context)))
+               .Setup(x => x.EvaluatePromotionAsync(It.IsAny<PromotionEvaluationContext>()))
                .ReturnsAsync(promoResult);
 
             // Act
-            var result = await cartAggregate.RecalculateAsync();
+            await cartAggregate.RecalculateAsync();
 
             // Assert
             _shoppingCartTotalsCalculatorMock.Verify(x => x.CalculateTotals(It.Is<ShoppingCart>(x => x == cartAggregate.Cart)), Times.Exactly(2));
@@ -1308,8 +1290,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             var cartAggregate = GetValidCartAggregate(cart, currency);
 
-            var context = new PromotionEvaluationContext();
-
             var promotionResult = new PromotionResult();
             var reward = new CatalogItemAmountReward
             {
@@ -1319,10 +1299,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 IsValid = true,
             };
             promotionResult.Rewards.Add(reward);
-
-            _mapperMock
-                .Setup(x => x.Map<PromotionEvaluationContext>(It.IsAny<CartAggregate>()))
-                .Returns(context);
 
             _marketingPromoEvaluatorMock
                 .Setup(x => x.EvaluatePromotionAsync(It.IsAny<PromotionEvaluationContext>()))
@@ -1874,8 +1850,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             _configurationItemValidatorMock
                 .Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), CancellationToken.None))
-                .ReturnsAsync(new FluentValidation.Results.ValidationResult(
-                    [new FluentValidation.Results.ValidationFailure("ConfigurationItems", "Invalid configuration")]));
+                .ReturnsAsync(new ValidationResult(
+                    [new ValidationFailure("ConfigurationItems", "Invalid configuration")]));
 
             // Act
             await cartAggregate.AddConfigurationItemsAsync(lineItem.Id, configurationSections);
@@ -2750,8 +2726,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             _configurationItemValidatorMock
                 .Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), CancellationToken.None))
-                .ReturnsAsync(new FluentValidation.Results.ValidationResult(
-                    [new FluentValidation.Results.ValidationFailure("ConfigurationItems", "Invalid configuration")]));
+                .ReturnsAsync(new ValidationResult(
+                    [new ValidationFailure("ConfigurationItems", "Invalid configuration")]));
 
             // Act
             await cartAggregate.UpdateConfigurationItemsAsync(lineItem.Id, configurationSections);
@@ -3149,8 +3125,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             _configurationItemValidatorMock
                 .Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), CancellationToken.None))
-                .ReturnsAsync(new FluentValidation.Results.ValidationResult(
-                    [new FluentValidation.Results.ValidationFailure("ConfigurationItems", "Required section missing")]));
+                .ReturnsAsync(new ValidationResult(
+                    [new ValidationFailure("ConfigurationItems", "Required section missing")]));
 
             // Act
             await cartAggregate.RemoveConfigurationItemsAsync(lineItem.Id, configurationSections);

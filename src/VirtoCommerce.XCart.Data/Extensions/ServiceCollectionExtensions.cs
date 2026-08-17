@@ -25,6 +25,8 @@ namespace VirtoCommerce.XCart.Data.Extensions
     {
         public static IServiceCollection AddXCart(this IServiceCollection services, IGraphQLBuilder graphQLBuilder)
         {
+            services.AddSingleton<IXCartMapper, XCartMapper>();
+
             services.AddSingleton<ScopedSchemaFactory<DataAssemblyMarker>>();
 
             services.AddSingleton<IAuthorizationHandler, CanAccessCartAuthorizationHandler>();
