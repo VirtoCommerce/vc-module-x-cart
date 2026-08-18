@@ -136,7 +136,7 @@ public class XCartMapperTests
             },
         };
 
-        var result = _mapper.ToLineItem(cartProduct, cultureName: null, currencyCode: null, builder: null);
+        var result = _mapper.ToLineItem(cartProduct, null);
 
         result.ProductId.Should().Be("prod-1");
         result.CatalogId.Should().Be("catalog-1");
@@ -164,7 +164,7 @@ public class XCartMapperTests
     [Fact]
     public void ToLineItem_NullSource_ReturnsNull()
     {
-        _mapper.ToLineItem(null, null, null, null).Should().BeNull();
+        _mapper.ToLineItem(null, null).Should().BeNull();
     }
 
     [Fact]

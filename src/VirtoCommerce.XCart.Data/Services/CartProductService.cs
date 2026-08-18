@@ -275,6 +275,10 @@ namespace VirtoCommerce.XCart.Data.Services
                 return;
             }
 
+            // Built directly rather than routed through the pipeline: LoadCartToEvalContextMiddleware
+            // handles PriceEvaluationContext, and this method runs as part of building the cart
+            // aggregate itself, so dispatching through the pipeline here recurses into an infinite
+            // cart load and stack-overflows.
             var pricesEvalContext = _mapper.ToPriceEvaluationContext(aggregate);
             pricesEvalContext.ProductIds = products.Select(x => x.Id).ToArray();
 
@@ -301,6 +305,10 @@ namespace VirtoCommerce.XCart.Data.Services
                 return;
             }
 
+            // Built directly rather than routed through the pipeline: LoadCartToEvalContextMiddleware
+            // handles PriceEvaluationContext, and this method runs as part of building the cart
+            // aggregate itself, so dispatching through the pipeline here recurses into an infinite
+            // cart load and stack-overflows.
             var pricesEvalContext = _mapper.ToPriceEvaluationContext(request);
             pricesEvalContext.ProductIds = products.Select(x => x.Id).ToArray();
 

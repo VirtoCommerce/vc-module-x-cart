@@ -144,8 +144,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 });
 
             _mapperMock
-                .Setup(m => m.ToLineItem(It.IsAny<CartProduct>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ICartItemBuilder>()))
-                .Returns<CartProduct, string, string, ICartItemBuilder>((cartProduct, _, _, _) => new LineItem
+                .Setup(m => m.ToLineItem(It.IsAny<CartProduct>(), It.IsAny<CartMappingContext>()))
+                .Returns<CartProduct, CartMappingContext>((cartProduct, _) => new LineItem
                 {
                     ProductId = cartProduct.Id,
                 });
@@ -208,8 +208,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 .ReturnsAsync(products);
 
             _mapperMock
-                .Setup(m => m.ToLineItem(It.IsAny<CartProduct>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ICartItemBuilder>()))
-                .Returns<CartProduct, string, string, ICartItemBuilder>((cp, _, _, _) => new LineItem { ProductId = cp.Id });
+                .Setup(m => m.ToLineItem(It.IsAny<CartProduct>(), It.IsAny<CartMappingContext>()))
+                .Returns<CartProduct, CartMappingContext>((cp, _) => new LineItem { ProductId = cp.Id });
 
             var cartAggregate = GetValidCartAggregate();
             cartAggregate.ValidationRuleSet = ["default"];

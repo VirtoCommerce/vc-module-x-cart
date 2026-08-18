@@ -86,8 +86,8 @@ namespace VirtoCommerce.XCart.Tests.Handlers
                 });
 
             _mapperMock
-                .Setup(m => m.ToLineItem(It.IsAny<CartProduct>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<ICartItemBuilder>()))
-                .Returns<CartProduct, string, string, ICartItemBuilder>((cartProduct, _, _, _) =>
+                .Setup(m => m.ToLineItem(It.IsAny<CartProduct>(), It.IsAny<CartMappingContext>()))
+                .Returns<CartProduct, CartMappingContext>((cartProduct, _) =>
                 {
                     return new LineItem { ProductId = cartProduct.Id };
                 });

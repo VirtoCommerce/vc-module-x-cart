@@ -103,7 +103,7 @@ namespace VirtoCommerce.XCart.Tests.Services
             // a valid LineItem via the `?? TryCreateInstance()` branch - zero behaviour regression.
             var mapper = new XCartMapper();
 
-            var lineItem = mapper.ToLineItem(BuildCartProduct(), cultureName: "en-US", currencyCode: null, builder: null);
+            var lineItem = mapper.ToLineItem(BuildCartProduct(), new CartMappingContext { CultureName = "en-US" });
 
             lineItem.Should().BeOfType<LineItem>();
             lineItem.ProductId.Should().Be("p1");

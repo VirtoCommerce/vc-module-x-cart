@@ -378,7 +378,12 @@ namespace VirtoCommerce.XCart.Core
                 newCartItem.CartProduct.Price = AbstractTypeFactory<ProductPrice>.TryCreateInstance(nameof(ProductPrice), Currency);
             }
 
-            var lineItem = _mapper.ToLineItem(newCartItem.CartProduct, Cart.LanguageCode, newCartItem.ItemCurrencyCode, _cartItemBuilder);
+            var mappingContext = AbstractTypeFactory<CartMappingContext>.TryCreateInstance();
+            mappingContext.CultureName = Cart.LanguageCode;
+            mappingContext.CurrencyCode = newCartItem.ItemCurrencyCode;
+            mappingContext.Builder = _cartItemBuilder;
+
+            var lineItem = _mapper.ToLineItem(newCartItem.CartProduct, mappingContext);
 
             lineItem.Currency ??= Currency.Code;
             lineItem.SelectedForCheckout = newCartItem.IsSelectedForCheckout ?? IsSelectedForCheckout;

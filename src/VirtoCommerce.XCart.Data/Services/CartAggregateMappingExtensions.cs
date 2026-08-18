@@ -6,13 +6,13 @@ using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.XCart.Core;
-using TaxAddress = VirtoCommerce.TaxModule.Core.Model.Address;
+using VirtoCommerce.XCart.Core.Services;
 
 namespace VirtoCommerce.XCart.Data.Services;
 
 public static class CartAggregateMappingExtensions
 {
-    public static void MapTo(this CartAggregate source, PromotionEvaluationContext target)
+    public static void MapTo(this CartAggregate source, PromotionEvaluationContext target, IXCartMapper mapper)
     {
         if (source == null || target == null)
         {
@@ -24,7 +24,7 @@ public static class CartAggregateMappingExtensions
         // Tax and Promotion are computed only on primary-currency lines.
         foreach (var lineItem in source.CartCurrencySelectedLineItems)
         {
-            var promoEntry = XCartMapper.BuildProductPromoEntry(lineItem);
+            var promoEntry = mapper.ToProductPromoEntry(lineItem);
             var cartProduct = source.CartProducts[source.GetCartProductKey(lineItem)];
             if (cartProduct != null)
             {
@@ -67,7 +67,7 @@ public static class CartAggregateMappingExtensions
         target.IsEveryone = true;
     }
 
-    public static void MapTo(this CartAggregate source, TaxEvaluationContext target)
+    public static void MapTo(this CartAggregate source, TaxEvaluationContext target, IXCartMapper mapper)
     {
         if (source == null || target == null)
         {
@@ -109,9 +109,7 @@ public static class CartAggregateMappingExtensions
 
             if (shipment.DeliveryAddress != null)
             {
-                var taxAddress = AbstractTypeFactory<TaxAddress>.TryCreateInstance();
-                XCartMapper.CopyAddressFields(shipment.DeliveryAddress, taxAddress);
-                target.Address = taxAddress;
+                target.Address = mapper.ToTaxAddress(shipment.DeliveryAddress);
             }
         }
 

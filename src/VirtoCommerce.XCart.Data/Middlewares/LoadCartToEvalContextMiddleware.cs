@@ -19,13 +19,16 @@ namespace VirtoCommerce.XCart.Data.Middlewares
     {
         private readonly ICartAggregateRepository _cartAggregateRepository;
         private readonly IGenericPipelineLauncher _pipeline;
+        private readonly IXCartMapper _mapper;
 
         public LoadCartToEvalContextMiddleware(
             ICartAggregateRepository cartAggregateRepository,
-            IGenericPipelineLauncher pipeline)
+            IGenericPipelineLauncher pipeline,
+            IXCartMapper mapper)
         {
             _cartAggregateRepository = cartAggregateRepository;
             _pipeline = pipeline;
+            _mapper = mapper;
         }
 
         public async Task Run(PromotionEvaluationContext parameter, Func<PromotionEvaluationContext, Task> next)
@@ -46,13 +49,11 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             await next(parameter);
         }
 
-        public async Task Run(PriceEvaluationContext parameter, Func<PriceEvaluationContext, Task> next)
+        public Task Run(PriceEvaluationContext parameter, Func<PriceEvaluationContext, Task> next)
         {
-            var criteria = GetCartSearchCriteria(parameter);
-
-            await _cartAggregateRepository.GetCartAsync(criteria, parameter.Language);
-
-            await next(parameter);
+            // The cart-to-context map for PriceEvaluationContext is a no-op (no consumer ever
+            // populates it from a loaded cart), so this middleware only forwards the pipeline.
+            return next(parameter);
         }
 
         public async Task Run(TaxEvaluationContext parameter, Func<TaxEvaluationContext, Task> next)
@@ -62,7 +63,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             var cartAggregate = await _cartAggregateRepository.GetCartAsync(criteria, Language.InvariantLanguage.CultureName);
             if (cartAggregate != null)
             {
-                cartAggregate.MapTo(parameter);
+                cartAggregate.MapTo(parameter, _mapper);
             }
 
             await next(parameter);
@@ -70,21 +71,6 @@ namespace VirtoCommerce.XCart.Data.Middlewares
 
 
         protected virtual ShoppingCartSearchCriteria GetCartSearchCriteria(PromotionEvaluationContext context)
-        {
-            var cartSearchCriteria = AbstractTypeFactory<ShoppingCartSearchCriteria>.TryCreateInstance();
-
-            cartSearchCriteria.Name = "default";
-            cartSearchCriteria.StoreId = context.StoreId;
-            cartSearchCriteria.CustomerId = context.CustomerId;
-            cartSearchCriteria.OrganizationId = context.OrganizationId;
-            cartSearchCriteria.OrganizationIdIsEmpty = string.IsNullOrEmpty(context.OrganizationId);
-            cartSearchCriteria.Currency = context.Currency;
-            cartSearchCriteria.ResponseGroup = CartResponseGroup.Full.ToString();
-
-            return cartSearchCriteria;
-        }
-
-        protected virtual ShoppingCartSearchCriteria GetCartSearchCriteria(PriceEvaluationContext context)
         {
             var cartSearchCriteria = AbstractTypeFactory<ShoppingCartSearchCriteria>.TryCreateInstance();
 

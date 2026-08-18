@@ -26,34 +26,30 @@ public class XCartMapper : IXCartMapper
         }
 
         var result = AbstractTypeFactory<TaxAddress>.TryCreateInstance();
-        CopyAddressFields(source, result);
+
+        result.AddressType = source.AddressType;
+        result.Key = source.Key;
+        result.Name = source.Name;
+        result.Organization = source.Organization;
+        result.CountryCode = source.CountryCode;
+        result.CountryName = source.CountryName;
+        result.City = source.City;
+        result.PostalCode = source.PostalCode;
+        result.Zip = source.Zip;
+        result.Line1 = source.Line1;
+        result.Line2 = source.Line2;
+        result.RegionId = source.RegionId;
+        result.RegionName = source.RegionName;
+        result.FirstName = source.FirstName;
+        result.MiddleName = source.MiddleName;
+        result.LastName = source.LastName;
+        result.Phone = source.Phone;
+        result.Email = source.Email;
+        result.OuterId = source.OuterId;
+        result.IsDefault = source.IsDefault;
+        result.Description = source.Description;
 
         return result;
-    }
-
-    internal static void CopyAddressFields(CartAddress source, TaxAddress target)
-    {
-        target.AddressType = source.AddressType;
-        target.Key = source.Key;
-        target.Name = source.Name;
-        target.Organization = source.Organization;
-        target.CountryCode = source.CountryCode;
-        target.CountryName = source.CountryName;
-        target.City = source.City;
-        target.PostalCode = source.PostalCode;
-        target.Zip = source.Zip;
-        target.Line1 = source.Line1;
-        target.Line2 = source.Line2;
-        target.RegionId = source.RegionId;
-        target.RegionName = source.RegionName;
-        target.FirstName = source.FirstName;
-        target.MiddleName = source.MiddleName;
-        target.LastName = source.LastName;
-        target.Phone = source.Phone;
-        target.Email = source.Email;
-        target.OuterId = source.OuterId;
-        target.IsDefault = source.IsDefault;
-        target.Description = source.Description;
     }
 
     public virtual GiftItem ToGiftItem(GiftReward source)
@@ -106,17 +102,17 @@ public class XCartMapper : IXCartMapper
         return result;
     }
 
-    public virtual LineItem ToLineItem(CartProduct source, string cultureName, string currencyCode, ICartItemBuilder builder)
+    public virtual LineItem ToLineItem(CartProduct source, CartMappingContext context)
     {
         if (source == null)
         {
             return null;
         }
 
-        var lineItem = builder?.Create(source) ?? AbstractTypeFactory<LineItem>.TryCreateInstance();
+        var lineItem = context?.Builder?.Create(source) ?? AbstractTypeFactory<LineItem>.TryCreateInstance();
 
-        lineItem.Name = source.GetName(cultureName);
-        lineItem.Currency = currencyCode;
+        lineItem.Name = source.GetName(context?.CultureName);
+        lineItem.Currency = context?.CurrencyCode;
 
         lineItem.CatalogId = source.Product.CatalogId;
         lineItem.CategoryId = source.Product.CategoryId;
@@ -192,11 +188,6 @@ public class XCartMapper : IXCartMapper
             return null;
         }
 
-        return BuildProductPromoEntry(source);
-    }
-
-    internal static ProductPromoEntry BuildProductPromoEntry(LineItem source)
-    {
         var result = AbstractTypeFactory<ProductPromoEntry>.TryCreateInstance();
 
         result.CatalogId = source.CatalogId;
@@ -297,7 +288,7 @@ public class XCartMapper : IXCartMapper
         }
 
         var result = AbstractTypeFactory<TaxEvaluationContext>.TryCreateInstance();
-        source.MapTo(result);
+        source.MapTo(result, this);
 
         return result;
     }

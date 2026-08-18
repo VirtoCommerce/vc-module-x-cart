@@ -19,7 +19,7 @@ public interface IXCartMapper
 
     GiftLineItem ToGiftLineItem(GiftItem source);
 
-    LineItem ToLineItem(CartProduct source, string cultureName, string currencyCode, ICartItemBuilder builder);
+    LineItem ToLineItem(CartProduct source, CartMappingContext context);
 
     IEnumerable<TaxLine> ToTaxLines(ShippingRate source);
 

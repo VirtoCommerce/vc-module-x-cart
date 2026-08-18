@@ -145,8 +145,9 @@ public class CartAggregateMappingExtensionsTests : XCartMoqHelper
 
         var aggregate = BuildAggregate(cart);
         var target = new TaxEvaluationContext();
+        var mapper = new XCartMapper();
 
-        aggregate.MapTo(target);
+        aggregate.MapTo(target, mapper);
 
         target.StoreId.Should().Be("store-1");
         target.Code.Should().Be("default");
@@ -180,12 +181,65 @@ public class CartAggregateMappingExtensionsTests : XCartMoqHelper
     [Fact]
     public void MapTo_TaxEvaluationContext_NullSourceOrTarget_DoesNothing()
     {
+        var mapper = new XCartMapper();
+
         var target = new TaxEvaluationContext();
-        ((CartAggregate)null).MapTo(target);
+        ((CartAggregate)null).MapTo(target, mapper);
         target.Lines.Should().BeEmpty();
 
         var aggregate = BuildAggregate(new ShoppingCart { Currency = CURRENCY_CODE, Items = [] });
-        aggregate.MapTo((TaxEvaluationContext)null);
+        aggregate.MapTo((TaxEvaluationContext)null, mapper);
+    }
+
+    [Fact]
+    public void MapTo_TaxEvaluationContext_ShipmentDeliveryAddress_RoutedThroughMapperToTaxAddress()
+    {
+        var cart = new ShoppingCart
+        {
+            StoreId = "store-1",
+            Name = "default",
+            CustomerId = "customer-1",
+            Currency = CURRENCY_CODE,
+            Items = [],
+            Shipments =
+            [
+                new Shipment
+                {
+                    Id = "ship-1",
+                    ShipmentMethodCode = "standard",
+                    DeliveryAddress = new CartModule.Core.Model.Address { Name = "Warehouse" },
+                },
+            ],
+        };
+
+        var aggregate = BuildAggregate(cart);
+        var target = new TaxEvaluationContext();
+        var mapper = new OverridingXCartMapper();
+
+        aggregate.MapTo(target, mapper);
+
+        // Proves ToTaxAddress is actually invoked from production code rather than bypassed: an
+        // override on the injected mapper takes effect here, not only when called directly in a test.
+        target.Address.Should().NotBeNull();
+        target.Address.Name.Should().Be("Warehouse");
+        target.Address.Description.Should().Be("overridden-by-derived-mapper");
+    }
+
+    private class OverridingXCartMapper : XCartMapper
+    {
+        public override VirtoCommerce.TaxModule.Core.Model.Address ToTaxAddress(CartModule.Core.Model.Address source)
+        {
+            var result = base.ToTaxAddress(source);
+            result.Description = "overridden-by-derived-mapper";
+            return result;
+        }
+
+        public override ProductPromoEntry ToProductPromoEntry(LineItem source)
+        {
+            var result = base.ToProductPromoEntry(source);
+            result.Discount = -1m;
+            return result;
+        }
     }
 
     [Fact]
@@ -219,8 +273,9 @@ public class CartAggregateMappingExtensionsTests : XCartMoqHelper
 
         var aggregate = BuildAggregate(cart);
         var target = new PromotionEvaluationContext();
+        var mapper = new XCartMapper();
 
-        aggregate.MapTo(target);
+        aggregate.MapTo(target, mapper);
 
         target.StoreId.Should().Be("store-1");
         target.CustomerId.Should().Be("customer-1");
@@ -247,12 +302,48 @@ public class CartAggregateMappingExtensionsTests : XCartMoqHelper
     [Fact]
     public void MapTo_PromotionEvaluationContext_NullSourceOrTarget_DoesNothing()
     {
+        var mapper = new XCartMapper();
+
         var target = new PromotionEvaluationContext();
-        ((CartAggregate)null).MapTo(target);
+        ((CartAggregate)null).MapTo(target, mapper);
         target.CartPromoEntries.Should().BeEmpty();
 
         var aggregate = BuildAggregate(new ShoppingCart { Currency = CURRENCY_CODE, Items = [] });
-        aggregate.MapTo((PromotionEvaluationContext)null);
+        aggregate.MapTo((PromotionEvaluationContext)null, mapper);
+    }
+
+    [Fact]
+    public void MapTo_PromotionEvaluationContext_PromoEntries_RoutedThroughMapperToProductPromoEntry()
+    {
+        var cart = new ShoppingCart
+        {
+            StoreId = "store-1",
+            CustomerId = "customer-1",
+            Currency = CURRENCY_CODE,
+            Items =
+            [
+                new LineItem
+                {
+                    Id = "line-1",
+                    ProductId = "prod-1",
+                    Sku = "SKU-1",
+                    Currency = CURRENCY_CODE,
+                    SalePrice = 80m,
+                    Quantity = 2,
+                    SelectedForCheckout = true,
+                },
+            ],
+        };
+
+        var aggregate = BuildAggregate(cart);
+        var target = new PromotionEvaluationContext();
+        var mapper = new OverridingXCartMapper();
+
+        aggregate.MapTo(target, mapper);
+
+        // Proves ToProductPromoEntry is actually invoked from production code rather than bypassed.
+        var entry = target.CartPromoEntries.Should().ContainSingle().Subject;
+        entry.Discount.Should().Be(-1m);
     }
 }
 
