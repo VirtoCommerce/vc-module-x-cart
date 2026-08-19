@@ -16,7 +16,7 @@ using Store = VirtoCommerce.StoreModule.Core.Model.Store;
 
 namespace VirtoCommerce.XCart.Tests.Services;
 
-public class CartAggregateMappingExtensionsTests : XCartMoqHelper
+public class CartAggregateMappingTests : XCartMoqHelper
 {
     private CartAggregate BuildAggregate(ShoppingCart cart, Member member = null)
     {
@@ -346,7 +346,7 @@ public class CartAggregateMappingExtensionsTests : XCartMoqHelper
     }
 }
 
-public class CartFilterMappingExtensionsTests
+public class CartFilterMappingTests
 {
     private readonly IXCartMapper _mapper = new XCartMapper();
 
