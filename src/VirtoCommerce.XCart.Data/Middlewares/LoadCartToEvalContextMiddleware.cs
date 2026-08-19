@@ -51,8 +51,6 @@ namespace VirtoCommerce.XCart.Data.Middlewares
 
         public Task Run(PriceEvaluationContext parameter, Func<PriceEvaluationContext, Task> next)
         {
-            // The cart-to-context map for PriceEvaluationContext is a no-op (no consumer ever
-            // populates it from a loaded cart), so this middleware only forwards the pipeline.
             return next(parameter);
         }
 

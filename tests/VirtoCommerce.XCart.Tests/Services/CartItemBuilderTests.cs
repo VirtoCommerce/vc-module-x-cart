@@ -99,8 +99,6 @@ namespace VirtoCommerce.XCart.Tests.Services
         [Fact]
         public void XCartMapper_ToLineItem_WithoutBuilder_FallsBackToTryCreateInstance()
         {
-            // Verifies: when the caller doesn't supply a builder, ToLineItem still produces
-            // a valid LineItem via the `?? TryCreateInstance()` branch - zero behaviour regression.
             var mapper = new XCartMapper();
 
             var lineItem = mapper.ToLineItem(BuildCartProduct(), new CartMappingContext { CultureName = "en-US" });

@@ -378,10 +378,7 @@ namespace VirtoCommerce.XCart.Core
                 newCartItem.CartProduct.Price = AbstractTypeFactory<ProductPrice>.TryCreateInstance(nameof(ProductPrice), Currency);
             }
 
-            var mappingContext = AbstractTypeFactory<CartMappingContext>.TryCreateInstance();
-            mappingContext.CultureName = Cart.LanguageCode;
-            mappingContext.CurrencyCode = newCartItem.ItemCurrencyCode;
-            mappingContext.Builder = _cartItemBuilder;
+            var mappingContext = CreateCartMappingContext(newCartItem);
 
             var lineItem = _mapper.ToLineItem(newCartItem.CartProduct, mappingContext);
 
@@ -412,6 +409,16 @@ namespace VirtoCommerce.XCart.Core
             await InnerAddLineItemAsync(lineItem, newCartItem.OverrideQuantity, newCartItem.CartProduct, newCartItem.DynamicProperties);
 
             return this;
+        }
+
+        protected virtual CartMappingContext CreateCartMappingContext(NewCartItem newCartItem)
+        {
+            var mappingContext = AbstractTypeFactory<CartMappingContext>.TryCreateInstance();
+            mappingContext.CultureName = Cart.LanguageCode;
+            mappingContext.CurrencyCode = newCartItem.ItemCurrencyCode;
+            mappingContext.Builder = _cartItemBuilder;
+
+            return mappingContext;
         }
 
         public virtual async Task<CartAggregate> AddItemsAsync(ICollection<NewCartItem> newCartItems)

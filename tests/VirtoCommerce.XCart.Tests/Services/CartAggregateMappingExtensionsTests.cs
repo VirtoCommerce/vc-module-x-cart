@@ -218,8 +218,6 @@ public class CartAggregateMappingExtensionsTests : XCartMoqHelper
 
         aggregate.MapTo(target, mapper);
 
-        // Proves ToTaxAddress is actually invoked from production code rather than bypassed: an
-        // override on the injected mapper takes effect here, not only when called directly in a test.
         target.Address.Should().NotBeNull();
         target.Address.Name.Should().Be("Warehouse");
         target.Address.Description.Should().Be("overridden-by-derived-mapper");
@@ -341,7 +339,6 @@ public class CartAggregateMappingExtensionsTests : XCartMoqHelper
 
         aggregate.MapTo(target, mapper);
 
-        // Proves ToProductPromoEntry is actually invoked from production code rather than bypassed.
         var entry = target.CartPromoEntries.Should().ContainSingle().Subject;
         entry.Discount.Should().Be(-1m);
     }
