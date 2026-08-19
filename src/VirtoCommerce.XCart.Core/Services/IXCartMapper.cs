@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.PricingModule.Core.Model;
+using VirtoCommerce.SearchModule.Core.Model;
 using VirtoCommerce.ShippingModule.Core.Model;
 using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.XCart.Core.Models;
@@ -32,4 +34,10 @@ public interface IXCartMapper
     PriceEvaluationContext ToPriceEvaluationContext(CartProductsRequest source);
 
     TaxEvaluationContext ToTaxEvaluationContext(CartAggregate source);
+
+    void MapTo(CartAggregate source, PromotionEvaluationContext target);
+
+    void MapTo(CartAggregate source, TaxEvaluationContext target);
+
+    void MapTo(IList<IFilter> filters, ShoppingCartSearchCriteria criteria);
 }

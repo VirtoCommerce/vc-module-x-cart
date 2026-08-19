@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using FluentAssertions;
 using VirtoCommerce.CartModule.Core.Model;
@@ -7,6 +8,7 @@ using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.SearchModule.Core.Model;
 using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.XCart.Core;
+using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Services;
 using VirtoCommerce.XCart.Tests.Helpers;
 using Xunit;
@@ -147,7 +149,7 @@ public class CartAggregateMappingExtensionsTests : XCartMoqHelper
         var target = new TaxEvaluationContext();
         var mapper = new XCartMapper();
 
-        aggregate.MapTo(target, mapper);
+        mapper.MapTo(aggregate, target);
 
         target.StoreId.Should().Be("store-1");
         target.Code.Should().Be("default");
@@ -184,11 +186,11 @@ public class CartAggregateMappingExtensionsTests : XCartMoqHelper
         var mapper = new XCartMapper();
 
         var target = new TaxEvaluationContext();
-        ((CartAggregate)null).MapTo(target, mapper);
+        mapper.MapTo(null, target);
         target.Lines.Should().BeEmpty();
 
         var aggregate = BuildAggregate(new ShoppingCart { Currency = CURRENCY_CODE, Items = [] });
-        aggregate.MapTo((TaxEvaluationContext)null, mapper);
+        mapper.MapTo(aggregate, (TaxEvaluationContext)null);
     }
 
     [Fact]
@@ -216,7 +218,7 @@ public class CartAggregateMappingExtensionsTests : XCartMoqHelper
         var target = new TaxEvaluationContext();
         var mapper = new OverridingXCartMapper();
 
-        aggregate.MapTo(target, mapper);
+        mapper.MapTo(aggregate, target);
 
         target.Address.Should().NotBeNull();
         target.Address.Name.Should().Be("Warehouse");
@@ -273,7 +275,7 @@ public class CartAggregateMappingExtensionsTests : XCartMoqHelper
         var target = new PromotionEvaluationContext();
         var mapper = new XCartMapper();
 
-        aggregate.MapTo(target, mapper);
+        mapper.MapTo(aggregate, target);
 
         target.StoreId.Should().Be("store-1");
         target.CustomerId.Should().Be("customer-1");
@@ -303,11 +305,11 @@ public class CartAggregateMappingExtensionsTests : XCartMoqHelper
         var mapper = new XCartMapper();
 
         var target = new PromotionEvaluationContext();
-        ((CartAggregate)null).MapTo(target, mapper);
+        mapper.MapTo(null, target);
         target.CartPromoEntries.Should().BeEmpty();
 
         var aggregate = BuildAggregate(new ShoppingCart { Currency = CURRENCY_CODE, Items = [] });
-        aggregate.MapTo((PromotionEvaluationContext)null, mapper);
+        mapper.MapTo(aggregate, (PromotionEvaluationContext)null);
     }
 
     [Fact]
@@ -337,7 +339,7 @@ public class CartAggregateMappingExtensionsTests : XCartMoqHelper
         var target = new PromotionEvaluationContext();
         var mapper = new OverridingXCartMapper();
 
-        aggregate.MapTo(target, mapper);
+        mapper.MapTo(aggregate, target);
 
         var entry = target.CartPromoEntries.Should().ContainSingle().Subject;
         entry.Discount.Should().Be(-1m);
@@ -346,23 +348,30 @@ public class CartAggregateMappingExtensionsTests : XCartMoqHelper
 
 public class CartFilterMappingExtensionsTests
 {
+    private readonly IXCartMapper _mapper = new XCartMapper();
+
     [Fact]
     public void MapTo_TermFilter_SetsMatchingProperty()
     {
         var filters = new List<IFilter> { new TermFilter { FieldName = "customerId", Values = ["customer-1"] } };
         var criteria = new ShoppingCartSearchCriteria();
 
-        filters.MapTo(criteria);
+        _mapper.MapTo(filters, criteria);
 
         criteria.CustomerId.Should().Be("customer-1");
     }
 
     [Fact]
-    public void MapTo_NullFiltersOrCriteria_DoesNotThrow()
+    public void MapTo_NullFilters_DoesNotThrow()
     {
         var criteria = new ShoppingCartSearchCriteria();
 
-        FluentActions.Invoking(() => ((List<IFilter>)null).MapTo(criteria)).Should().NotThrow();
-        FluentActions.Invoking(() => new List<IFilter>().MapTo(null)).Should().NotThrow();
+        FluentActions.Invoking(() => _mapper.MapTo(null, criteria)).Should().NotThrow();
+    }
+
+    [Fact]
+    public void MapTo_NullCriteria_Throws()
+    {
+        FluentActions.Invoking(() => _mapper.MapTo(new List<IFilter>(), null)).Should().Throw<ArgumentNullException>();
     }
 }

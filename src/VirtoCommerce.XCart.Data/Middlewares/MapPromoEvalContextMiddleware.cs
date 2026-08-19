@@ -4,7 +4,6 @@ using PipelineNet.Middleware;
 using VirtoCommerce.Xapi.Core.Services;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
-using VirtoCommerce.XCart.Data.Services;
 
 namespace VirtoCommerce.XCart.Data.Middlewares
 {
@@ -21,7 +20,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
 
         public async Task Run(PromotionEvaluationContextCartMap parameter, Func<PromotionEvaluationContextCartMap, Task> next)
         {
-            parameter.CartAggregate.MapTo(parameter.PromotionEvaluationContext, _mapper);
+            _mapper.MapTo(parameter.CartAggregate, parameter.PromotionEvaluationContext);
 
             await _loadUserToEvalContextService.SetShopperDataFromMember(parameter.PromotionEvaluationContext, parameter.CartAggregate.Cart.CustomerId);
             await _loadUserToEvalContextService.SetShopperDataFromOrganization(parameter.PromotionEvaluationContext, parameter.CartAggregate.Cart.OrganizationId);

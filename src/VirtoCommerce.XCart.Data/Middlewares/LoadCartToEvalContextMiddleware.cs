@@ -11,7 +11,6 @@ using VirtoCommerce.TaxModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Pipelines;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
-using VirtoCommerce.XCart.Data.Services;
 
 namespace VirtoCommerce.XCart.Data.Middlewares
 {
@@ -61,7 +60,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             var cartAggregate = await _cartAggregateRepository.GetCartAsync(criteria, Language.InvariantLanguage.CultureName);
             if (cartAggregate != null)
             {
-                cartAggregate.MapTo(parameter, _mapper);
+                _mapper.MapTo(cartAggregate, parameter);
             }
 
             await next(parameter);
