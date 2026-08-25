@@ -1,5 +1,6 @@
 using AutoMapper;
 using FluentAssertions;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Data.Services;
 using Xunit;
 using CartAddress = VirtoCommerce.CartModule.Core.Model.Address;
@@ -12,6 +13,44 @@ public class CartMappingProfileTests
     private static readonly IMapper _legacyMapper = new MapperConfiguration(cfg => cfg.AddProfile(new LegacyCartMappingProfile())).CreateMapper();
 
     private readonly XCartMapper _mapper = new();
+
+    [Fact]
+    public void ToTaxAddress_DerivedTaxAddressRegistered_DerivedMapperOverridePopulatesExtraField()
+    {
+        // AutoMapper's polymorphic dispatch for a derived Address is replaced by AbstractTypeFactory
+        // plus a derived mapper override that populates the field the derived type adds.
+        AbstractTypeFactory<TaxAddress>.RegisterType<DerivedTaxAddress>();
+        try
+        {
+            var mapper = new ExtraFieldPopulatingXCartMapper();
+            var cartAddress = new CartAddress { Name = "name-1" };
+
+            var result = mapper.ToTaxAddress(cartAddress);
+
+            result.Should().BeOfType<DerivedTaxAddress>();
+            result.Name.Should().Be("name-1");
+            ((DerivedTaxAddress)result).ExtraField.Should().Be("populated-by-derived-mapper");
+        }
+        finally
+        {
+            AbstractTypeFactory<TaxAddress>.RemoveType<DerivedTaxAddress>();
+        }
+    }
+
+    private class DerivedTaxAddress : TaxAddress
+    {
+        public string ExtraField { get; set; }
+    }
+
+    private class ExtraFieldPopulatingXCartMapper : XCartMapper
+    {
+        public override TaxAddress ToTaxAddress(CartAddress source)
+        {
+            var result = base.ToTaxAddress(source);
+            ((DerivedTaxAddress)result).ExtraField = "populated-by-derived-mapper";
+            return result;
+        }
+    }
 
     [Fact]
     public void ToTaxAddress_CopiesAllFields()

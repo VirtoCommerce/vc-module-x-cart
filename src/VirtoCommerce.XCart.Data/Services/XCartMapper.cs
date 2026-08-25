@@ -306,21 +306,7 @@ public class XCartMapper : IXCartMapper
         }
 
         target.CartPromoEntries = [];
-
-        // Tax and Promotion are computed only on primary-currency lines.
-        foreach (var lineItem in source.CartCurrencySelectedLineItems)
-        {
-            var promoEntry = ToProductPromoEntry(lineItem);
-            var cartProduct = source.CartProducts[source.GetCartProductKey(lineItem)];
-            if (cartProduct != null)
-            {
-                promoEntry.InStockQuantity = (int)(cartProduct.Inventory?.InStockQuantity ?? 0);
-                promoEntry.Outline = cartProduct.Product.Outlines?.GetOutlinePath(cartProduct.Product.CatalogId);
-                promoEntry.ParentId = cartProduct.Product.MainProductId;
-            }
-
-            target.CartPromoEntries.Add(promoEntry);
-        }
+        ApplyCartPromoEntries(source, target);
 
         target.CartTotal = source.Cart.SubTotal;
         target.StoreId = source.Cart.StoreId;
@@ -335,22 +321,53 @@ public class XCartMapper : IXCartMapper
         // Cart line items are the default promo items.
         target.PromoEntries = target.CartPromoEntries;
 
-        if (!source.Cart.Shipments.IsNullOrEmpty())
-        {
-            var shipment = source.Cart.Shipments.First();
-            target.ShipmentMethodCode = shipment.ShipmentMethodCode;
-            target.ShipmentMethodOption = shipment.ShipmentMethodOption;
-            target.ShipmentMethodPrice = shipment.Price;
-        }
-
-        if (!source.Cart.Payments.IsNullOrEmpty())
-        {
-            var payment = source.Cart.Payments.First();
-            target.PaymentMethodCode = payment.PaymentGatewayCode;
-            target.PaymentMethodPrice = payment.Price;
-        }
+        ApplyPrimaryShipmentInfo(source, target);
+        ApplyPrimaryPaymentInfo(source, target);
 
         target.IsEveryone = true;
+    }
+
+    protected virtual void ApplyCartPromoEntries(CartAggregate source, PromotionEvaluationContext target)
+    {
+        // Tax and Promotion are computed only on primary-currency lines.
+        foreach (var lineItem in source.CartCurrencySelectedLineItems)
+        {
+            var promoEntry = ToProductPromoEntry(lineItem);
+            var cartProduct = source.CartProducts[source.GetCartProductKey(lineItem)];
+            if (cartProduct != null)
+            {
+                promoEntry.InStockQuantity = (int)(cartProduct.Inventory?.InStockQuantity ?? 0);
+                promoEntry.Outline = cartProduct.Product.Outlines?.GetOutlinePath(cartProduct.Product.CatalogId);
+                promoEntry.ParentId = cartProduct.Product.MainProductId;
+            }
+
+            target.CartPromoEntries.Add(promoEntry);
+        }
+    }
+
+    protected virtual void ApplyPrimaryShipmentInfo(CartAggregate source, PromotionEvaluationContext target)
+    {
+        if (source.Cart.Shipments.IsNullOrEmpty())
+        {
+            return;
+        }
+
+        var shipment = source.Cart.Shipments.First();
+        target.ShipmentMethodCode = shipment.ShipmentMethodCode;
+        target.ShipmentMethodOption = shipment.ShipmentMethodOption;
+        target.ShipmentMethodPrice = shipment.Price;
+    }
+
+    protected virtual void ApplyPrimaryPaymentInfo(CartAggregate source, PromotionEvaluationContext target)
+    {
+        if (source.Cart.Payments.IsNullOrEmpty())
+        {
+            return;
+        }
+
+        var payment = source.Cart.Payments.First();
+        target.PaymentMethodCode = payment.PaymentGatewayCode;
+        target.PaymentMethodPrice = payment.Price;
     }
 
     public virtual void MapTo(CartAggregate source, TaxEvaluationContext target)
@@ -366,50 +383,81 @@ public class XCartMapper : IXCartMapper
         target.CustomerId = source.Cart.CustomerId;
         target.Currency = source.Cart.Currency;
 
+        ApplyLineItemTaxLines(source, target);
+        ApplyShipmentTaxLines(source, target);
+        ApplyPaymentTaxLines(source, target);
+    }
+
+    protected virtual void ApplyLineItemTaxLines(CartAggregate source, TaxEvaluationContext target)
+    {
         // Tax and Promotion are computed only on primary-currency lines.
         foreach (var lineItem in source.CartCurrencySelectedLineItems)
         {
-            var taxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
-            taxLine.Id = lineItem.Id;
-            taxLine.Code = lineItem.Sku;
-            taxLine.Name = lineItem.Name;
-            // Special case when a product has a 100% discount and the tax still needs to be calculated on the old value.
-            taxLine.TaxType = lineItem.TaxType;
-            taxLine.Amount = lineItem.ExtendedPrice > 0 ? lineItem.ExtendedPrice : lineItem.SalePrice;
-            taxLine.Quantity = lineItem.Quantity;
-            taxLine.Price = lineItem.PlacedPrice;
-            taxLine.TypeName = "item";
-            target.Lines.Add(taxLine);
+            target.Lines.Add(ToTaxLine(lineItem));
         }
+    }
 
+    protected virtual TaxLine ToTaxLine(LineItem lineItem)
+    {
+        var taxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
+        taxLine.Id = lineItem.Id;
+        taxLine.Code = lineItem.Sku;
+        taxLine.Name = lineItem.Name;
+        // Special case when a product has a 100% discount and the tax still needs to be calculated on the old value.
+        taxLine.TaxType = lineItem.TaxType;
+        taxLine.Amount = lineItem.ExtendedPrice > 0 ? lineItem.ExtendedPrice : lineItem.SalePrice;
+        taxLine.Quantity = lineItem.Quantity;
+        taxLine.Price = lineItem.PlacedPrice;
+        taxLine.TypeName = "item";
+
+        return taxLine;
+    }
+
+    protected virtual void ApplyShipmentTaxLines(CartAggregate source, TaxEvaluationContext target)
+    {
         foreach (var shipment in source.Cart.Shipments ?? Array.Empty<Shipment>())
         {
-            var totalTaxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
-            totalTaxLine.Id = shipment.Id;
-            totalTaxLine.Code = shipment.ShipmentMethodCode;
-            totalTaxLine.Name = shipment.ShipmentMethodOption;
-            totalTaxLine.TaxType = shipment.TaxType;
-            totalTaxLine.Amount = shipment.Total > 0 ? shipment.Total : shipment.Price;
-            totalTaxLine.TypeName = "shipment";
-            target.Lines.Add(totalTaxLine);
+            target.Lines.Add(ToTaxLine(shipment));
 
             if (shipment.DeliveryAddress != null)
             {
                 target.Address = ToTaxAddress(shipment.DeliveryAddress);
             }
         }
+    }
 
+    protected virtual TaxLine ToTaxLine(Shipment shipment)
+    {
+        var totalTaxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
+        totalTaxLine.Id = shipment.Id;
+        totalTaxLine.Code = shipment.ShipmentMethodCode;
+        totalTaxLine.Name = shipment.ShipmentMethodOption;
+        totalTaxLine.TaxType = shipment.TaxType;
+        totalTaxLine.Amount = shipment.Total > 0 ? shipment.Total : shipment.Price;
+        totalTaxLine.TypeName = "shipment";
+
+        return totalTaxLine;
+    }
+
+    protected virtual void ApplyPaymentTaxLines(CartAggregate source, TaxEvaluationContext target)
+    {
         foreach (var payment in source.Cart.Payments ?? Array.Empty<Payment>())
         {
-            var totalTaxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
-            totalTaxLine.Id = payment.Id;
-            totalTaxLine.Code = payment.PaymentGatewayCode;
-            totalTaxLine.Name = payment.PaymentGatewayCode;
-            totalTaxLine.TaxType = payment.TaxType;
-            totalTaxLine.Amount = payment.Total > 0 ? payment.Total : payment.Price;
-            totalTaxLine.TypeName = "payment";
-            target.Lines.Add(totalTaxLine);
+            target.Lines.Add(ToTaxLine(payment));
         }
+    }
+
+    protected virtual TaxLine ToTaxLine(Payment payment)
+    {
+        var totalTaxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
+        totalTaxLine.Id = payment.Id;
+        totalTaxLine.Code = payment.PaymentGatewayCode;
+        totalTaxLine.Name = payment.PaymentGatewayCode;
+        totalTaxLine.TaxType = payment.TaxType;
+        totalTaxLine.Amount = payment.Total > 0 ? payment.Total : payment.Price;
+        totalTaxLine.TypeName = "payment";
+
+        return totalTaxLine;
     }
 
     public virtual void MapTo(IList<IFilter> filters, ShoppingCartSearchCriteria criteria)

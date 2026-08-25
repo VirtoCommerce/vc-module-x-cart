@@ -113,6 +113,37 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             aggregateAfterAddItem.GetValidationErrors().Should().Contain(x => x.ErrorCode == "NotNullValidator");
         }
 
+        [Fact]
+        public async Task AddItemAsync_BuildsCartMappingContext_FromCartAndNewCartItem()
+        {
+            // Arrange
+            CartMappingContext capturedContext = null;
+            _mapperMock
+                .Setup(m => m.ToLineItem(It.IsAny<CartProduct>(), It.IsAny<CartMappingContext>()))
+                .Returns<CartProduct, CartMappingContext>((cartProduct, context) =>
+                {
+                    capturedContext = context;
+                    return new LineItem { ProductId = cartProduct.Id };
+                });
+
+            var product = new CartProduct(new CatalogProduct { Id = "prod-1", IsActive = true, IsBuyable = true });
+            var newCartItem = new NewCartItem("prod-1", 1) { CartProduct = product, ItemCurrencyCode = "EUR" };
+
+            var cartAggregate = GetValidCartAggregate();
+            cartAggregate.ValidationRuleSet = ["default"];
+            cartAggregate.Cart.Items = new List<LineItem>();
+            cartAggregate.Cart.LanguageCode = CULTURE_NAME;
+
+            // Act
+            await cartAggregate.AddItemAsync(newCartItem);
+
+            // Assert
+            capturedContext.Should().NotBeNull();
+            capturedContext.CultureName.Should().Be(CULTURE_NAME);
+            capturedContext.CurrencyCode.Should().Be("EUR");
+            capturedContext.Builder.Should().BeSameAs(_cartItemBuilder);
+        }
+
         #endregion AddItemAsync
 
         #region AddItemsAsync

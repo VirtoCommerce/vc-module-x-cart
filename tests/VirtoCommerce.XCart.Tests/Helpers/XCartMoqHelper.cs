@@ -73,6 +73,10 @@ namespace VirtoCommerce.XCart.Tests.Helpers
 
         public XCartMoqHelper()
         {
+            // Must run unconditionally here, not inside a Register lambda: AbstractTypeFactory<T> state is
+            // process-global, so gating it behind a lambda made test outcomes depend on run order.
+            AbstractTypeFactory<Xapi.Core.Models.ProductPrice>.RegisterType<Xapi.Core.Models.ProductPrice>();
+
             _fixture.Register<PaymentMethod>(() => new StubPaymentMethod(_fixture.Create<string>()));
 
             _fixture.Register(() => _fixture
@@ -85,8 +89,6 @@ namespace VirtoCommerce.XCart.Tests.Helpers
 
             _fixture.Register(() =>
             {
-                AbstractTypeFactory<Xapi.Core.Models.ProductPrice>.RegisterType<Xapi.Core.Models.ProductPrice>();
-
                 var catalogProduct = _fixture.Create<CatalogProduct>();
 
                 catalogProduct.TrackInventory = true;
