@@ -327,6 +327,39 @@ public class XCartMapper : IXCartMapper
         target.IsEveryone = true;
     }
 
+    public virtual void MapTo(CartAggregate source, TaxEvaluationContext target)
+    {
+        if (source == null || target == null)
+        {
+            return;
+        }
+
+        target.StoreId = source.Cart.StoreId;
+        target.Code = source.Cart.Name;
+        target.Type = "Cart";
+        target.CustomerId = source.Cart.CustomerId;
+        target.Currency = source.Cart.Currency;
+
+        ApplyLineItemTaxLines(source, target);
+        ApplyShipmentTaxLines(source, target);
+        ApplyPaymentTaxLines(source, target);
+    }
+
+    public virtual void MapTo(IList<IFilter> filters, ShoppingCartSearchCriteria criteria)
+    {
+        ArgumentNullException.ThrowIfNull(criteria);
+
+        if (filters == null)
+        {
+            return;
+        }
+
+        foreach (var term in filters.OfType<TermFilter>())
+        {
+            term.MapTo(criteria);
+        }
+    }
+
     protected virtual void ApplyCartPromoEntries(CartAggregate source, PromotionEvaluationContext target)
     {
         // Tax and Promotion are computed only on primary-currency lines.
@@ -370,30 +403,33 @@ public class XCartMapper : IXCartMapper
         target.PaymentMethodPrice = payment.Price;
     }
 
-    public virtual void MapTo(CartAggregate source, TaxEvaluationContext target)
-    {
-        if (source == null || target == null)
-        {
-            return;
-        }
-
-        target.StoreId = source.Cart.StoreId;
-        target.Code = source.Cart.Name;
-        target.Type = "Cart";
-        target.CustomerId = source.Cart.CustomerId;
-        target.Currency = source.Cart.Currency;
-
-        ApplyLineItemTaxLines(source, target);
-        ApplyShipmentTaxLines(source, target);
-        ApplyPaymentTaxLines(source, target);
-    }
-
     protected virtual void ApplyLineItemTaxLines(CartAggregate source, TaxEvaluationContext target)
     {
         // Tax and Promotion are computed only on primary-currency lines.
         foreach (var lineItem in source.CartCurrencySelectedLineItems)
         {
             target.Lines.Add(ToTaxLine(lineItem));
+        }
+    }
+
+    protected virtual void ApplyShipmentTaxLines(CartAggregate source, TaxEvaluationContext target)
+    {
+        foreach (var shipment in source.Cart.Shipments ?? Array.Empty<Shipment>())
+        {
+            target.Lines.Add(ToTaxLine(shipment));
+
+            if (shipment.DeliveryAddress != null)
+            {
+                target.Address = ToTaxAddress(shipment.DeliveryAddress);
+            }
+        }
+    }
+
+    protected virtual void ApplyPaymentTaxLines(CartAggregate source, TaxEvaluationContext target)
+    {
+        foreach (var payment in source.Cart.Payments ?? Array.Empty<Payment>())
+        {
+            target.Lines.Add(ToTaxLine(payment));
         }
     }
 
@@ -413,19 +449,6 @@ public class XCartMapper : IXCartMapper
         return taxLine;
     }
 
-    protected virtual void ApplyShipmentTaxLines(CartAggregate source, TaxEvaluationContext target)
-    {
-        foreach (var shipment in source.Cart.Shipments ?? Array.Empty<Shipment>())
-        {
-            target.Lines.Add(ToTaxLine(shipment));
-
-            if (shipment.DeliveryAddress != null)
-            {
-                target.Address = ToTaxAddress(shipment.DeliveryAddress);
-            }
-        }
-    }
-
     protected virtual TaxLine ToTaxLine(Shipment shipment)
     {
         var totalTaxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
@@ -439,14 +462,6 @@ public class XCartMapper : IXCartMapper
         return totalTaxLine;
     }
 
-    protected virtual void ApplyPaymentTaxLines(CartAggregate source, TaxEvaluationContext target)
-    {
-        foreach (var payment in source.Cart.Payments ?? Array.Empty<Payment>())
-        {
-            target.Lines.Add(ToTaxLine(payment));
-        }
-    }
-
     protected virtual TaxLine ToTaxLine(Payment payment)
     {
         var totalTaxLine = AbstractTypeFactory<TaxLine>.TryCreateInstance();
@@ -458,20 +473,5 @@ public class XCartMapper : IXCartMapper
         totalTaxLine.TypeName = "payment";
 
         return totalTaxLine;
-    }
-
-    public virtual void MapTo(IList<IFilter> filters, ShoppingCartSearchCriteria criteria)
-    {
-        ArgumentNullException.ThrowIfNull(criteria);
-
-        if (filters == null)
-        {
-            return;
-        }
-
-        foreach (var term in filters.OfType<TermFilter>())
-        {
-            term.MapTo(criteria);
-        }
     }
 }
