@@ -8,6 +8,7 @@ using TaxAddress = VirtoCommerce.TaxModule.Core.Model.Address;
 
 namespace VirtoCommerce.XCart.Tests.Mappers;
 
+[Collection(TaxAddressFactoryStateCollection.Name)]
 public class CartMappingProfileTests
 {
     private static readonly IMapper _legacyMapper = new MapperConfiguration(cfg => cfg.AddProfile(new LegacyCartMappingProfile())).CreateMapper();
@@ -107,4 +108,12 @@ public class CartMappingProfileTests
 
         actual.Should().BeEquivalentTo(legacy);
     }
+}
+
+// Every class registering or reading AbstractTypeFactory<TaxAddress> (process-global) joins this
+// collection, so xUnit never runs them concurrently - see ToTaxAddress_DerivedTaxAddressRegistered...
+[CollectionDefinition(TaxAddressFactoryStateCollection.Name)]
+public class TaxAddressFactoryStateCollection
+{
+    public const string Name = "AbstractTypeFactory<TaxAddress> state";
 }

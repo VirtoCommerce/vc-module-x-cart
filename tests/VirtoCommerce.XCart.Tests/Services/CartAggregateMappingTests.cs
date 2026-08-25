@@ -11,11 +11,13 @@ using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Services;
 using VirtoCommerce.XCart.Tests.Helpers;
+using VirtoCommerce.XCart.Tests.Mappers;
 using Xunit;
 using Store = VirtoCommerce.StoreModule.Core.Model.Store;
 
 namespace VirtoCommerce.XCart.Tests.Services;
 
+[Collection(TaxAddressFactoryStateCollection.Name)]
 public class CartAggregateMappingTests : XCartMoqHelper
 {
     private CartAggregate BuildAggregate(ShoppingCart cart, Member member = null)

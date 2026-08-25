@@ -12,12 +12,14 @@ using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Services;
 using VirtoCommerce.XCart.Tests.Helpers.Stubs;
+using VirtoCommerce.XCart.Tests.Mappers;
 using Xunit;
 using CartAddress = VirtoCommerce.CartModule.Core.Model.Address;
 using ProductPrice = VirtoCommerce.Xapi.Core.Models.ProductPrice;
 
 namespace VirtoCommerce.XCart.Tests.Services;
 
+[Collection(TaxAddressFactoryStateCollection.Name)]
 public class XCartMapperTests
 {
     private readonly IXCartMapper _mapper = new XCartMapper();
