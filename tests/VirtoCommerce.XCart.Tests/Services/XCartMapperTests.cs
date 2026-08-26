@@ -1,5 +1,7 @@
+using System;
 using System.Linq;
 using FluentAssertions;
+using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Currency;
@@ -22,7 +24,7 @@ namespace VirtoCommerce.XCart.Tests.Services;
 [Collection(TaxAddressFactoryStateCollection.Name)]
 public class XCartMapperTests
 {
-    private readonly IXCartMapper _mapper = new XCartMapper();
+    private readonly IXCartMapper _mapper = new XCartMapper(new CartItemBuilder());
 
     [Fact]
     public void ToGiftItem_CopiesRewardFields_LeavesGiftItemOwnFieldsUnset()
@@ -105,7 +107,7 @@ public class XCartMapperTests
     }
 
     [Fact]
-    public void ToLineItem_WithoutBuilder_CopiesAllProductFields()
+    public void ToLineItem_CopiesAllProductFields()
     {
         var currency = new Currency(CoreModule.Core.Common.Language.InvariantLanguage, "USD");
         var catalogProduct = new CatalogProduct
@@ -138,7 +140,7 @@ public class XCartMapperTests
             },
         };
 
-        var result = _mapper.ToLineItem(cartProduct, null);
+        var result = _mapper.ToLineItem(cartProduct, new CartMappingContext());
 
         result.ProductId.Should().Be("prod-1");
         result.CatalogId.Should().Be("catalog-1");
@@ -167,6 +169,29 @@ public class XCartMapperTests
     public void ToLineItem_NullSource_ReturnsNull()
     {
         _mapper.ToLineItem(null, null).Should().BeNull();
+    }
+
+    [Fact]
+    public void ToLineItem_NullContext_Throws()
+    {
+        var cartProduct = new CartProduct(new CatalogProduct { Id = "prod-1" });
+
+        FluentActions.Invoking(() => _mapper.ToLineItem(cartProduct, null))
+            .Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void ToLineItem_UsesCtorInjectedCartItemBuilder()
+    {
+        var expected = new LineItem { ProductId = "from-injected-builder" };
+        var builderMock = new Mock<ICartItemBuilder>();
+        builderMock.Setup(x => x.Create(It.IsAny<CartProduct>())).Returns(expected);
+        var mapper = new XCartMapper(builderMock.Object);
+
+        var result = mapper.ToLineItem(new CartProduct(new CatalogProduct { Id = "prod-1" }), new CartMappingContext());
+
+        result.Should().BeSameAs(expected);
+        builderMock.Verify(x => x.Create(It.IsAny<CartProduct>()), Times.Once);
     }
 
     [Fact]

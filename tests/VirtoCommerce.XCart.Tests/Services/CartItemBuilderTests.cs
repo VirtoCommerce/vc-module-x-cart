@@ -13,8 +13,9 @@ namespace VirtoCommerce.XCart.Tests.Services
     /// <summary>
     /// Covers <see cref="ICartItemBuilder"/> contract end-to-end: default behaviour,
     /// <see cref="AbstractTypeFactory{T}"/> override dispatch, container property fallback,
-    /// and mapper-context fallback. Each test that registers a factory override removes it
-    /// in a <c>finally</c> block — the factory is global static and must be isolated between tests.
+    /// and the ctor-injected builder <see cref="XCartMapper"/> delegates to. Each test that
+    /// registers a factory override removes it in a <c>finally</c> block — the factory is
+    /// global static and must be isolated between tests.
     /// </summary>
     public class CartItemBuilderTests
     {
@@ -97,9 +98,9 @@ namespace VirtoCommerce.XCart.Tests.Services
         }
 
         [Fact]
-        public void XCartMapper_ToLineItem_WithoutBuilder_FallsBackToTryCreateInstance()
+        public void XCartMapper_ToLineItem_DelegatesToInjectedCartItemBuilder()
         {
-            var mapper = new XCartMapper();
+            var mapper = new XCartMapper(new CartItemBuilder());
 
             var lineItem = mapper.ToLineItem(BuildCartProduct(), new CartMappingContext { CultureName = "en-US" });
 

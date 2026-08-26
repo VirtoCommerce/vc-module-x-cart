@@ -13,7 +13,7 @@ public class CartMappingProfileTests
 {
     private static readonly IMapper _legacyMapper = new MapperConfiguration(cfg => cfg.AddProfile(new LegacyCartMappingProfile())).CreateMapper();
 
-    private readonly XCartMapper _mapper = new();
+    private readonly XCartMapper _mapper = new(new CartItemBuilder());
 
     [Fact]
     public void ToTaxAddress_DerivedTaxAddressRegistered_DerivedMapperOverridePopulatesExtraField()
@@ -43,7 +43,7 @@ public class CartMappingProfileTests
         public string ExtraField { get; set; }
     }
 
-    private class ExtraFieldPopulatingXCartMapper : XCartMapper
+    private class ExtraFieldPopulatingXCartMapper() : XCartMapper(new CartItemBuilder())
     {
         public override TaxAddress ToTaxAddress(CartAddress source)
         {
@@ -112,7 +112,7 @@ public class CartMappingProfileTests
 
 // Every class registering or reading AbstractTypeFactory<TaxAddress> (process-global) joins this
 // collection, so xUnit never runs them concurrently - see ToTaxAddress_DerivedTaxAddressRegistered...
-[CollectionDefinition(TaxAddressFactoryStateCollection.Name)]
+[CollectionDefinition(Name)]
 public class TaxAddressFactoryStateCollection
 {
     public const string Name = "AbstractTypeFactory<TaxAddress> state";

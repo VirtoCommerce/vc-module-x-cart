@@ -72,7 +72,7 @@ public class CartAggregateMappingTests : XCartMoqHelper
         };
 
         var aggregate = BuildAggregate(cart, member);
-        var mapper = new XCartMapper();
+        var mapper = new XCartMapper(new CartItemBuilder());
 
         var result = mapper.ToPriceEvaluationContext(aggregate);
 
@@ -102,7 +102,7 @@ public class CartAggregateMappingTests : XCartMoqHelper
         };
 
         var aggregate = BuildAggregate(cart);
-        var mapper = new XCartMapper();
+        var mapper = new XCartMapper(new CartItemBuilder());
 
         var result = mapper.ToTaxEvaluationContext(aggregate);
 
@@ -149,7 +149,7 @@ public class CartAggregateMappingTests : XCartMoqHelper
 
         var aggregate = BuildAggregate(cart);
         var target = new TaxEvaluationContext();
-        var mapper = new XCartMapper();
+        var mapper = new XCartMapper(new CartItemBuilder());
 
         mapper.MapTo(aggregate, target);
 
@@ -185,7 +185,7 @@ public class CartAggregateMappingTests : XCartMoqHelper
     [Fact]
     public void MapTo_TaxEvaluationContext_NullSourceOrTarget_DoesNothing()
     {
-        var mapper = new XCartMapper();
+        var mapper = new XCartMapper(new CartItemBuilder());
 
         var target = new TaxEvaluationContext();
         mapper.MapTo(null, target);
@@ -227,7 +227,7 @@ public class CartAggregateMappingTests : XCartMoqHelper
         target.Address.Description.Should().Be("overridden-by-derived-mapper");
     }
 
-    private class OverridingXCartMapper : XCartMapper
+    private class OverridingXCartMapper() : XCartMapper(new CartItemBuilder())
     {
         public override VirtoCommerce.TaxModule.Core.Model.Address ToTaxAddress(CartModule.Core.Model.Address source)
         {
@@ -275,7 +275,7 @@ public class CartAggregateMappingTests : XCartMoqHelper
 
         var aggregate = BuildAggregate(cart);
         var target = new PromotionEvaluationContext();
-        var mapper = new XCartMapper();
+        var mapper = new XCartMapper(new CartItemBuilder());
 
         mapper.MapTo(aggregate, target);
 
@@ -304,7 +304,7 @@ public class CartAggregateMappingTests : XCartMoqHelper
     [Fact]
     public void MapTo_PromotionEvaluationContext_NullSourceOrTarget_DoesNothing()
     {
-        var mapper = new XCartMapper();
+        var mapper = new XCartMapper(new CartItemBuilder());
 
         var target = new PromotionEvaluationContext();
         mapper.MapTo(null, target);
@@ -350,7 +350,7 @@ public class CartAggregateMappingTests : XCartMoqHelper
 
 public class CartFilterMappingTests
 {
-    private readonly IXCartMapper _mapper = new XCartMapper();
+    private readonly IXCartMapper _mapper = new XCartMapper(new CartItemBuilder());
 
     [Fact]
     public void MapTo_TermFilter_SetsMatchingProperty()

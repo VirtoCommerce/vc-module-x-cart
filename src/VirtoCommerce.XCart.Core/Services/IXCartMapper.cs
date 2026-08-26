@@ -21,6 +21,7 @@ public interface IXCartMapper
 
     GiftLineItem ToGiftLineItem(GiftItem source);
 
+    /// <exception cref="System.ArgumentNullException"><paramref name="context"/> is null.</exception>
     LineItem ToLineItem(CartProduct source, CartMappingContext context);
 
     IEnumerable<TaxLine> ToTaxLines(ShippingRate source);

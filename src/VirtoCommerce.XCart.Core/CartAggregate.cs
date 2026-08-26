@@ -416,7 +416,7 @@ namespace VirtoCommerce.XCart.Core
             var mappingContext = AbstractTypeFactory<CartMappingContext>.TryCreateInstance();
             mappingContext.CultureName = Cart.LanguageCode;
             mappingContext.CurrencyCode = newCartItem.ItemCurrencyCode;
-            mappingContext.Builder = _cartItemBuilder;
+            mappingContext.NewCartItem = newCartItem;
 
             return mappingContext;
         }

@@ -23,6 +23,13 @@ namespace VirtoCommerce.XCart.Data.Services;
 
 public class XCartMapper : IXCartMapper
 {
+    private readonly ICartItemBuilder _cartItemBuilder;
+
+    public XCartMapper(ICartItemBuilder cartItemBuilder)
+    {
+        _cartItemBuilder = cartItemBuilder;
+    }
+
     public virtual TaxAddress ToTaxAddress(CartAddress source)
     {
         if (source == null)
@@ -114,10 +121,12 @@ public class XCartMapper : IXCartMapper
             return null;
         }
 
-        var lineItem = context?.Builder?.Create(source) ?? AbstractTypeFactory<LineItem>.TryCreateInstance();
+        ArgumentNullException.ThrowIfNull(context);
 
-        lineItem.Name = source.GetName(context?.CultureName);
-        lineItem.Currency = context?.CurrencyCode;
+        var lineItem = _cartItemBuilder.Create(source);
+
+        lineItem.Name = source.GetName(context.CultureName);
+        lineItem.Currency = context.CurrencyCode;
 
         lineItem.CatalogId = source.Product.CatalogId;
         lineItem.CategoryId = source.Product.CategoryId;

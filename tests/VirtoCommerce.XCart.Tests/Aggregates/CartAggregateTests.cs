@@ -141,7 +141,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             capturedContext.Should().NotBeNull();
             capturedContext.CultureName.Should().Be(CULTURE_NAME);
             capturedContext.CurrencyCode.Should().Be("EUR");
-            capturedContext.Builder.Should().BeSameAs(_cartItemBuilder);
+            capturedContext.NewCartItem.Should().BeSameAs(newCartItem);
         }
 
         #endregion AddItemAsync

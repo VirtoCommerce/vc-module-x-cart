@@ -1,8 +1,9 @@
 using VirtoCommerce.Xapi.Core.Models;
+using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Services;
 
 public class CartMappingContext : MappingContext
 {
-    public ICartItemBuilder Builder { get; set; }
+    public NewCartItem NewCartItem { get; set; }
 }
