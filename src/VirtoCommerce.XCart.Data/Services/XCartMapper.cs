@@ -122,6 +122,7 @@ public class XCartMapper : IXCartMapper
         }
 
         ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(context.NewCartItem);
 
         var lineItem = _cartItemBuilder.Create(source);
 

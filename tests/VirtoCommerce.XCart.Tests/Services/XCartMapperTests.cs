@@ -13,6 +13,7 @@ using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Services;
+using VirtoCommerce.XCart.Tests.Helpers;
 using VirtoCommerce.XCart.Tests.Helpers.Stubs;
 using VirtoCommerce.XCart.Tests.Mappers;
 using Xunit;
@@ -140,7 +141,7 @@ public class XCartMapperTests
             },
         };
 
-        var result = _mapper.ToLineItem(cartProduct, new CartMappingContext());
+        var result = _mapper.ToLineItem(cartProduct, CartMappingContextBuilder.Build());
 
         result.ProductId.Should().Be("prod-1");
         result.CatalogId.Should().Be("catalog-1");
@@ -181,6 +182,15 @@ public class XCartMapperTests
     }
 
     [Fact]
+    public void ToLineItem_NullNewCartItem_Throws()
+    {
+        var cartProduct = new CartProduct(new CatalogProduct { Id = "prod-1" });
+
+        FluentActions.Invoking(() => _mapper.ToLineItem(cartProduct, new CartMappingContext()))
+            .Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
     public void ToLineItem_UsesCtorInjectedCartItemBuilder()
     {
         var expected = new LineItem { ProductId = "from-injected-builder" };
@@ -188,7 +198,7 @@ public class XCartMapperTests
         builderMock.Setup(x => x.Create(It.IsAny<CartProduct>())).Returns(expected);
         var mapper = new XCartMapper(builderMock.Object);
 
-        var result = mapper.ToLineItem(new CartProduct(new CatalogProduct { Id = "prod-1" }), new CartMappingContext());
+        var result = mapper.ToLineItem(new CartProduct(new CatalogProduct { Id = "prod-1" }), CartMappingContextBuilder.Build());
 
         result.Should().BeSameAs(expected);
         builderMock.Verify(x => x.Create(It.IsAny<CartProduct>()), Times.Once);
