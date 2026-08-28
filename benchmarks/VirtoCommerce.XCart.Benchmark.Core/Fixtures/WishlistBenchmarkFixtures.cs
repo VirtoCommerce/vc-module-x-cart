@@ -1,3 +1,4 @@
+using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
@@ -30,18 +31,24 @@ internal static class WishlistBenchmarkFixtures
     // ── WishlistUserContext helper ────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// A <see cref="WishlistUserContext"/> with no scope, so <c>UpdateScopeAsync</c> in
-    /// <c>ScopedWishlistCommandHandlerBase</c> skips all branches and neither
-    /// <c>EnsureSharingSettings</c> nor <c>SetOwner</c> is called. Safe with a loose-mock
-    /// <c>ICartSharingService</c>.
+    /// A <see cref="WishlistUserContext"/> with no scope, so the loose-mock
+    /// <c>ICartSharingService</c> has nothing to apply. <c>CurrentContact</c> is required
+    /// regardless of scope: <c>ScopedWishlistCommandHandlerBase.CreateScopeContext</c> reads
+    /// <c>CurrentContact.Name</c> unconditionally, before the scope is looked at.
     /// </summary>
-    public static WishlistUserContext EmptyWishlistUserContext() =>
-        new()
+    public static WishlistUserContext EmptyWishlistUserContext()
+    {
+        var contact = AbstractTypeFactory<Contact>.TryCreateInstance();
+        contact.Name = "Benchmark User";
+
+        return new WishlistUserContext
         {
             CurrentUserId = "benchmark-user",
             UserId = "benchmark-user",
+            CurrentContact = contact,
             Scope = null,
         };
+    }
 
     // ── Stamp WishlistCommand context ────────────────────────────────────────────────────────────
 

@@ -18,6 +18,7 @@ using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.FileExperienceApi.Core.Services;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.MarketingModule.Core.Services;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.SearchModule.Core.Services;
 using VirtoCommerce.ShippingModule.Core.Services;
@@ -30,6 +31,7 @@ using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
 using VirtoCommerce.XCart.Data;
 using VirtoCommerce.XCart.Data.Services;
+using VirtoCommerce.XCart.Data.Validators;
 using CartType = VirtoCommerce.CartModule.Core.ModuleConstants.CartType;
 
 namespace VirtoCommerce.XCart.Benchmark;
@@ -166,6 +168,21 @@ public static class CartBenchmarkHost
         // per-scenario mock choices the hand-built fixtures made.
         services.AddTransient<IConfiguredLineItemContainerService, ConfiguredLineItemContainerService>();
         services.AddSingleton<ICartResponseGroupParser, CartResponseGroupParser>();
+
+        services.AddTransient<ICartItemBuilder, CartItemBuilder>();
+        services.AddTransient<ICartConfigurationService, CartConfigurationService>();
+        services.AddTransient<ICartValidatorRegistry, CartValidatorRegistry>();
+
+        // Dropping any of these leaves the registry dispatching to an empty set: validation then costs
+        // nothing, stays green, and measures nothing. Keep in step with AddXCart.
+        services.AddTransient<ICartValidator<CartValidationContext>>(_ => AbstractTypeFactory<CartValidator>.TryCreateInstance());
+        services.AddTransient<ICartValidator<PaymentValidationContext>>(_ => AbstractTypeFactory<CartPaymentValidator>.TryCreateInstance());
+        services.AddTransient<ICartValidator<ShipmentValidationContext>>(_ => AbstractTypeFactory<CartShipmentValidator>.TryCreateInstance());
+        services.AddTransient<ICartValidator<NewCartItem>>(_ => AbstractTypeFactory<NewCartItemValidator>.TryCreateInstance());
+        services.AddTransient<ICartValidator<ItemQtyAdjustment>>(_ => AbstractTypeFactory<ItemQtyAdjustmentValidator>.TryCreateInstance());
+        services.AddTransient<ICartValidator<PriceAdjustment>>(_ => AbstractTypeFactory<ChangeCartItemPriceValidator>.TryCreateInstance());
+        services.AddTransient<ICartValidator<ConfigurationItemValidationContext>, ConfigurationItemContextValidator>();
+
         services.AddSingleton(new Mock<ICartAvailMethodsService> { DefaultValue = DefaultValue.Mock }.Object);
 
         // SavedForLaterListService runs for REAL: it orchestrates the move (load source list + destination
