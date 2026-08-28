@@ -28,31 +28,62 @@ public class ChangeCartConfiguredLineItemCommandHandler : CartCommandHandler<Cha
         var cartAggregate = await GetOrCreateCartFromCommandAsync(request);
         var lineItem = cartAggregate.GetConfiguredLineItem(request.LineItemId);
 
-        if (lineItem != null)
+        if (lineItem == null)
         {
-            var oldConfigurationItems = lineItem.ConfigurationItems?.ToList() ?? [];
-
-            var command = AbstractTypeFactory<CreateConfiguredLineItemCommand>.TryCreateInstance();
-            command.StoreId = request.StoreId;
-            command.UserId = request.UserId;
-            command.OrganizationId = request.OrganizationId;
-            command.CultureName = request.CultureName;
-            command.CurrencyCode = request.CurrencyCode;
-            command.ConfigurableProductId = lineItem.ProductId;
-            command.ConfigurationSections = request.ConfigurationSections;
-            command.Quantity = request.Quantity ?? lineItem.Quantity;
-            command.CartId = cartAggregate.Cart.Id;
-
-            var mediatorResult = await _mediator.Send(command, cancellationToken);
-            PreserveSelectedForCheckoutFromOldConfiguration(mediatorResult.Item.ConfigurationItems, oldConfigurationItems);
-
-            await cartAggregate.UpdateConfiguredLineItemAsync(lineItem.Id, mediatorResult.Item);
-            await cartAggregate.UpdateConfiguredLineItemPrice([lineItem]);
-
-            return await SaveCartAsync(cartAggregate);
+            return cartAggregate;
         }
 
-        return cartAggregate;
+        var oldConfigurationItems = lineItem.ConfigurationItems?.ToList() ?? [];
+
+        var newConfiguredItem = await CreateConfiguredLineItemAsync(cartAggregate, lineItem, request, cancellationToken);
+        PreserveSelectedForCheckoutFromOldConfiguration(newConfiguredItem.ConfigurationItems, oldConfigurationItems);
+
+        await ApplyConfiguredLineItemAsync(cartAggregate, lineItem, newConfiguredItem, request, cancellationToken);
+
+        return await SaveCartAsync(cartAggregate);
+    }
+
+    /// <summary>
+    /// Builds and dispatches the nested <see cref="CreateConfiguredLineItemCommand"/> for the configured
+    /// product and returns the freshly created line item. Override this seam to inspect or post-process
+    /// the created <see cref="LineItem.ConfigurationItems"/> before they are applied to the cart.
+    /// </summary>
+    protected virtual async Task<LineItem> CreateConfiguredLineItemAsync(
+        CartAggregate cartAggregate,
+        LineItem lineItem,
+        ChangeCartConfiguredLineItemCommand request,
+        CancellationToken cancellationToken)
+    {
+        var command = AbstractTypeFactory<CreateConfiguredLineItemCommand>.TryCreateInstance();
+        command.StoreId = request.StoreId;
+        command.UserId = request.UserId;
+        command.OrganizationId = request.OrganizationId;
+        command.CultureName = request.CultureName;
+        command.CurrencyCode = request.CurrencyCode;
+        command.ConfigurableProductId = lineItem.ProductId;
+        command.ConfigurationSections = request.ConfigurationSections;
+        command.Quantity = request.Quantity ?? lineItem.Quantity;
+        command.CartId = cartAggregate.Cart.Id;
+
+        var mediatorResult = await _mediator.Send(command, cancellationToken);
+
+        return mediatorResult.Item;
+    }
+
+    /// <summary>
+    /// Applies the freshly created <paramref name="newConfiguredItem"/> onto the existing cart line item
+    /// and recalculates the configured-line-item price. Override this seam to run additional work after
+    /// the cart has been updated but before it is saved.
+    /// </summary>
+    protected virtual async Task ApplyConfiguredLineItemAsync(
+        CartAggregate cartAggregate,
+        LineItem lineItem,
+        LineItem newConfiguredItem,
+        ChangeCartConfiguredLineItemCommand request,
+        CancellationToken cancellationToken)
+    {
+        await cartAggregate.UpdateConfiguredLineItemAsync(lineItem.Id, newConfiguredItem);
+        await cartAggregate.UpdateConfiguredLineItemPrice([lineItem]);
     }
 
     private static void PreserveSelectedForCheckoutFromOldConfiguration(
