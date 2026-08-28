@@ -256,6 +256,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
             bool? isBuyable = null,
             bool? trackInventory = null)
         {
+            AbstractTypeFactory<Xapi.Core.Models.ProductPrice>.RegisterType<Xapi.Core.Models.ProductPrice>();
+
             var catalogProductId = _fixture.Create<string>();
 
             var catalogProduct = new CatalogProduct
