@@ -173,8 +173,8 @@ public static class CartBenchmarkHost
         services.AddTransient<ICartConfigurationService, CartConfigurationService>();
         services.AddTransient<ICartValidatorRegistry, CartValidatorRegistry>();
 
-        // Dropping any of these leaves the registry dispatching to an empty set: validation then costs
-        // nothing, stays green, and measures nothing. Keep in step with AddXCart.
+        // Dropping any of the seven leaves the registry above dispatching to an empty set: validation
+        // then costs nothing, stays green, and measures nothing. Keep in step with AddXCart.
         services.AddTransient<ICartValidator<CartValidationContext>>(_ => AbstractTypeFactory<CartValidator>.TryCreateInstance());
         services.AddTransient<ICartValidator<PaymentValidationContext>>(_ => AbstractTypeFactory<CartPaymentValidator>.TryCreateInstance());
         services.AddTransient<ICartValidator<ShipmentValidationContext>>(_ => AbstractTypeFactory<CartShipmentValidator>.TryCreateInstance());

@@ -132,8 +132,10 @@ internal static class WishlistBenchmarkFixtures
     public static RenameWishlistCommand CreateRenameWishlistCommand() =>
         WithWishlistContext(new RenameWishlistCommand(WishlistId, WishlistName + " (renamed)"));
 
-    /// <summary>A <c>changeWishlist</c> command that renames the list. No scope → private path (no-op
-    /// in UpdateScopeAsync — Scope = null skips all branches).</summary>
+    /// <summary>A <c>changeWishlist</c> command that renames the list, with no scope set.
+    /// <c>UpdateScopeAsync</c> has no branches to skip: it builds the scope context unconditionally
+    /// — reading <c>CurrentContact.Name</c>, hence <see cref="EmptyWishlistUserContext"/> — and hands
+    /// it to <c>ICartSharingService</c>, which is what a null scope leaves with nothing to do.</summary>
     public static ChangeWishlistCommand CreateChangeWishlistCommand()
     {
         var command = AbstractTypeFactory<ChangeWishlistCommand>.TryCreateInstance();

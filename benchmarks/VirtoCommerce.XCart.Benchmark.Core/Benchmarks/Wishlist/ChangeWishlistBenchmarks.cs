@@ -11,8 +11,9 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// Command-level microbenchmark of the <c>changeWishlist</c> GraphQL mutation
 /// (<see cref="ChangeWishlistCommandHandler.Handle"/>). Benchmarks the rename path: load existing
 /// wishlist via <c>GetCartByIdAsync</c> (null <c>WishlistUserContext.Cart</c> → real load),
-/// update name, skip scope (no scope → all if-branches in <c>UpdateScopeAsync</c> are skipped),
-/// then save.
+/// update name, build the scope context (<c>UpdateScopeAsync</c> does that unconditionally — there
+/// are no branches to skip) and hand it to <c>ICartSharingService</c>, then save. No scope work is
+/// measured, but because this harness mocks that service — not because the command carries no scope.
 ///
 /// Complements <see cref="RenameWishlistBenchmarksBase"/>: <c>changeWishlist</c> is the newer
 /// mutation that also handles scope/sharing; the rename-only branch is the common case.
