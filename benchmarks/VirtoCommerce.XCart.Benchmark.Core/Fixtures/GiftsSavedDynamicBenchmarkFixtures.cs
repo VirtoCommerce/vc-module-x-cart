@@ -16,7 +16,8 @@ internal static class GiftsSavedDynamicBenchmarkFixtures
 
     public const string GiftId = "benchmark-gift";
 
-    /// <summary>An <c>addGiftItems</c> command requesting the one available gift by id.</summary>
+    /// <summary>An <c>addGiftItems</c> command requesting one gift id, which the empty available-gift
+    /// list does not contain — the requested-but-unavailable path the benchmark measures.</summary>
     public static AddGiftItemsCommand CreateAddGiftItemsCommand()
     {
         var command = AbstractTypeFactory<AddGiftItemsCommand>.TryCreateInstance();
