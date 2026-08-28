@@ -5,10 +5,12 @@ operations a developer ships (GraphQL mutations) and their real internal compute
 mocked at the leaves. They are a tool for **local development and code analysis**: run them while
 changing cart code to see the allocation and throughput effect of a change.
 
-The metric to trust is **allocations** (`[MemoryDiagnoser]`): it is deterministic across machines
-and runs, so it is meaningful even when comparing numbers taken at different times. Wall-clock
-`Mean` is a useful complementary signal but only within a single controlled run on an idle machine
-(it varies with CPU, turbo, and load).
+The metric to trust is **allocations** (`[MemoryDiagnoser]`) measured at **`--job Short` or above**:
+there it is reproducible across machines and runs, so it is meaningful even when comparing numbers
+taken at different times. It is NOT reproducible at `--job Dry` — see
+[Reading allocations: use `--job Short`](#reading-allocations-use---job-short). Wall-clock `Mean` is
+a useful complementary signal but only within a single controlled run on an idle machine (it varies
+with CPU, turbo, and load).
 
 ## Subjects
 
@@ -115,8 +117,8 @@ registrations (subclassed models via `AbstractTypeFactory`, a heavier aggregate,
 handlers, extra recalculate middleware), and declares it once via `[assembly: BenchmarkSetup]`. The
 generator (shipped in the Core package) emits the same benchmark definitions into the consumer's runner,
 so the **same** operations run against the consumer's graph. Both sides run out-of-process on the stock
-toolchain — run each into separate `--artifacts` and diff the `Allocated` column (deterministic; `Mean`
-from a short run is noise):
+toolchain — run each at `--job Short` into separate `--artifacts` and diff the `Allocated` column
+(reproducible at Short, not at Dry; `Mean` from a short run is noise):
 
 A consumer whose real workload is a richer cart (a parent→child line-item hierarchy, not flat SKUs) can
 also override `ICartBenchmarkSetup.CreateCart(lineItemCount, shape)` to feed that graph into the
@@ -156,7 +158,8 @@ A single run's numbers are not a verdict — compare. Two ways:
    dotnet run -c Release -- --filter "*RecalculateAsync*" --artifacts ./after
    diff before/results/*-report-github.md after/results/*-report-github.md
    ```
-   Allocations are deterministic, so this is reliable for them across separate runs.
+   Run both sides at `--job Short` (or above): allocations reproduce across separate runs there, and
+   they do not at `--job Dry`.
 
 2. **Single-process side-by-side (`--baseline-src`).** To get `Ratio` / `Alloc Ratio` columns that
    control for machine variance in **one** run, point the benchmark at a baseline checkout of the
@@ -179,9 +182,11 @@ A single run's numbers are not a verdict — compare. Two ways:
    of `0.85` on an `after` row means the change allocates ~15% less. Valid only when the change keeps
    the public API these benchmarks call stable (same namespaces and signatures).
 
-   `--baseline-src` **defaults to `--job Dry`**: allocations are deterministic at any job, so a Dry
-   before/after gives a byte-exact `Alloc Ratio` in **seconds** — the cheap routine check, and the
-   trustworthy axis. The Dry/Short time `Ratio` is **directional only, not a verdict** (cold JIT / too
+   `--baseline-src` **defaults to `--job Dry`, which is the wrong job for the allocation axis** —
+   pass `--job Short` explicitly for any `Alloc Ratio` you intend to act on, and see
+   [Reading allocations: use `--job Short`](#reading-allocations-use---job-short) for the measured
+   reason. Dry stays useful for one thing here: confirming in seconds that both sides still build and
+   run. The Dry/Short time `Ratio` is **directional only, not a verdict** (cold JIT / too
    few iterations); the runner prints a reminder to that effect. Pass `--job Short` for a rough
    same-machine time direction, or **`--job Default` for a trustworthy `Mean`** (tens of minutes) — the
    chosen job applies to **both** the before and after jobs (it is consumed by `--baseline-src`, not
@@ -190,6 +195,43 @@ A single run's numbers are not a verdict — compare. Two ways:
 
 Allocations catch garbage/GC regressions; the time `Ratio` (in a controlled run) catches pure-CPU
 regressions that allocate nothing — read both.
+
+### Reading allocations: use `--job Short`
+
+`--job Dry` runs one cold invocation, so the first call's JIT and static initialisation land inside
+the measured region. On a large cart that overhead disappears into the real allocations; on a small
+one it dominates. Measured on `AddCartItemsBenchmarks`, three runs of the same binary per job:
+
+| Case | Dry — spread over 3 runs | Short — spread over 3 runs |
+|------|-------------------------:|---------------------------:|
+| `ItemCount=1`, Flat | **36.7 %** | 0.15 % |
+| `ItemCount=5`, Flat | 4.6 % | 0.13 % |
+| `ItemCount=20`, Flat | 0.03 % | 0.04 % |
+| `ItemCount=100`, Flat | 0.36 % | 1.09 % |
+
+Dry is also biased, not merely noisy: `ItemCount=1, Flat` reads 92–127 KB at Dry against a steady
+58.3 KB at Short — roughly double, and the excess is the first call rather than the operation.
+
+So read allocations at `--job Short` or above. Reserve Dry for "does it still run": it executes every
+case once in seconds and is the cheapest way to catch a broken fixture or a missing registration.
+Treat a Short-to-Short difference under ~1 % as noise — that is the largest spread observed above.
+
+### Recognising a run that measured nothing
+
+BenchmarkDotNet exits **0** whether or not a single case produced a figure, and prints
+`executed benchmarks: N` counting attempts, not results. A suite whose subject cannot be constructed
+at all therefore looks, from the exit code and the summary line, exactly like a healthy one. This is
+not hypothetical: 350 of these 351 cases threw for weeks after `CartAggregate` gained a constructor
+dependency the benchmark host did not register, and every run of that period exited 0.
+
+Read these instead of the exit code:
+
+- `NA` in the **`Mean`** column. In a Dry run `Error` is always `NA`, so `Mean` is the column that
+  distinguishes a result from a failure — a row reading `| … | NA | NA |` produced nothing.
+- `There are not any results runs`, once per failed case.
+- A `Benchmarks with issues:` block near the end, listing them by name.
+- Exceptions in `BenchmarkDotNet.Artifacts/BenchmarkRun-*.log`. They appear in the body of that file,
+  not in the console tail.
 
 ### Before you trust a green result, show the arm can go red
 
