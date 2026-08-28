@@ -5,4 +5,6 @@ public abstract class ScopedWishlistCommand : WishlistCommand
     public string Scope { get; set; }
 
     public string SharingKey { get; set; }
+
+    public string SharedWithId { get; set; }
 }

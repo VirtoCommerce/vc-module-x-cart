@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using GraphQL;
 using MediatR;
@@ -21,14 +22,23 @@ namespace VirtoCommerce.XCart.Data.Queries
         private readonly IUserManagerCore _userManagerCore;
 
         public GetCartQueryBuilder(
+            IAuthorizationService authorizationService,
+            ICurrencyService currencyService,
+            IUserManagerCore userManagerCore)
+            : base(authorizationService)
+        {
+            _currencyService = currencyService;
+            _userManagerCore = userManagerCore;
+        }
+
+        [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+        public GetCartQueryBuilder(
             IMediator mediator,
             IAuthorizationService authorizationService,
             ICurrencyService currencyService,
             IUserManagerCore userManagerCore)
-            : base(mediator, authorizationService)
+            : this(authorizationService, currencyService, userManagerCore)
         {
-            _currencyService = currencyService;
-            _userManagerCore = userManagerCore;
         }
 
         protected override async Task BeforeMediatorSend(IResolveFieldContext<object> context, GetCartQuery request)

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using AutoMapper;
 using GraphQL.DataLoader;
@@ -21,7 +22,6 @@ namespace VirtoCommerce.XCart.Core.Schemas
     public class LineItemType : ExtendableGraphType<LineItem>
     {
         public LineItemType(
-            IMediator mediator,
             IDataLoaderContextAccessor dataLoader,
             IDynamicPropertyResolverService dynamicPropertyResolverService,
             IMapper mapper, IMemberService memberService,
@@ -32,7 +32,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 Name = "product",
                 Type = GraphTypeExtensionHelper.GetActualType<ProductType>(),
                 Resolver = new FuncFieldResolver<LineItem, IDataLoaderResult<ExpProduct>>(context =>
-                    dataLoader.LoadCartProduct(context, mediator, currencyService, "cart_lineItems_products", (CurrencyCode: context.Source.Currency, context.Source.ProductId))),
+                    dataLoader.LoadCartProduct(context, currencyService, "cart_lineItems_products", (CurrencyCode: context.Source.Currency, context.Source.ProductId))),
             };
             AddField(productField);
 
@@ -170,6 +170,17 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 "Configuration items for configurable product",
                 resolve: context => context.Source.ConfigurationItems ?? []);
 
+        }
+
+        [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+        public LineItemType(
+            IMediator mediator,
+            IDataLoaderContextAccessor dataLoader,
+            IDynamicPropertyResolverService dynamicPropertyResolverService,
+            IMapper mapper, IMemberService memberService,
+            ICurrencyService currencyService)
+            : this(dataLoader, dynamicPropertyResolverService, mapper, memberService, currencyService)
+        {
         }
     }
 }

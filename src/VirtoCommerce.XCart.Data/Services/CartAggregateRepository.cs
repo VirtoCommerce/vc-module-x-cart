@@ -82,8 +82,7 @@ namespace VirtoCommerce.XCart.Data.Services
             // This ensures the mutation response re-validates against the updated cart.
             cartAggregate.ClearValidationCache();
 
-            // Clear aggregate cache
-            GenericCachingRegion<CartAggregate>.ExpireTokenForKey(cartAggregate.Id);
+            ClearCache(cartAggregate.Id);
         }
 
         public async Task<CartAggregate> GetCartByIdAsync(string cartId, string cultureName = null)
@@ -212,7 +211,7 @@ namespace VirtoCommerce.XCart.Data.Services
         public virtual async Task RemoveCartAsync(string cartId)
         {
             await _shoppingCartService.DeleteAsync(new[] { cartId }, softDelete: true);
-            GenericCachingRegion<CartAggregate>.ExpireTokenForKey(cartId);
+            ClearCache(cartId);
         }
 
         protected virtual async Task<IList<CartAggregate>> GetCartsForShoppingCartsAsync(ShoppingCartSearchCriteria criteria, IList<ShoppingCart> carts, IList<string> productsIncludeFields, string cultureName = null)
@@ -248,13 +247,23 @@ namespace VirtoCommerce.XCart.Data.Services
 
             var result = await _platformMemoryCache.GetOrCreateExclusiveAsync(cacheKey, async cacheOptions =>
             {
-                cacheOptions.AddExpirationToken(GenericCachingRegion<CartAggregate>.CreateChangeTokenForKey(cart.Id));
-                cacheOptions.AddExpirationToken(GenericSearchCachingRegion<Promotion>.CreateChangeToken());
+                ConfigureCache(cacheOptions, cart);
 
                 return await InnerGetCartAggregateFromCartNoCacheAsync(cart, language, productsIncludeFields, responseGroup);
             });
 
             return result;
+        }
+
+        protected virtual void ConfigureCache(MemoryCacheEntryOptions cacheOptions, ShoppingCart cart)
+        {
+            cacheOptions.AddExpirationToken(GenericCachingRegion<CartAggregate>.CreateChangeTokenForKey(cart.Id));
+            cacheOptions.AddExpirationToken(GenericSearchCachingRegion<Promotion>.CreateChangeToken());
+        }
+
+        protected virtual void ClearCache(string cartId)
+        {
+            GenericCachingRegion<CartAggregate>.ExpireTokenForKey(cartId);
         }
 
         private async Task<CartAggregate> InnerGetCartAggregateFromCartNoCacheAsync(ShoppingCart cart, string language, IList<string> productsIncludeFields, string responseGroup)
