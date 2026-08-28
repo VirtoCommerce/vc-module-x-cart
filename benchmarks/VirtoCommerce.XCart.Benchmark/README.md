@@ -191,6 +191,18 @@ A single run's numbers are not a verdict — compare. Two ways:
 Allocations catch garbage/GC regressions; the time `Ratio` (in a controlled run) catches pure-CPU
 regressions that allocate nothing — read both.
 
+### Before you trust a green result, show the arm can go red
+
+A benchmark has no assertions, so "no regression" and "this run never touched your change" print the
+same number, and the filter that selects the arm is chosen by hand. Two of the ways to miss are
+structural rather than accidental: every I/O leaf is mocked, so a change that adds a database
+round-trip, a search, or a cache lookup shows nothing; and there is one benchmark per distinct
+handler, so a branch your change lives on may never execute.
+
+Before reading a `1.00` ratio as good news, perturb the code you changed — revert the optimisation,
+or add an obvious allocation — and confirm the number moves. If it does not, the arm does not reach
+your change and the result says nothing about it.
+
 ## TODO — extract the engine to a module-agnostic `VirtoCommerce.Xapi.Benchmark.Core`
 
 The reusable plumbing — `BenchmarkProgram`, `BenchmarkSetupAttribute`, the source generator
