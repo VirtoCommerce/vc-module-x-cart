@@ -10,10 +10,10 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// <summary>
 /// Command-level microbenchmark of the <c>addCartItems</c> GraphQL mutation, resolved through
 /// <see cref="IMediator"/> so a consuming module's handler override is what runs. The whole real graph
-/// runs (handler → real <c>CartAggregateRepository</c> → add dispatch → real <c>RecalculateAsync</c>);
-/// only the I/O leaves are mocked, and the DB write is a no-op so the save still recalculates.
+/// runs (handler → real <c>CartAggregateRepository</c> → add dispatch → real <c>RecalculateAsync</c>),
+/// and the DB write is a no-op so the save still recalculates.
 ///
-/// Two axes:
+/// What the axes drive here:
 /// <list type="bullet">
 /// <item><b>Shape</b> — <c>Flat</c> exercises the plain per-item add; <c>Configured</c> routes
 /// every item through the configured-product dispatch (a distinct, heavier handler branch).</item>

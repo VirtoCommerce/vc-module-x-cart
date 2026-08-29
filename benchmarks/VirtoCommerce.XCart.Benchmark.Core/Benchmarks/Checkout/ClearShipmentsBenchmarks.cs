@@ -15,8 +15,6 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// Measuring on a cart with empty Shipments is valid — the load + empty-collection-assign + save +
 /// recalc cycle is what the benchmark captures regardless of initial shipment count. The measured
 /// compute still walks the full cart item graph twice (load recalc + save recalc).
-///
-/// Idempotent without [IterationSetup]: GetAsync mock returns a fresh cart per call. Two axes.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Checkout)]

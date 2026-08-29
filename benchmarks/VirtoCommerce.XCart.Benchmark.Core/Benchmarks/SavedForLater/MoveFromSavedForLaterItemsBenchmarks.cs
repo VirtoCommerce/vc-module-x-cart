@@ -12,12 +12,10 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// (<see cref="MoveFromSavedForLaterItemsCommandHandler.Handle"/>) over the <b>real</b>
 /// <see cref="VirtoCommerce.XCart.Data.Services.SavedForLaterListService"/>: load the destination
 /// cart (real build + recalc), find the seeded saved-for-later list, copy li-0 from it into the cart,
-/// remove it from the list, then save both (two real recalculates). Only the DB read/write leaves are
-/// mocked.
+/// remove it from the list, then save both (two real recalculates).
 ///
-/// Idempotent without [IterationSetup]: a fresh cart and a fresh seeded saved-for-later list are built
-/// per call. Flat vs Configured surfaces the configured-copy path; the cart-size count drives the two
-/// recalculates.
+/// A fresh seeded saved-for-later list is built per call alongside the fresh cart; the Configured
+/// shape routes the copy through the configured-item path.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.SavedForLater)]

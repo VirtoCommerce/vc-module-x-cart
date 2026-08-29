@@ -16,7 +16,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 ///
 /// The command targets the first line item (<c>li-0</c>) which is present in every fixture cart
 /// regardless of size, ensuring the updater delegate is always reached (not the null-guard path).
-/// The updater is zero overhead; dominant cost is load+recalc. Idempotent without [IterationSetup].
+/// The updater is zero overhead; the dominant cost is load+recalc.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.DynamicProperties)]

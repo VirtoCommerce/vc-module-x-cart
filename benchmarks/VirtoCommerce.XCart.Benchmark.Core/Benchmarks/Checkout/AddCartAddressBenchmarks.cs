@@ -13,11 +13,9 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// find or create an address by AddressType (Shipping), apply the address, save (recalc).
 ///
 /// NOTE: differs from <see cref="AddOrUpdateCartAddressBenchmarksBase"/> which uses
-/// <c>AddOrUpdateCartAddressAsync</c> (match by Key) — <c>AddCartAddressCommandHandler</c> calls
+/// <c>AddOrUpdateCartAddress</c> (match by Key) — <c>AddCartAddressCommandHandler</c> calls
 /// <c>AddOrUpdateCartAddressByTypeAsync</c> instead, exercising a distinct lookup path that replaces
 /// any existing address of the same type rather than matching on the Key field.
-///
-/// Idempotent without [IterationSetup]: fresh cart per call (no pre-existing address). Two axes.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Checkout)]

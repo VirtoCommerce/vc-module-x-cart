@@ -31,7 +31,6 @@ public sealed class XCartBenchmarkSetup : ICartBenchmarkSetup
 {
     public void ConfigureServices(IServiceCollection services)
     {
-        // ── Real recalculate promotion pipeline (replaces the no-op mock launcher) ────────────────────
         // AddPipeline TryAdds the real GenericPipelineLauncher, so RecalculateAsync's
         // EvaluatePromotionsAsync executes the production promo-context map. The map's shopper-data load
         // is I/O → mocked; the cart→context mapping (the real cost) runs via the host's real IMapper.
@@ -54,7 +53,6 @@ public sealed class XCartBenchmarkSetup : ICartBenchmarkSetup
             .ReturnsAsync(promotionResult);
         services.AddSingleton(marketingEvaluator.Object);
 
-        // ── Real tax evaluation ───────────────────────────────────────────────────────────────────────
         // The store tax-calculation gate is already satisfied: its SettingDescriptor.DefaultValue is true,
         // so GetValue<bool> on the host's settings-less store returns true. The only thing gating tax off
         // in the base host is the absent tax-search dependency — expose it as present with one active

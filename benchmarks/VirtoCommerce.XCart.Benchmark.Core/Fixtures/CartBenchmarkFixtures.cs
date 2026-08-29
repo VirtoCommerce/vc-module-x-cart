@@ -112,8 +112,6 @@ public static class CartBenchmarkFixtures
         }).ToList();
     }
 
-    // ── addCartItems command-level harness ──────────────────────────────────────────────────────
-
     /// <summary>Real AutoMapper from the production cart profile — the add path maps CartProduct → LineItem.</summary>
     public static IMapper CreateMapper() =>
         new MapperConfiguration(cfg => cfg.AddProfile<CartMappingProfile>()).CreateMapper();
@@ -165,7 +163,6 @@ public static class CartBenchmarkFixtures
         return command;
     }
 
-    // ── mutate-existing-cart harness ─────────────────────────────────────────────────────────────
     // Mutation handlers (change-quantity, change-price, remove-item, configuration, ...) reach the
     // cart through CartCommandHandler.GetOrCreateCartFromCommandAsync → CartId set →
     // CartAggregateRepository.GetCartByIdAsync → IShoppingCartService.GetByIdAsync → the CACHED
@@ -256,7 +253,6 @@ public static class CartBenchmarkFixtures
         return WithCartContext(command);
     }
 
-    /// <summary>A <c>changeCartItemComment</c> command setting a comment on the first line item.</summary>
     public static ChangeCartItemCommentCommand CreateChangeCartItemCommentCommand()
     {
         var command = AbstractTypeFactory<ChangeCartItemCommentCommand>.TryCreateInstance();
@@ -266,7 +262,6 @@ public static class CartBenchmarkFixtures
         return WithCartContext(command);
     }
 
-    /// <summary>A <c>changeCartItemSelected</c> command toggling the first line item's checkout selection off.</summary>
     public static ChangeCartItemSelectedCommand CreateChangeCartItemSelectedCommand()
     {
         var command = AbstractTypeFactory<ChangeCartItemSelectedCommand>.TryCreateInstance();
@@ -276,7 +271,6 @@ public static class CartBenchmarkFixtures
         return WithCartContext(command);
     }
 
-    /// <summary>A <c>removeCartItem</c> command removing the first line item of the loaded cart.</summary>
     public static RemoveCartItemCommand CreateRemoveCartItemCommand()
     {
         var command = AbstractTypeFactory<RemoveCartItemCommand>.TryCreateInstance();
@@ -286,10 +280,7 @@ public static class CartBenchmarkFixtures
     }
 
     /// <summary>A <c>changeAllCartItemsSelected</c> command toggling EVERY line item's checkout
-    /// selection off. The handler feeds all of the cart's line item ids into
-    /// <c>CartAggregate.ChangeItemsSelectedAsync</c>, whose per-id <c>Items.FirstOrDefault</c> lookup
-    /// makes the bulk selection update O(N²) in cart size — the path the singular
-    /// <c>changeCartItemSelected</c> (one id) never exercises.</summary>
+    /// selection off.</summary>
     public static ChangeAllCartItemsSelectedCommand CreateChangeAllCartItemsSelectedCommand()
     {
         var command = AbstractTypeFactory<ChangeAllCartItemsSelectedCommand>.TryCreateInstance();
@@ -299,10 +290,7 @@ public static class CartBenchmarkFixtures
     }
 
     /// <summary>A <c>removeCartItems</c> command removing EVERY line item of the loaded cart
-    /// (<c>li-0</c>…<c>li-{count-1}</c>). <c>CartAggregate.RemoveItemsAsync</c> resolves the id list with
-    /// a <c>Items.Where(ids.Contains)</c> scan plus a per-item <c>List.Remove</c>, so removing all N
-    /// items is O(N²) in cart size — the bulk-remove path the singular <c>removeCartItem</c> never
-    /// exercises.</summary>
+    /// (<c>li-0</c>…<c>li-{count-1}</c>).</summary>
     public static RemoveCartItemsCommand CreateRemoveCartItemsCommand(int lineItemCount)
     {
         var command = AbstractTypeFactory<RemoveCartItemsCommand>.TryCreateInstance();

@@ -10,8 +10,8 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// <summary>
 /// Command-level microbenchmark of the <c>removeCoupon</c> GraphQL mutation, resolved through
 /// <see cref="IMediator"/>: load (real build + recalc), remove the coupon code from <c>Cart.Coupons</c>
-/// (pure list op), save (recalc again). Only I/O leaves are mocked. Idempotent without [IterationSetup]
-/// (fresh cart per call); the recalculate cycle dominates. Flat vs Configured; count axis.
+/// (pure list op), save (recalc again). The code is absent from the loaded cart, so the removal is
+/// a no-op and the recalculate cycle is the whole measured cost.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Coupon)]

@@ -21,14 +21,10 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 internal static class WishlistBenchmarkFixtures
 {
-    // ── Constants ────────────────────────────────────────────────────────────────────────────────
-
     public const string WishlistId = "benchmark-wishlist";
     public const string DestinationWishlistId = "benchmark-wishlist-dest";
     public const string WishlistName = "My Wishlist";
     public const string WishlistProductId = "wishlist-product-0";
-
-    // ── WishlistUserContext helper ────────────────────────────────────────────────────────────────
 
     /// <summary>
     /// A <see cref="WishlistUserContext"/> with no scope, so the loose-mock
@@ -49,8 +45,6 @@ internal static class WishlistBenchmarkFixtures
             Scope = null,
         };
     }
-
-    // ── Stamp WishlistCommand context ────────────────────────────────────────────────────────────
 
     /// <summary>
     /// Stamps the shared cart context onto a <see cref="WishlistCommand"/>: both the
@@ -84,8 +78,6 @@ internal static class WishlistBenchmarkFixtures
         return command;
     }
 
-    // ── Command builders: create paths ─────────────────────────────────────────────────────────────
-
     /// <summary>A <c>createWishlist</c> command with a valid list name and no scope (private by
     /// default). No CartId so the handler creates a new cart each invocation.</summary>
     public static CreateWishlistCommand CreateWishlistCommand()
@@ -106,7 +98,6 @@ internal static class WishlistBenchmarkFixtures
         return WithWishlistContext(command, isCreatePath: true);
     }
 
-    /// <summary>A <c>createCartFromWishlist</c> command whose source is the fixture wishlist.</summary>
     public static CreateCartFromWishlistCommand CreateCartFromWishlistCommand()
     {
         var command = AbstractTypeFactory<CreateCartFromWishlistCommand>.TryCreateInstance();
@@ -114,9 +105,6 @@ internal static class WishlistBenchmarkFixtures
         return WithWishlistContext(command, isCreatePath: true);
     }
 
-    // ── Command builders: mutate-existing paths ────────────────────────────────────────────────────
-
-    /// <summary>An <c>addWishlistItem</c> command with a valid product ID and default quantity 1.</summary>
     public static AddWishlistItemCommand CreateAddWishlistItemCommand()
     {
         var command = AbstractTypeFactory<AddWishlistItemCommand>.TryCreateInstance();
@@ -126,9 +114,7 @@ internal static class WishlistBenchmarkFixtures
         return WithWishlistContext(command);
     }
 
-    /// <summary>A <c>renameWishlist</c> command with a new list name. The ctor requires both
-    /// <c>listId</c> and <c>listName</c>; <see cref="WithWishlistContext{T}"/> overwrites
-    /// <c>ListId</c> to <c>WishlistId</c> after construction.</summary>
+    /// <summary>A <c>renameWishlist</c> command with a new list name.</summary>
     public static RenameWishlistCommand CreateRenameWishlistCommand() =>
         WithWishlistContext(new RenameWishlistCommand(WishlistId, WishlistName + " (renamed)"));
 
@@ -145,8 +131,6 @@ internal static class WishlistBenchmarkFixtures
         return WithWishlistContext(command);
     }
 
-    /// <summary>A <c>removeWishlist</c> command for the fixture wishlist. The ctor requires
-    /// <c>listId</c>; <see cref="WithWishlistContext{T}"/> overwrites it to <c>WishlistId</c>.</summary>
     public static RemoveWishlistCommand CreateRemoveWishlistCommand() =>
         WithWishlistContext(new RemoveWishlistCommand(WishlistId));
 
@@ -161,9 +145,8 @@ internal static class WishlistBenchmarkFixtures
         return WithWishlistContext(command);
     }
 
-    /// <summary>A <c>moveWishlistItem</c> command moving <c>li-0</c> from the source to the destination
-    /// wishlist. The ctor requires all three ids; <see cref="WithWishlistContext{T}"/> overwrites
-    /// <c>ListId</c> to <c>WishlistId</c> after construction.</summary>
+    /// <summary>A <c>moveWishlistItem</c> command moving <c>li-0</c> from the source to the
+    /// destination wishlist.</summary>
     public static MoveWishlistItemCommand CreateMoveWishlistItemCommand() =>
         WithWishlistContext(new MoveWishlistItemCommand(WishlistId, DestinationWishlistId, "li-0"));
 
@@ -179,9 +162,6 @@ internal static class WishlistBenchmarkFixtures
         return WithWishlistContext(command);
     }
 
-    // ── Query builders ─────────────────────────────────────────────────────────────────────────────
-
-    /// <summary>A <c>getWishlist</c> query for the fixture wishlist.</summary>
     public static GetWishlistQuery CreateGetWishlistQuery()
     {
         var query = AbstractTypeFactory<GetWishlistQuery>.TryCreateInstance();
@@ -192,7 +172,6 @@ internal static class WishlistBenchmarkFixtures
         return query;
     }
 
-    /// <summary>A <c>searchWishlists</c> query with minimal required fields.</summary>
     public static SearchWishlistQuery CreateSearchWishlistQuery()
     {
         var query = AbstractTypeFactory<SearchWishlistQuery>.TryCreateInstance();

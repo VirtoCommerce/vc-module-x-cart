@@ -14,9 +14,8 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// call <c>AddItemsAsync</c> (real add-validation + recalc), then save.
 ///
 /// The item-count axis grows the wishlist the item is added INTO, surfacing how the recalculate
-/// cost scales with cart size. The added item is always the same product (
-/// <see cref="WishlistBenchmarkFixtures.WishlistProductId"/>); the harness returns a fresh cart
-/// per call so items never accumulate.
+/// cost scales with cart size. The added item is always the same product
+/// (<see cref="WishlistBenchmarkFixtures.WishlistProductId"/>).
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Wishlist)]

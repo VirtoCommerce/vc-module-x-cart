@@ -11,16 +11,10 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// Command-level microbenchmark of the <c>removeConfigurationItem</c> GraphQL mutation
 /// (<see cref="RemoveConfigurationItemCommandHandler.Handle"/>): the mutate-existing-cart path —
 /// load (real <c>CartAggregateRepository</c> build + recalc), remove the first Variation
-/// configuration item from the first configured line item, then save (recalc again). Only the
-/// I/O leaves are mocked; the totals calculator runs for real.
+/// configuration item from the first configured line item, then save (recalc again).
 ///
-/// <b>Configured shape only</b>: a flat cart has no <c>ConfigurationItems</c>, so the handler
-/// short-circuits at <c>GetConfiguredLineItem</c> without reaching the remove logic. The flat
-/// shape is excluded intentionally.
-///
-/// Idempotent without [IterationSetup]: the never-cache + GetAsync-fresh-per-call pattern
-/// reloads a full three-item config set before each invocation, so the remove is always applied
-/// to a cart where <c>ci-0-0</c> is present.
+/// Each invocation reloads the full three-item config set, so <c>ci-0-0</c> is always present to
+/// remove.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Configuration)]

@@ -11,9 +11,8 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// Query-level microbenchmark of the <c>getPricesSum</c> GraphQL query, resolved through
 /// <see cref="IMediator"/>: a two-aggregate path. The measured compute: (1) load the source cart by
 /// CartId (real load + recalc); (2) build a fresh temp aggregate (real build + recalc); (3) copy line
-/// items source → temp; (4) <c>RecalculateAsync</c> on the temp; (5) read totals. Only I/O leaves are
-/// mocked. Both builds run the real totals calculator — ~2× the recalc cost of <c>getCart</c> plus the
-/// copy overhead. Two axes: shape (Flat vs Configured) and cart size.
+/// items source → temp; (4) <c>RecalculateAsync</c> on the temp; (5) read totals. Both builds run the
+/// real totals calculator — ~2× the recalc cost of <c>getCart</c> plus the copy overhead.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Queries)]

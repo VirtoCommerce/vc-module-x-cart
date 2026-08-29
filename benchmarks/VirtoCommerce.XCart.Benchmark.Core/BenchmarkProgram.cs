@@ -10,41 +10,27 @@ namespace VirtoCommerce.XCart.Benchmark;
 
 /// <summary>
 /// Shared entry-point plumbing for the XCart benchmark runners. Each runner's <c>Main</c> is a one-liner
-/// over <see cref="Run"/>, passing its OWN assembly: the concrete benchmark subclasses (one per Core
-/// <c>*BenchmarksBase</c>, source-generated, each baking the runner's <see cref="ICartBenchmarkSetup"/>)
-/// live in the runner exe. So <see cref="BenchmarkSwitcher.FromAssembly"/> discovers them there, and the
-/// stock out-of-process toolchain rebuilds the runner's own <c>.csproj</c> for the child process — no
-/// custom toolchain, no in-process mode, no process-global state.
+/// over <see cref="Run"/>, passing its OWN assembly — that is where the source-generated concrete
+/// subclasses live, so <see cref="BenchmarkSwitcher.FromAssembly"/> finds them. README §"Layout and
+/// toolchain" has the model.
 /// </summary>
 public static class BenchmarkProgram
 {
     /// <summary>
     /// Parses the one opt-in option (<c>--baseline-src</c>), builds the config, and runs the concrete
-    /// benchmarks discovered in <paramref name="benchmarkAssembly"/>. Job selection is BenchmarkDotNet's
-    /// own <c>--job Dry|Short|Default</c> CLI flag (forwarded untouched to the switcher) — there are no
-    /// custom <c>--smoke</c>/<c>--short</c> aliases, so every module's runner shares one job-selection
-    /// mechanism and the perf-benchmark helpers don't have to special-case a runner dialect.
+    /// benchmarks discovered in <paramref name="benchmarkAssembly"/>. Every other argument —
+    /// <c>--job</c> included — is forwarded to BenchmarkDotNet untouched; there is no runner dialect.
+    /// README §"Comparing before/after a change" documents the comparison workflow.
     /// </summary>
     public static void Run(Assembly benchmarkAssembly, string[] args)
     {
-        // Opt-in before/after comparison: `--baseline-src <src>` adds a "before" job that rebuilds the
-        // benchmarked source from <src> (a git worktree on the baseline revision) alongside the current
-        // "after" source, yielding Ratio / Alloc-Ratio in one run. The `/p:BaselineSrc` MSBuild property
-        // (named by role, not module, so every module's benchmark Core shares it) flows from the
-        // generated child build through the runner's ProjectReference graph into the source references.
-        // When absent the config carries no job, so BenchmarkDotNet uses its `--job` CLI flag (default
-        // Job.Default).
         var (baselineSrc, rest) = ExtractOption(args, "--baseline-src");
 
         var config = ManualConfig.Create(DefaultConfig.Instance).AddColumn(CategoriesColumn.Default);
         if (baselineSrc is not null)
         {
-            // before+after differ ONLY by source, so the job is chosen here — extracted from args, NOT
-            // left for the switcher's --job (that would append a third, unpaired job). Default to Dry:
-            // allocations are deterministic at any job, so a Dry before/after yields a byte-exact Alloc
-            // Ratio in seconds (the cheap routine check, and the alloc axis is the trustworthy one). The
-            // time Ratio at Dry/Short is NOT a verdict (cold JIT / too few iterations) — escalate to
-            // `--job Default` only when a trustworthy Mean comparison is the point.
+            // before+after differ ONLY by source, so --job is consumed here rather than left for the
+            // switcher — forwarding it would append a third, unpaired job.
             var (jobName, restAfterJob) = ExtractOption(rest, "--job");
             rest = restAfterJob;
             var normalized = (jobName ?? "dry").ToLowerInvariant();

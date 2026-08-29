@@ -15,9 +15,8 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// dispatch + recalc). The SKU resolution itself is I/O (mocked); what this measures on top of the plain
 /// <c>addCartItems</c> benchmark is the bulk dedup/match envelope plus the bulk→singular delegation.
 ///
-/// Two axes: <b>Shape</b> (<c>Configured</c> routes the inner add through the configured-product
-/// dispatch); <b>Item count</b> (1 = single, 5/20/100 = bulk; 100 surfaces super-linear growth). Read
-/// the <c>Allocated</c> column across the rows.
+/// The item count is the bulk dimension here (1 = single, 5/20/100 = bulk); read the
+/// <c>Allocated</c> column across the rows.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Items)]

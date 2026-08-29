@@ -11,8 +11,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// Command-level microbenchmark of the <b>cart-level</b> <c>changeComment</c> GraphQL mutation
 /// (<see cref="ChangeCommentCommandHandler.Handle"/>): sets the cart's top-level comment string.
 /// Measured compute = load cart (real build + recalc), call <c>UpdateCartComment</c> (sets the
-/// cart-level comment string), save (recalc again). Only I/O leaves are mocked; the totals
-/// calculator is real.
+/// cart-level comment string), save (recalc again).
 ///
 /// <b>Distinct from <see cref="ChangeCartItemCommentBenchmarks"/></b>: that benchmark covers the
 /// <em>per-item</em> comment mutation (<c>ChangeCartItemCommentCommandHandler</c>); this one covers
@@ -21,10 +20,6 @@ namespace VirtoCommerce.XCart.Benchmark;
 ///
 /// Like <see cref="ChangePurchaseOrderNumberBenchmarks"/>, this is a scalar mutation; the measured
 /// time is dominated by the two recalc passes. Useful as a minimum-cost reference.
-///
-/// Two axes: <b>Shape</b> (Flat vs Configured — diverges on recalc cost) and <b>LineItemCount</b>.
-///
-/// Idempotent without [IterationSetup]: the GetAsync mock returns a fresh cart per call.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.CartState)]

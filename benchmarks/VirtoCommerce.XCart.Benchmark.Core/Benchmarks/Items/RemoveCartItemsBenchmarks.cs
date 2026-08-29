@@ -13,9 +13,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// now-empty set). <c>CartAggregate.RemoveItemsAsync</c> resolves the id list with a
 /// <c>Items.Where(ids.Contains)</c> scan plus a per-item <c>List.Remove</c>, so removing all N items is
 /// O(N²) in cart size — the bulk-remove path the singular <c>removeCartItem</c> (one id) never
-/// exercises. Read the count axis to watch the quadratic. Only the I/O leaves are mocked; the totals
-/// calculator is real. Idempotent without [IterationSetup] (fresh cart per call — the removal never
-/// accumulates).
+/// exercises. Read the count axis to watch the quadratic.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Items)]

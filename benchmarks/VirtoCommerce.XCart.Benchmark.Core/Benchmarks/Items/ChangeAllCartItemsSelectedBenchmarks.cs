@@ -14,8 +14,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// <c>CartAggregate.ChangeItemsSelectedAsync</c>, whose per-id <c>Items.FirstOrDefault</c> lookup makes
 /// the bulk selection update O(N²) in cart size — the path the singular <c>changeCartItemSelected</c>
 /// (one id, a near-pure recalc envelope) never exercises. Read the <c>Allocated</c>/time columns across
-/// the count axis to watch the quadratic. Only the I/O leaves are mocked; the totals calculator is real.
-/// Idempotent without [IterationSetup] (fresh cart per call).
+/// the count axis to watch the quadratic.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Items)]

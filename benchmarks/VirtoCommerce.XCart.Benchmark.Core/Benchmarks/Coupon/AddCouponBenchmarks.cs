@@ -10,9 +10,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// <summary>
 /// Command-level microbenchmark of the <c>addCoupon</c> GraphQL mutation, resolved through
 /// <see cref="IMediator"/>: load the cart (real build + recalc), append the coupon code to
-/// <c>Cart.Coupons</c> (pure list op), then save (recalc again). Only I/O leaves are mocked.
-/// Idempotent without [IterationSetup] (fresh cart per call). Flat vs Configured surfaces the
-/// configured recalc cost; count surfaces super-linear growth.
+/// <c>Cart.Coupons</c> (pure list op), then save (recalc again).
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Coupon)]

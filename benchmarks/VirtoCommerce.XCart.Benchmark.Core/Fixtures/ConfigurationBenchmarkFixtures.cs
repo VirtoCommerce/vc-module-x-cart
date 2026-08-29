@@ -19,8 +19,6 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 internal static class ConfigurationBenchmarkFixtures
 {
-    // ── AddConfigurationItem ──────────────────────────────────────────────────────────────────────
-
     /// <summary>
     /// An <c>addConfigurationItem</c> command that adds a new Variation section to <c>li-0</c>.
     ///
@@ -38,8 +36,6 @@ internal static class ConfigurationBenchmarkFixtures
 
         return CartBenchmarkFixtures.WithCartContext(command);
     }
-
-    // ── UpdateConfigurationItem ───────────────────────────────────────────────────────────────────
 
     /// <summary>
     /// An <c>updateConfigurationItem</c> command that updates <c>ci-0-0</c> in <c>li-0</c>.
@@ -59,8 +55,6 @@ internal static class ConfigurationBenchmarkFixtures
         return CartBenchmarkFixtures.WithCartContext(command);
     }
 
-    // ── RemoveConfigurationItem ───────────────────────────────────────────────────────────────────
-
     /// <summary>
     /// A <c>removeConfigurationItem</c> command that removes <c>ci-0-0</c> from <c>li-0</c>.
     ///
@@ -76,8 +70,6 @@ internal static class ConfigurationBenchmarkFixtures
 
         return CartBenchmarkFixtures.WithCartContext(command);
     }
-
-    // ── ChangeCartConfiguredLineItem ──────────────────────────────────────────────────────────────
 
     /// <summary>
     /// A <c>changeCartConfiguredLineItem</c> command targeting the first configured line item
@@ -97,14 +89,12 @@ internal static class ConfigurationBenchmarkFixtures
         return CartBenchmarkFixtures.WithCartContext(command);
     }
 
-    // ── ChangeCartConfigurationItemSelected ───────────────────────────────────────────────────────
-
     /// <summary>
-    /// A <c>changeCartConfigurationItemSelected</c> command toggling <c>ci-0-0</c> of <c>li-0</c> to
-    /// un-selected. The section matches the existing item by <c>Type + SectionId + ProductId</c>
-    /// (Variation rule). Fresh cart per call (never-cache) keeps the toggle always from its initial
-    /// state (<c>SelectedForCheckout</c> is not set in the fixture → defaults to false already, so
-    /// the toggle flips to true then back each reload — no accumulation).
+    /// A <c>changeCartConfigurationItemSelected</c> command SELECTING <c>ci-0-0</c> of <c>li-0</c>
+    /// (<c>SelectedForCheckout = true</c>). The section matches the existing item by
+    /// <c>Type + SectionId + ProductId</c> (Variation rule). The fixture leaves
+    /// <c>SelectedForCheckout</c> at its default false, so every invocation performs a real
+    /// false→true flip rather than a no-op re-set.
     /// </summary>
     public static ChangeCartConfigurationItemSelectedCommand CreateChangeCartConfigurationItemSelectedCommand()
     {

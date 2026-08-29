@@ -14,7 +14,6 @@
          reads their already-built identity for the nuspec deps. Unset for a normal build/run, so the
          in-repo-source build and the BaselineSrc before/after swap are unaffected. -->
     <BuildProjectReferences Condition="'$(NoBuild)' == 'true'">false</BuildProjectReferences>
-    <!-- TreatWarningsAsErrors is inherited from Directory.Build.props (true); this project builds clean. -->
     <!-- Bundle the source generator (below) into the nupkg's analyzers folder so NuGet consumers get it. -->
     <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);_PackBenchmarkSourceGen</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>

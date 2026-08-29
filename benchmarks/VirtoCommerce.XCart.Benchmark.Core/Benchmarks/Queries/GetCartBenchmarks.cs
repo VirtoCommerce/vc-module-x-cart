@@ -11,11 +11,9 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// Query-level microbenchmark of the <c>getCart</c> GraphQL query, resolved through
 /// <see cref="IMediator"/>: the full load + recalc path. The measured compute = look up the cart by
 /// CartId, build the aggregate (real <c>CartAggregateRepository</c>), run the real
-/// <c>DefaultShoppingCartTotalsCalculator</c>; only I/O leaves are mocked (DB read, never-cache).
+/// <c>DefaultShoppingCartTotalsCalculator</c>.
 ///
-/// Idempotent without [IterationSetup]: the cart service returns a fresh cart per call and the
-/// never-cache forces a real load+recalc every invocation. Two axes: shape (Flat vs Configured — the
-/// configured load additionally resolves variation products) and cart size (100 surfaces O(n²)).
+/// The Configured shape additionally resolves each item's variation products on load.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Queries)]

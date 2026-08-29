@@ -14,9 +14,8 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// <c>CartAggregateRepository.GetCartForShoppingCartAsync</c> (currency + store load, real
 /// <c>RecalculateAsync</c>) → no-op <c>SaveAsync</c>.
 ///
-/// The search mock returns empty every call so the handler always creates a new cart; no
-/// [IterationSetup] needed. Shape is fixed at <see cref="CartShape.Flat"/> (wishlists hold flat
-/// product references — no configured-item semantics benchmarked here).
+/// Idempotency here does NOT come from the shared fresh-cart mock: the search returns empty on
+/// every call, so the handler always creates a new cart.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Wishlist)]

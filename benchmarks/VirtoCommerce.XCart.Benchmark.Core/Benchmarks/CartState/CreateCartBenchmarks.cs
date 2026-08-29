@@ -14,7 +14,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// call <c>CreateNewCartAggregateAsync</c> (builds a fresh empty aggregate via
 /// <see cref="VirtoCommerce.XCart.Data.Services.CartAggregateRepository.GetCartForShoppingCartAsync"/>
 /// which runs the initial recalc over an empty cart), set <c>OrganizationId</c>,
-/// then save (recalc again). Only I/O leaves are mocked; the totals calculator is real.
+/// then save (recalc again).
 ///
 /// <b>Shape: Flat only</b>. The newly-created cart is always empty — <c>createCart</c> does not
 /// add any items. Configured items are added separately via <c>addCartItems</c>. Parameterising
@@ -22,8 +22,8 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// adding noise without signal. LineItemCount is retained as a param axis for harness-cost
 /// consistency but has no effect on the measured Handle body (the new cart starts empty).
 ///
-/// <b>Idempotent without [IterationSetup]</b>: each Handle creates a fresh empty cart (the search
-/// returns empty on every call) so invocations don't accumulate state.
+/// Idempotency here does NOT come from the shared fresh-cart mock: the search returns empty on
+/// every call, so each Handle creates its own new cart.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.CartState)]

@@ -11,7 +11,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// (fires on every read via the aggregate cache and inside every mutation's save) against the real
 /// <c>DefaultShoppingCartTotalsCalculator</c>. Aggregate-direct: resolves the concrete aggregate
 /// (base or a consumer's subclass) from <c>Func&lt;CartAggregate&gt;</c> so a module override is
-/// measured. Read the <c>Allocated</c> column across the count/shape rows; count 100 surfaces O(n²).
+/// measured. Read the <c>Allocated</c> column across the rows.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Recalculate)]

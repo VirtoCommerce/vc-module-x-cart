@@ -77,7 +77,6 @@ public static class CartBenchmarkHost
             typeof(CoreAssemblyMarker).Assembly,
             typeof(DataAssemblyMarker).Assembly));
 
-        // ── Real compute ────────────────────────────────────────────────────────────────────────
         var currencyService = new Mock<ICurrencyService>();
         currencyService.Setup(x => x.GetAllCurrenciesAsync()).ReturnsAsync([CartBenchmarkFixtures.Currency]);
         services.AddSingleton(currencyService.Object);
@@ -87,7 +86,6 @@ public static class CartBenchmarkHost
         // The add path maps CartProduct → LineItem with the real production profile.
         services.AddSingleton(CartBenchmarkFixtures.CreateMapper());
 
-        // ── Mocked I/O leaves ───────────────────────────────────────────────────────────────────
         var storeService = new Mock<IStoreService>();
         storeService
             .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
@@ -147,7 +145,7 @@ public static class CartBenchmarkHost
         // A working factory, not a loose mock: CartAggregate.ValidateAsync(ruleSet) rejects a null
         // context, so a loose default makes every consumer that validates discover it at runtime.
         services.AddSingleton(CartBenchmarkFixtures.CreateValidationContextFactory());
-        services.AddSingleton(Mock.Of<IOptionalDependency<ITaxProviderSearchService>>()); // HasValue false → tax branch skipped
+        services.AddSingleton(Mock.Of<IOptionalDependency<ITaxProviderSearchService>>());
 
         // EvaluatePromotionAsync → empty PromotionResult (loose mock would NRE on .Rewards).
         var marketingEvaluator = new Mock<IMarketingPromoEvaluator>();
@@ -205,15 +203,13 @@ public static class CartBenchmarkHost
                 (request.ProductIds ?? []).Select(CartBenchmarkFixtures.CreateCartProduct).ToList());
         services.AddSingleton(loader.Object);
 
-        // ── Aggregate + repository (mirror AddXCart) ──────────────────────────────────────────────
-        // CartAggregate is registered by the module setup (base vs subclass); Core registers the
-        // factory + repository over it. The setup also supplies the pipeline launcher (upstream mocks
-        // it, a consumer provides a real one).
+        // Mirrors AddXCart: CartAggregate is registered by the module setup (base vs subclass); Core
+        // registers the factory + repository over it. The setup also supplies the pipeline launcher
+        // (upstream mocks it, a consumer provides a real one).
         services.AddTransient<Func<CartAggregate>>(provider =>
             () => provider.CreateScope().ServiceProvider.GetRequiredService<CartAggregate>());
         services.AddTransient<ICartAggregateRepository, CartAggregateRepository>();
 
-        // ── Consumer overrides, then per-op scenario overrides — last wins by DI last-registration ──
         setup.ConfigureServices(services);
         customizeServices?.Invoke(services);
 

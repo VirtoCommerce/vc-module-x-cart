@@ -12,8 +12,6 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 internal static class GiftsSavedDynamicBenchmarkFixtures
 {
-    // ── Gifts ─────────────────────────────────────────────────────────────────────────────────────
-
     public const string GiftId = "benchmark-gift";
 
     /// <summary>An <c>addGiftItems</c> command requesting one gift id, which the empty available-gift
@@ -35,8 +33,6 @@ internal static class GiftsSavedDynamicBenchmarkFixtures
 
         return CartBenchmarkFixtures.WithCartContext(command);
     }
-
-    // ── SavedForLater ───────────────────────────────────────────────────────────────────────────────
 
     private static void StampMoveContext(MoveSavedForLaterItemsCommandBase command)
     {
@@ -63,8 +59,6 @@ internal static class GiftsSavedDynamicBenchmarkFixtures
 
         return command;
     }
-
-    // ── DynamicProperties ─────────────────────────────────────────────────────────────────────────
 
     private static IList<DynamicPropertyValue> CreateDynamicPropertyValues() =>
     [

@@ -15,9 +15,8 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// <c>ICartValidationContextFactory</c> supplies real CartProduct data, so this measures the full rule
 /// evaluation rather than a short-circuiting empty-product path.
 ///
-/// Idempotent: <see cref="CartAggregate.ValidateAsync(string)"/> caches per rule-set, so the benchmark
-/// clears the cache each invocation to measure the real (uncached) path. Two axes: shape (Flat vs
-/// Configured) and cart size.
+/// Idempotency needs more than the shared fresh-cart mock here: <see cref="CartAggregate.ValidateAsync(string)"/>
+/// caches per rule-set, so the benchmark clears that cache each invocation to measure the uncached path.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Validation)]

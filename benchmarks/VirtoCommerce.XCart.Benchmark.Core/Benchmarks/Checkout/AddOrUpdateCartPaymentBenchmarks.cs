@@ -14,9 +14,6 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// run payment validation against the mocked available methods, add the payment, save (recalc). The
 /// <c>CartPaymentValidator</c> runs in Strict mode (ThrowOnFailures); the fixture supplies a gateway
 /// code that matches the mocked method so the validator passes.
-///
-/// Idempotent without [IterationSetup]: the GetAsync mock returns a fresh cart (Payments = []) per
-/// call and the never-cache forces a real load every invocation. Two axes: shape and cart size.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Checkout)]

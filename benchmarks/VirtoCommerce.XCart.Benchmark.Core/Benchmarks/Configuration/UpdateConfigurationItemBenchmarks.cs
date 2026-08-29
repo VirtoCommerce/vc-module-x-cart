@@ -11,16 +11,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// Command-level microbenchmark of the <c>updateConfigurationItem</c> GraphQL mutation
 /// (<see cref="UpdateConfigurationItemCommandHandler.Handle"/>): the mutate-existing-cart path —
 /// load (real <c>CartAggregateRepository</c> build + recalc), update an existing Variation
-/// configuration item on the first configured line item, then save (recalc again). Only the I/O
-/// leaves are mocked; the totals calculator and section-matching logic run for real.
-///
-/// <b>Configured shape only</b>: a flat cart has no <c>ConfigurationItems</c>, so the handler
-/// short-circuits at <c>GetConfiguredLineItem</c> without reaching the update logic. The flat
-/// shape is excluded intentionally.
-///
-/// Idempotent without [IterationSetup]: the never-cache + GetAsync-fresh-per-call pattern means
-/// each invocation loads a cart where <c>ci-0-0</c> is back to its original state, so the
-/// update is always applied to the same baseline.
+/// configuration item on the first configured line item, then save (recalc again).
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Configuration)]

@@ -13,10 +13,10 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// (real build + recalc), call <see cref="CartAggregate.RejectCartItems"/> over a cart with no
 /// gift items (empty <c>GiftItems</c> sequence), save (recalc again).
 ///
-/// <b>Gift path note</b>: the fixture cart carries plain line items only (<c>IsGift == false</c>).
-/// <c>RejectCartItems</c> with an empty Ids list short-circuits before the scan. The measured cost
-/// is the load+recalc overhead common to all mutation handlers. Idempotent without [IterationSetup];
-/// flat vs configured and cart count axes are the same as other mutation benchmarks.
+/// <b>Gift path note</b>: the fixture cart carries plain line items only (<c>IsGift == false</c>), and
+/// the command carries ONE gift id. <c>RejectCartItems</c> short-circuits only on an empty id list, so
+/// the scan does run — over an empty <c>GiftItems</c>, matching nothing. The measured cost is therefore
+/// the load+recalc overhead common to all mutation handlers.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Gifts)]

@@ -16,8 +16,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 ///
 /// The <see cref="VirtoCommerce.Xapi.Core.Models.DynamicPropertyValue"/> list carries one entry so
 /// the aggregate's delegate is invoked. The updater is zero overhead; the dominant cost is the
-/// load+recalc envelope common to all mutation handlers. Idempotent without [IterationSetup].
-/// Flat vs configured and cart count surfaces recalc regressions independently of the updater.
+/// load+recalc envelope common to all mutation handlers.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.DynamicProperties)]

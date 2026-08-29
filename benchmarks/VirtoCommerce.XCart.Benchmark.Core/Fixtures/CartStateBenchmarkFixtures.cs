@@ -13,8 +13,6 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 internal static class CartStateBenchmarkFixtures
 {
-    // ── changeCartCurrency ───────────────────────────────────────────────────────────────────────
-
     /// <summary>
     /// A <c>changeCartCurrency</c> command targeting the benchmark cart, switching to USD (same
     /// currency as the loaded cart). Same-currency re-price still exercises the full CopyItems code
@@ -27,8 +25,6 @@ internal static class CartStateBenchmarkFixtures
 
         return CartBenchmarkFixtures.WithCartContext(command);
     }
-
-    // ── mergeCart ───────────────────────────────────────────────────────────────────────────────
 
     private const string SecondCartId = "second-cart";
 
@@ -45,9 +41,6 @@ internal static class CartStateBenchmarkFixtures
         return CartBenchmarkFixtures.WithCartContext(command);
     }
 
-    // ── clearCart ────────────────────────────────────────────────────────────────────────────────
-
-    /// <summary>A <c>clearCart</c> command targeting the benchmark cart.</summary>
     public static ClearCartCommand CreateClearCartCommand()
     {
         var command = AbstractTypeFactory<ClearCartCommand>.TryCreateInstance();
@@ -55,9 +48,6 @@ internal static class CartStateBenchmarkFixtures
         return CartBenchmarkFixtures.WithCartContext(command);
     }
 
-    // ── refreshCart ──────────────────────────────────────────────────────────────────────────────
-
-    /// <summary>A <c>refreshCart</c> command targeting the benchmark cart.</summary>
     public static RefreshCartCommand CreateRefreshCartCommand()
     {
         var command = AbstractTypeFactory<RefreshCartCommand>.TryCreateInstance();
@@ -65,9 +55,6 @@ internal static class CartStateBenchmarkFixtures
         return CartBenchmarkFixtures.WithCartContext(command);
     }
 
-    // ── changePurchaseOrderNumber ────────────────────────────────────────────────────────────────
-
-    /// <summary>A <c>changePurchaseOrderNumber</c> command setting a PO number on the benchmark cart.</summary>
     public static ChangePurchaseOrderNumberCommand CreateChangePurchaseOrderNumberCommand()
     {
         var command = AbstractTypeFactory<ChangePurchaseOrderNumberCommand>.TryCreateInstance();
@@ -76,9 +63,6 @@ internal static class CartStateBenchmarkFixtures
         return CartBenchmarkFixtures.WithCartContext(command);
     }
 
-    // ── changeComment (cart-level) ───────────────────────────────────────────────────────────────
-
-    /// <summary>A <c>changeComment</c> command setting a cart-level comment on the benchmark cart.</summary>
     public static ChangeCommentCommand CreateChangeCommentCommand()
     {
         var command = AbstractTypeFactory<ChangeCommentCommand>.TryCreateInstance();
@@ -86,8 +70,6 @@ internal static class CartStateBenchmarkFixtures
 
         return CartBenchmarkFixtures.WithCartContext(command);
     }
-
-    // ── createCart ───────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
     /// A <c>createCart</c> command with NO CartId (so the handler takes the create-new path).
@@ -101,7 +83,6 @@ internal static class CartStateBenchmarkFixtures
         command.CultureName = "en-US";
         command.UserId = "benchmark-user";
         command.CartName = "default";
-        // CartId intentionally omitted → create-new path
 
         return command;
     }

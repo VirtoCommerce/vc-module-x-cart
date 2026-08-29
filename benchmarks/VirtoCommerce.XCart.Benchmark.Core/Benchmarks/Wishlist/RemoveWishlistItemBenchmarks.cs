@@ -14,8 +14,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// <c>Items</c>), recalculate, then save.
 ///
 /// The item-count axis grows the wishlist and exercises the linear-scan cost for the remove lookup
-/// and the recalculate walk. The harness returns a fresh cart per call so the item is always
-/// present.
+/// and the recalculate walk.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Wishlist)]

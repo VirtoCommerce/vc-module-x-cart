@@ -17,8 +17,6 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// empty list never throws). To measure the actual remove path this benchmark seeds the cart with one
 /// shipment (<see cref="CheckoutBenchmarkFixtures.SeededShipmentId"/>) via the <c>customizeCart</c>
 /// hook (<see cref="CheckoutBenchmarkFixtures.SeedShipment"/>).
-///
-/// Idempotent without [IterationSetup]: GetAsync mock returns a fresh cart per call.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Checkout)]

@@ -11,13 +11,11 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// Command-level microbenchmark of the <c>addOrUpdateCartAddress</c> GraphQL mutation, resolved through
 /// <see cref="IMediator"/>: the upsert-by-key path — load the cart (real build + recalc), find or
 /// create an address by Key, apply the address, save (recalc). No Strict validator is wired to address
-/// mutations; the handler calls <c>AddOrUpdateCartAddressAsync</c> directly. The address Key matches no
+/// mutations; the handler calls <c>AddOrUpdateCartAddress</c> directly. The address Key matches no
 /// pre-existing entry so the new-address (insert) path is measured.
 ///
 /// NOTE: differs from <see cref="AddCartAddressBenchmarksBase"/> which uses
 /// <c>AddOrUpdateCartAddressByTypeAsync</c> (match by AddressType, not Key) — a distinct code path.
-///
-/// Idempotent without [IterationSetup]: fresh cart per call (no pre-existing address). Two axes.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Checkout)]

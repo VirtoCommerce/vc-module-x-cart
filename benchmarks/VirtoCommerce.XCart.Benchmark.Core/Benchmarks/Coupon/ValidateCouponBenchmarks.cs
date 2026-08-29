@@ -9,10 +9,11 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// <summary>
 /// Query-level microbenchmark of the <c>validateCoupon</c> GraphQL query, resolved through
 /// <see cref="IMediator"/>: load the cart by <c>CartId</c> (real build + recalc), clone the aggregate,
-/// set <c>Coupons = [coupon]</c>, then evaluate promotions (the mocked marketing evaluator returns an
-/// empty result → <c>false</c>). Only I/O leaves are mocked; the totals calculator and clone are real.
-/// Result is <c>Task&lt;bool&gt;</c> (returning it prevents DCE). Idempotent without [IterationSetup].
-/// Flat vs Configured; count axis.
+/// set <c>Coupons = [coupon]</c>, then evaluate promotions. The setup's evaluator returns a reward, so
+/// the real reward pipeline runs; the answer is nevertheless <c>false</c>, because that reward carries
+/// no coupon code and <c>ValidateCouponAsync</c> only accepts a reward that is valid AND whose
+/// <c>Coupon</c> equals the requested one. The clone is real. Result is <c>Task&lt;bool&gt;</c>
+/// (returning it prevents DCE).
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Coupon, Categories.Validation)]

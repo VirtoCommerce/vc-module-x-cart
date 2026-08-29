@@ -8,12 +8,9 @@ using VirtoCommerce.ShippingModule.Core.Model;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
-/// <summary>
-/// Minimal concrete stubs of abstract platform types used by the checkout
-/// benchmarks. Mirrors the pattern of <c>StubShippingMethod</c> /
-/// <c>StubPaymentMethod</c> in the test project, but kept local here so
-/// the benchmark project has no dependency on the test project.
-/// </summary>
+// Minimal concrete stubs of abstract platform types used by the checkout benchmarks. Mirrors the
+// pattern of StubShippingMethod / StubPaymentMethod in the test project, but kept local here so the
+// benchmark project has no dependency on the test project.
 
 /// <summary>
 /// Concrete <see cref="ShippingMethod"/> for benchmark use.
@@ -31,7 +28,7 @@ internal sealed class BenchmarkShippingMethod(string code) : ShippingMethod(code
 /// Concrete <see cref="PaymentMethod"/> for benchmark use.
 /// <see cref="ProcessPaymentAsync"/> is called by
 /// <c>InitializeCartPaymentCommandHandler.Handle</c> when <c>AllowCartPayment</c> is
-/// true. Set the result via <see cref="SetProcessPaymentResult"/> before using.
+/// true, and returns success unless <see cref="SetProcessPaymentResult"/> overrides it.
 /// </summary>
 internal sealed class BenchmarkPaymentMethod(string code) : PaymentMethod(code)
 {
@@ -43,11 +40,9 @@ internal sealed class BenchmarkPaymentMethod(string code) : PaymentMethod(code)
         PaymentMethodGroupType.Alternative;
 
     /// <summary>Must be true for <c>InitializeCartPaymentCommandHandler</c> to proceed past its
-    /// guard check — <c>AllowCartPayment</c> is read-only on <see cref="PaymentMethod"/>, so we
-    /// override it here rather than assigning it on an object initializer.</summary>
+    /// guard check.</summary>
     public override bool AllowCartPayment => true;
 
-    /// <summary>Configures the result returned by <see cref="ProcessPaymentAsync"/>.</summary>
     public void SetProcessPaymentResult(ProcessPaymentRequestResult result) => _result = result;
 
     public override Task<ProcessPaymentRequestResult> ProcessPaymentAsync(

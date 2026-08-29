@@ -10,9 +10,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// <summary>
 /// Command-level microbenchmark of the <c>changeCartItemPrice</c> GraphQL mutation, resolved through
 /// <see cref="IMediator"/>: the mutate-existing-cart path — load (real build + recalc), apply a manual
-/// price to the first line item, save (recalc again). Only the I/O leaves are mocked; the totals
-/// calculator is real. Idempotent without [IterationSetup] (the cart service returns a fresh cart per
-/// call). Flat vs Configured surfaces configured-product regressions; count surfaces super-linear growth.
+/// price to the first line item, save (recalc again).
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Items)]

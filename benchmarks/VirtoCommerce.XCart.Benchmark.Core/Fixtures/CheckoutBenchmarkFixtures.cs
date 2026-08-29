@@ -31,30 +31,19 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// </summary>
 internal static class CheckoutBenchmarkFixtures
 {
-    // ── shipment constants ───────────────────────────────────────────────────
-
-    /// <summary>Shipment-method code used across all shipment benchmarks.</summary>
     public const string ShipmentMethodCode = "fixed-rate";
 
-    /// <summary>Shipment-method option name used across all shipment benchmarks.</summary>
     public const string ShipmentMethodOption = "default";
 
     /// <summary>Shipment price — must match the rate returned by the mock avail-methods
     /// service exactly (the Strict validator rejects a price mismatch).</summary>
     public const decimal ShipmentPrice = 5m;
 
-    /// <summary>Id of the pre-seeded shipment added by <see cref="SeedShipment"/>.</summary>
     public const string SeededShipmentId = "shipment-0";
 
-    // ── payment constants ────────────────────────────────────────────────────
-
-    /// <summary>Payment-gateway code used across all payment benchmarks.</summary>
     public const string PaymentGatewayCode = "bench-pay";
 
-    /// <summary>Id of the pre-seeded payment added by <see cref="SeedPayment"/>.</summary>
     public const string SeededPaymentId = "payment-0";
-
-    // ── shipment helpers ─────────────────────────────────────────────────────
 
     /// <summary>
     /// An <c>addOrUpdateCartShipment</c> command that adds a new shipment (no Id set →
@@ -67,7 +56,6 @@ internal static class CheckoutBenchmarkFixtures
         var command = AbstractTypeFactory<AddOrUpdateCartShipmentCommand>.TryCreateInstance();
         command.Shipment = new ExpCartShipment
         {
-            // No Id → new-shipment branch (existingShipment == null)
             ShipmentMethodCode = new Optional<string>(ShipmentMethodCode),
             ShipmentMethodOption = new Optional<string>(ShipmentMethodOption),
             Price = new Optional<decimal>(ShipmentPrice),
@@ -89,15 +77,12 @@ internal static class CheckoutBenchmarkFixtures
         return CartBenchmarkFixtures.WithCartContext(command);
     }
 
-    /// <summary>A <c>clearShipments</c> command targeting the benchmark cart.</summary>
     public static ClearShipmentsCommand CreateClearShipmentsCommand()
     {
         var command = AbstractTypeFactory<ClearShipmentsCommand>.TryCreateInstance();
 
         return CartBenchmarkFixtures.WithCartContext(command);
     }
-
-    // ── payment helpers ──────────────────────────────────────────────────────
 
     /// <summary>
     /// An <c>addOrUpdateCartPayment</c> command that adds a new payment (no Id set →
@@ -109,7 +94,6 @@ internal static class CheckoutBenchmarkFixtures
         var command = AbstractTypeFactory<AddOrUpdateCartPaymentCommand>.TryCreateInstance();
         command.Payment = new ExpCartPayment
         {
-            // No Id → new-payment branch (payment lookup returns null → MapTo(null))
             PaymentGatewayCode = new Optional<string>(PaymentGatewayCode),
             Currency = new Optional<string>(CartBenchmarkFixtures.Currency.Code),
             Amount = new Optional<decimal>(100m),
@@ -118,15 +102,12 @@ internal static class CheckoutBenchmarkFixtures
         return CartBenchmarkFixtures.WithCartContext(command);
     }
 
-    /// <summary>A <c>clearPayments</c> command targeting the benchmark cart.</summary>
     public static ClearPaymentsCommand CreateClearPaymentsCommand()
     {
         var command = AbstractTypeFactory<ClearPaymentsCommand>.TryCreateInstance();
 
         return CartBenchmarkFixtures.WithCartContext(command);
     }
-
-    // ── address helpers ──────────────────────────────────────────────────────
 
     /// <summary>
     /// An <c>addOrUpdateCartAddress</c> command setting a billing address keyed by
@@ -174,8 +155,6 @@ internal static class CheckoutBenchmarkFixtures
         return CartBenchmarkFixtures.WithCartContext(command);
     }
 
-    // ── cart-state seed hooks (customizeCart) ────────────────────────────────
-
     /// <summary>
     /// Seeds the cart with a single shipment matching <see cref="SeededShipmentId"/> so
     /// <c>RemoveShipmentCommandHandler</c> finds a target (it is a no-op on an empty list).
@@ -210,8 +189,6 @@ internal static class CheckoutBenchmarkFixtures
                 Amount = 100m,
             },
         ];
-
-    // ── available-method mocks (customizeServices) ───────────────────────────
 
     /// <summary>
     /// Mock <see cref="ICartAvailMethodsService"/> that returns one <see cref="ShippingRate"/>
@@ -250,8 +227,6 @@ internal static class CheckoutBenchmarkFixtures
 
         return mock.Object;
     }
-
-    // ── InitializeCartPayment command ────────────────────────────────────────
 
     /// <summary>
     /// An <c>initializeCartPayment</c> command targeting the pre-seeded payment.

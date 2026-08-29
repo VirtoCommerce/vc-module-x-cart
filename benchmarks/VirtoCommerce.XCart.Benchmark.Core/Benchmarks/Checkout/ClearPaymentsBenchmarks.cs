@@ -14,7 +14,7 @@ namespace VirtoCommerce.XCart.Benchmark;
 ///
 /// Same semantics as <see cref="ClearShipmentsBenchmarksBase"/>: the load + empty-collection-assign +
 /// save + recalc cycle is measured on a cart with empty Payments. The full item graph walk (load
-/// recalc + save recalc) is still the dominant cost. Two axes: shape and cart size.
+/// recalc + save recalc) is still the dominant cost.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Checkout)]

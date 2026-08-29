@@ -13,13 +13,14 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// through <see cref="IMediator"/>: the add-new-shipment path — load the cart (real build + recalc),
 /// run shipment validation against the mocked available rates, add the shipment, save (recalc). The
 /// <c>CartShipmentValidator</c> runs in Strict mode (ThrowOnFailures); the fixture supplies method code
-/// + option + price that exactly match the mocked rate so the validator passes every invocation. Cart
-/// is anonymous (member = null), so the customer-preference branch is skipped and only the core
-/// shipment-add + recalc is measured.
+/// + option + price that exactly match the mocked rate so the validator passes every invocation.
 ///
-/// Idempotent without [IterationSetup]: the GetAsync mock returns a fresh cart (Shipments = []) per
-/// call and the never-cache forces a real load every invocation. Two axes: shape (Flat vs Configured)
-/// and cart size — surfaces recalc super-linear growth and configured-product regressions.
+/// The customer-preference branch is <b>in</b> the measurement: <c>ShoppingCart.IsAnonymous</c> is a
+/// plain bool that nothing here sets, so the handler's <c>!IsAnonymous</c> guard passes. It builds the
+/// preference key and calls <c>LoadAddressFromPreferencesAsync</c>, which reads the loose
+/// <c>ICustomerPreferenceService</c> mock (returns nothing → the shipment's delivery address is
+/// cleared). The paired save is skipped — the fixture command carries neither a delivery address nor a
+/// pickup location.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Checkout)]

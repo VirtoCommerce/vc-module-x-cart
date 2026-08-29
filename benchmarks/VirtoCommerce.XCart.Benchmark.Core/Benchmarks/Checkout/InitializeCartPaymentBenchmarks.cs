@@ -21,9 +21,6 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// <c>customizeCart</c> hook (<see cref="CheckoutBenchmarkFixtures.SeedPayment"/>) so the handler finds
 /// its target. The mocked payment method has <c>AllowCartPayment = true</c> and returns a success result
 /// from <c>ProcessPaymentAsync</c>.
-///
-/// Idempotent without [IterationSetup]: GetAsync mock returns a fresh cart per call and the
-/// never-cache forces a real load every invocation. Two axes: shape and cart size.
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Checkout)]

@@ -13,14 +13,12 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// build + recalc), call <see cref="CartAggregate.AddGiftItemsAsync"/> with one requested gift id over
 /// an empty available-gift list, save (recalc again).
 ///
-/// <b>Gift path note</b>: the shared marketing evaluator returns an empty
-/// <see cref="VirtoCommerce.MarketingModule.Core.Model.Promotions.PromotionResult"/>, and the
-/// <see cref="ICartAvailMethodsService"/> mock returns an empty list, so the cart has no available
-/// gifts. The command requests one gift id, so <c>AddGiftItemsAsync</c> runs its id loop, finds the
-/// requested gift absent from the (empty) available-gift list, and skips it — measuring the
-/// <b>gift-requested-but-unavailable path</b> (a promotion miss: two full recalculates plus the
-/// gift-avail resolution, with no line item actually added). Idempotent without [IterationSetup];
-/// flat vs configured surfaces configured-product recalc regressions; count surfaces super-linear growth.
+/// <b>Gift path note</b>: the handler sources the available gifts from
+/// <c>ICartAvailMethodsService.GetAvailableGiftsAsync</c> alone, never from the promotion evaluator,
+/// and that service is a <c>DefaultValue.Mock</c> mock — so the available-gift list is empty. The
+/// command requests one gift id, so <c>AddGiftItemsAsync</c> runs its id loop, finds the requested gift
+/// absent from the empty list, and skips it — measuring the <b>gift-requested-but-unavailable path</b>
+/// (two full recalculates plus the gift-avail resolution, with no line item actually added).
 /// </summary>
 [MemoryDiagnoser]
 [BenchmarkCategory(Categories.Gifts)]

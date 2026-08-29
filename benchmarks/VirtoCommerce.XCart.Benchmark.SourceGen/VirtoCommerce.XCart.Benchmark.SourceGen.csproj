@@ -1,11 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Roslyn source generator: emits one concrete BenchmarkDotNet subclass per Core *BenchmarksBase,
-       baking the runner's [assembly: BenchmarkSetup(typeof(TSetup))]. Targets netstandard2.0 because
-       analyzers/generators load into the compiler host, which is netstandard2.0. Not packable on its
-       own — VirtoCommerce.XCart.Benchmark.Core packs this DLL into its nupkg under analyzers/ so
-       NuGet consumers (e.g. XOrder runners) get the generator; the in-repo upstream runner references
-       it directly as an Analyzer (analyzers do not flow through ProjectReference). -->
+  <!-- Targets netstandard2.0 because analyzers/generators load into the compiler host, which is
+       netstandard2.0. Not packable on its own — VirtoCommerce.XCart.Benchmark.Core packs this DLL into
+       its nupkg under analyzers/ so NuGet consumers get the generator; the in-repo runner references it
+       directly as an Analyzer, because analyzers do not flow through ProjectReference. -->
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <LangVersion>latest</LangVersion>
