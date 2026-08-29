@@ -18,7 +18,7 @@
     <!-- The source generator that emits one concrete *Benchmarks subclass per Core *BenchmarksBase from
          the [assembly: BenchmarkSetup] in Program.cs. Analyzer (not a runtime reference); analyzers do
          not flow through ProjectReference, so the in-repo runner references it directly. NuGet consumers
-         (XOrder, LEO) get the same generator packed inside the Core nupkg. -->
+         (e.g. XOrder) get the same generator packed inside the Core nupkg. -->
     <ProjectReference Include="..\VirtoCommerce.XCart.Benchmark.SourceGen\VirtoCommerce.XCart.Benchmark.SourceGen.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />

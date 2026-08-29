@@ -5,8 +5,8 @@
     <!-- Files keep namespace VirtoCommerce.XCart.Benchmark so benchmark full names (and the BDN
          filter globs) are unchanged after the move out of the runner project. -->
     <RootNamespace>VirtoCommerce.XCart.Benchmark</RootNamespace>
-    <!-- Packable so consuming modules (XOrder, LEO) can reference the shared fixtures, seam, and
-         benchmark classes via a (local) NuGet feed and run them under their own setup. -->
+    <!-- Packable so consuming modules (e.g. XOrder) can reference the shared fixtures, seam, and
+         benchmark classes from NuGet and run them under their own setup. -->
     <IsPackable>true</IsPackable>
     <!-- The module CI packs the whole solution with `dotnet pack` in no-build mode (NoBuild=true).
          Packing this project's ProjectReferences (XCart.Core/Data) would invoke their Build target under
@@ -56,7 +56,7 @@
                       ReferenceOutputAssembly="false" />
   </ItemGroup>
 
-  <!-- Pack the generator DLL into analyzers/dotnet/cs so NuGet consumers (XOrder, LEO runners) that
+  <!-- Pack the generator DLL into analyzers/dotnet/cs so NuGet consumers (e.g. XOrder runners) that
        reference this package get the generator and produce their own concrete benchmark subclasses. -->
   <Target Name="_PackBenchmarkSourceGen" DependsOnTargets="ResolveReferences">
     <ItemGroup>

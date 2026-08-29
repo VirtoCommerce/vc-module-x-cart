@@ -4,7 +4,7 @@
        baking the runner's [assembly: BenchmarkSetup(typeof(TSetup))]. Targets netstandard2.0 because
        analyzers/generators load into the compiler host, which is netstandard2.0. Not packable on its
        own — VirtoCommerce.XCart.Benchmark.Core packs this DLL into its nupkg under analyzers/ so
-       NuGet consumers (XOrder, LEO runners) get the generator; the in-repo upstream runner references
+       NuGet consumers (e.g. XOrder runners) get the generator; the in-repo upstream runner references
        it directly as an Analyzer (analyzers do not flow through ProjectReference). -->
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
