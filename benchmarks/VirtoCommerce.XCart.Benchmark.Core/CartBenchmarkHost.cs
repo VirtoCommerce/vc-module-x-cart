@@ -144,7 +144,9 @@ public static class CartBenchmarkHost
         services.AddSingleton(Mock.Of<IFileUploadService>());
         services.AddSingleton(Mock.Of<ICartSharingService>());
         services.AddSingleton(Mock.Of<IDynamicPropertyUpdaterService>());
-        services.AddSingleton(Mock.Of<ICartValidationContextFactory>());
+        // A working factory, not a loose mock: CartAggregate.ValidateAsync(ruleSet) rejects a null
+        // context, so a loose default makes every consumer that validates discover it at runtime.
+        services.AddSingleton(CartBenchmarkFixtures.CreateValidationContextFactory());
         services.AddSingleton(Mock.Of<IOptionalDependency<ITaxProviderSearchService>>()); // HasValue false → tax branch skipped
 
         // EvaluatePromotionAsync → empty PromotionResult (loose mock would NRE on .Rewards).

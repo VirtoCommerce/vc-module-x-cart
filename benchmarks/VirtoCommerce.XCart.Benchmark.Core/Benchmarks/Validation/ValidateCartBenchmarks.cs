@@ -11,10 +11,9 @@ namespace VirtoCommerce.XCart.Benchmark;
 /// <summary>
 /// Aggregate-direct microbenchmark of <see cref="CartAggregate.ValidateAsync(string)"/> — the hot path
 /// called by <c>CartType.validationErrors</c> on every full-cart GraphQL response. Resolves the concrete
-/// aggregate (base or a consumer's subclass) from <c>Func&lt;CartAggregate&gt;</c>; the validation
-/// benchmark overrides the host's loose <c>ICartValidationContextFactory</c> with a working one (via the
-/// <c>customizeServices</c> hook) so <c>CartValidator</c>'s per-item rules run on real CartProduct data,
-/// measuring the full rule evaluation rather than a short-circuiting empty-product path.
+/// aggregate (base or a consumer's subclass) from <c>Func&lt;CartAggregate&gt;</c>; the host's default
+/// <c>ICartValidationContextFactory</c> supplies real CartProduct data, so this measures the full rule
+/// evaluation rather than a short-circuiting empty-product path.
 ///
 /// Idempotent: <see cref="CartAggregate.ValidateAsync(string)"/> caches per rule-set, so the benchmark
 /// clears the cache each invocation to measure the real (uncached) path. Two axes: shape (Flat vs
@@ -35,10 +34,7 @@ public abstract class ValidateCartBenchmarksBase : CartBenchmarkBase
     [GlobalSetup]
     public void Setup()
     {
-        var provider = BuildProvider(
-            LineItemCount,
-            Shape,
-            customizeServices: services => services.AddSingleton(ReadLoadBenchmarkFixtures.CreateValidationContextFactory()));
+        var provider = BuildProvider(LineItemCount, Shape);
 
         _aggregate = provider.GetRequiredService<Func<CartAggregate>>()();
 

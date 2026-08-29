@@ -1,16 +1,13 @@
 using System.Linq;
-using Moq;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Queries;
-using VirtoCommerce.XCart.Core.Validators;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
 /// <summary>
-/// Query/validation builders for the read cluster. Handlers and the validation aggregate are now
-/// resolved through the DI container (<see cref="CartBenchmarkHost"/>); only the query objects and the
-/// working validation-context factory live here.
+/// Query builders and the validation rule-set constant for the read cluster. Handlers and the validation
+/// aggregate are resolved through the DI container (<see cref="CartBenchmarkHost"/>).
 /// </summary>
 internal static class ReadLoadBenchmarkFixtures
 {
@@ -45,27 +42,4 @@ internal static class ReadLoadBenchmarkFixtures
     /// <summary>The Items rule set — the per-line-item validation hot path exercised by
     /// <c>CartType.validationErrors</c>.</summary>
     public const string ItemsRuleSet = ModuleConstants.ValidationRuleSets.Items;
-
-    /// <summary>
-    /// A working <see cref="ICartValidationContextFactory"/> that supplies <c>AllCartProducts</c> built
-    /// from the aggregate's own line items, so <c>CartValidator</c>'s per-item rules run on real
-    /// (active/buyable/priced) products instead of a loose mock's null list. The validation benchmark
-    /// registers this via <c>BuildProvider</c>'s <c>customizeServices</c> hook (overriding the host's
-    /// loose default), so the resolved aggregate validates against meaningful data.
-    /// </summary>
-    public static ICartValidationContextFactory CreateValidationContextFactory()
-    {
-        var mock = new Mock<ICartValidationContextFactory>();
-        mock.Setup(x => x.CreateValidationContextAsync(It.IsAny<CartAggregate>()))
-            .ReturnsAsync((CartAggregate aggregate) =>
-                new CartValidationContext
-                {
-                    CartAggregate = aggregate,
-                    AllCartProducts = aggregate.LineItems
-                        .Select(li => CartBenchmarkFixtures.CreateCartProduct(li.ProductId))
-                        .ToList(),
-                });
-
-        return mock.Object;
-    }
 }

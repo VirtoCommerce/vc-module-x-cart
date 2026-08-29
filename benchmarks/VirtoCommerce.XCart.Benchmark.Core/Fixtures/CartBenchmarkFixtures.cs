@@ -21,6 +21,7 @@ using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
+using VirtoCommerce.XCart.Core.Validators;
 using VirtoCommerce.XCart.Data.Mapping;
 
 namespace VirtoCommerce.XCart.Benchmark;
@@ -364,4 +365,29 @@ public static class CartBenchmarkFixtures
             });
         services.AddSingleton(search.Object);
     }
+
+    /// <summary>
+    /// The <see cref="ICartValidationContextFactory"/> the host registers by default. The one-argument
+    /// overload builds <c>AllCartProducts</c> from the aggregate's own line items, so <c>CartValidator</c>'s
+    /// per-item rules run on real (active/buyable/priced) products; the two-argument overload passes through
+    /// the products it is given. Both answer — leaving either unstubbed reinstates the null context this
+    /// default exists to remove. A consumer needing different products (ones that fail a rule, say)
+    /// registers its own through the override hooks on <see cref="CartBenchmarkHost"/>.
+    /// </summary>
+    public static ICartValidationContextFactory CreateValidationContextFactory()
+    {
+        var mock = new Mock<ICartValidationContextFactory>();
+        mock.Setup(x => x.CreateValidationContextAsync(It.IsAny<CartAggregate>()))
+            .ReturnsAsync((CartAggregate aggregate) => BuildValidationContext(aggregate, products: null));
+        mock.Setup(x => x.CreateValidationContextAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<CartProduct>>()))
+            .ReturnsAsync((CartAggregate aggregate, IList<CartProduct> products) => BuildValidationContext(aggregate, products));
+
+        return mock.Object;
+    }
+
+    private static CartValidationContext BuildValidationContext(CartAggregate aggregate, IList<CartProduct> products) => new()
+    {
+        CartAggregate = aggregate,
+        AllCartProducts = products ?? aggregate.LineItems.Select(li => CreateCartProduct(li.ProductId)).ToList(),
+    };
 }
