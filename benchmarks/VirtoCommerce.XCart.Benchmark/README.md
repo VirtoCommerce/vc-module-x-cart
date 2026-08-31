@@ -256,8 +256,9 @@ generator is hardcoded to `CartBenchmarkBase` / `ICartBenchmarkSetup`. Consequen
   package just to get the generator and entry-point plumbing — semantically wrong (its benchmarks don't
   depend on cart).
 - XOrder therefore cannot source-generate its concrete subclasses (the cart generator doesn't recognize
-  `CreateOrderFromCartBenchmarksBase`), so it hand-writes the subclass; and XOrder still keeps its own
-  inline copy of the `--baseline-src` entry-point logic instead of sharing `BenchmarkProgram`.
+  `CreateOrderFromCartBenchmarksBase`), so it hand-writes the subclass. It does share
+  `BenchmarkProgram` rather than copying it — but only by depending on an **XCart** package to reach it,
+  which is the coupling above rather than an escape from it.
 
 Extract the generic pieces into a new module-agnostic package `VirtoCommerce.Xapi.Benchmark.Core`
 (+ its `.SourceGen`), generalize the generator to discover any `*BenchmarksBase` with a `CreateSetup()`
@@ -265,7 +266,6 @@ seam (any `I*BenchmarkSetup`), and have each module's `*.Benchmark.Core` referen
 unblocks, **as one publish-gated batch** (it requires republishing the Benchmark.Core packages and
 bumping every consumer's package ref in lockstep — the CLI/plumbing change can't land piecemeal):
 
-- XOrder migrating onto the shared `BenchmarkProgram` (dropping its inline `--baseline-src` copy);
 - XOrder source-generating its subclass (dropping the hand-written one);
 - a clean home for the now-shared native-`--job` `BenchmarkProgram` so no module's package name leaks
   into another's benchmark suite.
