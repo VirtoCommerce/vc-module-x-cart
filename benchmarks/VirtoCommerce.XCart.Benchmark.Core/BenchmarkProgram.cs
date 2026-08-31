@@ -64,7 +64,7 @@ public static class BenchmarkProgram
                     "Ratio is directional only (not a verdict) — re-run with `--job Default` for a trustworthy Mean.");
             }
             config = config
-                .AddJob(baselineJob.WithMsBuildArguments($"/p:BaselineSrc=\"{baselineSrc}\"").WithId("before").AsBaseline())
+                .AddJob(baselineJob.WithMsBuildArguments($"/p:BaselineSrc={QuoteForCommandLine(baselineSrc)}").WithId("before").AsBaseline())
                 .AddJob(baselineJob.WithId("after"));
         }
 
@@ -106,5 +106,18 @@ public static class BenchmarkProgram
         var rest = args.Where((_, i) => i != index && i != index + 1).ToArray();
 
         return (value, rest);
+    }
+
+    // BenchmarkDotNet joins MsBuildArgument.TextRepresentation verbatim into the one string it assigns
+    // to ProcessStartInfo.Arguments, so quoting is this caller's job and argv rules apply: a value
+    // ending in `\` escapes the closing quote and swallows the rest of the line into a single mangled
+    // argument. Doubling the trailing run restores the split — 2n backslashes before a quote yield n
+    // literal ones plus a real quote — and leaves the value itself untouched. Trimming the run instead
+    // also splits, but rewrites what it quotes: `C:\` becomes `C:`, a different location on Windows.
+    private static string QuoteForCommandLine(string value)
+    {
+        var trailingBackslashes = value.Length - value.TrimEnd('\\').Length;
+
+        return $"\"{value}{new string('\\', trailingBackslashes)}\"";
     }
 }
