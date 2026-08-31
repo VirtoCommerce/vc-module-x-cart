@@ -31,14 +31,10 @@ public static class BenchmarkProgram
         var config = ManualConfig.Create(DefaultConfig.Instance).AddColumn(CategoriesColumn.Default);
         if (baselineSrc is not null)
         {
-            // One character per parser this value crosses corrupts it silently. At argv a `"` ends the
-            // quoting composed below, so `/tmp/x" /p:Configuration=Debug "` reaches MSBuild as an
-            // injected property. At the MSBuild layer a `;` ends the /p: value: `/tmp/a;b=c` yields
-            // BaselineSrc `/tmp/a` plus a property `b=c`, no error. Refusing both costs nothing — no
-            // baseline path needs them and neither reaches MSBuild intact in any shape — and beats
-            // escaping, which would have to be correct under both parsers at once (`\"` at one, `%3B`
-            // at the other). Not an exhaustive sanitizer: a literal `%3B` in the value is itself
-            // un-escaped to `;`, silently, and is not guarded.
+            // Both characters can corrupt this value with no error: a `"` ends the quoting composed
+            // below, a `;` ends MSBuild's /p: value and its tail may be dropped or taken as another
+            // property. Reject rather than escape — an escape would have to be correct under both
+            // parsers at once. Not a sanitizer either: a literal `%3B` arrives as `;`, unguarded.
             if (baselineSrc.AsSpan().ContainsAny('"', ';'))
             {
                 throw new ArgumentException("--baseline-src cannot contain a double quote or a semicolon; " +
@@ -122,14 +118,10 @@ public static class BenchmarkProgram
         return (value, rest);
     }
 
-    // BenchmarkDotNet joins MsBuildArgument.TextRepresentation verbatim into the one string it assigns
-    // to ProcessStartInfo.Arguments, so quoting is this caller's job and argv rules apply: a value
-    // ending in `\` escapes the closing quote and swallows the rest of the line into a single mangled
-    // argument. Doubling the trailing run restores the split — 2n backslashes before a quote yield n
-    // literal ones plus a real quote — and leaves the value itself untouched. Trimming the run instead
-    // also splits, but rewrites what it quotes: `C:\` becomes `C:`, a different location on Windows.
-    // Separators are all this handles: a value carrying a double quote or a semicolon is rejected in
-    // Run, and a second caller owes the same check — quoting alone cannot make such a value safe.
+    // BDN hands this string to ProcessStartInfo.Arguments unquoted, so quoting is this caller's job:
+    // a value ending in `\` would escape the closing quote. Doubling the trailing run is what keeps the
+    // value intact — do not trim the run instead, that rewrites root-shaped paths. Separators are all
+    // this handles: Run rejects a value carrying `"` or `;`, and a second caller owes the same check.
     private static string QuoteForCommandLine(string value)
     {
         var trailingBackslashes = value.Length - value.TrimEnd('\\').Length;
