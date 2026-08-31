@@ -31,6 +31,20 @@ public static class BenchmarkProgram
         var config = ManualConfig.Create(DefaultConfig.Instance).AddColumn(CategoriesColumn.Default);
         if (baselineSrc is not null)
         {
+            // One character per parser this value crosses corrupts it silently. At argv a `"` ends the
+            // quoting composed below, so `/tmp/x" /p:Configuration=Debug "` reaches MSBuild as an
+            // injected property. At the MSBuild layer a `;` ends the /p: value: `/tmp/a;b=c` yields
+            // BaselineSrc `/tmp/a` plus a property `b=c`, no error. Refusing both costs nothing — no
+            // baseline path needs them and neither reaches MSBuild intact in any shape — and beats
+            // escaping, which would have to be correct under both parsers at once (`\"` at one, `%3B`
+            // at the other). Not an exhaustive sanitizer: a literal `%3B` in the value is itself
+            // un-escaped to `;`, silently, and is not guarded.
+            if (baselineSrc.AsSpan().ContainsAny('"', ';'))
+            {
+                throw new ArgumentException("--baseline-src cannot contain a double quote or a semicolon; " +
+                    $"either would truncate the value or inject an MSBuild property. Got '{baselineSrc}'.");
+            }
+
             // before+after differ ONLY by source, so --job is consumed here rather than left for the
             // switcher — forwarding it would append a third, unpaired job. A spelling that slips past
             // the extraction costs twice over: Dry is selected below AND the leftover still reaches the
@@ -114,6 +128,8 @@ public static class BenchmarkProgram
     // argument. Doubling the trailing run restores the split — 2n backslashes before a quote yield n
     // literal ones plus a real quote — and leaves the value itself untouched. Trimming the run instead
     // also splits, but rewrites what it quotes: `C:\` becomes `C:`, a different location on Windows.
+    // Separators are all this handles: a value carrying a double quote or a semicolon is rejected in
+    // Run, and a second caller owes the same check — quoting alone cannot make such a value safe.
     private static string QuoteForCommandLine(string value)
     {
         var trailingBackslashes = value.Length - value.TrimEnd('\\').Length;
