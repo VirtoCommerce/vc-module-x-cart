@@ -74,6 +74,12 @@ namespace VirtoCommerce.XCart.Tests.Helpers
 
         public XCartMoqHelper()
         {
+            // Xapi.Web's Module.Initialize registers ProductPrice in production and never runs under test.
+            // Keep this in the ctor: BuildNewCartItem builds its CartProduct directly rather than through the
+            // _fixture factory, so a registration living in that factory covers only some of the paths into
+            // ApplyPrices — and the rest then race on static factory state, usually still passing.
+            AbstractTypeFactory<Xapi.Core.Models.ProductPrice>.RegisterType<Xapi.Core.Models.ProductPrice>();
+
             _fixture.Register<PaymentMethod>(() => new StubPaymentMethod(_fixture.Create<string>()));
 
             _fixture.Register(() => _fixture
@@ -86,8 +92,6 @@ namespace VirtoCommerce.XCart.Tests.Helpers
 
             _fixture.Register(() =>
             {
-                AbstractTypeFactory<Xapi.Core.Models.ProductPrice>.RegisterType<Xapi.Core.Models.ProductPrice>();
-
                 var catalogProduct = _fixture.Create<CatalogProduct>();
 
                 catalogProduct.TrackInventory = true;
