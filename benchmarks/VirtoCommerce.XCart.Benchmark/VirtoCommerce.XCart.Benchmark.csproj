@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <!-- Write the source-generated *Benchmarks subclasses to obj/.../generated/ so they're browsable
+         on disk and in the IDE. -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+
+  <!-- Thin runner over the un-extended XCart platform: this exe provides only the entry point, and
+       every package and source reference arrives transitively from Core. -->
+  <ItemGroup>
+    <ProjectReference Include="..\VirtoCommerce.XCart.Benchmark.Core\VirtoCommerce.XCart.Benchmark.Core.csproj" />
+    <!-- The source generator that emits one concrete *Benchmarks subclass per Core *BenchmarksBase from
+         the [assembly: BenchmarkSetup] in Program.cs. Analyzer (not a runtime reference); analyzers do
+         not flow through ProjectReference, so the in-repo runner references it directly. NuGet consumers
+         (e.g. XOrder) get the same generator packed inside the Core nupkg. -->
+    <ProjectReference Include="..\VirtoCommerce.XCart.Benchmark.SourceGen\VirtoCommerce.XCart.Benchmark.SourceGen.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>
