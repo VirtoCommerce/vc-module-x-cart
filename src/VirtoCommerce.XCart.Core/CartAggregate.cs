@@ -923,7 +923,7 @@ namespace VirtoCommerce.XCart.Core
 
         protected virtual async Task MergeLineItemsFromCartAsync(CartAggregate otherCart)
         {
-            foreach (var lineItem in otherCart.Cart.Items.ToList())
+            foreach (var lineItem in otherCart.LineItems)
             {
                 await InnerAddLineItemAsync(lineItem, overrideQuantity: false, product: otherCart.CartProducts[otherCart.GetCartProductKey(lineItem)]);
             }
