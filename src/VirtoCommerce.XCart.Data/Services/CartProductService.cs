@@ -2,14 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AutoMapper;
 using MediatR;
 using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Services;
 using VirtoCommerce.InventoryModule.Core.Model.Search;
 using VirtoCommerce.InventoryModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.PricingModule.Core.Services;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Services;
@@ -25,7 +23,7 @@ namespace VirtoCommerce.XCart.Data.Services
         private readonly IItemService _productService;
         private readonly IInventorySearchService _inventorySearchService;
         private readonly IPricingEvaluatorService _pricingEvaluatorService;
-        private readonly IMapper _mapper;
+        private readonly IXCartMapper _mapper;
         private readonly ILoadUserToEvalContextService _loadUserToEvalContextService;
         private readonly IMediator _mediator;
 
@@ -53,7 +51,7 @@ namespace VirtoCommerce.XCart.Data.Services
         public CartProductService(IItemService productService,
             IInventorySearchService inventoryService,
             IPricingEvaluatorService pricingEvaluatorService,
-            IMapper mapper,
+            IXCartMapper mapper,
             ILoadUserToEvalContextService loadUserToEvalContextService,
             IMediator mediator)
         {
@@ -277,13 +275,11 @@ namespace VirtoCommerce.XCart.Data.Services
                 return;
             }
 
-            var pricesEvalContext = _mapper.Map<PriceEvaluationContext>(aggregate);
-            pricesEvalContext.ProductIds = products.Select(x => x.Id).ToArray();
-
             // There was a call to pipeline execution and stack overflow comes as a result of infinite cart getting,
             // because the LoadCartToEvalContextMiddleware catches pipeline execution.
             // Replaced to direct mapping.
-            _mapper.Map(aggregate, pricesEvalContext);
+            var pricesEvalContext = _mapper.ToPriceEvaluationContext(aggregate);
+            pricesEvalContext.ProductIds = products.Select(x => x.Id).ToArray();
 
             await _loadUserToEvalContextService.SetShopperDataFromMember(pricesEvalContext, pricesEvalContext.CustomerId);
             await _loadUserToEvalContextService.SetShopperDataFromOrganization(pricesEvalContext, pricesEvalContext.OrganizationId);
@@ -308,13 +304,11 @@ namespace VirtoCommerce.XCart.Data.Services
                 return;
             }
 
-            var pricesEvalContext = _mapper.Map<PriceEvaluationContext>(request);
-            pricesEvalContext.ProductIds = products.Select(x => x.Id).ToArray();
-
             // There was a call to pipeline execution and stack overflow comes as a result of infinite cart getting,
             // because the LoadCartToEvalContextMiddleware catches pipeline execution.
             // Replaced to direct mapping.
-            _mapper.Map(request, pricesEvalContext);
+            var pricesEvalContext = _mapper.ToPriceEvaluationContext(request);
+            pricesEvalContext.ProductIds = products.Select(x => x.Id).ToArray();
 
             await _loadUserToEvalContextService.SetShopperDataFromMember(pricesEvalContext, pricesEvalContext.CustomerId);
 

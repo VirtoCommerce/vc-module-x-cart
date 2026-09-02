@@ -83,8 +83,8 @@ public static class CartBenchmarkHost
         services.AddSingleton<IShoppingCartTotalsCalculator>(sp =>
             new DefaultShoppingCartTotalsCalculator(sp.GetRequiredService<ICurrencyService>()));
 
-        // The add path maps CartProduct → LineItem with the real production profile.
-        services.AddSingleton(CartBenchmarkFixtures.CreateMapper());
+        // The add path maps CartProduct → LineItem via the real production mapper.
+        services.AddSingleton<IXCartMapper, XCartMapper>();
 
         var storeService = new Mock<IStoreService>();
         storeService

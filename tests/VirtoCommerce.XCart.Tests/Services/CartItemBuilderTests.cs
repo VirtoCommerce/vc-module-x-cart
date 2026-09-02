@@ -1,4 +1,3 @@
-using AutoMapper;
 using FluentAssertions;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Model;
@@ -6,17 +5,22 @@ using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
-using VirtoCommerce.XCart.Data.Mapping;
 using VirtoCommerce.XCart.Data.Services;
+using VirtoCommerce.XCart.Tests.Helpers;
 using Xunit;
 
 namespace VirtoCommerce.XCart.Tests.Services
 {
     /// <summary>
     /// Covers <see cref="ICartItemBuilder"/> contract end-to-end: default behaviour,
-    /// <see cref="AbstractTypeFactory{T}"/> override dispatch, container property fallback,
-    /// and mapper-context fallback. Each test that registers a factory override removes it
-    /// in a <c>finally</c> block — the factory is global static and must be isolated between tests.
+    /// <see cref="AbstractTypeFactory{T}"/> override dispatch, and container property fallback.
+    /// The ctor-injected builder <see cref="XCartMapper"/> delegates to is covered in
+    /// <c>XCartMapperTests.ToLineItem_UsesCtorInjectedCartItemBuilder</c> instead, via a mock that
+    /// actually distinguishes "delegated to" from "would have worked without it" - the assertions
+    /// this class's own tests use (<c>BeOfType&lt;LineItem&gt;</c>, a copied field) are things the
+    /// pre-injection <c>TryCreateInstance</c> fallback satisfied equally well. Each test that
+    /// registers a factory override removes it in a <c>finally</c> block — the factory is
+    /// global static and must be isolated between tests.
     /// </summary>
     public class CartItemBuilderTests
     {
@@ -93,27 +97,6 @@ namespace VirtoCommerce.XCart.Tests.Services
             var container = new ConfiguredLineItemContainer { CultureName = "en-US" };
 
             var lineItem = container.CreateLineItem(BuildCartProduct(), quantity: 1);
-
-            lineItem.Should().BeOfType<LineItem>();
-            lineItem.ProductId.Should().Be("p1");
-        }
-
-        [Fact]
-        public void CartMappingProfile_WithoutBuilderInContext_FallsBackToTryCreateInstance()
-        {
-            // The lambda's `context.Items` access has always required the opts-overload
-            // (the existing `cultureName` lookup uses the same pattern). The fallback test
-            // verifies: when the caller uses the opts-overload but does NOT supply the
-            // ICartItemBuilder.MapperContextKey entry, the lambda still produces a valid
-            // LineItem via the `?? TryCreateInstance()` branch — zero behaviour regression.
-            var config = new MapperConfiguration(cfg => cfg.AddProfile<CartMappingProfile>());
-            var mapper = config.CreateMapper();
-
-            var lineItem = mapper.Map<LineItem>(BuildCartProduct(), opts =>
-            {
-                // Intentionally NOT populating Items["cartItemBuilder"] to exercise the fallback.
-                opts.Items.TryAdd("cultureName", "en-US");
-            });
 
             lineItem.Should().BeOfType<LineItem>();
             lineItem.ProductId.Should().Be("p1");

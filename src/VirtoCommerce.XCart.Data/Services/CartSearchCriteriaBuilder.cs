@@ -1,20 +1,20 @@
 using System;
 using System.Collections.Generic;
-using AutoMapper;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.SearchModule.Core.Services;
+using VirtoCommerce.XCart.Core.Services;
 
 namespace VirtoCommerce.XCart.Data.Services
 {
     public class CartSearchCriteriaBuilder
     {
         private readonly ISearchPhraseParser _phraseParser;
-        private readonly IMapper _mapper;
+        private readonly IXCartMapper _mapper;
         private readonly ShoppingCartSearchCriteria _searchCriteria;
 
-        public CartSearchCriteriaBuilder(ISearchPhraseParser phraseParser, IMapper mapper) : this()
+        public CartSearchCriteriaBuilder(ISearchPhraseParser phraseParser, IXCartMapper mapper) : this()
         {
             _phraseParser = phraseParser;
             _mapper = mapper;
@@ -42,7 +42,7 @@ namespace VirtoCommerce.XCart.Data.Services
             }
 
             var parseResult = _phraseParser.Parse(filterPhrase);
-            _mapper.Map(parseResult.Filters, _searchCriteria);
+            _mapper.MapTo(parseResult.Filters, _searchCriteria);
 
             return this;
         }

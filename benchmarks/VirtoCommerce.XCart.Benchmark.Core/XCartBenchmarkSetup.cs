@@ -33,7 +33,7 @@ public sealed class XCartBenchmarkSetup : ICartBenchmarkSetup
     {
         // AddPipeline TryAdds the real GenericPipelineLauncher, so RecalculateAsync's
         // EvaluatePromotionsAsync executes the production promo-context map. The map's shopper-data load
-        // is I/O → mocked; the cart→context mapping (the real cost) runs via the host's real IMapper.
+        // is I/O → mocked; the cart→context mapping (the real cost) runs via the host's real IXCartMapper.
         services.AddSingleton(Mock.Of<ILoadUserToEvalContextService>());
         services.AddPipeline<PromotionEvaluationContextCartMap>(builder =>
             builder.AddMiddleware(typeof(MapPromoEvalContextMiddleware)));

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using AutoMapper;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
@@ -22,7 +21,6 @@ using VirtoCommerce.XCart.Core.Commands.BaseCommands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
-using VirtoCommerce.XCart.Data.Mapping;
 
 namespace VirtoCommerce.XCart.Benchmark;
 
@@ -111,10 +109,6 @@ public static class CartBenchmarkFixtures
             return item;
         }).ToList();
     }
-
-    /// <summary>Real AutoMapper from the production cart profile — the add path maps CartProduct → LineItem.</summary>
-    public static IMapper CreateMapper() =>
-        new MapperConfiguration(cfg => cfg.AddProfile<CartMappingProfile>()).CreateMapper();
 
     /// <summary>An active/buyable, untracked, priced <see cref="CartProduct"/> — the success-path
     /// product shape reused across clusters.</summary>

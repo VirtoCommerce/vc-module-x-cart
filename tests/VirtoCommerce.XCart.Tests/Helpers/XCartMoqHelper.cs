@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using AutoFixture;
-using AutoMapper;
 using Bogus;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -53,7 +52,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         protected readonly Mock<IStoreService> _crudStoreServiceMock;
         protected readonly Mock<IOptionalDependency<ITaxProviderSearchService>> _taxProviderSearchServiceMock;
         protected readonly Mock<IDynamicPropertyUpdaterService> _dynamicPropertyUpdaterService;
-        protected readonly Mock<IMapper> _mapperMock;
+        protected readonly Mock<IXCartMapper> _mapperMock;
         protected readonly Mock<IMemberService> _memberService;
         protected readonly Mock<IGenericPipelineLauncher> _genericPipelineLauncherMock;
         protected readonly Mock<IConfigurationItemValidator> _configurationItemValidatorMock;
@@ -74,10 +73,11 @@ namespace VirtoCommerce.XCart.Tests.Helpers
 
         public XCartMoqHelper()
         {
-            // Xapi.Web's Module.Initialize registers ProductPrice in production and never runs under test.
-            // Keep this in the ctor: BuildNewCartItem builds its CartProduct directly rather than through the
-            // _fixture factory, so a registration living in that factory covers only some of the paths into
-            // ApplyPrices — and the rest then race on static factory state, usually still passing.
+            // Must run unconditionally here, not inside a Register lambda: AbstractTypeFactory<T> state is
+            // process-global, so gating it behind a lambda made test outcomes depend on run order. Xapi.Web's
+            // Module.Initialize registers ProductPrice in production and never runs under test, and
+            // BuildNewCartItem builds its CartProduct directly rather than through the _fixture factory, so a
+            // registration living in that factory would cover only some of the paths into ApplyPrices.
             AbstractTypeFactory<Xapi.Core.Models.ProductPrice>.RegisterType<Xapi.Core.Models.ProductPrice>();
 
             _fixture.Register<PaymentMethod>(() => new StubPaymentMethod(_fixture.Create<string>()));
@@ -199,7 +199,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
             _taxProviderSearchServiceMock = new Mock<IOptionalDependency<ITaxProviderSearchService>>();
             _dynamicPropertyUpdaterService = new Mock<IDynamicPropertyUpdaterService>();
 
-            _mapperMock = new Mock<IMapper>();
+            _mapperMock = new Mock<IXCartMapper>();
 
             _genericPipelineLauncherMock = new Mock<IGenericPipelineLauncher>();
 

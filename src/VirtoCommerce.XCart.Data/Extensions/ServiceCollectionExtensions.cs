@@ -25,6 +25,8 @@ namespace VirtoCommerce.XCart.Data.Extensions
     {
         public static IServiceCollection AddXCart(this IServiceCollection services, IGraphQLBuilder graphQLBuilder)
         {
+            services.AddSingleton<IXCartMapper, XCartMapper>();
+
             services.AddSingleton<ScopedSchemaFactory<DataAssemblyMarker>>();
 
             services.AddSingleton<IAuthorizationHandler, CanAccessCartAuthorizationHandler>();
@@ -38,7 +40,7 @@ namespace VirtoCommerce.XCart.Data.Extensions
             services.AddSingleton<ICartResponseGroupParser, CartResponseGroupParser>();
             services.AddTransient<CartAggregate>();
             services.AddTransient<Func<CartAggregate>>(provider => () => provider.CreateScope().ServiceProvider.GetRequiredService<CartAggregate>());
-            services.AddTransient<ICartItemBuilder, CartItemBuilder>();
+            services.AddSingleton<ICartItemBuilder, CartItemBuilder>();
             services.AddTransient<IConfiguredLineItemContainerService, ConfiguredLineItemContainerService>();
             services.AddTransient<ICartConfigurationService, CartConfigurationService>();
             services.AddTransient<IConfigurationItemValidator, ConfigurationItemValidator>();
