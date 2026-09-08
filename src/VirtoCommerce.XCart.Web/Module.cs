@@ -9,6 +9,7 @@ using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.XCart.Core;
+using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data;
 using VirtoCommerce.XCart.Data.Extensions;
 using VirtoCommerce.XCart.Data.Handlers;
@@ -42,6 +43,9 @@ public class Module : IModule, IHasConfiguration
         var settingsRegistrar = serviceProvider.GetRequiredService<ISettingsRegistrar>();
         settingsRegistrar.RegisterSettings(ModuleConstants.Settings.General.AllSettings, ModuleInfo.Id);
         settingsRegistrar.RegisterSettingsForType(ModuleConstants.Settings.StoreLevelSettings, nameof(Store));
+
+        // Resolve once so a duplicate ICartSharingScopePolicy scope fails the boot instead of the first wishlist call.
+        serviceProvider.GetRequiredService<ICartSharingService>();
 
         appBuilder.RegisterEventHandler<CartChangedEvent, CartChangedEventHandler>();
     }

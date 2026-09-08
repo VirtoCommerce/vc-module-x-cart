@@ -1,17 +1,17 @@
+using System.Collections.Generic;
 using GraphQL.Types;
-using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.XCart.Core.Services;
 
 namespace VirtoCommerce.XCart.Core.Schemas
 {
     public class WishlistScopeType : EnumerationGraphType
     {
-        public WishlistScopeType()
+        public WishlistScopeType(IEnumerable<ICartSharingScopePolicy> scopePolicies)
         {
-            Add(CartSharingScope.Private, value: CartSharingScope.Private, description: "Private scope");
-            Add(CartSharingScope.AnyoneAnonymous, value: CartSharingScope.AnyoneAnonymous, description: "Anyone (anonymous) scope");
-            Add(CartSharingScope.AnyoneAuthorized, value: CartSharingScope.AnyoneAuthorized, description: "Anyone (authorized) scope");
-            Add(CartSharingScope.Organization, value: CartSharingScope.Organization, description: "Organization scope");
-            Add(CartSharingScope.User, value: CartSharingScope.User, description: "User scope");
+            foreach (var policy in scopePolicies)
+            {
+                Add(policy.Scope, value: policy.Scope, description: policy.Description);
+            }
         }
     }
 }

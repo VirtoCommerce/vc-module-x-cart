@@ -16,6 +16,7 @@ using VirtoCommerce.XCart.Core.Validators;
 using VirtoCommerce.XCart.Data.Authorization;
 using VirtoCommerce.XCart.Data.Middlewares;
 using VirtoCommerce.XCart.Data.Services;
+using VirtoCommerce.XCart.Data.Services.SharingScopes;
 using VirtoCommerce.XCart.Data.Validators;
 using VirtoCommerce.XCatalog.Core.Models;
 
@@ -37,6 +38,14 @@ namespace VirtoCommerce.XCart.Data.Extensions
             services.AddTransient<ICartProductsLoaderService, CartProductService>();
             services.AddTransient<ISavedForLaterListService, SavedForLaterListService>();
             services.AddTransient<ICartSharingService, CartSharingService>();
+
+            // Registration order is the GraphQL WishlistScopeType enum order. Downstream modules add their own
+            // scopes by registering another ICartSharingScopePolicy; two policies claiming one scope throw.
+            services.AddTransient<ICartSharingScopePolicy, PrivateCartSharingScopePolicy>();
+            services.AddTransient<ICartSharingScopePolicy, AnyoneAnonymousCartSharingScopePolicy>();
+            services.AddTransient<ICartSharingScopePolicy, AnyoneAuthorizedCartSharingScopePolicy>();
+            services.AddTransient<ICartSharingScopePolicy, OrganizationCartSharingScopePolicy>();
+            services.AddTransient<ICartSharingScopePolicy, UserCartSharingScopePolicy>();
             services.AddSingleton<ICartResponseGroupParser, CartResponseGroupParser>();
             services.AddTransient<CartAggregate>();
             services.AddTransient<Func<CartAggregate>>(provider => () => provider.CreateScope().ServiceProvider.GetRequiredService<CartAggregate>());
