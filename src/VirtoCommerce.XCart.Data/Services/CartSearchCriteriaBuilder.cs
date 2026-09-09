@@ -102,7 +102,7 @@ namespace VirtoCommerce.XCart.Data.Services
         {
             if (_cartSharingService == null)
             {
-                throw new OperationCanceledException("cart sharing service must be initialized");
+                throw new InvalidOperationException("cart sharing service must be initialized");
             }
 
             _searchCriteria.CustomerOrOrganization = true;

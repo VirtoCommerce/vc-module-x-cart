@@ -123,6 +123,10 @@ public class CartSharingService : ICartSharingService
         return searchResult.Results.FirstOrDefault();
     }
 
+    // Resolves from the first setting whose scope has a policy, which relies on a cart carrying one effective
+    // scope - the invariant EnsureSetting maintains. Generic CRUD (ShoppingCartEntity.FromModel/Patch) can still
+    // persist a multi-scope cart, and for one of those the original ordered if-chain picked the most permissive
+    // scope where this picks the first stored one: the resolution is fail-closed, never wider.
     protected virtual ICartSharingScopePolicy FindScopePolicy(ShoppingCart cart)
     {
         if (cart == null || cart.SharingSettings.IsNullOrEmpty())

@@ -11,6 +11,7 @@ using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Services;
 using VirtoCommerce.XCart.Data.Services.SharingScopes;
+using VirtoCommerce.XCart.Tests.Helpers;
 using Xunit;
 
 namespace VirtoCommerce.XCart.Tests.Services
@@ -309,22 +310,10 @@ namespace VirtoCommerce.XCart.Tests.Services
             };
         }
 
-        private static List<ICartSharingScopePolicy> BuiltInPolicies()
-        {
-            return
-            [
-                new PrivateCartSharingScopePolicy(),
-                new AnyoneAnonymousCartSharingScopePolicy(),
-                new AnyoneAuthorizedCartSharingScopePolicy(),
-                new OrganizationCartSharingScopePolicy(),
-                new UserCartSharingScopePolicy(),
-            ];
-        }
+        private static List<ICartSharingScopePolicy> BuiltInPolicies() => CartSharingScopeFixtures.BuiltInPolicies();
 
-        private static CartSharingService CreateService(IList<ICartSharingScopePolicy> policies = null)
-        {
-            return new CartSharingService(Mock.Of<ICartAggregateRepository>(), policies ?? BuiltInPolicies());
-        }
+        private static CartSharingService CreateService(IList<ICartSharingScopePolicy> policies = null) =>
+            CartSharingScopeFixtures.SharingService(policies);
 
         private sealed class TestScopePolicy(string scope) : CartSharingScopePolicyBase
         {
