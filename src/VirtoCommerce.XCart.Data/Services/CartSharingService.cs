@@ -14,7 +14,7 @@ namespace VirtoCommerce.XCart.Data.Services;
 public class CartSharingService : ICartSharingService
 {
     private readonly ICartAggregateRepository _cartAggregateRepository;
-    private readonly IReadOnlyDictionary<string, ICartSharingScopePolicy> _scopePolicies;
+    private readonly Dictionary<string, ICartSharingScopePolicy> _scopePolicies;
 
     public CartSharingService(ICartAggregateRepository cartAggregateRepository, IEnumerable<ICartSharingScopePolicy> scopePolicies)
     {
@@ -147,7 +147,7 @@ public class CartSharingService : ICartSharingService
         return !string.IsNullOrEmpty(currentUserId) && cart?.CustomerId.EqualsIgnoreCase(currentUserId) == true;
     }
 
-    private static IReadOnlyDictionary<string, ICartSharingScopePolicy> BuildScopePolicyIndex(IEnumerable<ICartSharingScopePolicy> scopePolicies)
+    private static Dictionary<string, ICartSharingScopePolicy> BuildScopePolicyIndex(IEnumerable<ICartSharingScopePolicy> scopePolicies)
     {
         var result = new Dictionary<string, ICartSharingScopePolicy>(StringComparer.OrdinalIgnoreCase);
 
