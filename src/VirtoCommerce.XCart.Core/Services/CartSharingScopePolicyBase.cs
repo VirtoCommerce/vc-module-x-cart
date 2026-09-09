@@ -27,8 +27,7 @@ public abstract class CartSharingScopePolicyBase : ICartSharingScopePolicy
         return Task.CompletedTask;
     }
 
-    // Writes this policy's scope onto the cart. The default keeps one effective setting: existing rows are demoted
-    // to Private and the first carries the scope. Override to keep several rows for one scope.
+    // Default keeps one effective setting: rows demoted to Private, the first carries the scope. Override for many.
     public virtual void EnsureSetting(ShoppingCart cart, string sharingKey, string access, string sharedWithId)
     {
         if (cart.SharingSettings.IsNullOrEmpty())
@@ -53,7 +52,7 @@ public abstract class CartSharingScopePolicyBase : ICartSharingScopePolicy
             setting.Scope = CartSharingScope.Private;
         }
 
-        // Id is left alone on purpose: an existing sharing key must survive a scope change.
+        // Id untouched: an existing sharing key must survive a scope change.
         var sharingSetting = cart.SharingSettings.First();
 
         sharingSetting.Scope = Scope;

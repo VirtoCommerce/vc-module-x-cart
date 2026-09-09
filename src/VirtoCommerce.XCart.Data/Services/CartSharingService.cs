@@ -46,8 +46,7 @@ public class CartSharingService : ICartSharingService
 
     public virtual bool IsAuthorized(ShoppingCart cart, string currentUserId, string currentOrganizationId)
     {
-        // Resolved from the persisted settings only — never from the "no settings + OrganizationId => Organization"
-        // inference GetSharingScope makes, which would authorize an org member on a cart that was never shared.
+        // Settings only: GetSharingScope's no-settings => Organization inference would authorize any org member.
         var policy = FindScopePolicy(cart);
 
         return policy != null
@@ -80,7 +79,7 @@ public class CartSharingService : ICartSharingService
 
     public virtual void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access, string sharedWithId)
     {
-        // Routed through the scope's policy so its own write behavior applies, whoever owns that scope.
+        // Through the scope's policy, so its owner's write behavior applies.
         if (string.IsNullOrEmpty(mode) || !_scopePolicies.TryGetValue(mode, out var policy))
         {
             throw new InvalidOperationException($"Unsupported sharing scope '{mode}'.");
@@ -123,10 +122,8 @@ public class CartSharingService : ICartSharingService
         return searchResult.Results.FirstOrDefault();
     }
 
-    // Resolves from the first setting whose scope has a policy, which relies on a cart carrying one effective
-    // scope - the invariant EnsureSetting maintains. Generic CRUD (ShoppingCartEntity.FromModel/Patch) can still
-    // persist a multi-scope cart, and for one of those the original ordered if-chain picked the most permissive
-    // scope where this picks the first stored one: the resolution is fail-closed, never wider.
+    // First setting with a registered policy. Relies on one effective scope per cart (EnsureSetting's invariant);
+    // generic CRUD can persist a multi-scope one, where this picks the first stored - fail-closed, never wider.
     protected virtual ICartSharingScopePolicy FindScopePolicy(ShoppingCart cart)
     {
         if (cart == null || cart.SharingSettings.IsNullOrEmpty())

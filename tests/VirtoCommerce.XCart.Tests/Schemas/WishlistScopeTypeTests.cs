@@ -9,10 +9,7 @@ using Xunit;
 
 namespace VirtoCommerce.XCart.Tests.Schemas
 {
-    /// <summary>
-    /// The wishlist scope enum is assembled from the registered scope policies, so its values are part of the
-    /// published GraphQL schema and a downstream module can extend them. Pins both.
-    /// </summary>
+    // The enum is assembled from the registered policies, so its values are published schema.
     public class WishlistScopeTypeTests
     {
         [Fact]

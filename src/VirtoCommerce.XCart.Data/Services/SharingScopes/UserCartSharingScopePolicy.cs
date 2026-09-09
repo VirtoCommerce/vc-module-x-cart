@@ -7,7 +7,7 @@ public class UserCartSharingScopePolicy : CartSharingScopePolicyBase
 {
     public override string Scope => CartSharingScope.User;
 
-    // Resolvable and authorizable, but never settable: UpdateScopeAsync has always rejected it.
+    // Never settable: UpdateScopeAsync has always rejected this scope.
     public override bool CanApply => false;
 
     public override bool IsAuthorized(ShoppingCart cart, string currentUserId, string currentOrganizationId)

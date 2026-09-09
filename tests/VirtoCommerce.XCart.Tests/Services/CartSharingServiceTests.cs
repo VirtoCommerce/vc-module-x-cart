@@ -101,8 +101,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         [Fact]
         public void IsAuthorized_NoSettingsButOrganizationMatches_StillRequiresOwnership()
         {
-            // GetSharingScope infers "Organization" for a cart that carries an OrganizationId but was never shared.
-            // IsAuthorized must not follow that inference, or every org member would reach every private cart.
+            // IsAuthorized must not follow GetSharingScope's inference, or any org member reaches every private cart.
             var cart = new ShoppingCart { CustomerId = OwnerId, OrganizationId = OrgId };
             var service = CreateService();
 
@@ -266,7 +265,7 @@ namespace VirtoCommerce.XCart.Tests.Services
 
             CreateService(policies).EnsureSharingSettings(cart, "key-2", CustomScope, CartSharingAccess.Read, OrgId);
 
-            // MultiRowScopePolicy appends instead of demoting-and-reusing, so the override drives the legacy API too.
+            // MultiRowScopePolicy appends instead of reusing, so the override drives the legacy API too.
             cart.SharingSettings.Should().HaveCount(2);
             cart.SharingSettings.Should().OnlyContain(x => x.Scope == CustomScope);
             cart.SharingSettings[1].SharedWithId.Should().Be(OrgId);

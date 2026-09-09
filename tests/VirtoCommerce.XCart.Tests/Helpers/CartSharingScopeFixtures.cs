@@ -6,10 +6,7 @@ using VirtoCommerce.XCart.Data.Services.SharingScopes;
 
 namespace VirtoCommerce.XCart.Tests.Helpers
 {
-    /// <summary>
-    /// The built-in sharing scopes in registration order — the order XCart registers them, which is also the
-    /// GraphQL <c>WishlistScopeType</c> enum order.
-    /// </summary>
+    // Built-in scopes in registration order - also the WishlistScopeType enum order.
     public static class CartSharingScopeFixtures
     {
         public static List<ICartSharingScopePolicy> BuiltInPolicies()
@@ -24,10 +21,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
             ];
         }
 
-        /// <summary>
-        /// A real dispatcher over the given policies (the built-in ones by default). The aggregate repository is
-        /// only used by GetWishlistBySharingKeyAsync, so it is mocked.
-        /// </summary>
+        // Real dispatcher; the repository is only used by GetWishlistBySharingKeyAsync.
         public static CartSharingService SharingService(IList<ICartSharingScopePolicy> policies = null)
         {
             return new CartSharingService(Mock.Of<ICartAggregateRepository>(), policies ?? BuiltInPolicies());

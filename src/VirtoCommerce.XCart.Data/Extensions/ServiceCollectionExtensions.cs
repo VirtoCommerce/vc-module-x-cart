@@ -39,8 +39,7 @@ namespace VirtoCommerce.XCart.Data.Extensions
             services.AddTransient<ISavedForLaterListService, SavedForLaterListService>();
             services.AddTransient<ICartSharingService, CartSharingService>();
 
-            // Registration order is the GraphQL WishlistScopeType enum order. Downstream modules add their own
-            // scopes by registering another ICartSharingScopePolicy; two policies claiming one scope throw.
+            // Registration order = WishlistScopeType enum order. Downstream modules add scopes; duplicates throw.
             services.AddTransient<ICartSharingScopePolicy, PrivateCartSharingScopePolicy>();
             services.AddTransient<ICartSharingScopePolicy, AnyoneAnonymousCartSharingScopePolicy>();
             services.AddTransient<ICartSharingScopePolicy, AnyoneAuthorizedCartSharingScopePolicy>();

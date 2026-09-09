@@ -9,7 +9,7 @@ public class AnyoneAuthorizedCartSharingScopePolicy : CartSharingScopePolicyBase
 
     public override string Description => "Anyone (authorized) scope";
 
-    // Resolvable and authorizable, but never settable: UpdateScopeAsync has always rejected it.
+    // Never settable: UpdateScopeAsync has always rejected this scope.
     public override bool CanApply => false;
 
     public override string GetAccess(ShoppingCart cart, string currentUserId)

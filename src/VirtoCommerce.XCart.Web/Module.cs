@@ -44,7 +44,7 @@ public class Module : IModule, IHasConfiguration
         settingsRegistrar.RegisterSettings(ModuleConstants.Settings.General.AllSettings, ModuleInfo.Id);
         settingsRegistrar.RegisterSettingsForType(ModuleConstants.Settings.StoreLevelSettings, nameof(Store));
 
-        // Resolve once so a duplicate ICartSharingScopePolicy scope fails the boot instead of the first wishlist call.
+        // Resolve once so a duplicate scope policy fails the boot, not the first wishlist call.
         serviceProvider.GetRequiredService<ICartSharingService>();
 
         appBuilder.RegisterEventHandler<CartChangedEvent, CartChangedEventHandler>();

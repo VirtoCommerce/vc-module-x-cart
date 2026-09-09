@@ -15,10 +15,7 @@ using Xunit;
 
 namespace VirtoCommerce.XCart.Tests.Queries
 {
-    /// <summary>
-    /// The handler is the only caller of <c>WithScope</c>, so it is where the scope registry reaches the wishlist
-    /// list query. Asserts the criteria it hands the repository, not just the builder in isolation.
-    /// </summary>
+    // The handler is the only WithScope caller - asserts the criteria it hands the repository.
     public class SearchWishlistQueryHandlerTests
     {
         private const string UserId = "customer-1";

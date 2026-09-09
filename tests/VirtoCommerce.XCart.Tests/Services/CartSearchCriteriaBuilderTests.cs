@@ -11,10 +11,7 @@ using Xunit;
 
 namespace VirtoCommerce.XCart.Tests.Services
 {
-    /// <summary>
-    /// Pins the scope narrowing applied by <see cref="CartSearchCriteriaBuilder.WithScope"/>, which routes through
-    /// the sharing scope registry instead of hard-coding Organization/Private.
-    /// </summary>
+    // Pins WithScope narrowing, which now routes through the scope registry.
     public class CartSearchCriteriaBuilderTests
     {
         private const string CustomerId = "customer-1";
@@ -56,8 +53,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         [InlineData("NoPolicyRegistered")]
         public void WithScope_ScopeThatNarrowsNothing_KeepsBothIds(string scope)
         {
-            // Documents inherited behaviour: a scope with no narrowing of its own (and an unregistered scope) is
-            // left to the CustomerOrOrganization filter alone, so the caller sees their own and their org's lists.
+            // Inherited: no narrowing of its own, so the caller sees their own and their org's lists.
             var criteria = Builder(CartSharingScopeFixtures.SharingService())
                 .WithCustomerId(CustomerId)
                 .WithOrganizationId(OrgId)

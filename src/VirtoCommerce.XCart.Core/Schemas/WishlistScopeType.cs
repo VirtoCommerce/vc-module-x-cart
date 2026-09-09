@@ -12,8 +12,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
         {
             foreach (var policy in scopePolicies)
             {
-                // Checked here so an unusable scope names the policy that declared it; the schema builder would
-                // otherwise fail at startup reporting only the offending string.
+                // Checked here so the error names the policy; the schema builder reports only the bad string.
                 if (!IsValidEnumValueName(policy.Scope))
                 {
                     throw new InvalidOperationException(
