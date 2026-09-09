@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 
@@ -17,7 +18,7 @@ public class OrganizationCartSharingScopePolicy : CartSharingScopePolicyBase
 
     public override bool IsAuthorized(ShoppingCart cart, string currentUserId, string currentOrganizationId)
     {
-        return !string.IsNullOrEmpty(currentUserId) && cart.OrganizationId == currentOrganizationId;
+        return !string.IsNullOrEmpty(currentUserId) && cart.OrganizationId.EqualsIgnoreCase(currentOrganizationId);
     }
 
     public override Task ApplyAsync(ShoppingCart cart, WishlistScopeContext context)

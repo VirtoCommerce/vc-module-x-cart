@@ -149,6 +149,20 @@ namespace VirtoCommerce.XCart.Tests.Services
         }
 
         [Fact]
+        public void IsAuthorized_IdsDifferingOnlyByCase_StillMatch()
+        {
+            // In-memory id comparisons are case-insensitive: the stored casing must not lock a caller out.
+            var ownerCart = CartWithScope(CartSharingScope.Private);
+            var orgCart = CartWithScope(CartSharingScope.Organization);
+            orgCart.OrganizationId = OrgId;
+
+            var service = CreateService();
+
+            service.IsAuthorized(ownerCart, OwnerId.ToUpperInvariant(), null).Should().BeTrue();
+            service.IsAuthorized(orgCart, OtherUserId, OrgId.ToUpperInvariant()).Should().BeTrue();
+        }
+
+        [Fact]
         public async Task UpdateScopeAsync_EmptyScope_DoesNothing()
         {
             var cart = new ShoppingCart();

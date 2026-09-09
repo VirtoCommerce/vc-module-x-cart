@@ -144,7 +144,7 @@ public class CartSharingService : ICartSharingService
 
     private static bool IsOwner(ShoppingCart cart, string currentUserId)
     {
-        return !string.IsNullOrEmpty(currentUserId) && cart?.CustomerId == currentUserId;
+        return !string.IsNullOrEmpty(currentUserId) && cart?.CustomerId.EqualsIgnoreCase(currentUserId) == true;
     }
 
     private static IReadOnlyDictionary<string, ICartSharingScopePolicy> BuildScopePolicyIndex(IEnumerable<ICartSharingScopePolicy> scopePolicies)

@@ -73,6 +73,6 @@ public abstract class CartSharingScopePolicyBase : ICartSharingScopePolicy
 
     protected static bool IsOwner(ShoppingCart cart, string currentUserId)
     {
-        return !string.IsNullOrEmpty(currentUserId) && cart?.CustomerId == currentUserId;
+        return !string.IsNullOrEmpty(currentUserId) && cart?.CustomerId.EqualsIgnoreCase(currentUserId) == true;
     }
 }
