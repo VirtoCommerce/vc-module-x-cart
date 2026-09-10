@@ -17,12 +17,15 @@ public interface ICartSharingService
     string GetSharingOwnerUserId(ShoppingCart cart);
     string GetSharingOwnerOrganizationId(ShoppingCart cart);
 
-    [Obsolete("Use the overload with sharedWithId (null for the built-in non-targeted scopes).", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    [Obsolete("Use UpdateScopeAsync.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
     void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access);
 
+    [Obsolete("Use UpdateScopeAsync.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
     void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access, string sharedWithId);
 
     Task UpdateScopeAsync(ShoppingCart cart, WishlistScopeContext context);
+
+    Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(CartSharingSetting setting);
 
     void ConfigureSearchCriteria(ShoppingCartSearchCriteria criteria, string scope);
 

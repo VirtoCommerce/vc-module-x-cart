@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
@@ -31,11 +32,24 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
 
         context.Scope = request.Scope;
         context.SharingKey = request.SharingKey;
-        context.SharedWithId = request.SharedWithId;
+        context.AddSharedWithIds = GetAddSharedWithIds(request);
+        context.RemoveSharedWithIds = request.RemoveSharedWithIds;
+        context.Message = request.Message;
         context.CurrentUserId = request.WishlistUserContext.CurrentUserId;
         context.CustomerName = request.WishlistUserContext.CurrentContact.Name;
         context.CurrentOrganizationId = request.WishlistUserContext.CurrentOrganizationId;
 
         return context;
+    }
+
+    // The legacy single sharedWithId is one more id to add: released storefronts still send it on every save.
+    protected static IList<string> GetAddSharedWithIds(ScopedWishlistCommand request)
+    {
+        if (string.IsNullOrEmpty(request.SharedWithId))
+        {
+            return request.AddSharedWithIds;
+        }
+
+        return [.. request.AddSharedWithIds ?? [], request.SharedWithId];
     }
 }

@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
-using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
+using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Services;
@@ -21,6 +22,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         private const string OwnerId = "owner-user";
         private const string OtherUserId = "other-user";
         private const string OrgId = "org-1";
+        private const string OtherOrgId = "org-2";
         private const string CustomScope = "Customer";
         private const string UnknownScope = "NoPolicyRegistered";
 
@@ -77,6 +79,18 @@ namespace VirtoCommerce.XCart.Tests.Services
         public void GetSharingScope_UnknownScope_FallsBackToPrivate()
         {
             CreateService().GetSharingScope(CartWithScope(UnknownScope)).Should().Be(CartSharingScope.Private);
+        }
+
+        [Fact]
+        public void GetSharingScope_LegacyDemotedPrivateRowFirst_ReturnsTheActiveScope()
+        {
+            // The old writer demoted extra rows to Private and left them in place, so the active row need not be first.
+            var cart = LegacyMultiRowCart();
+            var service = CreateService();
+
+            service.GetSharingScope(cart).Should().Be(CartSharingScope.Organization);
+            service.IsAuthorized(cart, OtherUserId, OrgId).Should().BeTrue();
+            cart.GetEffectiveSharingSetting().Id.Should().Be("active");
         }
 
         [Theory]
@@ -231,20 +245,142 @@ namespace VirtoCommerce.XCart.Tests.Services
         [Fact]
         public async Task UpdateScopeAsync_DownstreamPolicy_AddsScopeWithoutTouchingBuiltIns()
         {
-            var policies = BuiltInPolicies();
-            policies.Add(new TestScopePolicy(CustomScope));
-            var service = CreateService(policies);
+            var service = CreateService(WithCustomScope());
 
             var cart = new ShoppingCart();
-            var context = new WishlistScopeContext { Scope = CustomScope, SharedWithId = OrgId, CurrentUserId = OwnerId };
 
-            await service.UpdateScopeAsync(cart, context);
+            await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId]));
 
             service.GetSharingScope(cart).Should().Be(CustomScope);
             service.IsAuthorized(cart, OtherUserId, OrgId).Should().BeTrue();
             service.IsAuthorized(cart, OtherUserId, "another-org").Should().BeFalse();
 
             service.GetSharingScope(CartWithScope(CartSharingScope.Organization)).Should().Be(CartSharingScope.Organization);
+        }
+
+        [Fact]
+        public async Task UpdateScopeAsync_TargetedScope_AddsRemovesAndDeduplicatesTargets()
+        {
+            var service = CreateService(WithCustomScope());
+            var cart = new ShoppingCart();
+
+            await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId, OtherOrgId], sharingKey: "key-1"));
+
+            var setting = cart.SharingSettings.Should().ContainSingle().Subject;
+            setting.Id.Should().Be("key-1");
+            setting.Targets.Select(x => x.SharedWithId).Should().BeEquivalentTo(new[] { OrgId, OtherOrgId });
+
+            // Re-adding an id in another case is a no-op, a removal drops exactly that id, the key stays.
+            await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId.ToUpperInvariant(), "org-3"], removeSharedWithIds: [OtherOrgId]));
+
+            cart.SharingSettings.Should().ContainSingle();
+            setting.Id.Should().Be("key-1");
+            setting.Targets.Select(x => x.SharedWithId).Should().BeEquivalentTo(new[] { OrgId, "org-3" });
+            service.IsAuthorized(cart, OtherUserId, "org-3").Should().BeTrue();
+            service.IsAuthorized(cart, OtherUserId, OtherOrgId).Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task UpdateScopeAsync_Message_NullKeepsEmptyClearsValueIsTrimmed()
+        {
+            var service = CreateService(WithCustomScope());
+            var cart = new ShoppingCart();
+
+            await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId], message: "  Hello  "));
+            cart.SharingSettings[0].Message.Should().Be("Hello");
+
+            await service.UpdateScopeAsync(cart, CustomContext(message: null));
+            cart.SharingSettings[0].Message.Should().Be("Hello");
+
+            await service.UpdateScopeAsync(cart, CustomContext(message: ""));
+            cart.SharingSettings[0].Message.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task UpdateScopeAsync_MessageTooLong_Throws()
+        {
+            var cart = new ShoppingCart();
+            var context = CustomContext(addSharedWithIds: [OrgId], message: new string('x', ModuleConstants.Sharing.MessageMaxLength + 1));
+
+            var act = () => CreateService(WithCustomScope()).UpdateScopeAsync(cart, context);
+
+            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage($"*{ModuleConstants.Sharing.MessageMaxLength}*");
+            cart.SharingSettings.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task UpdateScopeAsync_IdBothAddedAndRemoved_Throws()
+        {
+            var cart = new ShoppingCart();
+            var context = CustomContext(addSharedWithIds: [OrgId], removeSharedWithIds: [OrgId.ToUpperInvariant()]);
+
+            var act = () => CreateService(WithCustomScope()).UpdateScopeAsync(cart, context);
+
+            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage($"*{OrgId}*");
+            cart.SharingSettings.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task UpdateScopeAsync_ScopeChange_ClearsTargetsAndMessageButKeepsTheKey()
+        {
+            var service = CreateService(WithCustomScope());
+            var cart = new ShoppingCart();
+
+            await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId], message: "Hello", sharingKey: "key-1"));
+            await service.UpdateScopeAsync(cart, new WishlistScopeContext
+            {
+                Scope = CartSharingScope.Organization,
+                SharingKey = "ignored-key",
+                CurrentUserId = OwnerId,
+                CurrentOrganizationId = OrgId,
+            });
+
+            var setting = cart.SharingSettings.Should().ContainSingle().Subject;
+            setting.Id.Should().Be("key-1");
+            setting.Scope.Should().Be(CartSharingScope.Organization);
+            setting.Targets.Should().BeEmpty();
+            setting.Message.Should().BeNull();
+
+            // Back to the targeted scope: nothing resurrects and the key is still the same.
+            await service.UpdateScopeAsync(cart, CustomContext());
+
+            setting.Id.Should().Be("key-1");
+            setting.Scope.Should().Be(CustomScope);
+            setting.Targets.Should().BeEmpty();
+            setting.Message.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task UpdateScopeAsync_BuiltInScope_IgnoresStrayTargetsAndMessage()
+        {
+            var cart = new ShoppingCart();
+            var context = new WishlistScopeContext
+            {
+                Scope = CartSharingScope.AnyoneAnonymous,
+                SharingKey = "key-1",
+                AddSharedWithIds = [OrgId],
+                Message = "Hello",
+                CurrentUserId = OwnerId,
+            };
+
+            await CreateService().UpdateScopeAsync(cart, context);
+
+            var setting = cart.SharingSettings.Should().ContainSingle().Subject;
+            setting.Targets.Should().BeNullOrEmpty();
+            setting.Message.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task UpdateScopeAsync_LegacyMultiRowCart_KeepsTheActiveRowAndDropsTheRest()
+        {
+            var cart = LegacyMultiRowCart();
+            var context = new WishlistScopeContext { Scope = CartSharingScope.AnyoneAnonymous, SharingKey = "new-key", CurrentUserId = OwnerId };
+
+            await CreateService().UpdateScopeAsync(cart, context);
+
+            var setting = cart.SharingSettings.Should().ContainSingle().Subject;
+            setting.Id.Should().Be("active");
+            setting.Scope.Should().Be(CartSharingScope.AnyoneAnonymous);
         }
 
         [Theory]
@@ -263,6 +399,41 @@ namespace VirtoCommerce.XCart.Tests.Services
         }
 
         [Fact]
+        public async Task ResolveTargetsAsync_WithoutAResolvingPolicy_ReturnsIdsOnly()
+        {
+            var service = CreateService(WithCustomScope());
+            var setting = new CartSharingSetting
+            {
+                Scope = CustomScope,
+                Targets = [new CartSharingSettingTarget { SharedWithId = OrgId }, new CartSharingSettingTarget { SharedWithId = OtherOrgId }],
+            };
+
+            var targets = await service.ResolveTargetsAsync(setting);
+            targets.Select(x => x.Id).Should().Equal(OrgId, OtherOrgId);
+            targets.Should().OnlyContain(x => x.Name == null && x.Subtitle == null && x.ImageUrl == null);
+
+            // A scope without a registered policy (module uninstalled) still shows who the list was shared with.
+            setting.Scope = UnknownScope;
+            (await service.ResolveTargetsAsync(setting)).Select(x => x.Id).Should().Equal(OrgId, OtherOrgId);
+
+            (await service.ResolveTargetsAsync(null)).Should().BeEmpty();
+            (await service.ResolveTargetsAsync(new CartSharingSetting { Scope = CustomScope })).Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task ResolveTargetsAsync_PolicyOverride_SuppliesDisplayData()
+        {
+            var policies = BuiltInPolicies();
+            policies.Add(new NamedTargetsScopePolicy(CustomScope));
+            var setting = new CartSharingSetting { Scope = CustomScope, Targets = [new CartSharingSettingTarget { SharedWithId = OrgId }] };
+
+            var targets = await CreateService(policies).ResolveTargetsAsync(setting);
+
+            targets.Should().ContainSingle().Which.Name.Should().Be($"Name of {OrgId}");
+        }
+
+#pragma warning disable VC0015 // EnsureSharingSettings is the legacy writer kept for external callers; its behavior is pinned here.
+        [Fact]
         public void EnsureSharingSettings_UnknownScope_Throws()
         {
             var act = () => CreateService().EnsureSharingSettings(new ShoppingCart(), "key-1", UnknownScope, CartSharingAccess.Read, sharedWithId: null);
@@ -271,7 +442,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         }
 
         [Fact]
-        public void EnsureSharingSettings_RoutesThroughTheScopePolicy()
+        public void EnsureSharingSettings_RoutesThroughTheScopePolicyAndAddsTheTarget()
         {
             var policies = BuiltInPolicies();
             policies.Add(new MultiRowScopePolicy(CustomScope));
@@ -282,8 +453,9 @@ namespace VirtoCommerce.XCart.Tests.Services
             // MultiRowScopePolicy appends instead of reusing, so the override drives the legacy API too.
             cart.SharingSettings.Should().HaveCount(2);
             cart.SharingSettings.Should().OnlyContain(x => x.Scope == CustomScope);
-            cart.SharingSettings[1].SharedWithId.Should().Be(OrgId);
+            cart.SharingSettings[1].Targets.Should().ContainSingle(x => x.SharedWithId == OrgId);
         }
+#pragma warning restore VC0015
 
         [Fact]
         public async Task ApplyAsync_PolicyOverridingEnsureSetting_KeepsItsOwnWritePolicy()
@@ -293,8 +465,8 @@ namespace VirtoCommerce.XCart.Tests.Services
             var service = CreateService(policies);
 
             var cart = new ShoppingCart();
-            await service.UpdateScopeAsync(cart, new WishlistScopeContext { Scope = CustomScope, SharedWithId = OrgId, CurrentUserId = OwnerId });
-            await service.UpdateScopeAsync(cart, new WishlistScopeContext { Scope = CustomScope, SharedWithId = "org-2", CurrentUserId = OwnerId });
+            await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId]));
+            await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OtherOrgId]));
 
             cart.SharingSettings.Should().HaveCount(2);
             service.GetSharingScope(cart).Should().Be(CustomScope);
@@ -323,11 +495,50 @@ namespace VirtoCommerce.XCart.Tests.Services
             };
         }
 
+        private static ShoppingCart LegacyMultiRowCart()
+        {
+            return new ShoppingCart
+            {
+                CustomerId = OwnerId,
+                OrganizationId = OrgId,
+                SharingSettings =
+                [
+                    new CartSharingSetting { Id = "demoted", Scope = CartSharingScope.Private },
+                    new CartSharingSetting { Id = "active", Scope = CartSharingScope.Organization },
+                ],
+            };
+        }
+
+        private static WishlistScopeContext CustomContext(
+            IList<string> addSharedWithIds = null,
+            IList<string> removeSharedWithIds = null,
+            string message = null,
+            string sharingKey = null)
+        {
+            return new WishlistScopeContext
+            {
+                Scope = CustomScope,
+                SharingKey = sharingKey,
+                AddSharedWithIds = addSharedWithIds,
+                RemoveSharedWithIds = removeSharedWithIds,
+                Message = message,
+                CurrentUserId = OwnerId,
+            };
+        }
+
         private static List<ICartSharingScopePolicy> BuiltInPolicies() => CartSharingScopeFixtures.BuiltInPolicies();
+
+        private static List<ICartSharingScopePolicy> WithCustomScope()
+        {
+            var policies = BuiltInPolicies();
+            policies.Add(new TestScopePolicy(CustomScope));
+            return policies;
+        }
 
         private static CartSharingService CreateService(IList<ICartSharingScopePolicy> policies = null) =>
             CartSharingScopeFixtures.SharingService(policies);
 
+        // A targeted scope on the default write policy: one setting, N targets, one message.
         private sealed class TestScopePolicy(string scope) : CartSharingScopePolicyBase
         {
             public override string Scope => scope;
@@ -339,7 +550,11 @@ namespace VirtoCommerce.XCart.Tests.Services
 
             public override Task ApplyAsync(ShoppingCart cart, WishlistScopeContext context)
             {
-                EnsureSetting(cart, context.SharingKey, CartSharingAccess.Read, context.SharedWithId);
+                var setting = EnsureSetting(cart, context.SharingKey, CartSharingAccess.Read);
+
+                setting.ApplyTargets(context.AddSharedWithIds, context.RemoveSharedWithIds);
+                setting.ApplyMessage(context.Message);
+
                 SetOwner(cart, context.CurrentUserId, context.CustomerName, organizationId: null);
 
                 return Task.CompletedTask;
@@ -347,26 +562,57 @@ namespace VirtoCommerce.XCart.Tests.Services
 
             private bool IsSharedWith(ShoppingCart cart, string organizationId)
             {
+                var setting = cart.GetEffectiveSharingSetting();
+
                 return !string.IsNullOrEmpty(organizationId)
-                    && cart.SharingSettings?.Any(x => x.Scope == Scope && x.SharedWithId == organizationId) == true;
+                    && setting?.Scope.EqualsIgnoreCase(Scope) == true
+                    && setting.Targets?.Any(x => x.SharedWithId.EqualsIgnoreCase(organizationId)) == true;
             }
         }
 
+        // A scope that resolves display data for its targets, the way a module owning the id space would.
+        private sealed class NamedTargetsScopePolicy(string scope) : CartSharingScopePolicyBase
+        {
+            public override string Scope => scope;
+
+            public override bool IsAuthorized(ShoppingCart cart, string currentUserId, string currentOrganizationId)
+            {
+                return IsOwner(cart, currentUserId);
+            }
+
+            public override async Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(CartSharingSetting setting)
+            {
+                var targets = await base.ResolveTargetsAsync(setting);
+
+                foreach (var target in targets)
+                {
+                    target.Name = $"Name of {target.Id}";
+                }
+
+                return targets;
+            }
+        }
+
+        // A scope that overrides the write policy to keep several rows instead of one.
         private sealed class MultiRowScopePolicy(string scope) : CartSharingScopePolicyBase
         {
             public override string Scope => scope;
 
-            public override void EnsureSetting(ShoppingCart cart, string sharingKey, string access, string sharedWithId)
+            public override CartSharingSetting EnsureSetting(ShoppingCart cart, string sharingKey, string access)
             {
                 cart.SharingSettings ??= [];
-                cart.SharingSettings.Add(new CartSharingSetting
+
+                var setting = new CartSharingSetting
                 {
                     Id = sharingKey,
                     ShoppingCartId = cart.Id,
                     Scope = Scope,
                     Access = access,
-                    SharedWithId = sharedWithId,
-                });
+                };
+
+                cart.SharingSettings.Add(setting);
+
+                return setting;
             }
 
             public override bool IsAuthorized(ShoppingCart cart, string currentUserId, string currentOrganizationId)
@@ -376,7 +622,7 @@ namespace VirtoCommerce.XCart.Tests.Services
 
             public override Task ApplyAsync(ShoppingCart cart, WishlistScopeContext context)
             {
-                EnsureSetting(cart, context.SharingKey, CartSharingAccess.Read, context.SharedWithId);
+                EnsureSetting(cart, context.SharingKey, CartSharingAccess.Read).ApplyTargets(context.AddSharedWithIds, context.RemoveSharedWithIds);
 
                 return Task.CompletedTask;
             }

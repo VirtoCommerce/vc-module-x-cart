@@ -6,6 +6,7 @@ using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
+using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 
@@ -71,12 +72,13 @@ public class CartSharingService : ICartSharingService
         return cart.OrganizationId;
     }
 
-    [Obsolete("Use the overload with sharedWithId (null for the built-in non-targeted scopes).", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    [Obsolete("Use UpdateScopeAsync.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
     public virtual void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access)
     {
         EnsureSharingSettings(cart, sharingKey, mode, access, sharedWithId: null);
     }
 
+    [Obsolete("Use UpdateScopeAsync.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
     public virtual void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access, string sharedWithId)
     {
         // Through the scope's policy, so its owner's write behavior applies.
@@ -85,7 +87,12 @@ public class CartSharingService : ICartSharingService
             throw new InvalidOperationException($"Unsupported sharing scope '{mode}'.");
         }
 
-        policy.EnsureSetting(cart, sharingKey, access, sharedWithId);
+        var setting = policy.EnsureSetting(cart, sharingKey, access);
+
+        if (!string.IsNullOrEmpty(sharedWithId))
+        {
+            setting.ApplyTargets([sharedWithId], removeSharedWithIds: null);
+        }
     }
 
     public virtual Task UpdateScopeAsync(ShoppingCart cart, WishlistScopeContext context)
@@ -100,7 +107,16 @@ public class CartSharingService : ICartSharingService
             throw new InvalidOperationException($"Unsupported sharing scope '{context.Scope}'.");
         }
 
+        ValidateContext(context);
+
         return policy.ApplyAsync(cart, context);
+    }
+
+    public virtual Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(CartSharingSetting setting)
+    {
+        return !string.IsNullOrEmpty(setting?.Scope) && _scopePolicies.TryGetValue(setting.Scope, out var policy)
+            ? policy.ResolveTargetsAsync(setting)
+            : Task.FromResult(setting.ToSharingTargets());
     }
 
     public virtual void ConfigureSearchCriteria(ShoppingCartSearchCriteria criteria, string scope)
@@ -122,8 +138,23 @@ public class CartSharingService : ICartSharingService
         return searchResult.Results.FirstOrDefault();
     }
 
-    // First setting with a registered policy. Relies on one effective scope per cart (EnsureSetting's invariant);
-    // generic CRUD can persist a multi-scope one, where this picks the first stored - fail-closed, never wider.
+    protected virtual void ValidateContext(WishlistScopeContext context)
+    {
+        if (context.Message?.Length > ModuleConstants.Sharing.MessageMaxLength)
+        {
+            throw new InvalidOperationException($"The sharing message must not exceed {ModuleConstants.Sharing.MessageMaxLength} characters.");
+        }
+
+        var conflictingIds = (context.AddSharedWithIds ?? []).Intersect(context.RemoveSharedWithIds ?? [], StringComparer.OrdinalIgnoreCase).ToList();
+
+        if (conflictingIds.Count > 0)
+        {
+            throw new InvalidOperationException($"Sharing targets cannot be both added and removed: {string.Join(", ", conflictingIds)}.");
+        }
+    }
+
+    // The effective setting's policy: non-Private rows first (a legacy multi-row cart keeps demoted Private rows),
+    // skipping scopes without a registered policy - fail-closed, never wider.
     protected virtual ICartSharingScopePolicy FindScopePolicy(ShoppingCart cart)
     {
         if (cart == null || cart.SharingSettings.IsNullOrEmpty())
@@ -131,7 +162,7 @@ public class CartSharingService : ICartSharingService
             return null;
         }
 
-        foreach (var setting in cart.SharingSettings)
+        foreach (var setting in cart.SharingSettings.OrderBy(x => CartSharingScope.Private.EqualsIgnoreCase(x.Scope)))
         {
             if (!string.IsNullOrEmpty(setting.Scope) && _scopePolicies.TryGetValue(setting.Scope, out var policy))
             {

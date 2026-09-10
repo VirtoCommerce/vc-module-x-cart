@@ -22,7 +22,7 @@ public class PrivateCartSharingScopePolicy : CartSharingScopePolicyBase
 
     public override Task ApplyAsync(ShoppingCart cart, WishlistScopeContext context)
     {
-        EnsureSetting(cart, sharingKey: null, CartSharingAccess.Write, sharedWithId: null);
+        EnsureSetting(cart, sharingKey: null, CartSharingAccess.Write);
         SetOwner(cart, context.CurrentUserId, context.CustomerName, organizationId: null);
 
         return Task.CompletedTask;

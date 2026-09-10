@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
@@ -19,7 +20,9 @@ public interface ICartSharingScopePolicy
 
     Task ApplyAsync(ShoppingCart cart, WishlistScopeContext context);
 
-    void EnsureSetting(ShoppingCart cart, string sharingKey, string access, string sharedWithId);
+    CartSharingSetting EnsureSetting(ShoppingCart cart, string sharingKey, string access);
+
+    Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(CartSharingSetting setting);
 
     void ConfigureSearchCriteria(ShoppingCartSearchCriteria criteria);
 }

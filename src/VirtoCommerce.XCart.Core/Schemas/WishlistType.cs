@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using GraphQL;
 using GraphQL.Types;
 using VirtoCommerce.CartModule.Core.Model;
@@ -38,14 +37,15 @@ namespace VirtoCommerce.XCart.Core.Schemas
         {
             var result = AbstractTypeFactory<CartSharingSetting>.TryCreateInstance();
 
-            var existingSetting = context.Source.Cart.SharingSettings.FirstOrDefault();
+            var existingSetting = context.Source.Cart.GetEffectiveSharingSetting();
 
             result.Id = existingSetting?.Id ?? Guid.NewGuid().ToString();
 
             result.CreatedBy = _cartSharingService.GetSharingOwnerUserId(context.Source.Cart);//TODO: refactor
             result.Scope = _cartSharingService.GetSharingScope(context.Source.Cart);
             result.Access = _cartSharingService.GetSharingAccess(context.Source.Cart, context.User.GetUserId());
-            result.SharedWithId = existingSetting?.SharedWithId;
+            result.Message = existingSetting?.Message;
+            result.Targets = existingSetting?.Targets;
 
             return result;
         }

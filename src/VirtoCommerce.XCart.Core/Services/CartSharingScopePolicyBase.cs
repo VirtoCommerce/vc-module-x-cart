@@ -1,8 +1,9 @@
-using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Services;
@@ -27,37 +28,50 @@ public abstract class CartSharingScopePolicyBase : ICartSharingScopePolicy
         return Task.CompletedTask;
     }
 
-    // Default keeps one effective setting: rows demoted to Private, the first carries the scope. Override for many.
-    public virtual void EnsureSetting(ShoppingCart cart, string sharingKey, string access, string sharedWithId)
+    // One effective setting per cart; its Id is the sharing key and survives every scope change.
+    public virtual CartSharingSetting EnsureSetting(ShoppingCart cart, string sharingKey, string access)
     {
-        if (cart.SharingSettings.IsNullOrEmpty())
+        cart.SharingSettings ??= [];
+
+        var setting = cart.GetEffectiveSharingSetting();
+
+        if (setting == null)
         {
-            cart.SharingSettings ??= [];
+            setting = AbstractTypeFactory<CartSharingSetting>.TryCreateInstance();
 
-            var newSetting = AbstractTypeFactory<CartSharingSetting>.TryCreateInstance();
+            setting.Id = sharingKey;
+            setting.ShoppingCartId = cart.Id;
+            setting.Scope = Scope;
 
-            newSetting.Id = sharingKey;
-            newSetting.ShoppingCartId = cart.Id;
-            newSetting.Scope = Scope;
-            newSetting.Access = access;
-            newSetting.SharedWithId = sharedWithId;
+            cart.SharingSettings.Add(setting);
+        }
+        else
+        {
+            for (var i = cart.SharingSettings.Count - 1; i >= 0; i--)
+            {
+                if (!ReferenceEquals(cart.SharingSettings[i], setting))
+                {
+                    cart.SharingSettings.RemoveAt(i);
+                }
+            }
 
-            cart.SharingSettings.Add(newSetting);
-
-            return;
+            // Targets and the message belong to the scope that wrote them.
+            if (!Scope.EqualsIgnoreCase(setting.Scope))
+            {
+                setting.Scope = Scope;
+                setting.Targets = [];
+                setting.Message = null;
+            }
         }
 
-        foreach (var setting in cart.SharingSettings)
-        {
-            setting.Scope = CartSharingScope.Private;
-        }
+        setting.Access = access;
 
-        // Id untouched: an existing sharing key must survive a scope change.
-        var sharingSetting = cart.SharingSettings.First();
+        return setting;
+    }
 
-        sharingSetting.Scope = Scope;
-        sharingSetting.Access = access;
-        sharingSetting.SharedWithId = sharedWithId;
+    public virtual Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(CartSharingSetting setting)
+    {
+        return Task.FromResult(setting.ToSharingTargets());
     }
 
     public virtual void ConfigureSearchCriteria(ShoppingCartSearchCriteria criteria)
