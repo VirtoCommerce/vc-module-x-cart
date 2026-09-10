@@ -17,21 +17,24 @@ namespace VirtoCommerce.XCart.Data.Queries
         private readonly ICartAggregateRepository _cartAggregateRepository;
         private readonly ISearchPhraseParser _searchPhraseParser;
         private readonly IXCartMapper _mapper;
+        private readonly ICartSharingService _cartSharingService;
 
         public SearchWishlistQueryHandler(
             ICartAggregateRepository cartAggregateRepository,
             ISearchPhraseParser searchPhraseParser,
             ISavedForLaterListService savedForLaterListService,
-            IXCartMapper mapper)
+            IXCartMapper mapper,
+            ICartSharingService cartSharingService)
         {
             _cartAggregateRepository = cartAggregateRepository;
             _searchPhraseParser = searchPhraseParser;
             _mapper = mapper;
+            _cartSharingService = cartSharingService;
         }
 
         public virtual Task<SearchCartResponse> Handle(SearchWishlistQuery request, CancellationToken cancellationToken)
         {
-            var searchCriteria = new CartSearchCriteriaBuilder(_searchPhraseParser, _mapper)
+            var searchCriteria = new CartSearchCriteriaBuilder(_searchPhraseParser, _mapper, _cartSharingService)
                                      .WithCurrency(request.CurrencyCode)
                                      .WithStore(request.StoreId)
                                      .WithTypes([CartType.Wishlist])

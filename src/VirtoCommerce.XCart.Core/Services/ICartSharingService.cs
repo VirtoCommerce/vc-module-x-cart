@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Services;
@@ -22,6 +23,8 @@ public interface ICartSharingService
     void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access, string sharedWithId);
 
     Task UpdateScopeAsync(ShoppingCart cart, WishlistScopeContext context);
+
+    void ConfigureSearchCriteria(ShoppingCartSearchCriteria criteria, string scope);
 
     Task<CartAggregate> GetWishlistBySharingKeyAsync(string sharingKey, IList<string> includeFields);
 }
