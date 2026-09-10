@@ -268,14 +268,14 @@ namespace VirtoCommerce.XCart.Tests.Services
 
             var setting = cart.SharingSettings.Should().ContainSingle().Subject;
             setting.Id.Should().Be("key-1");
-            setting.Targets.Select(x => x.SharedWithId).Should().BeEquivalentTo(new[] { OrgId, OtherOrgId });
+            setting.Targets.Select(x => x.SharedWithId).Should().BeEquivalentTo(OrgId, OtherOrgId);
 
             // Re-adding an id in another case is a no-op, a removal drops exactly that id, the key stays.
             await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId.ToUpperInvariant(), "org-3"], removeSharedWithIds: [OtherOrgId]));
 
             cart.SharingSettings.Should().ContainSingle();
             setting.Id.Should().Be("key-1");
-            setting.Targets.Select(x => x.SharedWithId).Should().BeEquivalentTo(new[] { OrgId, "org-3" });
+            setting.Targets.Select(x => x.SharedWithId).Should().BeEquivalentTo(OrgId, "org-3");
             service.IsAuthorized(cart, OtherUserId, "org-3").Should().BeTrue();
             service.IsAuthorized(cart, OtherUserId, OtherOrgId).Should().BeFalse();
         }
