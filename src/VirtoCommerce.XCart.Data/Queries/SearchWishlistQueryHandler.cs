@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
@@ -17,21 +19,24 @@ namespace VirtoCommerce.XCart.Data.Queries
         private readonly ICartAggregateRepository _cartAggregateRepository;
         private readonly ISearchPhraseParser _searchPhraseParser;
         private readonly IXCartMapper _mapper;
+        private readonly ICartSharingService _cartSharingService;
 
         public SearchWishlistQueryHandler(
             ICartAggregateRepository cartAggregateRepository,
             ISearchPhraseParser searchPhraseParser,
             ISavedForLaterListService savedForLaterListService,
-            IXCartMapper mapper)
+            IXCartMapper mapper,
+            ICartSharingService cartSharingService)
         {
             _cartAggregateRepository = cartAggregateRepository;
             _searchPhraseParser = searchPhraseParser;
             _mapper = mapper;
+            _cartSharingService = cartSharingService;
         }
 
         public virtual Task<SearchCartResponse> Handle(SearchWishlistQuery request, CancellationToken cancellationToken)
         {
-            var searchCriteria = new CartSearchCriteriaBuilder(_searchPhraseParser, _mapper)
+            var searchCriteria = new CartSearchCriteriaBuilder(_searchPhraseParser, _mapper, _cartSharingService)
                                      .WithCurrency(request.CurrencyCode)
                                      .WithStore(request.StoreId)
                                      .WithTypes([CartType.Wishlist])
@@ -41,10 +46,25 @@ namespace VirtoCommerce.XCart.Data.Queries
                                      .WithScope(request.Scope)
                                      .WithPaging(request.Skip, request.Take)
                                      .WithSorting(request.Sort)
-                                     .WithResponseGroup(CartResponseGroup.WithLineItems)
+                                     .WithResponseGroup(GetResponseGroup(request))
                                      .Build();
 
             return _cartAggregateRepository.SearchCartAsync(searchCriteria, request.IncludeFields.ItemsToProductIncludeField());
+        }
+
+        // A rep may share one list with a thousand organizations, and each is a row: a page of lists loads the
+        // recipients only when the query actually selects them.
+        protected virtual CartResponseGroup GetResponseGroup(SearchWishlistQuery request)
+        {
+            var result = CartResponseGroup.WithLineItems;
+
+            if (request.IncludeFields?.Any(x => x.Contains("targets", StringComparison.OrdinalIgnoreCase) ||
+                                                x.Contains("sharedWithId", StringComparison.OrdinalIgnoreCase)) == true)
+            {
+                result |= CartResponseGroup.WithSharingTargets;
+            }
+
+            return result;
         }
     }
 }

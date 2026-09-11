@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <module>
   <id>VirtoCommerce.XCart</id>
-  <version>3.1034.0</version>
+  <version>3.1036.0</version>
   <version-tag></version-tag>
   <platformVersion>3.1048.0</platformVersion>
   <dependencies>
-    <dependency id="VirtoCommerce.Cart" version="3.1008.0" />
+    <dependency id="VirtoCommerce.Cart" version="3.1011.0-alpha.811-vcst-5850-5728-multi-sharing-key-message" />
     <dependency id="VirtoCommerce.Catalog" version="3.1029.0" />
     <dependency id="VirtoCommerce.FileExperienceApi" version="3.1003.0" />
     <dependency id="VirtoCommerce.Inventory" version="3.1003.0" />

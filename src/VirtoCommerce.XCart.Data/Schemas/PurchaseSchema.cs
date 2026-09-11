@@ -1608,7 +1608,8 @@ namespace VirtoCommerce.XCart.Data.Schemas
                 Currency = request.CurrencyCode,
                 Type = request.CartType,
                 LanguageCode = request.CultureName,
-                ResponseGroup = CartResponseGroup.Default.ToString(),
+                // A shared list authorizes on its recipients, so they must be loaded even though nothing else is.
+                ResponseGroup = CartResponseGroup.WithSharingTargets.ToString(),
             };
 
             var cartSearchResult = await _shoppingCartSearchService.SearchAsync(criteria);
@@ -1626,7 +1627,8 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
         private async Task CheckAuthAsyncByCartId(IResolveFieldContext context, string cartId)
         {
-            var cart = await _cartService.GetByIdAsync(cartId, CartResponseGroup.Default.ToString());
+            // A shared list authorizes on its recipients, so they must be loaded even though nothing else is.
+            var cart = await _cartService.GetByIdAsync(cartId, CartResponseGroup.WithSharingTargets.ToString());
 
             if (cart == null)
             {

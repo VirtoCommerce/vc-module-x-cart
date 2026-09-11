@@ -23,7 +23,7 @@
     <PackageReference Include="FluentAssertions" Version="7.2.0" />
     <PackageReference Include="VirtoCommerce.Platform.Core" Version="3.1048.0" />
     <PackageReference Include="VirtoCommerce.Platform.Caching" Version="3.1048.0" />
-    <PackageReference Include="VirtoCommerce.CartModule.Data" Version="3.1008.0" />
+    <PackageReference Include="VirtoCommerce.CartModule.Data" Version="3.1011.0-alpha.811-vcst-5850-5728-multi-sharing-key-message" />
     <PackageReference Include="VirtoCommerce.Xapi.Data" Version="3.1018.0" />
   </ItemGroup>
   <ItemGroup>
