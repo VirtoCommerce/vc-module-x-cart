@@ -282,6 +282,61 @@ namespace VirtoCommerce.XCart.Tests.Services
         }
 
         [Fact]
+        public async Task UpdateScopeAsync_LegacySharedWithId_SwitchingRecipientReplacesIt()
+        {
+            // The released storefront's picker holds ONE recipient and sends it on every save. Sharing with A and
+            // then switching to B has to leave the list shared with B alone - accumulating would leave A's access in
+            // place while the dialog, which reads back the first target, still displayed A.
+            var service = CreateService(WithCustomScope());
+            var cart = new ShoppingCart();
+
+            await service.UpdateScopeAsync(cart, CustomContext(legacySharedWithId: OrgId, sharingKey: "key-1"));
+            cart.SharingSettings[0].Targets.Select(x => x.SharedWithId).Should().Equal(OrgId);
+
+            // A save that does not touch sharing (a rename) re-sends the same id: nothing moves, in any casing.
+            await service.UpdateScopeAsync(cart, CustomContext(legacySharedWithId: OrgId.ToUpperInvariant()));
+            cart.SharingSettings[0].Targets.Select(x => x.SharedWithId).Should().Equal(OrgId);
+
+            await service.UpdateScopeAsync(cart, CustomContext(legacySharedWithId: OtherOrgId));
+
+            cart.SharingSettings[0].Targets.Select(x => x.SharedWithId).Should().Equal(OtherOrgId);
+            cart.SharingSettings[0].Id.Should().Be("key-1");
+            service.IsAuthorized(cart, OtherUserId, OrgId).Should().BeFalse();
+            service.IsAuthorized(cart, OtherUserId, OtherOrgId).Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task UpdateScopeAsync_LegacySharedWithId_MultiTargetList_KeepsTheSetOrRefuses()
+        {
+            var service = CreateService(WithCustomScope());
+            var cart = new ShoppingCart();
+
+            await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId, OtherOrgId]));
+
+            // A single-valued client re-sending the id it reads back (the first target) must not collapse the set.
+            await service.UpdateScopeAsync(cart, CustomContext(legacySharedWithId: OrgId));
+            cart.SharingSettings[0].Targets.Select(x => x.SharedWithId).Should().BeEquivalentTo(OrgId, OtherOrgId);
+
+            // It cannot express "replace these two with one", so the write is refused rather than revoking silently.
+            var act = () => service.UpdateScopeAsync(cart, CustomContext(legacySharedWithId: "org-3"));
+
+            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*addSharedWithIds*");
+            cart.SharingSettings[0].Targets.Select(x => x.SharedWithId).Should().BeEquivalentTo(OrgId, OtherOrgId);
+        }
+
+        [Fact]
+        public async Task UpdateScopeAsync_LegacySharedWithIdWithDeltas_IsOneMoreIdToAdd()
+        {
+            // A client that speaks deltas gets delta semantics: it can see the set it is changing.
+            var service = CreateService(WithCustomScope());
+            var cart = new ShoppingCart();
+
+            await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId], legacySharedWithId: OtherOrgId));
+
+            cart.SharingSettings[0].Targets.Select(x => x.SharedWithId).Should().BeEquivalentTo(OrgId, OtherOrgId);
+        }
+
+        [Fact]
         public async Task UpdateScopeAsync_Message_NullKeepsEmptyClearsValueIsTrimmed()
         {
             var service = CreateService(WithCustomScope());
@@ -403,22 +458,17 @@ namespace VirtoCommerce.XCart.Tests.Services
         public async Task ResolveTargetsAsync_WithoutAResolvingPolicy_ReturnsIdsOnly()
         {
             var service = CreateService(WithCustomScope());
-            var setting = new CartSharingSetting
-            {
-                Scope = CustomScope,
-                Targets = [new CartSharingSettingTarget { SharedWithId = OrgId }, new CartSharingSettingTarget { SharedWithId = OtherOrgId }],
-            };
 
-            var targets = await service.ResolveTargetsAsync(setting);
+            var targets = await service.ResolveTargetsAsync(CustomScope, [OrgId, OtherOrgId]);
             targets.Select(x => x.Id).Should().Equal(OrgId, OtherOrgId);
             targets.Should().OnlyContain(x => x.Name == null && x.Subtitle == null && x.ImageUrl == null);
 
             // A scope without a registered policy (module uninstalled) still shows who the list was shared with.
-            setting.Scope = UnknownScope;
-            (await service.ResolveTargetsAsync(setting)).Select(x => x.Id).Should().Equal(OrgId, OtherOrgId);
+            (await service.ResolveTargetsAsync(UnknownScope, [OrgId, OtherOrgId])).Select(x => x.Id).Should().Equal(OrgId, OtherOrgId);
 
-            (await service.ResolveTargetsAsync(null)).Should().BeEmpty();
-            (await service.ResolveTargetsAsync(new CartSharingSetting { Scope = CustomScope })).Should().BeEmpty();
+            (await service.ResolveTargetsAsync(CustomScope, null)).Should().BeEmpty();
+            (await service.ResolveTargetsAsync(CustomScope, [])).Should().BeEmpty();
+            (await service.ResolveTargetsAsync(null, [OrgId])).Select(x => x.Id).Should().Equal(OrgId);
         }
 
         [Fact]
@@ -426,11 +476,11 @@ namespace VirtoCommerce.XCart.Tests.Services
         {
             var policies = BuiltInPolicies();
             policies.Add(new NamedTargetsScopePolicy(CustomScope));
-            var setting = new CartSharingSetting { Scope = CustomScope, Targets = [new CartSharingSettingTarget { SharedWithId = OrgId }] };
 
-            var targets = await CreateService(policies).ResolveTargetsAsync(setting);
+            // Ids of one scope arrive together: what the batch loader hands the policy for a whole page of lists.
+            var targets = await CreateService(policies).ResolveTargetsAsync(CustomScope, [OrgId, OtherOrgId]);
 
-            targets.Should().ContainSingle().Which.Name.Should().Be($"Name of {OrgId}");
+            targets.Select(x => x.Name).Should().Equal($"Name of {OrgId}", $"Name of {OtherOrgId}");
         }
 
 #pragma warning disable VC0015 // EnsureSharingSettings is the legacy writer kept for external callers; its behavior is pinned here.
@@ -514,7 +564,8 @@ namespace VirtoCommerce.XCart.Tests.Services
             IList<string> addSharedWithIds = null,
             IList<string> removeSharedWithIds = null,
             string message = null,
-            string sharingKey = null)
+            string sharingKey = null,
+            string legacySharedWithId = null)
         {
             return new WishlistScopeContext
             {
@@ -522,6 +573,7 @@ namespace VirtoCommerce.XCart.Tests.Services
                 SharingKey = sharingKey,
                 AddSharedWithIds = addSharedWithIds,
                 RemoveSharedWithIds = removeSharedWithIds,
+                LegacySharedWithId = legacySharedWithId,
                 Message = message,
                 CurrentUserId = OwnerId,
             };
@@ -581,9 +633,9 @@ namespace VirtoCommerce.XCart.Tests.Services
                 return IsOwner(cart, currentUserId);
             }
 
-            public override async Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(CartSharingSetting setting)
+            public override async Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(IList<string> sharedWithIds)
             {
-                var targets = await base.ResolveTargetsAsync(setting);
+                var targets = await base.ResolveTargetsAsync(sharedWithIds);
 
                 foreach (var target in targets)
                 {

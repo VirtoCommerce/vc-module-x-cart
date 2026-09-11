@@ -32,24 +32,14 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
 
         context.Scope = request.Scope;
         context.SharingKey = request.SharingKey;
-        context.AddSharedWithIds = GetAddSharedWithIds(request);
+        context.AddSharedWithIds = request.AddSharedWithIds;
         context.RemoveSharedWithIds = request.RemoveSharedWithIds;
+        context.LegacySharedWithId = request.SharedWithId;
         context.Message = request.Message;
         context.CurrentUserId = request.WishlistUserContext.CurrentUserId;
         context.CustomerName = request.WishlistUserContext.CurrentContact.Name;
         context.CurrentOrganizationId = request.WishlistUserContext.CurrentOrganizationId;
 
         return context;
-    }
-
-    // The legacy single sharedWithId is one more id to add: released storefronts still send it on every save.
-    protected static IList<string> GetAddSharedWithIds(ScopedWishlistCommand request)
-    {
-        if (string.IsNullOrEmpty(request.SharedWithId))
-        {
-            return request.AddSharedWithIds;
-        }
-
-        return [.. request.AddSharedWithIds ?? [], request.SharedWithId];
     }
 }

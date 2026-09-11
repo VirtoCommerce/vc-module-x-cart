@@ -22,7 +22,7 @@ public interface ICartSharingScopePolicy
 
     CartSharingSetting EnsureSetting(ShoppingCart cart, string sharingKey, string access);
 
-    Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(CartSharingSetting setting);
+    Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(IList<string> sharedWithIds);
 
     void ConfigureSearchCriteria(ShoppingCartSearchCriteria criteria);
 }

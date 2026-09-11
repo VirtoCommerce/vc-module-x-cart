@@ -92,7 +92,10 @@ public class CartSharingService : ICartSharingService
 
         if (!string.IsNullOrEmpty(sharedWithId))
         {
-            setting.ApplyTargets([sharedWithId], removeSharedWithIds: null);
+            // EnsureSetting has already cleared the targets if the scope changed.
+            var (add, remove) = setting.GetLegacyTargetDeltas(sharedWithId);
+
+            setting.ApplyTargets(add, remove);
         }
     }
 
@@ -108,16 +111,22 @@ public class CartSharingService : ICartSharingService
             throw new InvalidOperationException($"Unsupported sharing scope '{context.Scope}'.");
         }
 
+        ApplyLegacySharedWithId(cart, context);
         ValidateContext(context);
 
         return policy.ApplyAsync(cart, context);
     }
 
-    public virtual Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(CartSharingSetting setting)
+    public virtual Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(string scope, IList<string> sharedWithIds)
     {
-        return !string.IsNullOrEmpty(setting?.Scope) && _scopePolicies.TryGetValue(setting.Scope, out var policy)
-            ? policy.ResolveTargetsAsync(setting)
-            : Task.FromResult(setting.ToSharingTargets());
+        if (sharedWithIds.IsNullOrEmpty())
+        {
+            return Task.FromResult<IList<WishlistSharingTarget>>([]);
+        }
+
+        return !string.IsNullOrEmpty(scope) && _scopePolicies.TryGetValue(scope, out var policy)
+            ? policy.ResolveTargetsAsync(sharedWithIds)
+            : Task.FromResult(sharedWithIds.ToSharingTargets());
     }
 
     public virtual void ConfigureSearchCriteria(ShoppingCartSearchCriteria criteria, string scope)
@@ -137,6 +146,27 @@ public class CartSharingService : ICartSharingService
 
         var searchResult = await _cartAggregateRepository.SearchCartAsync(cartSearchCriteria, includeFields);
         return searchResult.Results.FirstOrDefault();
+    }
+
+    // A client that speaks deltas gets delta semantics; a single-valued one gets single-target semantics.
+    protected virtual void ApplyLegacySharedWithId(ShoppingCart cart, WishlistScopeContext context)
+    {
+        if (string.IsNullOrEmpty(context.LegacySharedWithId))
+        {
+            return;
+        }
+
+        if (!context.AddSharedWithIds.IsNullOrEmpty() || !context.RemoveSharedWithIds.IsNullOrEmpty())
+        {
+            context.AddSharedWithIds = [.. context.AddSharedWithIds ?? [], context.LegacySharedWithId];
+            return;
+        }
+
+        // A scope change clears the targets, so the id lands in an empty set whatever the list carried before.
+        var setting = cart.GetEffectiveSharingSetting();
+        var current = context.Scope.EqualsIgnoreCase(setting?.Scope) ? setting : null;
+
+        (context.AddSharedWithIds, context.RemoveSharedWithIds) = current.GetLegacyTargetDeltas(context.LegacySharedWithId);
     }
 
     protected virtual void ValidateContext(WishlistScopeContext context)

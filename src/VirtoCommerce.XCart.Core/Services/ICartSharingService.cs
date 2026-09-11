@@ -25,7 +25,7 @@ public interface ICartSharingService
 
     Task UpdateScopeAsync(ShoppingCart cart, WishlistScopeContext context);
 
-    Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(CartSharingSetting setting);
+    Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(string scope, IList<string> sharedWithIds);
 
     void ConfigureSearchCriteria(ShoppingCartSearchCriteria criteria, string scope);
 

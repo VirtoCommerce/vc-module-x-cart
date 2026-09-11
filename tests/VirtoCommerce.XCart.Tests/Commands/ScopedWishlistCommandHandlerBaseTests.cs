@@ -36,18 +36,18 @@ namespace VirtoCommerce.XCart.Tests.Commands
         }
 
         [Fact]
-        public void CreateScopeContext_LegacySharedWithId_IsOneMoreIdToAdd()
+        public void CreateScopeContext_LegacySharedWithId_TravelsAsItself()
         {
-            // Released storefronts still send the single sharedWithId on every save: it must not revoke other targets.
+            // Not merged into the adds here: what a single id means depends on the set the list already carries,
+            // which only ICartSharingService can see (CartSharingService.ApplyLegacySharedWithId).
             var command = Command();
             command.SharedWithId = "org-legacy";
             command.AddSharedWithIds = ["org-1"];
 
-            new TestHandler().Context(command).AddSharedWithIds.Should().Equal("org-1", "org-legacy");
+            var context = new TestHandler().Context(command);
 
-            command.AddSharedWithIds = null;
-
-            new TestHandler().Context(command).AddSharedWithIds.Should().Equal("org-legacy");
+            context.LegacySharedWithId.Should().Be("org-legacy");
+            context.AddSharedWithIds.Should().Equal("org-1");
         }
 
         [Fact]

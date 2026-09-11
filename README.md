@@ -16,9 +16,12 @@ independently and none of them silently loses to another.
 
 A list carries **one** `CartSharingSetting` (its `Id` is the sharing key in `/shared-list/{key}`, stable for the
 life of the list) with the scope, the viewer-independent `Access`, an optional `Message` and a set of `Targets` -
-one `CartSharingSettingTarget` per principal the list is shared with. The GraphQL inputs change the set with
-`addSharedWithIds` / `removeSharedWithIds` (deltas, never a replace-set) and carry the `message`; the legacy
-`sharedWithId` is treated as one more id to add.
+one `CartSharingSettingTarget` per id the list is shared with. The GraphQL inputs change the set with
+`addSharedWithIds` / `removeSharedWithIds` (deltas, never a replace-set) and carry the `message` (max 1024
+characters). The legacy `sharedWithId` keeps its single-target meaning: it replaces the one target the list has,
+changes nothing when it already names it, and is refused when the list has several - a single-valued client cannot
+see the set it would otherwise revoke. Sharing is only touched by a write that also carries `scope` - a mutation
+without it leaves the scope, the targets and the message as they were.
 
 Derive from `CartSharingScopePolicyBase`:
 
@@ -78,10 +81,11 @@ public class PartnerCartSharingScopePolicy : CartSharingScopePolicyBase
         return Task.CompletedTask;
     }
 
-    public override async Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(CartSharingSetting setting)
+    public override async Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(IList<string> sharedWithIds)
     {
-        // Optional: fill Name / Subtitle / ImageUrl so the storefront can render the recipients.
-        var targets = await base.ResolveTargetsAsync(setting);
+        // Optional: fill Name / Subtitle / ImageUrl so the storefront can render the recipients. The ids of every
+        // list in the request arrive together, so resolve them in ONE call - never one lookup per id.
+        var targets = await base.ResolveTargetsAsync(sharedWithIds);
 
         foreach (var target in targets)
         {
@@ -118,7 +122,7 @@ That is all: no `ICartSharingService` override and no GraphQL enum override. The
 | `IsAuthorized` | Whether the caller may see the cart. Fail closed. |
 | `ApplyAsync` | Writes the scope onto the cart: `EnsureSetting` for the row, `ApplyTargets` / `ApplyMessage` for a targeted scope. Any authorization for *setting* the scope belongs here. |
 | `EnsureSetting` | How the setting row is written. The default keeps one effective setting per cart (its `Id` is the sharing key), drops legacy extra rows, and resets the targets and the message when the scope changes. |
-| `ResolveTargetsAsync` | Display data (`Name`, `Subtitle`, `ImageUrl`) for the `targets` of a `sharingSetting`. Defaults to the ids only. Resolved for the **list owner only** - `sharingSetting.targets` is `[]` and `sharedWithId` is `null` for every other viewer, so a recipient never learns who else the list was shared with; `message` stays visible to recipients. |
+| `ResolveTargetsAsync` | Display data (`Name`, `Subtitle`, `ImageUrl`) for the `targets` of a `sharingSetting`. Defaults to the ids only, and must return one target per id it is given so a recipient whose principal no longer exists can still be seen and revoked. It is called through a request-scoped batch loader: the ids of **every list in the request** arrive in one call per scope, so a page of wishlists costs one resolve, not one per list. Resolved for the **list owner only** - `sharingSetting.targets` is `[]` and `sharedWithId` is `null` for every other viewer, so a recipient never learns who else the list was shared with; `message` stays visible to recipients. |
 | `ConfigureSearchCriteria` | How `wishlists(scope: ...)` narrows its search. Defaults to no narrowing. |
 
 Two policies claiming the same `Scope` throw at startup naming both types, so a collision is never silent.

@@ -69,9 +69,10 @@ public abstract class CartSharingScopePolicyBase : ICartSharingScopePolicy
         return setting;
     }
 
-    public virtual Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(CartSharingSetting setting)
+    // Ids of one scope, batched across every list in the request: resolve them in one call, not one per list.
+    public virtual Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(IList<string> sharedWithIds)
     {
-        return Task.FromResult(setting.ToSharingTargets());
+        return Task.FromResult(sharedWithIds.ToSharingTargets());
     }
 
     public virtual void ConfigureSearchCriteria(ShoppingCartSearchCriteria criteria)

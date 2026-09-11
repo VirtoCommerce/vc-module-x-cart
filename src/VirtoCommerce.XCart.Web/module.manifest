@@ -5,7 +5,7 @@
   <version-tag></version-tag>
   <platformVersion>3.1048.0</platformVersion>
   <dependencies>
-    <dependency id="VirtoCommerce.Cart" version="3.1011.0-alpha.809-vcst-5850-5728-multi-sharing-key-message" />
+    <dependency id="VirtoCommerce.Cart" version="3.1011.0-alpha.810-vcst-5850-5728-multi-sharing-key-message" />
     <dependency id="VirtoCommerce.Catalog" version="3.1029.0" />
     <dependency id="VirtoCommerce.FileExperienceApi" version="3.1003.0" />
     <dependency id="VirtoCommerce.Inventory" version="3.1003.0" />
