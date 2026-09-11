@@ -105,11 +105,9 @@ namespace VirtoCommerce.XCart.Data.Services
             var cart = await _shoppingCartService.GetByIdAsync(cartId, responseGroup);
             if (cart != null)
             {
-                // The group it was actually loaded with, normalized so null and Full share one entry: caching a
-                // narrowed cart under "Full" would serve it to a caller that asked for everything.
-                var cacheResponseGroup = EnumUtility.SafeParseFlags(responseGroup, CartResponseGroup.Full).ToString();
-
-                return await InnerGetCartAggregateFromCartAsync(cart, cultureName ?? Language.InvariantLanguage.CultureName, productsIncludeFields, cacheResponseGroup);
+                // The group it was actually loaded with: caching a narrowed cart under "Full" would serve it to
+                // a caller that asked for everything.
+                return await InnerGetCartAggregateFromCartAsync(cart, cultureName ?? Language.InvariantLanguage.CultureName, productsIncludeFields, responseGroup);
             }
             return null;
         }
@@ -242,11 +240,13 @@ namespace VirtoCommerce.XCart.Data.Services
                 return await InnerGetCartAggregateFromCartNoCacheAsync(cart, language, productsIncludeFields, responseGroup);
             }
 
+            // Normalized here rather than at the call sites: an unset group means Full, so every path that omits
+            // it shares one entry instead of caching the same aggregate twice under "" and "Full".
             var cacheKey = CacheKey.With(GetType(),
                 nameof(InnerGetCartAggregateFromCartAsync),
                 cart.Id,
                 language,
-                responseGroup ?? string.Empty,
+                EnumUtility.SafeParseFlags(responseGroup, CartResponseGroup.Full).ToString(),
                 !productsIncludeFields.IsNullOrEmpty() ? string.Join(',', productsIncludeFields) : string.Empty);
 
             var result = await _platformMemoryCache.GetOrCreateExclusiveAsync(cacheKey, async cacheOptions =>

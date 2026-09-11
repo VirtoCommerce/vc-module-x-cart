@@ -202,6 +202,72 @@ namespace VirtoCommerce.XCart.Tests.Repositories
         }
 
         [Fact]
+        public async Task GetCartByIdAsync_NarrowResponseGroup_DoesNotServeItToAFullRead()
+        {
+            // The aggregate is cached per response group, and the response group now decides whether the sharing
+            // targets are loaded at all. Keying a narrowed load as "Full" handed a cart WITHOUT its recipients to
+            // the next caller that asked for everything - silently, as an empty list rather than an error.
+            var repository = new CartAggregateRepository(
+                 () => GetValidCartAggregate(),
+                 _shoppingCartSearchService.Object,
+                 _shoppingCartService.Object,
+                 _currencyService.Object,
+                 _memberResolver.Object,
+                 _storeService.Object,
+                 _cartProductServiceMock.Object,
+                 _platformMemoryCache,
+                 _fileUploadService.Object);
+
+            var storeId = "Store";
+            var store = _fixture.Create<Store>();
+            store.Id = storeId;
+            _storeService.Setup(x => x.GetAsync(new[] { storeId }, It.IsAny<string>(), It.IsAny<bool>()))
+                .ReturnsAsync(new[] { store });
+
+            var currencies = _fixture.CreateMany<Currency>(1).ToList();
+            _currencyService.Setup(x => x.GetAllCurrenciesAsync()).ReturnsAsync(currencies);
+
+            var withoutTargets = _fixture.Create<ShoppingCart>();
+            withoutTargets.StoreId = storeId;
+            withoutTargets.SharingSettings = [new CartSharingSetting { Id = "key-1", Scope = "Customer", Targets = null }];
+
+            var withTargets = _fixture.Create<ShoppingCart>();
+            withTargets.Id = withoutTargets.Id;
+            withTargets.CustomerId = withoutTargets.CustomerId;
+            withTargets.StoreId = storeId;
+            withTargets.SharingSettings =
+            [
+                new CartSharingSetting
+                {
+                    Id = "key-1",
+                    Scope = "Customer",
+                    Targets = [new CartSharingSettingTarget { SharedWithId = "org-1" }],
+                },
+            ];
+
+            var customer = _fixture.Create<Contact>();
+            _memberResolver.Setup(x => x.ResolveMemberByIdAsync(It.Is<string>(x => x == withoutTargets.CustomerId)))
+                .ReturnsAsync(customer);
+
+            var narrowResponseGroup = CartResponseGroup.WithLineItems.ToString();
+            _shoppingCartService
+                .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), narrowResponseGroup, It.IsAny<bool>()))
+                .ReturnsAsync(new List<ShoppingCart> { withoutTargets });
+            _shoppingCartService
+                .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), null, It.IsAny<bool>()))
+                .ReturnsAsync(new List<ShoppingCart> { withTargets });
+
+            // Act: the narrow read first, so it is the one that populates the cache.
+            await repository.GetCartByIdAsync(withoutTargets.Id, narrowResponseGroup, productsIncludeFields: null, cultureName: null);
+            var result = await repository.GetCartByIdAsync(withoutTargets.Id, responseGroup: null, productsIncludeFields: null, cultureName: null);
+
+            // Assert
+            result.Cart.SharingSettings.Should().ContainSingle()
+                .Which.Targets.Should().ContainSingle()
+                .Which.SharedWithId.Should().Be("org-1");
+        }
+
+        [Fact]
         public async Task GetCartForShoppingCartAsync_ProductPriceChanged_ShouldContainWarnings()
         {
             // Arrange

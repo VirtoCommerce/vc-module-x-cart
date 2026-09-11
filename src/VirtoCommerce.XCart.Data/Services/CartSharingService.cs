@@ -176,6 +176,7 @@ public class CartSharingService : ICartSharingService
             throw new InvalidOperationException($"The sharing message must not exceed {CartModuleConstants.Sharing.MessageMaxLength} characters.");
         }
 
+        // Adds only: an added id costs an authorization check and a persisted row, a removed one costs neither.
         if (context.AddSharedWithIds?.Count > CartModuleConstants.Sharing.MaxTargets)
         {
             throw new InvalidOperationException($"A list cannot be shared with more than {CartModuleConstants.Sharing.MaxTargets} targets in one write.");
