@@ -55,10 +55,16 @@ public static class SharingTargetDataLoaderExtensions
 
                     foreach (var key in scopeKeys)
                     {
-                        if (targetsById.TryGetValue(key.SharedWithId, out var target))
+                        // Every requested id gets an entry. A policy that drops one it cannot resolve would
+                        // otherwise leave a null in a non-null list and fail the whole page, and the id alone is
+                        // what this field promises for a principal that no longer exists.
+                        if (!targetsById.TryGetValue(key.SharedWithId, out var target))
                         {
-                            result[key] = target;
+                            target = AbstractTypeFactory<WishlistSharingTarget>.TryCreateInstance();
+                            target.Id = key.SharedWithId;
                         }
+
+                        result[key] = target;
                     }
                 }
 

@@ -365,6 +365,20 @@ namespace VirtoCommerce.XCart.Tests.Services
         }
 
         [Fact]
+        public async Task UpdateScopeAsync_MoreTargetsThanOneWriteAllows_Throws()
+        {
+            // One write persists one row per id, so the add list is bounded the way the communication mutation's
+            // organization list is - a rep serving the stated ceiling of ~1000 customers still fits in one call.
+            var cart = new ShoppingCart();
+            var ids = Enumerable.Range(0, CartModuleConstants.Sharing.MaxTargets + 1).Select(x => $"org-{x}").ToList();
+
+            var act = () => CreateService(WithCustomScope()).UpdateScopeAsync(cart, CustomContext(addSharedWithIds: ids));
+
+            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage($"*{CartModuleConstants.Sharing.MaxTargets}*");
+            cart.SharingSettings.Should().BeNull();
+        }
+
+        [Fact]
         public async Task UpdateScopeAsync_IdBothAddedAndRemoved_Throws()
         {
             var cart = new ShoppingCart();

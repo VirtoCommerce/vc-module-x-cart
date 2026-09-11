@@ -105,7 +105,11 @@ namespace VirtoCommerce.XCart.Data.Services
             var cart = await _shoppingCartService.GetByIdAsync(cartId, responseGroup);
             if (cart != null)
             {
-                return await InnerGetCartAggregateFromCartAsync(cart, cultureName ?? Language.InvariantLanguage.CultureName, productsIncludeFields, CartResponseGroup.Full.ToString());
+                // The group it was actually loaded with, normalized so null and Full share one entry: caching a
+                // narrowed cart under "Full" would serve it to a caller that asked for everything.
+                var cacheResponseGroup = EnumUtility.SafeParseFlags(responseGroup, CartResponseGroup.Full).ToString();
+
+                return await InnerGetCartAggregateFromCartAsync(cart, cultureName ?? Language.InvariantLanguage.CultureName, productsIncludeFields, cacheResponseGroup);
             }
             return null;
         }

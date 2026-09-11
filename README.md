@@ -122,14 +122,15 @@ That is all: no `ICartSharingService` override and no GraphQL enum override. The
 | `IsAuthorized` | Whether the caller may see the cart. Fail closed. |
 | `ApplyAsync` | Writes the scope onto the cart: `EnsureSetting` for the row, `ApplyTargets` / `ApplyMessage` for a targeted scope. Any authorization for *setting* the scope belongs here. |
 | `EnsureSetting` | How the setting row is written. The default keeps one effective setting per cart (its `Id` is the sharing key), drops legacy extra rows, and resets the targets and the message when the scope changes. |
-| `ResolveTargetsAsync` | Display data (`Name`, `Subtitle`, `ImageUrl`) for the `targets` of a `sharingSetting`. Defaults to the ids only, and must return one target per id it is given so a recipient whose principal no longer exists can still be seen and revoked. It is called through a request-scoped batch loader: the ids of **every list in the request** arrive in one call per scope, so a page of wishlists costs one resolve, not one per list. Resolved for the **list owner only** - `sharingSetting.targets` is `[]` and `sharedWithId` is `null` for every other viewer, so a recipient never learns who else the list was shared with; `message` stays visible to recipients. |
+| `ResolveTargetsAsync` | Display data (`Name`, `Subtitle`, `ImageUrl`) for the `targets` of a `sharingSetting`. Defaults to the ids only. Return one target per id you are given; an id you drop is filled back in with its bare id, so a recipient whose principal no longer exists is always visible and revocable. It is called through a request-scoped batch loader: the ids of **every list in the request** arrive in one call per scope, so a page of wishlists costs one resolve, not one per list. Resolved for the **list owner only** - `sharingSetting.targets` is `[]` and `sharedWithId` is `null` for every other viewer, so a recipient never learns who else the list was shared with; `message` stays visible to recipients. |
 | `ConfigureSearchCriteria` | How `wishlists(scope: ...)` narrows its search. Defaults to no narrowing. |
 
 Two policies claiming the same `Scope` throw at startup naming both types, so a collision is never silent.
 Scope lookup is case-insensitive, so compare stored scope values with `EqualsIgnoreCase` as above.
 `Targets` are the scope's own id space (partner organization ids here); the built-in scopes keep the set empty
 and ignore any ids or message a caller passes with them. `UpdateScopeAsync` rejects an id that is both added and
-removed, and a message longer than `VirtoCommerce.CartModule.Core.ModuleConstants.Sharing.MessageMaxLength` (1024).
+removed, a message longer than `VirtoCommerce.CartModule.Core.ModuleConstants.Sharing.MessageMaxLength` (1024), and
+an add list longer than `ModuleConstants.Sharing.MaxTargets` (1000) - one write persists one row per id.
 
 ## Documentation
 

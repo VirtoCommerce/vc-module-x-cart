@@ -176,6 +176,11 @@ public class CartSharingService : ICartSharingService
             throw new InvalidOperationException($"The sharing message must not exceed {CartModuleConstants.Sharing.MessageMaxLength} characters.");
         }
 
+        if (context.AddSharedWithIds?.Count > CartModuleConstants.Sharing.MaxTargets)
+        {
+            throw new InvalidOperationException($"A list cannot be shared with more than {CartModuleConstants.Sharing.MaxTargets} targets in one write.");
+        }
+
         var conflictingIds = (context.AddSharedWithIds ?? []).Intersect(context.RemoveSharedWithIds ?? [], StringComparer.OrdinalIgnoreCase).ToList();
 
         if (conflictingIds.Count > 0)

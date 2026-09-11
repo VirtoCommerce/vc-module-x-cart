@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
@@ -75,6 +76,21 @@ namespace VirtoCommerce.XCart.Tests.Schemas
             harness.Calls[0].Ids.Should().BeEquivalentTo(["org-1", "org-2", "org-3"]);
         }
 
+        [Fact]
+        public async Task Targets_PolicyThatDropsAnId_StillYieldsATargetForIt()
+        {
+            // The loader asks for every id the list carries. A policy that filters out one it cannot resolve
+            // would otherwise leave a null in [SharingTarget!]! and fail the whole page - and the id alone is
+            // exactly what this field promises for a principal that no longer exists.
+            var harness = new Harness(ids => [.. ids.Where(x => x != "org-2").Select(x => new WishlistSharingTarget { Id = x, Name = "resolved" })]);
+
+            var targets = await harness.ResolveTargetsAsync(Context(Setting("org-1", "org-2"), OwnerId));
+
+            targets.Should().NotContainNulls();
+            targets.Select(x => x.Id).Should().Equal("org-1", "org-2");
+            targets[1].Name.Should().BeNull();
+        }
+
         private static CartSharingSetting Setting(params string[] sharedWithIds)
         {
             var ids = sharedWithIds.Length > 0 ? sharedWithIds : ["org-1", "org-2"];
@@ -107,15 +123,16 @@ namespace VirtoCommerce.XCart.Tests.Schemas
             private readonly DataLoaderContextAccessor _accessor = new() { Context = new DataLoaderContext() };
             private readonly SharingSettingType _type;
 
-            public Harness()
+            public Harness(Func<IList<string>, IList<WishlistSharingTarget>> resolve = null)
             {
                 var service = new Mock<ICartSharingService>();
 
                 service
                     .Setup(x => x.ResolveTargetsAsync(It.IsAny<string>(), It.IsAny<IList<string>>()))
                     .Callback<string, IList<string>>((scope, ids) => Calls.Add((scope, ids)))
-                    .ReturnsAsync((string _, IList<string> ids) =>
-                        (IList<WishlistSharingTarget>)[.. ids.Select(id => new WishlistSharingTarget { Id = id })]);
+                    .ReturnsAsync((string _, IList<string> ids) => resolve != null
+                        ? resolve(ids)
+                        : (IList<WishlistSharingTarget>)[.. ids.Select(id => new WishlistSharingTarget { Id = id })]);
 
                 _type = new SharingSettingType(service.Object, _accessor);
             }
