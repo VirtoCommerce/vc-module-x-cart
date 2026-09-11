@@ -24,11 +24,6 @@ namespace VirtoCommerce.XCart.Core
 
         public const int LineItemQualityLimit = 999999;
 
-        public static class Sharing
-        {
-            public const int MessageMaxLength = 1024;
-        }
-
         public static class ValidationRuleSets
         {
             public const string Default = "default";

@@ -125,7 +125,7 @@ Two policies claiming the same `Scope` throw at startup naming both types, so a 
 Scope lookup is case-insensitive, so compare stored scope values with `EqualsIgnoreCase` as above.
 `Targets` are the scope's own id space (partner organization ids here); the built-in scopes keep the set empty
 and ignore any ids or message a caller passes with them. `UpdateScopeAsync` rejects an id that is both added and
-removed, and a message longer than `ModuleConstants.Sharing.MessageMaxLength`.
+removed, and a message longer than `VirtoCommerce.CartModule.Core.ModuleConstants.Sharing.MessageMaxLength` (1024).
 
 ## Documentation
 

@@ -14,6 +14,7 @@ using VirtoCommerce.XCart.Data.Services;
 using VirtoCommerce.XCart.Data.Services.SharingScopes;
 using VirtoCommerce.XCart.Tests.Helpers;
 using Xunit;
+using CartModuleConstants = VirtoCommerce.CartModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Tests.Services
 {
@@ -300,11 +301,11 @@ namespace VirtoCommerce.XCart.Tests.Services
         public async Task UpdateScopeAsync_MessageTooLong_Throws()
         {
             var cart = new ShoppingCart();
-            var context = CustomContext(addSharedWithIds: [OrgId], message: new string('x', ModuleConstants.Sharing.MessageMaxLength + 1));
+            var context = CustomContext(addSharedWithIds: [OrgId], message: new string('x', CartModuleConstants.Sharing.MessageMaxLength + 1));
 
             var act = () => CreateService(WithCustomScope()).UpdateScopeAsync(cart, context);
 
-            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage($"*{ModuleConstants.Sharing.MessageMaxLength}*");
+            await act.Should().ThrowAsync<InvalidOperationException>().WithMessage($"*{CartModuleConstants.Sharing.MessageMaxLength}*");
             cart.SharingSettings.Should().BeNull();
         }
 

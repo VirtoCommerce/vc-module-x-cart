@@ -3,6 +3,7 @@ using System.Linq;
 using GraphQL;
 using GraphQL.Types;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.XCart.Core.Models;
@@ -17,7 +18,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.Id, nullable: false).Description("Id (sharing key)");
             Field<StringGraphType>("SharedWithId")
                 .Description("Id of the first principal the list is shared with; owner only, null for non-targeted scopes")
-                .DeprecationReason("Use Targets")
+                .DeprecationReason("Use targets")
                 .Resolve(context => ResolveIsOwner(context) ? context.Source.Targets?.FirstOrDefault()?.SharedWithId : null);
             Field(x => x.Message, nullable: true).Description("Message saved with the share (one for all targets)");
             ExtendableFieldAsync<NonNullGraphType<ListGraphType<NonNullGraphType<SharingTargetType>>>>("Targets",
@@ -33,7 +34,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
         // Who a list is shared with is the owner's information; a targeted reader must not learn the other recipients.
         protected virtual bool ResolveIsOwner(IResolveFieldContext<CartSharingSetting> context)
         {
-            return context.Source.CreatedBy == context.User.GetUserId();
+            return context.Source.CreatedBy.EqualsIgnoreCase(context.User.GetUserId());
         }
     }
 }

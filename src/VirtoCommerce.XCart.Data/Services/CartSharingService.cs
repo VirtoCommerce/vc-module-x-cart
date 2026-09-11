@@ -9,6 +9,7 @@ using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
+using CartModuleConstants = VirtoCommerce.CartModule.Core.ModuleConstants;
 
 namespace VirtoCommerce.XCart.Data.Services;
 
@@ -140,9 +141,9 @@ public class CartSharingService : ICartSharingService
 
     protected virtual void ValidateContext(WishlistScopeContext context)
     {
-        if (context.Message?.Length > ModuleConstants.Sharing.MessageMaxLength)
+        if (context.Message?.Length > CartModuleConstants.Sharing.MessageMaxLength)
         {
-            throw new InvalidOperationException($"The sharing message must not exceed {ModuleConstants.Sharing.MessageMaxLength} characters.");
+            throw new InvalidOperationException($"The sharing message must not exceed {CartModuleConstants.Sharing.MessageMaxLength} characters.");
         }
 
         var conflictingIds = (context.AddSharedWithIds ?? []).Intersect(context.RemoveSharedWithIds ?? [], StringComparer.OrdinalIgnoreCase).ToList();
