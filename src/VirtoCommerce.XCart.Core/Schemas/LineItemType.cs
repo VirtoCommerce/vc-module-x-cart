@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using AutoMapper;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
 using GraphQL.Types;
@@ -24,7 +23,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
         public LineItemType(
             IDataLoaderContextAccessor dataLoader,
             IDynamicPropertyResolverService dynamicPropertyResolverService,
-            IMapper mapper, IMemberService memberService,
+            IXapiMapper mapper, IMemberService memberService,
             ICurrencyService currencyService)
         {
             var productField = new FieldType
@@ -177,7 +176,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             IMediator mediator,
             IDataLoaderContextAccessor dataLoader,
             IDynamicPropertyResolverService dynamicPropertyResolverService,
-            IMapper mapper, IMemberService memberService,
+            IXapiMapper mapper, IMemberService memberService,
             ICurrencyService currencyService)
             : this(dataLoader, dynamicPropertyResolverService, mapper, memberService, currencyService)
         {

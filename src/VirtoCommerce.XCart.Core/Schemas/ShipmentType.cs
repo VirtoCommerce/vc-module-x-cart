@@ -1,5 +1,4 @@
 using System.Linq;
-using AutoMapper;
 using GraphQL;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
@@ -22,7 +21,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
 {
     public class ShipmentType : ExtendableGraphType<Shipment>
     {
-        public ShipmentType(IMapper mapper,
+        public ShipmentType(IXapiMapper mapper,
             IMemberService memberService,
             IDataLoaderContextAccessor dataLoader,
             IDynamicPropertyResolverService dynamicPropertyResolverService,
