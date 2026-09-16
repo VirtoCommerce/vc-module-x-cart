@@ -28,6 +28,16 @@ namespace VirtoCommerce.XCart.Core.Schemas
             ICartAvailMethodsService availableMethodsService,
             IPickupLocationSearchService pickupLocationSearchService)
         {
+            AddScalarFields();
+            AddMoneyAndTaxFields();
+            AddVendorField(dataLoader, memberService, mapper);
+            AddDynamicPropertiesField(dynamicPropertyResolverService);
+            AddShippingMethodField(dataLoader, availableMethodsService);
+            AddPickupLocationField(dataLoader, pickupLocationSearchService);
+        }
+
+        private void AddScalarFields()
+        {
             Field(x => x.Id, nullable: false).Description("Shipment Id");
             Field(x => x.ShipmentMethodCode, nullable: true).Description("Shipment method code");
             Field(x => x.ShipmentMethodOption, nullable: true).Description("Shipment method option");
@@ -42,6 +52,13 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.Height, nullable: true).Description("Value of height");
             Field(x => x.Length, nullable: true).Description("Value of length");
             Field(x => x.Width, nullable: true).Description("Value of width");
+            Field(x => x.TaxPercentRate, nullable: false).Description("Tax percent rate");
+            Field(x => x.TaxType, nullable: true).Description("Tax type");
+            Field(x => x.Comment, nullable: true).Description("Text comment");
+        }
+
+        private void AddMoneyAndTaxFields()
+        {
             Field<NonNullGraphType<MoneyType>>("price")
                 .Description("Price")
                 .Resolve(context => context.Source.Price.ToMoney(context.GetCart().Currency));
@@ -72,8 +89,6 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<NonNullGraphType<MoneyType>>("taxTotal")
                 .Description("Tax total")
                 .Resolve(context => context.Source.TaxTotal.ToMoney(context.GetCart().Currency));
-            Field(x => x.TaxPercentRate, nullable: false).Description("Tax percent rate");
-            Field(x => x.TaxType, nullable: true).Description("Tax type");
             Field<NonNullGraphType<ListGraphType<NonNullGraphType<TaxDetailType>>>>("taxDetails")
                 .Description("Tax details")
                 .Resolve(context => context.Source.TaxDetails);
@@ -83,8 +98,10 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<NonNullGraphType<CurrencyType>>("currency")
                 .Description("Currency")
                 .Resolve(context => context.GetCart().Currency);
-            Field(x => x.Comment, nullable: true).Description("Text comment");
+        }
 
+        private void AddVendorField(IDataLoaderContextAccessor dataLoader, IMemberService memberService, IXapiMapper mapper)
+        {
             var vendorField = new FieldType
             {
                 Name = "vendor",
@@ -95,13 +112,19 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 })
             };
             AddField(vendorField);
+        }
 
+        private void AddDynamicPropertiesField(IDynamicPropertyResolverService dynamicPropertyResolverService)
+        {
             ExtendableFieldAsync<NonNullGraphType<ListGraphType<NonNullGraphType<DynamicPropertyValueType>>>>(
                 "dynamicProperties",
                 "Cart shipment dynamic property values",
                 null,
                 async context => await dynamicPropertyResolverService.LoadDynamicPropertyValues(context.Source, context.GetArgumentOrValue<string>("cultureName")));
+        }
 
+        private void AddShippingMethodField(IDataLoaderContextAccessor dataLoader, ICartAvailMethodsService availableMethodsService)
+        {
             var nameField = new FieldType
             {
                 Name = "shippingMethod",
@@ -123,7 +146,10 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 })
             };
             AddField(nameField);
+        }
 
+        private void AddPickupLocationField(IDataLoaderContextAccessor dataLoader, IPickupLocationSearchService pickupLocationSearchService)
+        {
             var pickupLocationField = new FieldType
             {
                 Name = "pickupLocation",
