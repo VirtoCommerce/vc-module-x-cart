@@ -52,9 +52,6 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.Height, nullable: true).Description("Value of height");
             Field(x => x.Length, nullable: true).Description("Value of length");
             Field(x => x.Width, nullable: true).Description("Value of width");
-            Field(x => x.TaxPercentRate, nullable: false).Description("Tax percent rate");
-            Field(x => x.TaxType, nullable: true).Description("Tax type");
-            Field(x => x.Comment, nullable: true).Description("Text comment");
         }
 
         private void AddMoneyAndTaxFields()
@@ -89,6 +86,8 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<NonNullGraphType<MoneyType>>("taxTotal")
                 .Description("Tax total")
                 .Resolve(context => context.Source.TaxTotal.ToMoney(context.GetCart().Currency));
+            Field(x => x.TaxPercentRate, nullable: false).Description("Tax percent rate");
+            Field(x => x.TaxType, nullable: true).Description("Tax type");
             Field<NonNullGraphType<ListGraphType<NonNullGraphType<TaxDetailType>>>>("taxDetails")
                 .Description("Tax details")
                 .Resolve(context => context.Source.TaxDetails);
@@ -98,6 +97,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<NonNullGraphType<CurrencyType>>("currency")
                 .Description("Currency")
                 .Resolve(context => context.GetCart().Currency);
+            Field(x => x.Comment, nullable: true).Description("Text comment");
         }
 
         private void AddVendorField(IDataLoaderContextAccessor dataLoader, IMemberService memberService, IXapiMapper mapper)
