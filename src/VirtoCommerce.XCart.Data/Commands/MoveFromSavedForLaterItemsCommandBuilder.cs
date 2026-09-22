@@ -16,9 +16,15 @@ using VirtoCommerce.XCart.Data.Schemas;
 
 namespace VirtoCommerce.XCart.Data.Commands;
 
-public class MoveFromSavedForLaterItemsCommandBuilder(IMediator mediator, IAuthorizationService authorizationService, ICartAggregateRepository cartRepository, IDistributedLockService distributedLockService)
-    : CommandBuilder<MoveFromSavedForLaterItemsCommand, CartAggregateWithList, InputSaveForLaterType, CartWithListType>(mediator, authorizationService)
+public class MoveFromSavedForLaterItemsCommandBuilder(IAuthorizationService authorizationService, ICartAggregateRepository cartRepository, IDistributedLockService distributedLockService)
+    : CommandBuilder<MoveFromSavedForLaterItemsCommand, CartAggregateWithList, InputSaveForLaterType, CartWithListType>(authorizationService)
 {
+    [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public MoveFromSavedForLaterItemsCommandBuilder(IMediator mediator, IAuthorizationService authorizationService, ICartAggregateRepository cartRepository, IDistributedLockService distributedLockService)
+        : this(authorizationService, cartRepository, distributedLockService)
+    {
+    }
+
     protected override string Name => "moveFromSavedForLater";
 
     protected override MoveFromSavedForLaterItemsCommand GetRequest(IResolveFieldContext<object> context)

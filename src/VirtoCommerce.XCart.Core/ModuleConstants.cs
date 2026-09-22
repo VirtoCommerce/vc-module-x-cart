@@ -35,6 +35,15 @@ namespace VirtoCommerce.XCart.Core
             public const string All = "*";
         }
 
+        /// <summary>
+        /// Default order for the built-in validators
+        /// </summary>
+        public static class ValidationOrder
+        {
+            public const int Core = -1000;
+        }
+
+
         public static class Settings
         {
             public static class General

@@ -337,3 +337,4 @@ ASALocalRun/
 .nuke
 dist/
 **/Properties/launchSettings.json
+/.serena

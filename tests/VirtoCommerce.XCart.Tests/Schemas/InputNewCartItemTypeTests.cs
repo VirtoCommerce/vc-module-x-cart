@@ -67,7 +67,7 @@ namespace VirtoCommerce.XCart.Tests.Schemas
             // re-base. The re-base swaps the base class uniformly across all fields via one shared
             // ParseDictionary path, so scalar parity de-risks it. Nested-list fidelity (dynamicProperties,
             // configurationSections) is an orthogonal GraphQL.NET concern unaffected by the re-base and is
-            // covered end-to-end by the LEO-side override test and the integration test.
+            // covered end-to-end by a consuming module's override test and the integration test.
             var type = BuildInitializedType();
 
             var createdDate = new DateTime(2026, 5, 29, 10, 0, 0, DateTimeKind.Utc);

@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using GraphQL;
 using MediatR;
@@ -29,14 +30,24 @@ public class CreateCartFromWishlistCommandBuilder : CommandBuilder<CreateCartFro
     public CreateCartFromWishlistCommandBuilder(
         IShoppingCartService cartService,
         IMemberResolver memberResolver,
-        IMediator mediator,
         IAuthorizationService authorizationService,
         ICartSharingService cartSharingService)
-        : base(mediator, authorizationService)
+        : base(authorizationService)
     {
         _cartService = cartService;
         _memberResolver = memberResolver;
         _cartSharingService = cartSharingService;
+    }
+
+    [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public CreateCartFromWishlistCommandBuilder(
+        IShoppingCartService cartService,
+        IMemberResolver memberResolver,
+        IMediator mediator,
+        IAuthorizationService authorizationService,
+        ICartSharingService cartSharingService)
+        : this(cartService, memberResolver, authorizationService, cartSharingService)
+    {
     }
 
     protected override CreateCartFromWishlistCommand GetRequest(IResolveFieldContext<object> context)

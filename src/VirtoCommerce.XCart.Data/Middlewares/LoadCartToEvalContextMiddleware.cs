@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using AutoMapper;
 using PipelineNet.Middleware;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
@@ -17,17 +16,18 @@ namespace VirtoCommerce.XCart.Data.Middlewares
 {
     public class LoadCartToEvalContextMiddleware : IAsyncMiddleware<PromotionEvaluationContext>, IAsyncMiddleware<PriceEvaluationContext>, IAsyncMiddleware<TaxEvaluationContext>
     {
-        private readonly IMapper _mapper;
         private readonly ICartAggregateRepository _cartAggregateRepository;
         private readonly IGenericPipelineLauncher _pipeline;
+        private readonly IXCartMapper _mapper;
 
-        public LoadCartToEvalContextMiddleware(IMapper mapper,
+        public LoadCartToEvalContextMiddleware(
             ICartAggregateRepository cartAggregateRepository,
-            IGenericPipelineLauncher pipeline)
+            IGenericPipelineLauncher pipeline,
+            IXCartMapper mapper)
         {
-            _mapper = mapper;
             _cartAggregateRepository = cartAggregateRepository;
             _pipeline = pipeline;
+            _mapper = mapper;
         }
 
         public async Task Run(PromotionEvaluationContext parameter, Func<PromotionEvaluationContext, Task> next)
@@ -48,17 +48,9 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             await next(parameter);
         }
 
-        public async Task Run(PriceEvaluationContext parameter, Func<PriceEvaluationContext, Task> next)
+        public Task Run(PriceEvaluationContext parameter, Func<PriceEvaluationContext, Task> next)
         {
-            var criteria = GetCartSearchCriteria(parameter);
-
-            var cartAggregate = await _cartAggregateRepository.GetCartAsync(criteria, parameter.Language);
-            if (cartAggregate != null)
-            {
-                _mapper.Map(cartAggregate, parameter);
-            }
-
-            await next(parameter);
+            return next(parameter);
         }
 
         public async Task Run(TaxEvaluationContext parameter, Func<TaxEvaluationContext, Task> next)
@@ -68,8 +60,7 @@ namespace VirtoCommerce.XCart.Data.Middlewares
             var cartAggregate = await _cartAggregateRepository.GetCartAsync(criteria, Language.InvariantLanguage.CultureName);
             if (cartAggregate != null)
             {
-                _mapper.Map(cartAggregate, parameter);
-
+                _mapper.MapTo(cartAggregate, parameter);
             }
 
             await next(parameter);
@@ -77,21 +68,6 @@ namespace VirtoCommerce.XCart.Data.Middlewares
 
 
         protected virtual ShoppingCartSearchCriteria GetCartSearchCriteria(PromotionEvaluationContext context)
-        {
-            var cartSearchCriteria = AbstractTypeFactory<ShoppingCartSearchCriteria>.TryCreateInstance();
-
-            cartSearchCriteria.Name = "default";
-            cartSearchCriteria.StoreId = context.StoreId;
-            cartSearchCriteria.CustomerId = context.CustomerId;
-            cartSearchCriteria.OrganizationId = context.OrganizationId;
-            cartSearchCriteria.OrganizationIdIsEmpty = string.IsNullOrEmpty(context.OrganizationId);
-            cartSearchCriteria.Currency = context.Currency;
-            cartSearchCriteria.ResponseGroup = CartResponseGroup.Full.ToString();
-
-            return cartSearchCriteria;
-        }
-
-        protected virtual ShoppingCartSearchCriteria GetCartSearchCriteria(PriceEvaluationContext context)
         {
             var cartSearchCriteria = AbstractTypeFactory<ShoppingCartSearchCriteria>.TryCreateInstance();
 

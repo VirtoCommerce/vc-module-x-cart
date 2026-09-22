@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -5,6 +6,7 @@ using System.Threading.Tasks;
 using VirtoCommerce.CatalogModule.Core.Model.Configuration;
 using VirtoCommerce.CatalogModule.Core.Model.Search;
 using VirtoCommerce.CatalogModule.Core.Search;
+using VirtoCommerce.Platform.Core.Caching;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Core;
@@ -21,50 +23,145 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
     private readonly IProductConfigurationSearchService _productConfigurationSearchService;
     private readonly IConfiguredLineItemContainerService _configuredLineItemContainerService;
     private readonly ICartProductsLoaderService _cartProductService;
+    private readonly IRequestScopedCache _requestScopedCache;
 
     public GetProductConfigurationQueryHandler(
         IProductConfigurationSearchService productConfigurationSearchService,
         IConfiguredLineItemContainerService configuredLineItemContainerService,
-        ICartProductsLoaderService cartProductService)
+        ICartProductsLoaderService cartProductService,
+        IRequestScopedCache requestScopedCache)
     {
         _productConfigurationSearchService = productConfigurationSearchService;
         _configuredLineItemContainerService = configuredLineItemContainerService;
         _cartProductService = cartProductService;
+        _requestScopedCache = requestScopedCache;
     }
 
     public virtual async Task<ProductConfigurationQueryResponse> Handle(GetProductConfigurationQuery request, CancellationToken cancellationToken)
     {
         var result = AbstractTypeFactory<ProductConfigurationQueryResponse>.TryCreateInstance();
 
-        var configuration = await GetConfiguration(request);
+        var responseGroup = GetResponseGroup(request);
+
+        var configuration = await GetConfiguration(request, responseGroup);
 
         if (configuration is null)
         {
             return result;
         }
 
-        var container = await _configuredLineItemContainerService.CreateContainerAsync(request);
-        var productsRequest = container.GetCartProductsRequest();
+        // Narrow to the requested sections (when specified) so we build and enrich only what is needed.
+        var sections = configuration.Sections.AsEnumerable();
+        if (!request.SectionIds.IsNullOrEmpty())
+        {
+            sections = sections.Where(x => request.SectionIds.Contains(x.Id));
+        }
 
-        productsRequest.ProductIds = configuration.Sections
-            .SelectMany(x => x.Options?.Select(x => x.ProductId).Where(x => !string.IsNullOrEmpty(x)))
-            .Distinct()
-            .ToArray();
+        var orderedSections = sections.OrderBy(x => x.DisplayOrder).ToList();
 
-        var cartProducts = await _cartProductService.GetCartProductsAsync(productsRequest);
-        var productByIds = cartProducts.ToDictionary(x => x.Product.Id, x => x);
+        // Load and build options (and their products/prices) only when the client requested them.
+        var loadOptions = responseGroup.HasFlag(ProductConfigurationResponseGroup.Options);
 
-        foreach (var section in configuration.Sections.OrderBy(x => x.DisplayOrder))
+        ConfiguredLineItemContainer container = null;
+        IDictionary<string, CartProduct> productByIds = new Dictionary<string, CartProduct>();
+
+        if (loadOptions)
+        {
+            container = await _configuredLineItemContainerService.CreateContainerAsync(request);
+            var productsRequest = container.GetCartProductsRequest();
+
+            productsRequest.ProductIds = orderedSections
+                .SelectMany(x => x.Options?.Select(o => o.ProductId).Where(id => !string.IsNullOrEmpty(id)) ?? [])
+                .Distinct()
+                .ToArray();
+
+            // Dedup the option-product load: within one GraphQL request the same ~N option products are
+            // requested once per distinct configurable product, all sharing this Scoped request cache.
+            productByIds = await _requestScopedCache.GetOrLoadMapByIdsAsync(
+                BuildOptionProductsKeyPrefix(productsRequest),
+                productsRequest.ProductIds,
+                missingIds => _cartProductService.GetCartProductsAsync(CloneCartProductsRequest(productsRequest, missingIds)));
+        }
+
+        foreach (var section in orderedSections)
         {
             var configurationSection = CreateConfigurationSection(section);
 
             result.ConfigurationSections.Add(configurationSection);
 
-            AddProductOptions(section, configurationSection, container, productByIds);
-            AddTextOptions(section, configurationSection);
+            if (loadOptions)
+            {
+                AddProductOptions(section, configurationSection, container, productByIds);
+                AddTextOptions(section, configurationSection);
+            }
         }
 
         return result;
+    }
+
+    // Stable, order-independent prefix over the CartProductsRequest fields that affect the loaded products.
+    // Product ids are no longer part of the prefix: they are now the per-id dimension of the by-id cache.
+    private static string BuildOptionProductsKeyPrefix(CartProductsRequest request)
+    {
+        var includeFields = request.ProductsIncludeFields is null
+            ? string.Empty
+            : string.Join(',', request.ProductsIncludeFields.Order(StringComparer.Ordinal));
+
+        // Resolve store/currency object-or-string the same way the loader does; the container path sets only the object forms.
+        var storeId = request.Store?.Id ?? request.StoreId;
+        var currencyCode = request.Currency?.Code ?? request.CurrencyCode;
+
+        return $"{nameof(GetProductConfigurationQueryHandler)}:{nameof(BuildOptionProductsKeyPrefix)}:{storeId}|{currencyCode}|{request.CultureName}|{request.UserId}|{request.OrganizationId}|{request.LoadPrice}|{request.LoadInventory}|{request.EvaluatePromotions}|{includeFields}";
+    }
+
+    // loadMissing may run concurrently under the by-id cache's per-id reservation, so mutating the shared
+    // productsRequest.ProductIds would race - clone the request with only the not-yet-cached ids instead.
+    protected virtual CartProductsRequest CloneCartProductsRequest(CartProductsRequest request, ICollection<string> productIds)
+    {
+        var productsRequest = AbstractTypeFactory<CartProductsRequest>.TryCreateInstance();
+        productsRequest.Store = request.Store;
+        productsRequest.StoreId = request.StoreId;
+        productsRequest.CultureName = request.CultureName;
+        productsRequest.Currency = request.Currency;
+        productsRequest.CurrencyCode = request.CurrencyCode;
+        productsRequest.Member = request.Member;
+        productsRequest.UserId = request.UserId;
+        productsRequest.OrganizationId = request.OrganizationId;
+        productsRequest.ProductsIncludeFields = request.ProductsIncludeFields;
+        productsRequest.LoadPrice = request.LoadPrice;
+        productsRequest.LoadInventory = request.LoadInventory;
+        productsRequest.EvaluatePromotions = request.EvaluatePromotions;
+        productsRequest.ProductIds = [.. productIds];
+
+        return productsRequest;
+    }
+
+    protected virtual ProductConfigurationResponseGroup GetResponseGroup(GetProductConfigurationQuery request)
+    {
+        // No field selection provided (e.g. the standalone product configuration query) → load the full graph.
+        if (request.IncludeFields.IsNullOrEmpty())
+        {
+            return ProductConfigurationResponseGroup.Full;
+        }
+
+        var optionFields = request.IncludeFields
+            .Where(x => x.Contains("options", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (optionFields.Count == 0)
+        {
+            return ProductConfigurationResponseGroup.Sections;
+        }
+
+        // Option sub-fields that reference a product / price / image require option-referenced products to be loaded.
+        var needsProducts = optionFields.Any(x =>
+            x.Contains("product", StringComparison.OrdinalIgnoreCase) ||
+            x.Contains("price", StringComparison.OrdinalIgnoreCase) ||
+            x.Contains("image", StringComparison.OrdinalIgnoreCase));
+
+        return needsProducts
+            ? ProductConfigurationResponseGroup.Full
+            : ProductConfigurationResponseGroup.Options;
     }
 
     protected virtual ExpProductConfigurationSection CreateConfigurationSection(CatalogProductConfigurationSection section)
@@ -84,18 +181,19 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         return result;
     }
 
-    protected virtual async Task<ProductConfiguration> GetConfiguration(GetProductConfigurationQuery request)
+    protected virtual async Task<ProductConfiguration> GetConfiguration(GetProductConfigurationQuery request, ProductConfigurationResponseGroup responseGroup)
     {
         var criteria = AbstractTypeFactory<ProductConfigurationSearchCriteria>.TryCreateInstance();
         criteria.ProductId = request.ConfigurableProductId;
         criteria.IsActive = true;
+        criteria.ResponseGroup = responseGroup.ToString();
 
         var configurationsResult = await _productConfigurationSearchService.SearchNoCloneAsync(criteria);
 
         return configurationsResult.Results.FirstOrDefault();
     }
 
-    protected virtual void AddProductOptions(CatalogProductConfigurationSection section, ExpProductConfigurationSection configurationSection, ConfiguredLineItemContainer container, Dictionary<string, CartProduct> productByIds)
+    protected virtual void AddProductOptions(CatalogProductConfigurationSection section, ExpProductConfigurationSection configurationSection, ConfiguredLineItemContainer container, IDictionary<string, CartProduct> productByIds)
     {
         if (section.Type == ConfigurationSectionTypeProduct && !section.Options.IsNullOrEmpty())
         {

@@ -36,13 +36,14 @@ namespace VirtoCommerce.XCart.Tests.Handlers
         private static Mock<CartAggregate> CreateCartAggregateMock()
         {
             var mock = new Mock<CartAggregate>(
-                MockBehavior.Loose, null, null, null, null, null, null, null, null, null, null, null, null);
+                MockBehavior.Loose, null, null, null, null, null, null, null, null, null, null, null, null, null);
 
             // Cart property has a protected setter and is non-virtual, so we set it via reflection
             var cartProperty = typeof(CartAggregate).GetProperty(nameof(CartAggregate.Cart));
             cartProperty.SetValue(mock.Object, new ShoppingCart { Id = "cart-1" });
 
-            mock.Setup(x => x.GetCartProductKey(It.IsAny<string>(), It.IsAny<string>()))
+            mock
+                .Setup(x => x.GetCartProductKey(It.IsAny<string>(), It.IsAny<string>()))
                 .Returns((string productId, string currencyCode) =>
                 {
                     return CartAggregate.FormatGetCartProductKey(productId, currencyCode);

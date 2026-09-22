@@ -13,6 +13,8 @@ public class GetProductConfigurationQuery : Query<ProductConfigurationQueryRespo
 {
     public string ConfigurableProductId { get; set; }
 
+    public IList<string> SectionIds { get; set; } = [];
+
     public string StoreId { get; set; }
 
     public string UserId { get; set; }

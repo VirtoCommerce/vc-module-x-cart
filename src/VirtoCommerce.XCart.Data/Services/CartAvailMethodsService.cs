@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using AutoMapper;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.MarketingModule.Core.Model.Promotions;
 using VirtoCommerce.PaymentModule.Core.Model;
@@ -32,7 +31,7 @@ namespace VirtoCommerce.XCart.Data.Services
         private readonly IShippingMethodsSearchService _shippingMethodsSearchService;
         private readonly IGenericPipelineLauncher _pipeline;
 
-        private readonly IMapper _mapper;
+        private readonly IXCartMapper _mapper;
 
         protected virtual int TakeOnSearch => 20;
 
@@ -40,7 +39,7 @@ namespace VirtoCommerce.XCart.Data.Services
             IPaymentMethodsSearchService paymentMethodsSearchService,
             IShippingMethodsSearchService shippingMethodsSearchService,
             IOptionalDependency<ITaxProviderSearchService> taxProviderSearchService,
-            IMapper mapper,
+            IXCartMapper mapper,
             IGenericPipelineLauncher pipeline)
         {
             _paymentMethodsSearchService = paymentMethodsSearchService;
@@ -97,9 +96,9 @@ namespace VirtoCommerce.XCart.Data.Services
                 var taxProvider = await GetActiveTaxProviderAsync(cartAggregate);
                 if (taxProvider != null)
                 {
-                    var taxEvalContext = _mapper.Map<TaxEvaluationContext>(cartAggregate);
+                    var taxEvalContext = _mapper.ToTaxEvaluationContext(cartAggregate);
                     taxEvalContext.Lines.Clear();
-                    taxEvalContext.Lines.AddRange(availableShippingRates.SelectMany(x => _mapper.Map<IEnumerable<TaxLine>>(x)));
+                    taxEvalContext.Lines.AddRange(availableShippingRates.SelectMany(x => _mapper.ToTaxLines(x)));
 
                     var taxRates = taxProvider.CalculateRates(taxEvalContext).ToList();
 
@@ -152,9 +151,9 @@ namespace VirtoCommerce.XCart.Data.Services
                 var taxProvider = await GetActiveTaxProviderAsync(cartAggregate);
                 if (taxProvider != null)
                 {
-                    var taxEvalContext = _mapper.Map<TaxEvaluationContext>(cartAggregate);
+                    var taxEvalContext = _mapper.ToTaxEvaluationContext(cartAggregate);
                     taxEvalContext.Lines.Clear();
-                    taxEvalContext.Lines.AddRange(result.Results.SelectMany(x => _mapper.Map<IEnumerable<TaxLine>>(x)));
+                    taxEvalContext.Lines.AddRange(result.Results.SelectMany(x => _mapper.ToTaxLines(x)));
 
                     var taxRates = taxProvider.CalculateRates(taxEvalContext).ToList();
 

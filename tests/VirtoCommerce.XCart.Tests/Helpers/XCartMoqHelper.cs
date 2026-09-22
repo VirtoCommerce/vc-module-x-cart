@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using AutoFixture;
-using AutoMapper;
 using Bogus;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Services;
@@ -18,6 +18,7 @@ using VirtoCommerce.InventoryModule.Core.Model;
 using VirtoCommerce.MarketingModule.Core.Services;
 using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.PaymentModule.Core.Services;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.ShippingModule.Core.Services;
@@ -30,6 +31,8 @@ using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Core.Validators;
+using VirtoCommerce.XCart.Data.Services;
+using VirtoCommerce.XCart.Data.Validators;
 using VirtoCommerce.XCart.Tests.Helpers.Stubs;
 using Store = VirtoCommerce.StoreModule.Core.Model.Store;
 
@@ -49,13 +52,17 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         protected readonly Mock<IStoreService> _crudStoreServiceMock;
         protected readonly Mock<IOptionalDependency<ITaxProviderSearchService>> _taxProviderSearchServiceMock;
         protected readonly Mock<IDynamicPropertyUpdaterService> _dynamicPropertyUpdaterService;
-        protected readonly Mock<IMapper> _mapperMock;
+        protected readonly Mock<IXCartMapper> _mapperMock;
         protected readonly Mock<IMemberService> _memberService;
         protected readonly Mock<IGenericPipelineLauncher> _genericPipelineLauncherMock;
         protected readonly Mock<IConfigurationItemValidator> _configurationItemValidatorMock;
         protected readonly Mock<IFileUploadService> _fileUploadService;
         protected readonly Mock<ICartSharingService> _cartSharingService;
         protected readonly Mock<ICartValidationContextFactory> _cartValidationContextFactoryMock;
+        protected readonly ICartItemBuilder _cartItemBuilder;
+
+        // Not a mock on purpose: it runs the real validator chain, as they did when validators were created via AbstractTypeFactory
+        protected readonly ICartValidatorRegistry _cartValidatorRegistry;
 
         protected readonly Randomizer Rand = new Randomizer();
 
@@ -66,6 +73,13 @@ namespace VirtoCommerce.XCart.Tests.Helpers
 
         public XCartMoqHelper()
         {
+            // Must run unconditionally here, not inside a Register lambda: AbstractTypeFactory<T> state is
+            // process-global, so gating it behind a lambda made test outcomes depend on run order. Xapi.Web's
+            // Module.Initialize registers ProductPrice in production and never runs under test, and
+            // BuildNewCartItem builds its CartProduct directly rather than through the _fixture factory, so a
+            // registration living in that factory would cover only some of the paths into ApplyPrices.
+            AbstractTypeFactory<Xapi.Core.Models.ProductPrice>.RegisterType<Xapi.Core.Models.ProductPrice>();
+
             _fixture.Register<PaymentMethod>(() => new StubPaymentMethod(_fixture.Create<string>()));
 
             _fixture.Register(() => _fixture
@@ -156,6 +170,12 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                .Create());
 
             _cartProductServiceMock = new Mock<ICartProductService>();
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsByIdsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<string>>()))
+                .ReturnsAsync([]);
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string, string)>>()))
+                .ReturnsAsync(new Dictionary<string, CartProduct>());
 
             _currencyServiceMock = new Mock<ICurrencyService>();
             _currencyServiceMock
@@ -179,7 +199,7 @@ namespace VirtoCommerce.XCart.Tests.Helpers
             _taxProviderSearchServiceMock = new Mock<IOptionalDependency<ITaxProviderSearchService>>();
             _dynamicPropertyUpdaterService = new Mock<IDynamicPropertyUpdaterService>();
 
-            _mapperMock = new Mock<IMapper>();
+            _mapperMock = new Mock<IXCartMapper>();
 
             _genericPipelineLauncherMock = new Mock<IGenericPipelineLauncher>();
 
@@ -189,7 +209,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 .ReturnsAsync(_fixture.Create<Organization>());
 
             _configurationItemValidatorMock = new Mock<IConfigurationItemValidator>();
-            _configurationItemValidatorMock.Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), CancellationToken.None))
+            _configurationItemValidatorMock
+                .Setup(x => x.ValidateAsync(It.IsAny<LineItem>(), CancellationToken.None))
                 .ReturnsAsync(new FluentValidation.Results.ValidationResult());
 
             _fileUploadService = new Mock<IFileUploadService>();
@@ -199,6 +220,30 @@ namespace VirtoCommerce.XCart.Tests.Helpers
 
             _cartSharingService = new Mock<ICartSharingService>();
             _cartValidationContextFactoryMock = new Mock<ICartValidationContextFactory>();
+            _cartItemBuilder = new CartItemBuilder();
+            _cartValidatorRegistry = BuildCartValidatorRegistry();
+        }
+
+        /// <summary>
+        /// Builds a real CartValidatorRegistry so unit tests exercise the actual validators,
+        /// as they did when validators were created via AbstractTypeFactory 
+        /// </summary>
+        private CartValidatorRegistry BuildCartValidatorRegistry()
+        {
+            var services = new ServiceCollection();
+
+            services.AddSingleton(_configurationItemValidatorMock.Object);
+
+            // Mirror production AddXCart wiring.
+            services.AddTransient<ICartValidator<CartValidationContext>>(_ => AbstractTypeFactory<CartValidator>.TryCreateInstance());
+            services.AddTransient<ICartValidator<PaymentValidationContext>>(_ => AbstractTypeFactory<CartPaymentValidator>.TryCreateInstance());
+            services.AddTransient<ICartValidator<ShipmentValidationContext>>(_ => AbstractTypeFactory<CartShipmentValidator>.TryCreateInstance());
+            services.AddTransient<ICartValidator<NewCartItem>>(_ => AbstractTypeFactory<NewCartItemValidator>.TryCreateInstance());
+            services.AddTransient<ICartValidator<ItemQtyAdjustment>>(_ => AbstractTypeFactory<ItemQtyAdjustmentValidator>.TryCreateInstance());
+            services.AddTransient<ICartValidator<PriceAdjustment>>(_ => AbstractTypeFactory<ChangeCartItemPriceValidator>.TryCreateInstance());
+            services.AddTransient<ICartValidator<ConfigurationItemValidationContext>, ConfigurationItemContextValidator>();
+
+            return new CartValidatorRegistry(services.BuildServiceProvider());
         }
 
         protected ShoppingCart GetCart() => _fixture.Create<ShoppingCart>();
@@ -215,6 +260,8 @@ namespace VirtoCommerce.XCart.Tests.Helpers
             bool? isBuyable = null,
             bool? trackInventory = null)
         {
+            AbstractTypeFactory<Xapi.Core.Models.ProductPrice>.RegisterType<Xapi.Core.Models.ProductPrice>();
+
             var catalogProductId = _fixture.Create<string>();
 
             var catalogProduct = new CatalogProduct
@@ -257,10 +304,11 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 _mapperMock.Object,
                 _memberService.Object,
                 _genericPipelineLauncherMock.Object,
-                _configurationItemValidatorMock.Object,
                 _fileUploadService.Object,
                 _cartSharingService.Object,
-                _cartValidationContextFactoryMock.Object);
+                _cartValidationContextFactoryMock.Object,
+                _cartItemBuilder,
+                _cartValidatorRegistry);
 
             aggregate.GrabCart(cart ?? GetCart(), new Store(), null, currency ?? GetCurrency());
 
@@ -278,10 +326,11 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 _mapperMock.Object,
                 _memberService.Object,
                 _genericPipelineLauncherMock.Object,
-                _configurationItemValidatorMock.Object,
                 _fileUploadService.Object,
                 _cartSharingService.Object,
-                _cartValidationContextFactoryMock.Object);
+                _cartValidationContextFactoryMock.Object,
+                _cartItemBuilder,
+                _cartValidatorRegistry);
 
             aggregate.GrabCart(cart ?? GetCart(), new Store(), GetMember(), currency ?? GetCurrency());
 

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using GraphQL;
@@ -18,7 +19,6 @@ public static class DataLoaderContextAccessorExtensions
     public static IDataLoader<string, ExpProduct> GetCartProductDataLoader(
         this IDataLoaderContextAccessor dataLoader,
         IResolveFieldContext context,
-        IMediator mediator,
         ICurrencyService currencyService,
         string loaderKey)
     {
@@ -46,7 +46,7 @@ public static class DataLoaderContextAccessorExtensions
             context.UserContext.TryAdd("store", cartAggregate.Store);
             context.UserContext.TryAdd("cultureName", cultureName);
 
-            var response = await mediator.Send(request);
+            var response = await context.GetMediator().Send(request);
 
             return response.Products.ToDictionary(x => x.Id);
         });
@@ -54,10 +54,20 @@ public static class DataLoaderContextAccessorExtensions
         return loader;
     }
 
-    public static IDataLoaderResult<ExpProduct> LoadCartProduct(
+    [Obsolete("Use the overload without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public static IDataLoader<string, ExpProduct> GetCartProductDataLoader(
         this IDataLoaderContextAccessor dataLoader,
         IResolveFieldContext context,
         IMediator mediator,
+        ICurrencyService currencyService,
+        string loaderKey)
+    {
+        return GetCartProductDataLoader(dataLoader, context, currencyService, loaderKey);
+    }
+
+    public static IDataLoaderResult<ExpProduct> LoadCartProduct(
+        this IDataLoaderContextAccessor dataLoader,
+        IResolveFieldContext context,
         ICurrencyService currencyService,
         string loaderKey,
         string productId)
@@ -67,15 +77,26 @@ public static class DataLoaderContextAccessorExtensions
             return _defaultProductResult;
         }
 
-        var loader = dataLoader.GetCartProductDataLoader(context, mediator, currencyService, loaderKey);
+        var loader = GetCartProductDataLoader(dataLoader, context, currencyService, loaderKey);
 
         return loader.LoadAsync(productId);
+    }
+
+    [Obsolete("Use the overload without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public static IDataLoaderResult<ExpProduct> LoadCartProduct(
+        this IDataLoaderContextAccessor dataLoader,
+        IResolveFieldContext context,
+        IMediator mediator,
+        ICurrencyService currencyService,
+        string loaderKey,
+        string productId)
+    {
+        return LoadCartProduct(dataLoader, context, currencyService, loaderKey, productId);
     }
 
     public static IDataLoader<(string CurrencyCode, string ProductId), ExpProduct> GetCartCurrencyProductDataLoader(
         this IDataLoaderContextAccessor dataLoader,
         IResolveFieldContext context,
-        IMediator mediator,
         ICurrencyService currencyService,
         string loaderKey)
     {
@@ -108,7 +129,7 @@ public static class DataLoaderContextAccessorExtensions
                     OrganizationId = context.GetCurrentOrganizationId(),
                 };
 
-                var response = await mediator.Send(request);
+                var response = await context.GetMediator().Send(request);
 
                 foreach (var item in currencyLineItems)
                 {
@@ -127,10 +148,20 @@ public static class DataLoaderContextAccessorExtensions
         return loader;
     }
 
-    public static IDataLoaderResult<ExpProduct> LoadCartProduct(
+    [Obsolete("Use the overload without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public static IDataLoader<(string CurrencyCode, string ProductId), ExpProduct> GetCartCurrencyProductDataLoader(
         this IDataLoaderContextAccessor dataLoader,
         IResolveFieldContext context,
         IMediator mediator,
+        ICurrencyService currencyService,
+        string loaderKey)
+    {
+        return GetCartCurrencyProductDataLoader(dataLoader, context, currencyService, loaderKey);
+    }
+
+    public static IDataLoaderResult<ExpProduct> LoadCartProduct(
+        this IDataLoaderContextAccessor dataLoader,
+        IResolveFieldContext context,
         ICurrencyService currencyService,
         string loaderKey,
         (string CurrencyCode, string ProductId) productCurrencyPair)
@@ -140,8 +171,20 @@ public static class DataLoaderContextAccessorExtensions
             return _defaultProductResult;
         }
 
-        var loader = dataLoader.GetCartCurrencyProductDataLoader(context, mediator, currencyService, loaderKey);
+        var loader = GetCartCurrencyProductDataLoader(dataLoader, context, currencyService, loaderKey);
 
         return loader.LoadAsync(productCurrencyPair);
+    }
+
+    [Obsolete("Use the overload without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+    public static IDataLoaderResult<ExpProduct> LoadCartProduct(
+        this IDataLoaderContextAccessor dataLoader,
+        IResolveFieldContext context,
+        IMediator mediator,
+        ICurrencyService currencyService,
+        string loaderKey,
+        (string CurrencyCode, string ProductId) productCurrencyPair)
+    {
+        return LoadCartProduct(dataLoader, context, currencyService, loaderKey, productCurrencyPair);
     }
 }

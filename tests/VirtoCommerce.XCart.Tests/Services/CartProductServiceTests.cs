@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using AutoMapper;
 using FluentAssertions;
 using MediatR;
 using Moq;
@@ -10,6 +9,7 @@ using VirtoCommerce.CatalogModule.Core.Services;
 using VirtoCommerce.InventoryModule.Core.Services;
 using VirtoCommerce.PricingModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Services;
+using VirtoCommerce.XCart.Core.Services;
 using Xunit;
 
 namespace VirtoCommerce.XCart.Tests.Services
@@ -19,7 +19,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         private readonly Mock<IItemService> _productService;
         private readonly Mock<IInventorySearchService> _inventorySearchService;
         private readonly Mock<IPricingEvaluatorService> _pricingEvaluatorService;
-        private readonly Mock<IMapper> _mapper;
+        private readonly Mock<IXCartMapper> _mapper;
         private readonly Mock<IMediator> _mediator;
         private readonly Mock<ILoadUserToEvalContextService> _loadUserToEvalContextServiceMock;
         private readonly CartProductServiceFake _service;
@@ -30,7 +30,7 @@ namespace VirtoCommerce.XCart.Tests.Services
             _productService = new Mock<IItemService>();
             _inventorySearchService = new Mock<IInventorySearchService>();
             _pricingEvaluatorService = new Mock<IPricingEvaluatorService>();
-            _mapper = new Mock<IMapper>();
+            _mapper = new Mock<IXCartMapper>();
             _mediator = new Mock<IMediator>();
             _loadUserToEvalContextServiceMock = new Mock<ILoadUserToEvalContextService>();
             _service = new CartProductServiceFake(_productService.Object,

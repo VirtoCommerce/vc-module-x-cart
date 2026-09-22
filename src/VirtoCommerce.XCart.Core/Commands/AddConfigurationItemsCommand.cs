@@ -4,7 +4,7 @@ using VirtoCommerce.XCart.Core.Models;
 
 namespace VirtoCommerce.XCart.Core.Commands;
 
-public class AddConfigurationItemsCommand : CartCommand
+public class AddConfigurationItemsCommand : CartCommand, ICartConfigurationCommand
 {
     public string LineItemId { get; set; }
 

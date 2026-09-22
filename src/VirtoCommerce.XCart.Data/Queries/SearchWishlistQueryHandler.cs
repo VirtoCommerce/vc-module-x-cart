@@ -1,6 +1,5 @@
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.SearchModule.Core.Services;
 using VirtoCommerce.Xapi.Core.Infrastructure;
@@ -16,18 +15,18 @@ namespace VirtoCommerce.XCart.Data.Queries
     public class SearchWishlistQueryHandler : IQueryHandler<SearchWishlistQuery, SearchCartResponse>
     {
         private readonly ICartAggregateRepository _cartAggregateRepository;
-        private readonly IMapper _mapper;
         private readonly ISearchPhraseParser _searchPhraseParser;
+        private readonly IXCartMapper _mapper;
 
         public SearchWishlistQueryHandler(
             ICartAggregateRepository cartAggregateRepository,
-            IMapper mapper,
             ISearchPhraseParser searchPhraseParser,
-            ISavedForLaterListService savedForLaterListService)
+            ISavedForLaterListService savedForLaterListService,
+            IXCartMapper mapper)
         {
             _cartAggregateRepository = cartAggregateRepository;
-            _mapper = mapper;
             _searchPhraseParser = searchPhraseParser;
+            _mapper = mapper;
         }
 
         public virtual Task<SearchCartResponse> Handle(SearchWishlistQuery request, CancellationToken cancellationToken)

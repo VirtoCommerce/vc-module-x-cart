@@ -18,6 +18,7 @@ The xCart module provides high-performance API for shopping carts with the follo
 * [How to use Postman](https://docs.virtocommerce.org/platform/developer-guide/GraphQL-Storefront-API-Reference-xAPI/postman/)
 * [How to extend](https://docs.virtocommerce.org/platform/developer-guide/GraphQL-Storefront-API-Reference-xAPI/x-api-extensions/)
 * [Virto Commerce Frontend architecture](https://docs.virtocommerce.org/storefront/developer-guide/architecture/)
+* [How to measure a change with the benchmarks](benchmarks/VirtoCommerce.XCart.Benchmark/README.md)
 
 ## References
 

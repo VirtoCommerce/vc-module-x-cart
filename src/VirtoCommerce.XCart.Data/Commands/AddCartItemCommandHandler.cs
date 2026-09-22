@@ -50,23 +50,24 @@ namespace VirtoCommerce.XCart.Data.Commands
             var configurations = await _productConfigurationSearchService.SearchNoCloneAsync(new ProductConfigurationSearchCriteria
             {
                 ProductId = request.ProductId,
+                IsActive = true,
+                Take = 0,
             });
-            var configuration = configurations.Results.FirstOrDefault();
 
-            if (configuration?.IsActive == true)
+            if (configurations.TotalCount > 0)
             {
-                var createConfigurableProductCommand = AbstractTypeFactory<CreateConfiguredLineItemCommand>.TryCreateInstance();
-                createConfigurableProductCommand.StoreId = request.StoreId;
-                createConfigurableProductCommand.UserId = request.UserId;
-                createConfigurableProductCommand.OrganizationId = request.OrganizationId;
-                createConfigurableProductCommand.CultureName = request.CultureName;
-                createConfigurableProductCommand.CurrencyCode = itemCurrencyCode;
-                createConfigurableProductCommand.ConfigurableProductId = request.ProductId;
-                createConfigurableProductCommand.ConfigurationSections = request.ConfigurationSections;
-                createConfigurableProductCommand.CartId = cartAggregate.Cart.Id;
+                var command = AbstractTypeFactory<CreateConfiguredLineItemCommand>.TryCreateInstance();
+                command.StoreId = request.StoreId;
+                command.UserId = request.UserId;
+                command.OrganizationId = request.OrganizationId;
+                command.CultureName = request.CultureName;
+                command.CurrencyCode = itemCurrencyCode;
+                command.ConfigurableProductId = request.ProductId;
+                command.ConfigurationSections = request.ConfigurationSections;
+                command.CartId = cartAggregate.Cart.Id;
 
-                var mediatorResult = await _mediator.Send(createConfigurableProductCommand, cancellationToken);
-                await cartAggregate.AddConfiguredItemAsync(newItem, mediatorResult.Item);
+                var expConfigurationLineItem = await _mediator.Send(command, cancellationToken);
+                await cartAggregate.AddConfiguredItemAsync(newItem, expConfigurationLineItem.Item);
             }
             else
             {

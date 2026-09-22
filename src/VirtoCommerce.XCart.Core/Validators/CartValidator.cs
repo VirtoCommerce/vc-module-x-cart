@@ -4,8 +4,10 @@ using VirtoCommerce.Platform.Core.Common;
 
 namespace VirtoCommerce.XCart.Core.Validators;
 
-public class CartValidator : AbstractValidator<CartValidationContext>
+public class CartValidator : AbstractValidator<CartValidationContext>, ICartValidator<CartValidationContext>
 {
+    public int Order => ModuleConstants.ValidationOrder.Core;
+
     protected virtual CartLineItemValidator LineItemValidator { get; set; }
     protected virtual CartShipmentValidator ShipmentValidator { get; set; }
     protected virtual CartPaymentValidator PaymentValidator { get; set; }

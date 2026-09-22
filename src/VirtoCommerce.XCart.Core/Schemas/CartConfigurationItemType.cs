@@ -1,3 +1,4 @@
+using System;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
 using GraphQL.Types;
@@ -8,6 +9,7 @@ using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Schemas;
 using VirtoCommerce.XCart.Core.Extensions;
+using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCatalog.Core.Models;
 using VirtoCommerce.XCatalog.Core.Schemas;
 
@@ -16,12 +18,12 @@ namespace VirtoCommerce.XCart.Core.Schemas
     public class CartConfigurationItemType : ExtendableGraphType<ConfigurationItem>
     {
         public CartConfigurationItemType(
-            IMediator mediator,
             IDataLoaderContextAccessor dataLoader,
             ICurrencyService currencyService)
         {
             Field(x => x.Id, nullable: false).Description("Configuration item ID");
             Field(x => x.SectionId, nullable: false).Description("Configuration item section ID");
+            Field(x => x.SectionName, nullable: true).Description("Configuration item section name");
             Field(x => x.Type, nullable: false).Description("Configuration item type. Possible values: 'Product', 'Variation', 'Text', 'File'");
             Field(x => x.ProductId, nullable: true).Description("Configuration item product ID");
             Field(x => x.Name, nullable: true).Description("Configuration item name");
@@ -54,10 +56,26 @@ namespace VirtoCommerce.XCart.Core.Schemas
                 Resolver = new FuncFieldResolver<ConfigurationItem, IDataLoaderResult<ExpProduct>>(context =>
                 {
                     var currency = context.GetConfiguratonItemCurrency();
-                    return dataLoader.LoadCartProduct(context, mediator, currencyService, "cart_configurationItems_products", (CurrencyCode: currency?.Code, context.Source.ProductId));
+                    return dataLoader.LoadCartProduct(context, currencyService, "cart_configurationItems_products", (CurrencyCode: currency?.Code, context.Source.ProductId));
                 }),
             };
             AddField(productField);
+
+            var configurationSectionField = new FieldType
+            {
+                Name = "configurationSection",
+                Description = "Configuration section that defines this configuration item",
+                Type = GraphTypeExtensionHelper.GetActualType<ConfigurationSectionType>(),
+                Resolver = new FuncFieldResolver<ConfigurationItem, IDataLoaderResult<ExpProductConfigurationSection>>(context =>
+                    dataLoader.LoadConfigurationSection(context, "cart_configurationItems_sections", context.Source.SectionId)),
+            };
+            AddField(configurationSectionField);
+        }
+
+        [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
+        public CartConfigurationItemType(IMediator mediator, IDataLoaderContextAccessor dataLoader, ICurrencyService currencyService)
+            : this(dataLoader, currencyService)
+        {
         }
     }
 }

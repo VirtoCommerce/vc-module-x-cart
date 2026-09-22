@@ -1,9 +1,11 @@
 using System.Collections.Generic;
+using System.Linq;
 using FluentAssertions;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.CoreModule.Core.Common;
 using VirtoCommerce.CoreModule.Core.Currency;
+using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Models;
 using Xunit;
@@ -57,7 +59,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         }
 
         [Fact]
-        public void AddFileSectionLineItem_WithConfigurationItem_NoOverride_UsesSourceFilesByReference()
+        public void AddFileSectionLineItem_WithConfigurationItem_NoOverride_StagesNoFiles()
         {
             var sourceFiles = new List<ConfigurationItemFile>
             {
@@ -69,8 +71,9 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             _container.AddFileSectionLineItem(configurationItem);
 
             _container.SourceAt(0).Should().BeSameAs(configurationItem);
-            _container.FilesAt(0).Should().BeSameAs(sourceFiles,
-                "with files=null, the source file list must propagate as-is");
+            _container.FilesAt(0).Should().BeNull(
+                "with files=null, staging carries only explicit overrides; the source's files are " +
+                "supplied by the clone in CreateConfigurationItem, so they are not aliased through staging");
         }
 
         [Fact]
@@ -95,7 +98,7 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         [Fact]
         public void AddTextSectionLineItem_CreationPath_LeavesSourceNull()
         {
-            _container.AddTextSectionLineItem(EngravingText, "sec-text");
+            _container.AddTextSectionLineItem(new ProductConfigurationSection { SectionId = "sec-text", SectionName = "Text Section", Type = ConfigurationSectionTypeText, CustomText = EngravingText });
 
             _container.SourceAt(0).Should().BeNull(
                 "creation-path overloads have no ConfigurationItem yet — Source is null by design");
@@ -110,10 +113,64 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 new() { Name = "creation.png" },
             };
 
-            _container.AddFileSectionLineItem(files, "sec-file");
+            _container.AddFileSectionLineItem(new ProductConfigurationSection { SectionId = "sec-file", SectionName = "File Section", Type = ConfigurationSectionTypeFile }, files);
 
             _container.SourceAt(0).Should().BeNull();
             _container.FilesAt(0).Should().BeSameAs(files);
+        }
+
+        [Fact]
+        public void CreateConfiguredLineItem_CreationPath_StampsSectionNameOnConfigurationItem()
+        {
+            _container.Store = new Store { Id = "store-1" };
+            var cartProduct = NewCartProduct();
+
+            _container.AddProductSectionLineItem(cartProduct, new ProductConfigurationSection { SectionId = "sec-product", SectionName = "Color", Type = ConfigurationSectionTypeProduct });
+
+            var built = _container.CreateConfiguredLineItem(1).Item.ConfigurationItems.Single();
+            built.SectionName.Should().Be("Color",
+                "creation-path threads sectionName through staging, and CreateConfigurationItem stamps it onto the built ConfigurationItem");
+        }
+
+        [Fact]
+        public void CreateConfiguredLineItem_SourceAware_PreservesSectionNameFromConfigurationItem()
+        {
+            _container.Store = new Store { Id = "store-1" };
+            var configurationItem = NewConfigurationItem("sec-product", ConfigurationSectionTypeProduct);
+            configurationItem.SectionName = "Color";
+            var cartProduct = NewCartProduct();
+
+            _container.AddProductSectionLineItem(cartProduct, configurationItem);
+
+            var built = _container.CreateConfiguredLineItem(1).Item.ConfigurationItems.Single();
+            built.SectionName.Should().Be("Color",
+                "source-aware overload carries SectionName from the existing ConfigurationItem through staging onto the rebuilt item");
+        }
+
+        [Fact]
+        public void AddProductSectionLineItem_CreationPath_StagesSectionAndCartProduct()
+        {
+            var configurationSection = new ProductConfigurationSection { SectionId = "sec-product", SectionName = "Color", Type = ConfigurationSectionTypeProduct };
+            var cartProduct = NewCartProduct();
+
+            _container.AddProductSectionLineItem(cartProduct, configurationSection);
+
+            _container.SectionAt(0).Should().BeSameAs(configurationSection,
+                "the creation-path configurationSection is staged so materialize-time builder dispatch can read it");
+            _container.CartProductAt(0).Should().BeSameAs(cartProduct,
+                "the configurationSection's chosen product is staged for the builder's subtype-specific field population");
+        }
+
+        [Fact]
+        public void AddTextSectionLineItem_CreationPath_StagesSection_WithNullCartProduct()
+        {
+            var configurationSection = new ProductConfigurationSection { SectionId = "sec-text", SectionName = "Text Section", Type = ConfigurationSectionTypeText };
+
+            _container.AddTextSectionLineItem(configurationSection);
+
+            _container.SectionAt(0).Should().BeSameAs(configurationSection);
+            _container.CartProductAt(0).Should().BeNull(
+                "Text/File creation-path overloads have no chosen product — CartProduct is null by design");
         }
 
         private static ConfigurationItem NewConfigurationItem(string sectionId, string type)
@@ -143,11 +200,21 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         /// </summary>
         private sealed class TestableContainer : ConfiguredLineItemContainer
         {
+            // Pricing is out of scope for these tests and requires a fully-priced ConfigurableProduct;
+            // stub it so CreateConfiguredLineItem can run and we can assert on the built ConfigurationItems.
+            public override void UpdatePrice(LineItem lineItem)
+            {
+            }
+
             public ConfigurationItem SourceAt(int index) => Items[index].Source;
 
             public string CustomTextAt(int index) => Items[index].CustomText;
 
             public IList<ConfigurationItemFile> FilesAt(int index) => Items[index].Files;
+
+            public ProductConfigurationSection SectionAt(int index) => Items[index].ConfigurationSection;
+
+            public CartProduct CartProductAt(int index) => Items[index].CartProduct;
         }
     }
 }

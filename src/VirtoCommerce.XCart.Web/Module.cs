@@ -2,6 +2,8 @@ using GraphQL.MicrosoftDI;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using VirtoCommerce.CartModule.Core.Events;
+using VirtoCommerce.Platform.Core.Events;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Settings;
 using VirtoCommerce.StoreModule.Core.Model;
@@ -9,6 +11,7 @@ using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Data;
 using VirtoCommerce.XCart.Data.Extensions;
+using VirtoCommerce.XCart.Data.Handlers;
 
 namespace VirtoCommerce.XCart.Web;
 
@@ -19,6 +22,8 @@ public class Module : IModule, IHasConfiguration
 
     public void Initialize(IServiceCollection serviceCollection)
     {
+        serviceCollection.AddSingleton<CartChangedEventHandler>();
+
         var graphQlBuilder = new GraphQLBuilder(serviceCollection, builder =>
         {
             builder.AddSchema(serviceCollection, typeof(CoreAssemblyMarker), typeof(DataAssemblyMarker));
@@ -37,6 +42,8 @@ public class Module : IModule, IHasConfiguration
         var settingsRegistrar = serviceProvider.GetRequiredService<ISettingsRegistrar>();
         settingsRegistrar.RegisterSettings(ModuleConstants.Settings.General.AllSettings, ModuleInfo.Id);
         settingsRegistrar.RegisterSettingsForType(ModuleConstants.Settings.StoreLevelSettings, nameof(Store));
+
+        appBuilder.RegisterEventHandler<CartChangedEvent, CartChangedEventHandler>();
     }
 
     public void Uninstall()
