@@ -53,7 +53,6 @@ namespace VirtoCommerce.XCart.Core
         private readonly IXCartMapper _mapper;
         private readonly IGenericPipelineLauncher _pipeline;
         private readonly IFileUploadService _fileUploadService;
-        private readonly ICartSharingService _cartSharingService;
         private readonly ICartValidationContextFactory _cartValidationContextFactory;
         private readonly ICartItemBuilder _cartItemBuilder;
         private readonly ICartValidatorRegistry _cartValidatorRegistry;
@@ -70,7 +69,6 @@ namespace VirtoCommerce.XCart.Core
             IMemberService memberService,
             IGenericPipelineLauncher pipeline,
             IFileUploadService fileUploadService,
-            ICartSharingService cartSharingService,
             ICartValidationContextFactory cartValidationContextFactory,
             ICartItemBuilder cartItemBuilder,
             ICartValidatorRegistry cartValidatorRegistry)
@@ -84,7 +82,6 @@ namespace VirtoCommerce.XCart.Core
             _memberService = memberService;
             _pipeline = pipeline;
             _fileUploadService = fileUploadService;
-            _cartSharingService = cartSharingService;
             _cartValidationContextFactory = cartValidationContextFactory;
             _cartItemBuilder = cartItemBuilder;
             _cartValidatorRegistry = cartValidatorRegistry;
@@ -198,15 +195,12 @@ namespace VirtoCommerce.XCart.Core
         ];
 
         /// <summary>
-        /// Per-ruleSet validation results cache. Populated by <see cref="ValidateAsync(CartValidationContext, string)"/>.
+        /// Per-ruleSet validation results cache. Populated by <see cref="ValidateAsync(string)"/>.
         /// Cleared by <see cref="ClearValidationCache"/>.
         /// </summary>
         protected ConcurrentDictionary<string, IList<ValidationFailure>> ValidationErrorsByRuleSet { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
 
         public bool IsValid => ValidationErrorsByRuleSet.IsEmpty || ValidationErrorsByRuleSet.Values.All(x => x.Count == 0);
-
-        [Obsolete("Use GetValidationErrors().", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
-        public IList<ValidationFailure> ValidationErrors { get; protected set; } = new List<ValidationFailure>();
 
         public IList<ValidationFailure> OperationValidationErrors { get; protected set; } = new List<ValidationFailure>();
 
@@ -217,15 +211,6 @@ namespace VirtoCommerce.XCart.Core
         public bool IsValidated { get; private set; }
 
         public IList<ValidationFailure> ValidationWarnings { get; protected set; } = new List<ValidationFailure>();
-
-        [Obsolete("Use Cart.SharingSettings and ICartSharingService instead", false, DiagnosticId = "VC0011", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
-        public virtual string Scope
-        {
-            get
-            {
-                return _cartSharingService.GetSharingScope(Cart);
-            }
-        }
 
         public IList<string> ProductsIncludeFields { get; set; }
         public string ResponseGroup { get; set; }
@@ -974,9 +959,8 @@ namespace VirtoCommerce.XCart.Core
         /// per ruleSet in <see cref="ValidationErrorsByRuleSet"/> — subsequent calls with the same
         /// ruleSet return cached results without re-running validation.
         /// <para>
-        /// Delegates to <see cref="ValidateAsync(CartValidationContext, string)"/>, which remains the
-        /// virtual extension point for derived aggregates during its deprecation window — overrides of
-        /// that overload participate in every validation triggered through this method.
+        /// This is the virtual extension point for derived aggregates: override it (calling
+        /// <c>base</c>) to append custom validation results.
         /// </para>
         /// </summary>
         public virtual async Task<IList<ValidationFailure>> ValidateAsync(string ruleSet)
@@ -998,36 +982,17 @@ namespace VirtoCommerce.XCart.Core
             EnsureCartExists();
 
             var validationContext = await _cartValidationContextFactory.CreateValidationContextAsync(this);
-
-#pragma warning disable VC0009 // Obsolete overload is intentionally kept as the virtual extension point
-            return await ValidateAsync(validationContext, ruleSet);
-#pragma warning restore VC0009
-        }
-
-        [Obsolete("Use ValidateAsync(string ruleSet). The context is now created internally.", DiagnosticId = "VC0009", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
-        public virtual async Task<IList<ValidationFailure>> ValidateAsync(CartValidationContext validationContext, string ruleSet)
-        {
-            ArgumentNullException.ThrowIfNull(validationContext);
-
-            var key = NormalizeRuleSet(ruleSet);
-
-            if (ValidationErrorsByRuleSet.TryGetValue(key, out var cached))
-            {
-                return cached;
-            }
-
-            EnsureCartExists();
-
             validationContext.CartAggregate = this;
 
             var rules = ruleSet?.Split(RuleSetSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             var errors = await _cartValidatorRegistry.ValidateAsync(validationContext, options => options.IncludeRuleSets(rules));
 
             ValidationErrorsByRuleSet[key] = errors;
-            CartValidationErrors = errors;
 
-            // Backward compatibility: keep obsolete flag in sync
+#pragma warning disable VC0015 // Backward-compat mirrors kept in sync until the VC0015 members are removed
+            CartValidationErrors = errors;
             IsValidated = true;
+#pragma warning restore VC0015
 
             return errors;
         }
@@ -1333,36 +1298,6 @@ namespace VirtoCommerce.XCart.Core
         protected virtual bool CheckPricePolicy(TierPrice tierPrice)
         {
             return tierPrice.Price.Amount > 0;
-        }
-
-        [Obsolete("Use InnerAddLineItemAsync(LineItem newLineItem, bool overrideQuantity) instead", DiagnosticId = "VC0011", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
-        protected virtual async Task<CartAggregate> InnerAddLineItemAsync(LineItem newLineItem, CartProduct product = null, IList<DynamicPropertyValue> dynamicProperties = null)
-        {
-            var existingLineItem = newLineItem.IsConfigured
-                ? null
-                : FindExistingLineItemBeforeAdd(newLineItem.ProductId, product, dynamicProperties);
-
-            if (existingLineItem != null)
-            {
-                await InnerChangeItemQuantityAsync(existingLineItem, existingLineItem.Quantity + Math.Max(1, newLineItem.Quantity), product);
-
-                existingLineItem.FulfillmentCenterId = newLineItem.FulfillmentCenterId;
-                existingLineItem.FulfillmentCenterName = newLineItem.FulfillmentCenterName;
-
-                newLineItem = existingLineItem;
-            }
-            else
-            {
-                newLineItem.Id = null;
-                Cart.Items.Add(newLineItem);
-            }
-
-            if (dynamicProperties != null)
-            {
-                await UpdateCartItemDynamicProperties(newLineItem, dynamicProperties);
-            }
-
-            return this;
         }
 
         protected virtual async Task<CartAggregate> InnerAddLineItemAsync(LineItem newLineItem, bool overrideQuantity, CartProduct product = null, IList<DynamicPropertyValue> dynamicProperties = null)
@@ -2177,29 +2112,6 @@ namespace VirtoCommerce.XCart.Core
             }
 
             return container;
-        }
-
-        [Obsolete("Use ConfiguredLineItemContainer.SyncConfigurationPrices instead.", DiagnosticId = "VC0010")]
-        protected virtual void SyncConfigurationItemPrices(LineItem configurationLineItem, ExpConfigurationLineItem recalculated)
-        {
-            if (recalculated.Item?.ConfigurationItems.IsNullOrEmpty() != false)
-            {
-                return;
-            }
-
-            foreach (var recalculatedItem in recalculated.Item.ConfigurationItems)
-            {
-                var existingItem = configurationLineItem.ConfigurationItems?.FirstOrDefault(x =>
-                    x.Type == recalculatedItem.Type &&
-                    x.SectionId == recalculatedItem.SectionId &&
-                    (recalculatedItem.Type != ConfigurationSectionTypeVariation || x.ProductId == recalculatedItem.ProductId));
-
-                if (existingItem != null)
-                {
-                    existingItem.ListPrice = recalculatedItem.ListPrice;
-                    existingItem.SalePrice = recalculatedItem.SalePrice;
-                }
-            }
         }
 
         protected virtual Task DeleteConfigurationFiles()

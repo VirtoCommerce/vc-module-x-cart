@@ -44,7 +44,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 _memberService.Object,
                 _genericPipelineLauncherMock.Object,
                 _fileUploadService.Object,
-                _cartSharingService.Object,
                 _cartValidationContextFactoryMock.Object,
                 _cartItemBuilder,
                 _cartValidatorRegistry);
@@ -1004,12 +1003,12 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         #region ValidateAsync extensibility
 
         [Fact]
-        public async Task ValidateAsync_DerivedOverridesContextOverload_OverrideParticipatesInValidation()
+        public async Task ValidateAsync_DerivedOverridesValidateAsync_OverrideParticipatesInValidation()
         {
             // Arrange
             // Extensibility guard: derived aggregates (module customizations) override the virtual
-            // ValidateAsync(CartValidationContext, string) to append their own validation results.
-            // The ruleSet-only overload must delegate to it so those customizations keep working.
+            // ValidateAsync(string) to append their own validation results, calling base to run the
+            // built-in validation first.
             var aggregate = new ExtendedCartAggregate(
                 _marketingPromoEvaluatorMock.Object,
                 _shoppingCartTotalsCalculatorMock.Object,
@@ -1020,7 +1019,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 _memberService.Object,
                 _genericPipelineLauncherMock.Object,
                 _fileUploadService.Object,
-                _cartSharingService.Object,
                 _cartValidationContextFactoryMock.Object,
                 _cartItemBuilder,
                 _cartValidatorRegistry);
@@ -1051,25 +1049,22 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 CustomerModule.Core.Services.IMemberService memberService,
                 Xapi.Core.Pipelines.IGenericPipelineLauncher pipeline,
                 FileExperienceApi.Core.Services.IFileUploadService fileUploadService,
-                ICartSharingService cartSharingService,
                 ICartValidationContextFactory cartValidationContextFactory,
                 ICartItemBuilder cartItemBuilder,
                 ICartValidatorRegistry cartValidatorRegistry)
                 : base(marketingEvaluator, cartTotalsCalculator, taxProviderSearchService, cartProductService, dynamicPropertyUpdaterService, mapper, memberService, pipeline,
-                    fileUploadService, cartSharingService, cartValidationContextFactory, cartItemBuilder, cartValidatorRegistry)
+                    fileUploadService, cartValidationContextFactory, cartItemBuilder, cartValidatorRegistry)
             {
             }
 
-#pragma warning disable VC0009 // The obsolete overload remains the virtual extension point during the deprecation window
-            public override async Task<IList<ValidationFailure>> ValidateAsync(CartValidationContext validationContext, string ruleSet)
+            public override async Task<IList<ValidationFailure>> ValidateAsync(string ruleSet)
             {
-                var errors = await base.ValidateAsync(validationContext, ruleSet);
+                var errors = await base.ValidateAsync(ruleSet);
 
                 return errors
                     .Concat(new[] { new CartValidationError("TestEntity", "test-id", "Custom validation error", CustomErrorCode) })
                     .ToList();
             }
-#pragma warning restore VC0009
         }
 
         #endregion ValidateAsync extensibility
