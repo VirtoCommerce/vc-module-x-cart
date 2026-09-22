@@ -57,7 +57,6 @@ namespace VirtoCommerce.XCart.Tests.Helpers
         protected readonly Mock<IGenericPipelineLauncher> _genericPipelineLauncherMock;
         protected readonly Mock<IConfigurationItemValidator> _configurationItemValidatorMock;
         protected readonly Mock<IFileUploadService> _fileUploadService;
-        protected readonly Mock<ICartSharingService> _cartSharingService;
         protected readonly Mock<ICartValidationContextFactory> _cartValidationContextFactoryMock;
         protected readonly ICartItemBuilder _cartItemBuilder;
 
@@ -218,7 +217,6 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))
                 .ReturnsAsync(() => []);
 
-            _cartSharingService = new Mock<ICartSharingService>();
             _cartValidationContextFactoryMock = new Mock<ICartValidationContextFactory>();
             _cartItemBuilder = new CartItemBuilder();
             _cartValidatorRegistry = BuildCartValidatorRegistry();
@@ -305,7 +303,6 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 _memberService.Object,
                 _genericPipelineLauncherMock.Object,
                 _fileUploadService.Object,
-                _cartSharingService.Object,
                 _cartValidationContextFactoryMock.Object,
                 _cartItemBuilder,
                 _cartValidatorRegistry);
@@ -327,7 +324,6 @@ namespace VirtoCommerce.XCart.Tests.Helpers
                 _memberService.Object,
                 _genericPipelineLauncherMock.Object,
                 _fileUploadService.Object,
-                _cartSharingService.Object,
                 _cartValidationContextFactoryMock.Object,
                 _cartItemBuilder,
                 _cartValidatorRegistry);
