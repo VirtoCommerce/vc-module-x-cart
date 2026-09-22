@@ -18,6 +18,7 @@ using VirtoCommerce.InventoryModule.Core.Model;
 using VirtoCommerce.MarketingModule.Core.Services;
 using VirtoCommerce.PaymentModule.Core.Model;
 using VirtoCommerce.PaymentModule.Core.Services;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.ShippingModule.Core.Services;
