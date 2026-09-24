@@ -32,7 +32,6 @@ public class CartAggregateMappingTests : XCartMoqHelper
             _memberService.Object,
             _genericPipelineLauncherMock.Object,
             _fileUploadService.Object,
-            _cartSharingService.Object,
             _cartValidationContextFactoryMock.Object,
             _cartItemBuilder,
             _cartValidatorRegistry);
