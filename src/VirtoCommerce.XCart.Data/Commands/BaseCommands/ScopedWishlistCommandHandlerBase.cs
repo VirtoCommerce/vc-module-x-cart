@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
@@ -31,7 +32,10 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
 
         context.Scope = request.Scope;
         context.SharingKey = request.SharingKey;
-        context.SharedWithId = request.SharedWithId;
+        context.AddSharedWithIds = request.AddSharedWithIds;
+        context.RemoveSharedWithIds = request.RemoveSharedWithIds;
+        context.LegacySharedWithId = request.SharedWithId;
+        context.Message = request.Message;
         context.CurrentUserId = request.WishlistUserContext.CurrentUserId;
         context.CustomerName = request.WishlistUserContext.CurrentContact.Name;
         context.CurrentOrganizationId = request.WishlistUserContext.CurrentOrganizationId;
