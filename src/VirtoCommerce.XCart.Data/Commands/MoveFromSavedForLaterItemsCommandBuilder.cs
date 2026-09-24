@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using GraphQL;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using VirtoCommerce.Platform.Core.DistributedLock;
 using VirtoCommerce.Xapi.Core.BaseQueries;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Infrastructure;
@@ -16,12 +17,12 @@ using VirtoCommerce.XCart.Data.Schemas;
 
 namespace VirtoCommerce.XCart.Data.Commands;
 
-public class MoveFromSavedForLaterItemsCommandBuilder(IAuthorizationService authorizationService, ICartAggregateRepository cartRepository, IDistributedLockService distributedLockService)
+public class MoveFromSavedForLaterItemsCommandBuilder(IAuthorizationService authorizationService, ICartAggregateRepository cartRepository, IDistributedLock distributedLock)
     : CommandBuilder<MoveFromSavedForLaterItemsCommand, CartAggregateWithList, InputSaveForLaterType, CartWithListType>(authorizationService)
 {
     [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
-    public MoveFromSavedForLaterItemsCommandBuilder(IMediator mediator, IAuthorizationService authorizationService, ICartAggregateRepository cartRepository, IDistributedLockService distributedLockService)
-        : this(authorizationService, cartRepository, distributedLockService)
+    public MoveFromSavedForLaterItemsCommandBuilder(IMediator mediator, IAuthorizationService authorizationService, ICartAggregateRepository cartRepository, IDistributedLock distributedLock)
+        : this(authorizationService, cartRepository, distributedLock)
     {
     }
 
@@ -37,9 +38,10 @@ public class MoveFromSavedForLaterItemsCommandBuilder(IAuthorizationService auth
         return result;
     }
 
-    protected override Task<CartAggregateWithList> GetResponseAsync(IResolveFieldContext<object> context, MoveFromSavedForLaterItemsCommand request)
+    protected override async Task<CartAggregateWithList> GetResponseAsync(IResolveFieldContext<object> context, MoveFromSavedForLaterItemsCommand request)
     {
-        return distributedLockService.ExecuteAsync($"{PurchaseSchema.CartPrefix}:{request.UserId}", () => base.GetResponseAsync(context, request));
+        await using var handle = await distributedLock.AcquireForGraphQLAsync($"{PurchaseSchema.CartPrefix}:{request.UserId}", context);
+        return await base.GetResponseAsync(context, request);
     }
 
     protected override async Task BeforeMediatorSend(IResolveFieldContext<object> context, MoveFromSavedForLaterItemsCommand request)

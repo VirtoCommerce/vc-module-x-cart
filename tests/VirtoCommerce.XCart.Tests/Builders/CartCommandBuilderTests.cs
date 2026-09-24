@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.Platform.Core.DistributedLock;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.Xapi.Core.Security.Authorization;
@@ -27,14 +28,14 @@ public class CartCommandBuilderTests
 {
     private readonly Mock<IMediator> _mediatorMock = new();
     private readonly Mock<IAuthorizationService> _authorizationServiceMock = new();
-    private readonly Mock<IDistributedLockService> _lockServiceMock = new();
+    private readonly Mock<IDistributedLock> _distributedLockMock = new();
     private readonly Mock<ICartAggregateRepository> _cartRepositoryMock = new();
 
     private TestableCartCommandBuilder CreateBuilder()
     {
         return new TestableCartCommandBuilder(
             _authorizationServiceMock.Object,
-            _lockServiceMock.Object,
+            _distributedLockMock.Object,
             _cartRepositoryMock.Object);
     }
 
@@ -72,9 +73,9 @@ public class CartCommandBuilderTests
 
     private void SetupLockServicePassthrough()
     {
-        _lockServiceMock
-            .Setup(x => x.ExecuteAsync(It.IsAny<string>(), It.IsAny<Func<Task<CartAggregate>>>()))
-            .Returns<string, Func<Task<CartAggregate>>>((_, resolver) => resolver());
+        _distributedLockMock
+            .Setup(x => x.AcquireAsync(It.IsAny<string>(), It.IsAny<TimeSpan?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Mock.Of<IDistributedLockHandle>());
     }
 
     private void SetupAuthorizationSuccess()
@@ -233,9 +234,10 @@ public class CartCommandBuilderTests
         await builder.TestResolve(context.Object);
 
         // Assert
-        _lockServiceMock.Verify(x => x.ExecuteAsync(
+        _distributedLockMock.Verify(x => x.AcquireAsync(
             "Cart:user-1",
-            It.IsAny<Func<Task<CartAggregate>>>()),
+            TimeSpan.FromSeconds(10),
+            It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -299,10 +301,10 @@ public class CartCommandBuilderTests
 
     private class TestableCartCommandBuilder(
         IAuthorizationService authorizationService,
-        IDistributedLockService distributedLockService,
+        IDistributedLock distributedLock,
         ICartAggregateRepository cartRepository)
         : CartCommandBuilder<TestCartCommand, InputObjectGraphType>(
-            authorizationService, distributedLockService, cartRepository)
+            authorizationService, distributedLock, cartRepository)
     {
         public TestCartCommand Command { get; set; } = new();
         public CartAggregate AfterMediatorSendResponse { get; private set; }
