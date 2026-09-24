@@ -12,12 +12,18 @@ namespace VirtoCommerce.XCart.Data.Services
     {
         private readonly ISearchPhraseParser _phraseParser;
         private readonly IXCartMapper _mapper;
+        private readonly ICartSharingService _cartSharingService;
         private readonly ShoppingCartSearchCriteria _searchCriteria;
 
-        public CartSearchCriteriaBuilder(ISearchPhraseParser phraseParser, IXCartMapper mapper) : this()
+        public CartSearchCriteriaBuilder(ISearchPhraseParser phraseParser, IXCartMapper mapper) : this(phraseParser, mapper, cartSharingService: null)
+        {
+        }
+
+        public CartSearchCriteriaBuilder(ISearchPhraseParser phraseParser, IXCartMapper mapper, ICartSharingService cartSharingService) : this()
         {
             _phraseParser = phraseParser;
             _mapper = mapper;
+            _cartSharingService = cartSharingService;
         }
 
         public CartSearchCriteriaBuilder()
@@ -94,16 +100,13 @@ namespace VirtoCommerce.XCart.Data.Services
         /// </summary>
         public CartSearchCriteriaBuilder WithScope(string scope)
         {
-            _searchCriteria.CustomerOrOrganization = true;
+            if (_cartSharingService == null)
+            {
+                throw new InvalidOperationException("cart sharing service must be initialized");
+            }
 
-            if (scope.EqualsIgnoreCase(CartSharingScope.Organization))
-            {
-                _searchCriteria.CustomerId = null;
-            }
-            else if (scope.EqualsIgnoreCase(CartSharingScope.Private))
-            {
-                _searchCriteria.OrganizationId = null;
-            }
+            _searchCriteria.CustomerOrOrganization = true;
+            _cartSharingService.ConfigureSearchCriteria(_searchCriteria, scope);
 
             return this;
         }

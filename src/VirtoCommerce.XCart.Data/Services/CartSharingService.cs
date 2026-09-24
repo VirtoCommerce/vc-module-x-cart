@@ -3,16 +3,25 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
-using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
+using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Services;
 
 namespace VirtoCommerce.XCart.Data.Services;
 
-public class CartSharingService(ICartAggregateRepository cartAggregateRepository) : ICartSharingService
+public class CartSharingService : ICartSharingService
 {
+    private readonly ICartAggregateRepository _cartAggregateRepository;
+    private readonly Dictionary<string, ICartSharingScopePolicy> _scopePolicies;
+
+    public CartSharingService(ICartAggregateRepository cartAggregateRepository, IEnumerable<ICartSharingScopePolicy> scopePolicies)
+    {
+        _cartAggregateRepository = cartAggregateRepository;
+        _scopePolicies = BuildScopePolicyIndex(scopePolicies);
+    }
+
     public virtual string GetSharingScope(ShoppingCart cart)
     {
         if (cart == null)
@@ -25,60 +34,24 @@ public class CartSharingService(ICartAggregateRepository cartAggregateRepository
             return string.IsNullOrEmpty(cart.OrganizationId) ? CartSharingScope.Private : CartSharingScope.Organization;
         }
 
-        if (cart.SharingSettings.Any(x => x.Scope == CartSharingScope.AnyoneAnonymous))
-        {
-            return CartSharingScope.AnyoneAnonymous;
-        }
-        else if (cart.SharingSettings.Any(x => x.Scope == CartSharingScope.AnyoneAuthorized))
-        {
-            return CartSharingScope.AnyoneAuthorized;
-        }
-        else if (cart.SharingSettings.Any(x => x.Scope == CartSharingScope.Organization))
-        {
-            return CartSharingScope.Organization;
-        }
-        else if (cart.SharingSettings.Any(x => x.Scope == CartSharingScope.User))
-        {
-            return CartSharingScope.User;
-        }
-
-        return CartSharingScope.Private;
+        return FindScopePolicy(cart)?.Scope ?? CartSharingScope.Private;
     }
 
     public virtual string GetSharingAccess(ShoppingCart cart, string currentUserId)
     {
-        var sharingScope = GetSharingScope(cart);
-
-        if (sharingScope == CartSharingScope.Private || sharingScope == CartSharingScope.Organization)
-        {
-            return CartSharingAccess.Write;
-        }
-        else if (sharingScope == CartSharingScope.AnyoneAnonymous || sharingScope == CartSharingScope.AnyoneAuthorized)
-        {
-            return !string.IsNullOrEmpty(currentUserId) && GetSharingOwnerUserId(cart) == currentUserId ? CartSharingAccess.Write : CartSharingAccess.Read;
-        }
-        else
-        {
-            return CartSharingAccess.Read;
-        }
+        return _scopePolicies.TryGetValue(GetSharingScope(cart), out var policy)
+            ? policy.GetAccess(cart, currentUserId)
+            : CartSharingAccess.Read;
     }
 
     public virtual bool IsAuthorized(ShoppingCart cart, string currentUserId, string currentOrganizationId)
     {
-        if (cart.SharingSettings.Any(x => x.Scope == CartSharingScope.AnyoneAnonymous))
-        {
-            return true;
-        }
-        else if (cart.SharingSettings.Any(x => x.Scope == CartSharingScope.AnyoneAuthorized))
-        {
-            return !string.IsNullOrEmpty(currentUserId);
-        }
-        else if (cart.SharingSettings.Any(x => x.Scope == CartSharingScope.Organization))
-        {
-            return !string.IsNullOrEmpty(currentUserId) && GetSharingOwnerOrganizationId(cart) == currentOrganizationId;
-        }
+        // Settings only: GetSharingScope's no-settings => Organization inference would authorize any org member.
+        var policy = FindScopePolicy(cart);
 
-        return !string.IsNullOrEmpty(currentUserId) && GetSharingOwnerUserId(cart) == currentUserId;
+        return policy != null
+            ? policy.IsAuthorized(cart, currentUserId, currentOrganizationId)
+            : IsOwner(cart, currentUserId);
     }
 
     public virtual void SetOwner(ShoppingCart cart, string userId, string customerName, string organizationId)
@@ -106,67 +79,36 @@ public class CartSharingService(ICartAggregateRepository cartAggregateRepository
 
     public virtual void EnsureSharingSettings(ShoppingCart cart, string sharingKey, string mode, string access, string sharedWithId)
     {
-        if (cart.SharingSettings.IsNullOrEmpty())
+        // Through the scope's policy, so its owner's write behavior applies.
+        if (string.IsNullOrEmpty(mode) || !_scopePolicies.TryGetValue(mode, out var policy))
         {
-            var sharingSetting = AbstractTypeFactory<CartSharingSetting>.TryCreateInstance();
-
-            sharingSetting.Id = sharingKey;
-            sharingSetting.ShoppingCartId = cart.Id;
-            sharingSetting.Scope = mode;
-            sharingSetting.Access = access;
-            sharingSetting.SharedWithId = sharedWithId;
-
-            cart.SharingSettings.Add(sharingSetting);
+            throw new InvalidOperationException($"Unsupported sharing scope '{mode}'.");
         }
-        else
-        {
-            foreach (var setting in cart.SharingSettings)
-            {
-                setting.Scope = CartSharingScope.Private;
-            }
 
-            var sharingSetting = cart.SharingSettings.First();
-
-            sharingSetting.Scope = mode;
-            sharingSetting.Access = access;
-            sharingSetting.SharedWithId = sharedWithId;
-        }
+        policy.EnsureSetting(cart, sharingKey, access, sharedWithId);
     }
 
     public virtual Task UpdateScopeAsync(ShoppingCart cart, WishlistScopeContext context)
     {
-        if (!string.IsNullOrEmpty(context.Scope) && !ApplyScope(cart, context))
+        if (string.IsNullOrEmpty(context.Scope))
+        {
+            return Task.CompletedTask;
+        }
+
+        if (!_scopePolicies.TryGetValue(context.Scope, out var policy) || !policy.CanApply)
         {
             throw new InvalidOperationException($"Unsupported sharing scope '{context.Scope}'.");
         }
 
-        return Task.CompletedTask;
+        return policy.ApplyAsync(cart, context);
     }
 
-    protected virtual bool ApplyScope(ShoppingCart cart, WishlistScopeContext context)
+    public virtual void ConfigureSearchCriteria(ShoppingCartSearchCriteria criteria, string scope)
     {
-        if (CartSharingScope.AnyoneAnonymous.EqualsIgnoreCase(context.Scope))
+        if (!string.IsNullOrEmpty(scope) && _scopePolicies.TryGetValue(scope, out var policy))
         {
-            EnsureSharingSettings(cart, context.SharingKey, CartSharingScope.AnyoneAnonymous, CartSharingAccess.Read, sharedWithId: null);
-            SetOwner(cart, context.CurrentUserId, context.CustomerName, null);
-            return true;
+            policy.ConfigureSearchCriteria(criteria);
         }
-
-        if (CartSharingScope.Organization.EqualsIgnoreCase(context.Scope))
-        {
-            EnsureSharingSettings(cart, context.SharingKey, CartSharingScope.Organization, CartSharingAccess.Write, sharedWithId: null);
-            SetOwner(cart, context.CurrentUserId, context.CustomerName, context.CurrentOrganizationId);
-            return true;
-        }
-
-        if (CartSharingScope.Private.EqualsIgnoreCase(context.Scope))
-        {
-            EnsureSharingSettings(cart, null, CartSharingScope.Private, CartSharingAccess.Write, sharedWithId: null);
-            SetOwner(cart, context.CurrentUserId, context.CustomerName, null);
-            return true;
-        }
-
-        return false;
     }
 
     public virtual async Task<CartAggregate> GetWishlistBySharingKeyAsync(string sharingKey, IList<string> includeFields)
@@ -176,7 +118,54 @@ public class CartSharingService(ICartAggregateRepository cartAggregateRepository
         cartSearchCriteria.SharingKey = sharingKey;
         cartSearchCriteria.Take = 1;
 
-        var searchResult = await cartAggregateRepository.SearchCartAsync(cartSearchCriteria, includeFields);
+        var searchResult = await _cartAggregateRepository.SearchCartAsync(cartSearchCriteria, includeFields);
         return searchResult.Results.FirstOrDefault();
+    }
+
+    // First setting with a registered policy. Relies on one effective scope per cart (EnsureSetting's invariant);
+    // generic CRUD can persist a multi-scope one, where this picks the first stored - fail-closed, never wider.
+    protected virtual ICartSharingScopePolicy FindScopePolicy(ShoppingCart cart)
+    {
+        if (cart == null || cart.SharingSettings.IsNullOrEmpty())
+        {
+            return null;
+        }
+
+        foreach (var setting in cart.SharingSettings)
+        {
+            if (!string.IsNullOrEmpty(setting.Scope) && _scopePolicies.TryGetValue(setting.Scope, out var policy))
+            {
+                return policy;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsOwner(ShoppingCart cart, string currentUserId)
+    {
+        return !string.IsNullOrEmpty(currentUserId) && cart?.CustomerId.EqualsIgnoreCase(currentUserId) == true;
+    }
+
+    private static Dictionary<string, ICartSharingScopePolicy> BuildScopePolicyIndex(IEnumerable<ICartSharingScopePolicy> scopePolicies)
+    {
+        var result = new Dictionary<string, ICartSharingScopePolicy>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var policy in scopePolicies)
+        {
+            if (string.IsNullOrEmpty(policy.Scope))
+            {
+                throw new InvalidOperationException($"{policy.GetType().FullName} must declare a non-empty {nameof(ICartSharingScopePolicy.Scope)}.");
+            }
+
+            if (!result.TryAdd(policy.Scope, policy))
+            {
+                throw new InvalidOperationException(
+                    $"Two {nameof(ICartSharingScopePolicy)} implementations claim the sharing scope '{policy.Scope}': " +
+                    $"{result[policy.Scope].GetType().FullName} and {policy.GetType().FullName}.");
+            }
+        }
+
+        return result;
     }
 }
