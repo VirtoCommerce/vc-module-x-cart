@@ -1,4 +1,3 @@
-using AutoMapper;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
 using GraphQL.Types;
@@ -15,7 +14,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
 {
     public class PaymentType : ExtendableGraphType<Payment>
     {
-        public PaymentType(IMapper mapper, IMemberService memberService, IDataLoaderContextAccessor dataLoader, IDynamicPropertyResolverService dynamicPropertyResolverService)
+        public PaymentType(IXapiMapper mapper, IMemberService memberService, IDataLoaderContextAccessor dataLoader, IDynamicPropertyResolverService dynamicPropertyResolverService)
         {
             Field(x => x.Id, nullable: false).Description("Payment Id");
             Field(x => x.OuterId, nullable: true).Description("Value of payment outer id");
