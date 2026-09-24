@@ -18,6 +18,7 @@ namespace VirtoCommerce.XCart.Data.Commands
         {
             var cartAggregate = await CreateNewCartAggregateAsync(request);
 
+            cartAggregate.Cart.ChannelId = request.ChannelId;
             cartAggregate.Cart.OrganizationId = request.OrganizationId;
 
             return await SaveCartAsync(cartAggregate);
