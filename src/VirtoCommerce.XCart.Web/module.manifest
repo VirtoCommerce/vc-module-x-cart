@@ -3,7 +3,7 @@
   <id>VirtoCommerce.XCart</id>
   <version>3.1037.0</version>
   <version-tag></version-tag>
-  <platformVersion>3.1048.0</platformVersion>
+  <platformVersion>3.1073.0-alpha.13400-vcst-6052</platformVersion>
   <dependencies>
     <dependency id="VirtoCommerce.Cart" version="3.1008.0" />
     <dependency id="VirtoCommerce.Catalog" version="3.1029.0" />
@@ -13,7 +13,7 @@
     <dependency id="VirtoCommerce.Payment" version="3.1004.0" />
     <dependency id="VirtoCommerce.Pricing" version="3.1003.0" />
     <dependency id="VirtoCommerce.Shipping" version="3.1005.0" />
-    <dependency id="VirtoCommerce.Xapi" version="3.1022.0" />
+    <dependency id="VirtoCommerce.Xapi" version="3.1024.0-alpha.210-vcst-6052" />
     <dependency id="VirtoCommerce.XCatalog" version="3.1007.0" />
   </dependencies>
 

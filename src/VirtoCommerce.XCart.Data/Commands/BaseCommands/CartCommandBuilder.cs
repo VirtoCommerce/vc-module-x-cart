@@ -1,9 +1,8 @@
-using System;
 using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Types;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using VirtoCommerce.Platform.Core.DistributedLock;
 using VirtoCommerce.Xapi.Core.BaseQueries;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Infrastructure;
@@ -23,27 +22,17 @@ namespace VirtoCommerce.XCart.Data.Commands.BaseCommands;
 /// - OrganizationId assignment from the current user context
 /// - Anonymous access check
 /// - Cart resolution and authorization (CanAccessCartAuthorizationRequirement)
-/// - Distributed lock by UserId (consistent with PurchaseSchema legacy approach)
+/// - Distributed lock by UserId through the Platform IDistributedLock (wait: VirtoCommerce:GraphQLDistributedLock:Timeout)
 /// - Setting expanded object graph for nested GraphQL resolvers
 /// </summary>
 public abstract class CartCommandBuilder<TCommand, TInputType>(
     IAuthorizationService authorizationService,
-    IDistributedLockService distributedLockService,
+    IDistributedLock distributedLock,
     ICartAggregateRepository cartRepository)
     : CommandBuilder<TCommand, CartAggregate, TInputType, CartType>(authorizationService)
     where TCommand : CartCommand
     where TInputType : IInputObjectGraphType
 {
-    [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
-    protected CartCommandBuilder(
-        IMediator mediator,
-        IAuthorizationService authorizationService,
-        IDistributedLockService distributedLockService,
-        ICartAggregateRepository cartRepository)
-        : this(authorizationService, distributedLockService, cartRepository)
-    {
-    }
-
     protected override TCommand GetRequest(IResolveFieldContext<object> context)
     {
         var request = base.GetRequest(context);
@@ -76,13 +65,16 @@ public abstract class CartCommandBuilder<TCommand, TInputType>(
         }
     }
 
-    protected override Task<CartAggregate> GetResponseAsync(IResolveFieldContext<object> context, TCommand request)
+    protected override async Task<CartAggregate> GetResponseAsync(IResolveFieldContext<object> context, TCommand request)
     {
         var lockKey = GetLockKey(request);
+        if (string.IsNullOrEmpty(lockKey))
+        {
+            return await base.GetResponseAsync(context, request);
+        }
 
-        return string.IsNullOrEmpty(lockKey)
-            ? base.GetResponseAsync(context, request)
-            : distributedLockService.ExecuteAsync(lockKey, () => base.GetResponseAsync(context, request));
+        await using var handle = await distributedLock.AcquireForGraphQLAsync(lockKey, context);
+        return await base.GetResponseAsync(context, request);
     }
 
     protected override Task AfterMediatorSend(IResolveFieldContext<object> context, TCommand request, CartAggregate response)
