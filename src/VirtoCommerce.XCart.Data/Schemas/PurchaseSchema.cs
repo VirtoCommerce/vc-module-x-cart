@@ -14,7 +14,7 @@ using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.Platform.Core.DistributedLock;
+using VirtoCommerce.XCart.Data.Services;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Infrastructure;
@@ -32,6 +32,7 @@ using VirtoCommerce.XCart.Data.Authorization;
 using VirtoCommerce.XPurchase.Schemas;
 using static VirtoCommerce.Xapi.Core.ModuleConstants;
 using static VirtoCommerce.XCart.Core.ModuleConstants;
+using IDistributedLock = VirtoCommerce.Platform.Core.DistributedLock.IDistributedLock;
 
 namespace VirtoCommerce.XCart.Data.Schemas
 {
@@ -71,11 +72,11 @@ namespace VirtoCommerce.XCart.Data.Schemas
             IAuthorizationService authorizationService,
             IShoppingCartService cartService,
             IShoppingCartSearchService shoppingCartSearchService,
-            IDistributedLock distributedLock,
+            IDistributedLockService distributedLockService,
             IUserManagerCore userManagerCore,
             IMemberResolver memberResolver,
             ICartSharingService cartSharingService)
-            : this(authorizationService, cartService, shoppingCartSearchService, distributedLock, userManagerCore, memberResolver, cartSharingService)
+            : this(authorizationService, cartService, shoppingCartSearchService, new LegacyDistributedLockServiceAdapter(distributedLockService), userManagerCore, memberResolver, cartSharingService)
         {
         }
 

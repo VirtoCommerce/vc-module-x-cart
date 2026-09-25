@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using GraphQL;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using VirtoCommerce.Platform.Core.DistributedLock;
+using VirtoCommerce.XCart.Data.Services;
 using VirtoCommerce.Xapi.Core.BaseQueries;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Infrastructure;
@@ -14,6 +14,7 @@ using VirtoCommerce.XCart.Core.Schemas;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Authorization;
 using VirtoCommerce.XCart.Data.Schemas;
+using IDistributedLock = VirtoCommerce.Platform.Core.DistributedLock.IDistributedLock;
 
 namespace VirtoCommerce.XCart.Data.Commands;
 
@@ -21,8 +22,8 @@ public class MoveToSavedForLaterItemsCommandBuilder(IAuthorizationService author
     : CommandBuilder<MoveToSavedForLaterItemsCommand, CartAggregateWithList, InputSaveForLaterType, CartWithListType>(authorizationService)
 {
     [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
-    public MoveToSavedForLaterItemsCommandBuilder(IMediator mediator, IAuthorizationService authorizationService, ICartAggregateRepository cartRepository, IDistributedLock distributedLock)
-        : this(authorizationService, cartRepository, distributedLock)
+    public MoveToSavedForLaterItemsCommandBuilder(IMediator mediator, IAuthorizationService authorizationService, ICartAggregateRepository cartRepository, IDistributedLockService distributedLockService)
+        : this(authorizationService, cartRepository, new LegacyDistributedLockServiceAdapter(distributedLockService))
     {
     }
 

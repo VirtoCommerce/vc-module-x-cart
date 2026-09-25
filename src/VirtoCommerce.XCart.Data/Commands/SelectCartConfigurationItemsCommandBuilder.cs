@@ -2,12 +2,13 @@ using System;
 using GraphQL;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using VirtoCommerce.Platform.Core.DistributedLock;
+using VirtoCommerce.XCart.Data.Services;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Schemas;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Commands.BaseCommands;
+using IDistributedLock = VirtoCommerce.Platform.Core.DistributedLock.IDistributedLock;
 
 namespace VirtoCommerce.XCart.Data.Commands;
 
@@ -22,9 +23,9 @@ public class SelectCartConfigurationItemsCommandBuilder(
     public SelectCartConfigurationItemsCommandBuilder(
         IMediator mediator,
         IAuthorizationService authorizationService,
-        IDistributedLock distributedLock,
+        IDistributedLockService distributedLockService,
         ICartAggregateRepository cartRepository)
-        : this(authorizationService, distributedLock, cartRepository)
+        : this(authorizationService, new LegacyDistributedLockServiceAdapter(distributedLockService), cartRepository)
     {
     }
 

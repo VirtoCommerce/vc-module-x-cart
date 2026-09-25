@@ -21,6 +21,7 @@ using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Authorization;
 using VirtoCommerce.XCart.Data.Commands.BaseCommands;
 using Xunit;
+using IDistributedLockService = VirtoCommerce.Xapi.Core.Infrastructure.IDistributedLockService;
 
 namespace VirtoCommerce.XCart.Tests.Builders;
 
@@ -241,6 +242,65 @@ public class CartCommandBuilderTests
             Times.Once);
     }
 
+#pragma warning disable VC0015 // Obsolete constructor path: the XAPI IDistributedLockService still locks
+    [Fact]
+    public async Task Resolve_ObsoleteLockServiceConstructor_LocksThroughLegacyService()
+    {
+        // Arrange
+        var cartAggregate = CreateCartAggregate();
+        _cartRepositoryMock
+            .Setup(x => x.GetCartByIdAsync("cart-1", It.IsAny<string>()))
+            .ReturnsAsync(cartAggregate);
+        SetupAuthorizationSuccess();
+        var legacyLockService = new Mock<IDistributedLockService>();
+        legacyLockService
+            .Setup(x => x.ExecuteAsync(It.IsAny<string>(), It.IsAny<Func<Task<bool>>>()))
+            .Returns<string, Func<Task<bool>>>((_, resolver) => resolver());
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<TestCartCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(cartAggregate);
+
+        var builder = new TestableCartCommandBuilder(
+            _mediatorMock.Object, _authorizationServiceMock.Object, legacyLockService.Object, _cartRepositoryMock.Object);
+        builder.Command = new TestCartCommand { UserId = "user-1", CartId = "cart-1" };
+        var context = CreateContextMock(authenticated: true);
+
+        // Act
+        await builder.TestResolve(context.Object);
+
+        // Assert
+        legacyLockService.Verify(x => x.ExecuteAsync("Cart:user-1", It.IsAny<Func<Task<bool>>>()), Times.Once);
+        builder.AfterMediatorSendResponse.Should().BeSameAs(cartAggregate);
+    }
+
+    [Fact]
+    public async Task Resolve_ObsoleteLockServiceConstructor_WhenBusy_ThrowsLockError()
+    {
+        // Arrange
+        var cartAggregate = CreateCartAggregate();
+        _cartRepositoryMock
+            .Setup(x => x.GetCartByIdAsync("cart-1", It.IsAny<string>()))
+            .ReturnsAsync(cartAggregate);
+        SetupAuthorizationSuccess();
+        var legacyLockService = new Mock<IDistributedLockService>();
+        legacyLockService
+            .Setup(x => x.ExecuteAsync(It.IsAny<string>(), It.IsAny<Func<Task<bool>>>()))
+            .ThrowsAsync(new LockError("Service is busy."));
+
+        var builder = new TestableCartCommandBuilder(
+            _mediatorMock.Object, _authorizationServiceMock.Object, legacyLockService.Object, _cartRepositoryMock.Object);
+        builder.Command = new TestCartCommand { UserId = "user-1", CartId = "cart-1" };
+        var context = CreateContextMock(authenticated: true);
+
+        // Act
+        var act = () => builder.TestResolve(context.Object);
+
+        // Assert
+        await act.Should().ThrowAsync<LockError>();
+        builder.AfterMediatorSendResponse.Should().BeNull();
+    }
+#pragma warning restore VC0015
+
     [Fact]
     public async Task Resolve_AuthorizationFails_ThrowsForbidden()
     {
@@ -299,13 +359,27 @@ public class CartCommandBuilderTests
     {
     }
 
-    private class TestableCartCommandBuilder(
-        IAuthorizationService authorizationService,
-        IDistributedLock distributedLock,
-        ICartAggregateRepository cartRepository)
-        : CartCommandBuilder<TestCartCommand, InputObjectGraphType>(
-            authorizationService, distributedLock, cartRepository)
+    private class TestableCartCommandBuilder : CartCommandBuilder<TestCartCommand, InputObjectGraphType>
     {
+        public TestableCartCommandBuilder(
+            IAuthorizationService authorizationService,
+            IDistributedLock distributedLock,
+            ICartAggregateRepository cartRepository)
+            : base(authorizationService, distributedLock, cartRepository)
+        {
+        }
+
+#pragma warning disable VC0015 // Exercising the obsolete constructor that takes the XAPI IDistributedLockService
+        public TestableCartCommandBuilder(
+            IMediator mediator,
+            IAuthorizationService authorizationService,
+            IDistributedLockService distributedLockService,
+            ICartAggregateRepository cartRepository)
+            : base(mediator, authorizationService, distributedLockService, cartRepository)
+        {
+        }
+#pragma warning restore VC0015
+
         public TestCartCommand Command { get; set; } = new();
         public CartAggregate AfterMediatorSendResponse { get; private set; }
 
