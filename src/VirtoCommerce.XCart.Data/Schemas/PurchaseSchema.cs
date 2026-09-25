@@ -6,7 +6,6 @@ using GraphQL;
 using GraphQL.Builders;
 using GraphQL.Resolvers;
 using GraphQL.Types;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
@@ -14,7 +13,7 @@ using VirtoCommerce.CartModule.Core.Services;
 using VirtoCommerce.CustomerModule.Core.Model;
 using VirtoCommerce.CustomerModule.Core.Services;
 using VirtoCommerce.Platform.Core.Common;
-using VirtoCommerce.XCart.Data.Services;
+using VirtoCommerce.Platform.Core.DistributedLock;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Helpers;
 using VirtoCommerce.Xapi.Core.Infrastructure;
@@ -32,7 +31,6 @@ using VirtoCommerce.XCart.Data.Authorization;
 using VirtoCommerce.XPurchase.Schemas;
 using static VirtoCommerce.Xapi.Core.ModuleConstants;
 using static VirtoCommerce.XCart.Core.ModuleConstants;
-using IDistributedLock = VirtoCommerce.Platform.Core.DistributedLock.IDistributedLock;
 
 namespace VirtoCommerce.XCart.Data.Schemas
 {
@@ -64,20 +62,6 @@ namespace VirtoCommerce.XCart.Data.Schemas
             _userManagerCore = userManagerCore;
             _memberResolver = memberResolver;
             _cartSharingService = cartSharingService;
-        }
-
-        [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
-        public PurchaseSchema(
-            IMediator mediator,
-            IAuthorizationService authorizationService,
-            IShoppingCartService cartService,
-            IShoppingCartSearchService shoppingCartSearchService,
-            IDistributedLockService distributedLockService,
-            IUserManagerCore userManagerCore,
-            IMemberResolver memberResolver,
-            ICartSharingService cartSharingService)
-            : this(authorizationService, cartService, shoppingCartSearchService, new LegacyDistributedLockServiceAdapter(distributedLockService), userManagerCore, memberResolver, cartSharingService)
-        {
         }
 
         public void Build(ISchema schema)

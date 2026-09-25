@@ -1,10 +1,8 @@
-using System;
 using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.Types;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
-using VirtoCommerce.XCart.Data.Services;
+using VirtoCommerce.Platform.Core.DistributedLock;
 using VirtoCommerce.Xapi.Core.BaseQueries;
 using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Infrastructure;
@@ -15,7 +13,6 @@ using VirtoCommerce.XCart.Core.Schemas;
 using VirtoCommerce.XCart.Core.Services;
 using VirtoCommerce.XCart.Data.Authorization;
 using VirtoCommerce.XCart.Data.Schemas;
-using IDistributedLock = VirtoCommerce.Platform.Core.DistributedLock.IDistributedLock;
 
 namespace VirtoCommerce.XCart.Data.Commands.BaseCommands;
 
@@ -36,16 +33,6 @@ public abstract class CartCommandBuilder<TCommand, TInputType>(
     where TCommand : CartCommand
     where TInputType : IInputObjectGraphType
 {
-    [Obsolete("Use the constructor without IMediator. The mediator is resolved from context.RequestServices per request.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
-    protected CartCommandBuilder(
-        IMediator mediator,
-        IAuthorizationService authorizationService,
-        IDistributedLockService distributedLockService,
-        ICartAggregateRepository cartRepository)
-        : this(authorizationService, new LegacyDistributedLockServiceAdapter(distributedLockService), cartRepository)
-    {
-    }
-
     protected override TCommand GetRequest(IResolveFieldContext<object> context)
     {
         var request = base.GetRequest(context);
