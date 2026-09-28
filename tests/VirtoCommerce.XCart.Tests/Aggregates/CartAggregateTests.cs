@@ -958,6 +958,44 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             errors.Should().BeEmpty();
         }
 
+        [Fact]
+        public async Task ValidateAsync_CacheHit_SyncsObsoleteMirror()
+        {
+            // Arrange
+            // VCST-6089 stop-gap: the deprecated GetValidationErrors() reads the CartValidationErrors mirror,
+            // which a cache hit used to leave untouched. After "items" (with errors) and then "default" (clean),
+            // re-requesting "items" left the mirror on the clean "default" result, so a caller still on the
+            // deprecated read saw no errors for the ruleSet it had just validated.
+            var cartAggregate = GetValidCartAggregate();
+
+            var invalidLineItem = new LineItem
+            {
+                Id = "line-1",
+                ProductId = "product-1",
+                Currency = CURRENCY_CODE,
+                IsGift = false,
+                SelectedForCheckout = true,
+                Quantity = ModuleConstants.LineItemQualityLimit + 1,
+            };
+            cartAggregate.Cart.Items = new List<LineItem> { invalidLineItem };
+
+            _cartValidationContextFactoryMock
+                .Setup(x => x.CreateValidationContextAsync(cartAggregate))
+                .ReturnsAsync(new CartValidationContext());
+
+            await cartAggregate.ValidateAsync(ModuleConstants.ValidationRuleSets.Items);
+            await cartAggregate.ValidateAsync(ModuleConstants.ValidationRuleSets.Default);
+
+            // Act
+            var errors = await cartAggregate.ValidateAsync(ModuleConstants.ValidationRuleSets.Items);
+
+            // Assert
+            errors.Should().Contain(x => x.ErrorCode == "LINE_ITEM_LIMIT");
+#pragma warning disable VC0016 // The deprecated read is exactly what this test pins
+            cartAggregate.GetValidationErrors().Should().Equal(errors);
+#pragma warning restore VC0016
+        }
+
         #endregion ValidateAsync
 
         #region GetLineItemValidationErrorsAsync

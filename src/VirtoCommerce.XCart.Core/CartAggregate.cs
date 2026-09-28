@@ -995,6 +995,11 @@ namespace VirtoCommerce.XCart.Core
 
             if (ValidationErrorsByRuleSet.TryGetValue(key, out var cached))
             {
+#pragma warning disable VC0015 // Backward-compat mirrors kept in sync until the VC0015 members are removed
+                CartValidationErrors = cached;
+                IsValidated = true;
+#pragma warning restore VC0015
+
                 return cached;
             }
 
