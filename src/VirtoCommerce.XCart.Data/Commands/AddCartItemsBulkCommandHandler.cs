@@ -82,7 +82,7 @@ namespace VirtoCommerce.XCart.Data.Commands
 
             result.Cart = cartAggregate;
 
-            var lineItemErrors = cartAggregate.GetValidationErrors()
+            var lineItemErrors = cartAggregate.OperationValidationErrors
                 .OfType<CartValidationError>()
                 .Where(x => x.ObjectType == nameof(CatalogProduct));
 

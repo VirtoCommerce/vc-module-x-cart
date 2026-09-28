@@ -107,9 +107,9 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var aggregateAfterAddItem = await _aggregate.AddItemAsync(newCartItem);
 
             // Assert
-            aggregateAfterAddItem.GetValidationErrors().Should().NotBeEmpty();
-            aggregateAfterAddItem.GetValidationErrors().Should().Contain(x => x.ErrorCode == "GreaterThanValidator");
-            aggregateAfterAddItem.GetValidationErrors().Should().Contain(x => x.ErrorCode == "NotNullValidator");
+            aggregateAfterAddItem.OperationValidationErrors.Should().NotBeEmpty();
+            aggregateAfterAddItem.OperationValidationErrors.Should().Contain(x => x.ErrorCode == "GreaterThanValidator");
+            aggregateAfterAddItem.OperationValidationErrors.Should().Contain(x => x.ErrorCode == "NotNullValidator");
         }
 
         [Fact]
@@ -323,8 +323,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Assert
-            cartAggregateAfterChangeItemQty.GetValidationErrors().Should().NotBeEmpty();
-            cartAggregateAfterChangeItemQty.GetValidationErrors().Should().Contain(x => x.ErrorCode == "LINE_ITEM_NOT_FOUND");
+            cartAggregateAfterChangeItemQty.OperationValidationErrors.Should().NotBeEmpty();
+            cartAggregateAfterChangeItemQty.OperationValidationErrors.Should().Contain(x => x.ErrorCode == "LINE_ITEM_NOT_FOUND");
         }
 
         #endregion ChangeItemQuantityAsync
@@ -956,7 +956,6 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             // Assert
             errors.Should().BeEmpty();
-            cartAggregate.GetValidationErrors().Should().BeEmpty();
         }
 
         #endregion ValidateAsync
