@@ -4,5 +4,6 @@ namespace VirtoCommerce.XCart.Core.Commands
 {
     public class CreateCartCommand : CartCommand
     {
+        public string ChannelId { get; set; }
     }
 }
