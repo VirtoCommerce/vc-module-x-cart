@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoFixture;
 using FluentAssertions;
@@ -18,8 +20,11 @@ using VirtoCommerce.PricingModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Model;
 using VirtoCommerce.StoreModule.Core.Services;
 using VirtoCommerce.XCart.Core;
+using VirtoCommerce.XCart.Core.Commands;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
+using VirtoCommerce.XCart.Core.Services;
+using VirtoCommerce.XCart.Data.Commands.BaseCommands;
 using VirtoCommerce.XCart.Data.Services;
 using VirtoCommerce.XCart.Tests.Helpers;
 using Xunit;
@@ -265,6 +270,116 @@ namespace VirtoCommerce.XCart.Tests.Repositories
             result.Cart.SharingSettings.Should().ContainSingle()
                 .Which.Targets.Should().ContainSingle()
                 .Which.SharedWithId.Should().Be("org-1");
+        }
+
+        [Fact]
+        public async Task UpdateScopeAsync_PolicyMutatesThenThrows_LeavesNoMutationInTheCache()
+        {
+            // VCST-6113: the aggregate is cached by reference, so a scope write that mutated the cart before being
+            // rejected stayed visible to every later read on this instance - and the next save persisted it, as a
+            // scope the server itself refuses to create. A rejected write must leave the cache as it found it.
+            // The policy here misbehaves on purpose: the guarantee is that a policy CANNOT poison the cache,
+            // including one registered by another module through the public scope registry.
+            var repository = CachingRepository();
+            var storeId = "Store";
+            var store = _fixture.Create<Store>();
+            store.Id = storeId;
+            store.DefaultLanguage = "en-US";
+            store.Languages = ["en-US"];
+            _storeService.Setup(x => x.GetAsync(new[] { storeId }, It.IsAny<string>(), It.IsAny<bool>()))
+                .ReturnsAsync(new[] { store });
+            var currencies = _fixture.CreateMany<Currency>(1).ToList();
+            _currencyService.Setup(x => x.GetAllCurrenciesAsync()).ReturnsAsync(currencies);
+            _memberResolver.Setup(x => x.ResolveMemberByIdAsync(It.IsAny<string>())).ReturnsAsync(_fixture.Create<Contact>());
+            _cartProductServiceMock
+                .Setup(x => x.GetCartProductsAsync(It.IsAny<CartAggregate>(), It.IsAny<IList<(string CurrencyCode, string ProductId)>>()))
+                .ReturnsAsync(new Dictionary<string, CartProduct>());
+
+            var cartId = _fixture.Create<string>();
+            var customerId = _fixture.Create<string>();
+
+            // The first read populates the cache with the aggregate the handler is about to mutate.
+            var aggregate = await repository.GetCartForShoppingCartAsync(SharedCart(cartId, customerId, storeId, currencies[0].Code));
+
+            var sharingService = new Mock<ICartSharingService>();
+            sharingService
+                .Setup(x => x.UpdateScopeAsync(It.IsAny<ShoppingCart>(), It.IsAny<WishlistScopeContext>()))
+                .Returns((ShoppingCart cart, WishlistScopeContext _) =>
+                {
+                    cart.SharingSettings[0].Scope = CartSharingScope.Organization;
+                    cart.SharingSettings[0].Targets = [];
+
+                    throw new InvalidOperationException("rejected after mutating");
+                });
+
+            var handler = new CacheProbeHandler(repository, sharingService.Object);
+
+            // Act
+            await handler.Invoking(x => x.UpdateScope(aggregate, ChangeCommand(cartId)))
+                .Should().ThrowAsync<InvalidOperationException>();
+
+            // A later request reloads the cart from storage; the cache must not answer with the rejected state.
+            var reloaded = await repository.GetCartForShoppingCartAsync(SharedCart(cartId, customerId, storeId, currencies[0].Code));
+
+            reloaded.Cart.SharingSettings.Should().ContainSingle()
+                .Which.Scope.Should().Be(CartSharingScope.AnyoneAnonymous);
+        }
+
+        private CartAggregateRepository CachingRepository()
+        {
+            return new CartAggregateRepository(
+                 () => GetValidCartAggregate(),
+                 _shoppingCartSearchService.Object,
+                 _shoppingCartService.Object,
+                 _currencyService.Object,
+                 _memberResolver.Object,
+                 _storeService.Object,
+                 _cartProductServiceMock.Object,
+                 _platformMemoryCache,
+                 _fileUploadService.Object);
+        }
+
+        private static ShoppingCart SharedCart(string cartId, string customerId, string storeId, string currencyCode)
+        {
+            return new ShoppingCart
+            {
+                Id = cartId,
+                CustomerId = customerId,
+                StoreId = storeId,
+                Currency = currencyCode,
+                SharingSettings =
+                [
+                    new CartSharingSetting
+                    {
+                        Id = "key-1",
+                        Scope = CartSharingScope.AnyoneAnonymous,
+                        Access = CartSharingAccess.Read,
+                    },
+                ],
+            };
+        }
+
+        private static ChangeWishlistCommand ChangeCommand(string cartId)
+        {
+            return new ChangeWishlistCommand
+            {
+                ListId = cartId,
+                Scope = CartSharingScope.Organization,
+                WishlistUserContext = new WishlistUserContext
+                {
+                    CurrentUserId = "user-1",
+                    CurrentContact = new Contact { Name = "Owner" },
+                },
+            };
+        }
+
+        // Exposes the protected seam the fix lives in; nothing else about the handler is under test here.
+        private sealed class CacheProbeHandler(ICartAggregateRepository cartAggregateRepository, ICartSharingService cartSharingService)
+            : ScopedWishlistCommandHandlerBase<ChangeWishlistCommand>(cartAggregateRepository, cartSharingService)
+        {
+            public Task UpdateScope(CartAggregate cartAggregate, ChangeWishlistCommand request) => UpdateScopeAsync(cartAggregate, request);
+
+            public override Task<CartAggregate> Handle(ChangeWishlistCommand request, CancellationToken cancellationToken) => throw new NotSupportedException();
         }
 
         [Fact]
