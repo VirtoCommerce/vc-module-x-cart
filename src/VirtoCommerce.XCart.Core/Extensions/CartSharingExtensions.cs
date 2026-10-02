@@ -68,7 +68,10 @@ public static class CartSharingExtensions
     {
         var currentIds = (setting?.Targets ?? []).Select(x => x.SharedWithId).ToList();
 
-        if (currentIds.FirstOrDefault().EqualsIgnoreCase(sharedWithId))
+        // Already shared with this id, wherever it sits in the set: a single-valued client re-sending what it
+        // read back. Matching the FIRST target made the answer depend on which response the client kept, since
+        // the order differs between a mutation response and a later read (VCST-6152).
+        if (currentIds.Contains(sharedWithId, StringComparer.OrdinalIgnoreCase))
         {
             return ([], []);
         }

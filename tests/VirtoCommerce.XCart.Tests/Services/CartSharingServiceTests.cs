@@ -396,8 +396,16 @@ namespace VirtoCommerce.XCart.Tests.Services
 
             await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId, OtherOrgId]));
 
-            // A single-valued client re-sending the id it reads back (the first target) must not collapse the set.
+            // A single-valued client re-sending an id it reads back must not collapse the set - whichever of the
+            // targets it holds, because the order it saw depends on whether it kept a mutation response or a read
+            // (VCST-6152).
             await service.UpdateScopeAsync(cart, CustomContext(legacySharedWithId: OrgId));
+            cart.SharingSettings[0].Targets.Select(x => x.SharedWithId).Should().BeEquivalentTo(OrgId, OtherOrgId);
+
+            await service.UpdateScopeAsync(cart, CustomContext(legacySharedWithId: OtherOrgId));
+            cart.SharingSettings[0].Targets.Select(x => x.SharedWithId).Should().BeEquivalentTo(OrgId, OtherOrgId);
+
+            await service.UpdateScopeAsync(cart, CustomContext(legacySharedWithId: OtherOrgId.ToUpperInvariant()));
             cart.SharingSettings[0].Targets.Select(x => x.SharedWithId).Should().BeEquivalentTo(OrgId, OtherOrgId);
 
             // It cannot express "replace these two with one", so the write is refused rather than revoking silently.

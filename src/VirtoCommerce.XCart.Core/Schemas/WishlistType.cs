@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using GraphQL;
 using GraphQL.Types;
 using VirtoCommerce.CartModule.Core.Model;
@@ -45,7 +46,10 @@ namespace VirtoCommerce.XCart.Core.Schemas
             result.Scope = _cartSharingService.GetSharingScope(context.Source.Cart);
             result.Access = _cartSharingService.GetSharingAccess(context.Source.Cart, context.User.GetUserId());
             result.Message = existingSetting?.Message;
-            result.Targets = existingSetting?.Targets;
+            // One order on every surface. A mutation response carries the in-memory order and a read whatever
+            // the database returns, so "the first target" - which is what the deprecated sharedWithId means -
+            // differed between them (VCST-6152). Ordered by id: the only key populated in both.
+            result.Targets = existingSetting?.Targets?.OrderBy(x => x.SharedWithId, StringComparer.OrdinalIgnoreCase).ToList();
 
             return result;
         }
