@@ -146,6 +146,17 @@ namespace VirtoCommerce.XCart.Tests.Services
         }
 
         [Fact]
+        public void IsAuthorized_OrganizationScopeWithoutAnOrganization_IsOwnerOnly()
+        {
+            // Two empty organizations compare equal, so this list used to be writable by every user who has none.
+            var cart = CartWithScope(CartSharingScope.Organization);
+            var service = CreateService();
+
+            service.IsAuthorized(cart, OtherUserId, currentOrganizationId: null).Should().BeFalse();
+            service.IsAuthorized(cart, OwnerId, currentOrganizationId: null).Should().BeTrue();
+        }
+
+        [Fact]
         public void IsAuthorized_AnyoneScopes_MatchAnonymousAndAuthenticated()
         {
             var service = CreateService();
@@ -273,6 +284,24 @@ namespace VirtoCommerce.XCart.Tests.Services
             cart.CustomerId.Should().Be(OwnerId);
             cart.OrganizationId.Should().Be(OrgId);
             cart.SharingSettings.Should().ContainSingle().Which.Scope.Should().Be(CartSharingScope.Organization);
+        }
+
+        [Fact]
+        public async Task UpdateScopeAsync_OrganizationScopeWithoutAnOrganization_IsRefused()
+        {
+            // The state the check above tolerates must not be reachable in the first place.
+            var context = new WishlistScopeContext
+            {
+                Scope = CartSharingScope.Organization,
+                SharingKey = "key-1",
+                CurrentUserId = OwnerId,
+            };
+
+            var cart = OwnedCart();
+            var act = () => CreateService().UpdateScopeAsync(cart, context);
+
+            (await act.Should().ThrowAsync<InvalidOperationException>()).WithMessage("*organization*");
+            cart.SharingSettings.Should().BeNullOrEmpty();
         }
 
         [Theory]
