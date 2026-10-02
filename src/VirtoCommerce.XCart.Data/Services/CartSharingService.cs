@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Xapi.Core.Security.Authorization;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
@@ -88,7 +89,8 @@ public class CartSharingService : ICartSharingService
             throw new InvalidOperationException($"Unsupported sharing scope '{mode}'.");
         }
 
-        var setting = policy.EnsureSetting(cart, sharingKey, access);
+        // The access is the scope's own (ICartSharingScopePolicy.GetAccess); the argument is ignored.
+        var setting = policy.EnsureSetting(cart, sharingKey);
 
         if (!string.IsNullOrEmpty(sharedWithId))
         {
@@ -111,6 +113,7 @@ public class CartSharingService : ICartSharingService
             throw new InvalidOperationException($"Unsupported sharing scope '{context.Scope}'.");
         }
 
+        AuthorizeSharingChange(cart, context);
         ApplyLegacySharedWithId(cart, context);
         ValidateContext(context);
 
@@ -146,6 +149,17 @@ public class CartSharingService : ICartSharingService
 
         var searchResult = await _cartAggregateRepository.SearchCartAsync(cartSearchCriteria, includeFields);
         return searchResult.Results.FirstOrDefault();
+    }
+
+    // Sharing and ownership belong to the list's owner. Write access is not enough: every member of an
+    // organization-scoped list holds it, and a scope write used to hand them the list - publicly, with
+    // AnyoneAnonymous, while the owner lost it (VCST-6125).
+    protected virtual void AuthorizeSharingChange(ShoppingCart cart, WishlistScopeContext context)
+    {
+        if (!IsOwner(cart, context.CurrentUserId))
+        {
+            throw AuthorizationError.Forbidden();
+        }
     }
 
     // A client that speaks deltas gets delta semantics; a single-valued one gets single-target semantics.

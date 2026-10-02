@@ -20,7 +20,7 @@ public interface ICartSharingScopePolicy
 
     Task ApplyAsync(ShoppingCart cart, WishlistScopeContext context);
 
-    CartSharingSetting EnsureSetting(ShoppingCart cart, string sharingKey, string access);
+    CartSharingSetting EnsureSetting(ShoppingCart cart, string sharingKey);
 
     Task<IList<WishlistSharingTarget>> ResolveTargetsAsync(IList<string> sharedWithIds);
 

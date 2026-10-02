@@ -123,6 +123,13 @@ namespace VirtoCommerce.XCart.Data.Authorization
 
         private bool CheckWishlistUserContext(WishlistUserContext context)
         {
+            // A command may only act as the caller: userId names the owner of the list being created or cloned, and
+            // a clone's source list is shared - so this has to run before the shared-cart branch returns (VCST-6125).
+            if (!string.IsNullOrEmpty(context.UserId) && !context.UserId.EqualsIgnoreCase(context.CurrentUserId))
+            {
+                return false;
+            }
+
             var result = true;
             if (context.Cart != null)
             {
@@ -145,12 +152,6 @@ namespace VirtoCommerce.XCart.Data.Authorization
                         result = context.Cart.CustomerId == context.CurrentUserId;
                     }
                 }
-            }
-
-            //TODO: what is this?
-            if (result && !string.IsNullOrEmpty(context.UserId))
-            {
-                result = context.UserId == context.CurrentUserId;
             }
 
             return result;

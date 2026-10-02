@@ -11,11 +11,6 @@ public class AnyoneAnonymousCartSharingScopePolicy : CartSharingScopePolicyBase
 
     public override string Description => "Anyone (anonymous) scope";
 
-    public override string GetAccess(ShoppingCart cart, string currentUserId)
-    {
-        return IsOwner(cart, currentUserId) ? CartSharingAccess.Write : CartSharingAccess.Read;
-    }
-
     public override bool IsAuthorized(ShoppingCart cart, string currentUserId, string currentOrganizationId)
     {
         return true;
@@ -23,8 +18,8 @@ public class AnyoneAnonymousCartSharingScopePolicy : CartSharingScopePolicyBase
 
     public override Task ApplyAsync(ShoppingCart cart, WishlistScopeContext context)
     {
-        EnsureSetting(cart, context.SharingKey, CartSharingAccess.Read);
-        SetOwner(cart, context.CurrentUserId, context.CustomerName, organizationId: null);
+        EnsureSetting(cart, context.SharingKey);
+        SetOrganization(cart, organizationId: null);
 
         return Task.CompletedTask;
     }

@@ -11,6 +11,7 @@ public class OrganizationCartSharingScopePolicy : CartSharingScopePolicyBase
 {
     public override string Scope => CartSharingScope.Organization;
 
+    // The one scope that shares write: every member of the organization is a co-owner of its lists.
     public override string GetAccess(ShoppingCart cart, string currentUserId)
     {
         return CartSharingAccess.Write;
@@ -23,8 +24,8 @@ public class OrganizationCartSharingScopePolicy : CartSharingScopePolicyBase
 
     public override Task ApplyAsync(ShoppingCart cart, WishlistScopeContext context)
     {
-        EnsureSetting(cart, context.SharingKey, CartSharingAccess.Write);
-        SetOwner(cart, context.CurrentUserId, context.CustomerName, context.CurrentOrganizationId);
+        EnsureSetting(cart, context.SharingKey);
+        SetOrganization(cart, context.CurrentOrganizationId);
 
         return Task.CompletedTask;
     }

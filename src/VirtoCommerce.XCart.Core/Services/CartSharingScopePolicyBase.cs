@@ -16,9 +16,10 @@ public abstract class CartSharingScopePolicyBase : ICartSharingScopePolicy
 
     public virtual bool CanApply => true;
 
+    // The owner always writes their own list; a share hands out a read-only copy unless the scope says otherwise.
     public virtual string GetAccess(ShoppingCart cart, string currentUserId)
     {
-        return CartSharingAccess.Read;
+        return IsOwner(cart, currentUserId) ? CartSharingAccess.Write : CartSharingAccess.Read;
     }
 
     public abstract bool IsAuthorized(ShoppingCart cart, string currentUserId, string currentOrganizationId);
@@ -29,7 +30,7 @@ public abstract class CartSharingScopePolicyBase : ICartSharingScopePolicy
     }
 
     // One effective setting per cart; its Id is the sharing key and survives every scope change.
-    public virtual CartSharingSetting EnsureSetting(ShoppingCart cart, string sharingKey, string access)
+    public virtual CartSharingSetting EnsureSetting(ShoppingCart cart, string sharingKey)
     {
         cart.SharingSettings ??= [];
 
@@ -64,7 +65,8 @@ public abstract class CartSharingScopePolicyBase : ICartSharingScopePolicy
             }
         }
 
-        setting.Access = access;
+        // What the share hands out, which is what a viewer who is not the owner gets.
+        setting.Access = GetAccess(cart, currentUserId: null);
 
         return setting;
     }
@@ -79,10 +81,11 @@ public abstract class CartSharingScopePolicyBase : ICartSharingScopePolicy
     {
     }
 
-    protected virtual void SetOwner(ShoppingCart cart, string userId, string customerName, string organizationId)
+    // A scope write never changes who owns the list: the owner is assigned when the list is created and only the
+    // owner may write the scope (VCST-6125). The organization does follow the scope - it is what makes a list
+    // visible to an organization, so every other scope has to clear it.
+    protected virtual void SetOrganization(ShoppingCart cart, string organizationId)
     {
-        cart.CustomerId = userId;
-        cart.CustomerName = customerName;
         cart.OrganizationId = organizationId;
     }
 

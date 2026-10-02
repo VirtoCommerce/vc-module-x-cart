@@ -6,6 +6,7 @@ using FluentAssertions;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.Platform.Core.Common;
+using VirtoCommerce.Xapi.Core.Security.Authorization;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
@@ -95,7 +96,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         }
 
         [Theory]
-        [InlineData(CartSharingScope.Private, CartSharingAccess.Write)]
+        [InlineData(CartSharingScope.Private, CartSharingAccess.Read)]
         [InlineData(CartSharingScope.Organization, CartSharingAccess.Write)]
         [InlineData(CartSharingScope.User, CartSharingAccess.Read)]
         [InlineData(CartSharingScope.AnyoneAnonymous, CartSharingAccess.Read)]
@@ -106,10 +107,15 @@ namespace VirtoCommerce.XCart.Tests.Services
         }
 
         [Theory]
+        [InlineData(CartSharingScope.Private)]
+        [InlineData(CartSharingScope.Organization)]
         [InlineData(CartSharingScope.AnyoneAnonymous)]
         [InlineData(CartSharingScope.AnyoneAuthorized)]
-        public void GetSharingAccess_OwnerOfPubliclySharedCart_GetsWrite(string scope)
+        [InlineData(CartSharingScope.User)]
+        public void GetSharingAccess_Owner_AlwaysGetsWrite(string scope)
         {
+            // Whatever a list is shared as, its owner keeps writing it - including the legacy User scope, which
+            // used to report Read to everyone, owner included.
             CreateService().GetSharingAccess(CartWithScope(scope), OwnerId).Should().Be(CartSharingAccess.Write);
         }
 
@@ -180,7 +186,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         [Fact]
         public async Task UpdateScopeAsync_EmptyScope_DoesNothing()
         {
-            var cart = new ShoppingCart();
+            var cart = OwnedCart();
 
             await CreateService().UpdateScopeAsync(cart, new WishlistScopeContext());
 
@@ -202,9 +208,9 @@ namespace VirtoCommerce.XCart.Tests.Services
         }
 
         [Fact]
-        public async Task UpdateScopeAsync_Organization_WritesSettingAndOwner()
+        public async Task UpdateScopeAsync_Organization_WritesSettingAndOrganization()
         {
-            var cart = new ShoppingCart();
+            var cart = OwnedCart();
             var context = new WishlistScopeContext
             {
                 Scope = CartSharingScope.Organization,
@@ -220,14 +226,16 @@ namespace VirtoCommerce.XCart.Tests.Services
             cart.SharingSettings[0].Scope.Should().Be(CartSharingScope.Organization);
             cart.SharingSettings[0].Access.Should().Be(CartSharingAccess.Write);
             cart.SharingSettings[0].Id.Should().Be("key-1");
-            cart.CustomerId.Should().Be(OwnerId);
+
+            // The organization follows the scope - that is what lists the cart for the organization's members.
             cart.OrganizationId.Should().Be(OrgId);
+            cart.CustomerId.Should().Be(OwnerId);
         }
 
         [Fact]
         public async Task UpdateScopeAsync_Private_ClearsOrganizationAndSharingKey()
         {
-            var cart = new ShoppingCart();
+            var cart = OwnedCart();
             var context = new WishlistScopeContext
             {
                 Scope = CartSharingScope.Private,
@@ -244,11 +252,57 @@ namespace VirtoCommerce.XCart.Tests.Services
         }
 
         [Fact]
+        public async Task UpdateScopeAsync_NonOwner_IsRefusedAndWritesNothing()
+        {
+            // Every member of an organization-scoped list holds Write, so Write cannot be what gates sharing:
+            // a co-owner used to publish the list and take it over with one call (VCST-6125).
+            var cart = CartWithScope(CartSharingScope.Organization);
+            cart.OrganizationId = OrgId;
+
+            var context = new WishlistScopeContext
+            {
+                Scope = CartSharingScope.AnyoneAnonymous,
+                SharingKey = "key-1",
+                CurrentUserId = OtherUserId,
+                CustomerName = "Other",
+            };
+
+            var act = () => CreateService().UpdateScopeAsync(cart, context);
+
+            await act.Should().ThrowAsync<AuthorizationError>();
+            cart.CustomerId.Should().Be(OwnerId);
+            cart.OrganizationId.Should().Be(OrgId);
+            cart.SharingSettings.Should().ContainSingle().Which.Scope.Should().Be(CartSharingScope.Organization);
+        }
+
+        [Theory]
+        [InlineData(CartSharingScope.Private)]
+        [InlineData(CartSharingScope.Organization)]
+        [InlineData(CartSharingScope.AnyoneAnonymous)]
+        public async Task ApplyAsync_PolicyCalledDirectly_NeverChangesTheOwner(string scope)
+        {
+            // The service refuses a non-owner; on top of that no policy is able to re-own a list at all.
+            var policy = BuiltInPolicies().First(x => x.Scope == scope);
+            var cart = new ShoppingCart { CustomerId = OwnerId, CustomerName = "Owner" };
+
+            await policy.ApplyAsync(cart, new WishlistScopeContext
+            {
+                Scope = scope,
+                CurrentUserId = OtherUserId,
+                CustomerName = "Other",
+                CurrentOrganizationId = OtherOrgId,
+            });
+
+            cart.CustomerId.Should().Be(OwnerId);
+            cart.CustomerName.Should().Be("Owner");
+        }
+
+        [Fact]
         public async Task UpdateScopeAsync_DownstreamPolicy_AddsScopeWithoutTouchingBuiltIns()
         {
             var service = CreateService(WithCustomScope());
 
-            var cart = new ShoppingCart();
+            var cart = OwnedCart();
 
             await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId]));
 
@@ -263,7 +317,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         public async Task UpdateScopeAsync_TargetedScope_AddsRemovesAndDeduplicatesTargets()
         {
             var service = CreateService(WithCustomScope());
-            var cart = new ShoppingCart();
+            var cart = OwnedCart();
 
             await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId, OtherOrgId], sharingKey: "key-1"));
 
@@ -288,7 +342,7 @@ namespace VirtoCommerce.XCart.Tests.Services
             // then switching to B has to leave the list shared with B alone - accumulating would leave A's access in
             // place while the dialog, which reads back the first target, still displayed A.
             var service = CreateService(WithCustomScope());
-            var cart = new ShoppingCart();
+            var cart = OwnedCart();
 
             await service.UpdateScopeAsync(cart, CustomContext(legacySharedWithId: OrgId, sharingKey: "key-1"));
             cart.SharingSettings[0].Targets.Select(x => x.SharedWithId).Should().Equal(OrgId);
@@ -309,7 +363,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         public async Task UpdateScopeAsync_LegacySharedWithId_MultiTargetList_KeepsTheSetOrRefuses()
         {
             var service = CreateService(WithCustomScope());
-            var cart = new ShoppingCart();
+            var cart = OwnedCart();
 
             await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId, OtherOrgId]));
 
@@ -329,7 +383,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         {
             // A client that speaks deltas gets delta semantics: it can see the set it is changing.
             var service = CreateService(WithCustomScope());
-            var cart = new ShoppingCart();
+            var cart = OwnedCart();
 
             await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId], legacySharedWithId: OtherOrgId));
 
@@ -340,7 +394,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         public async Task UpdateScopeAsync_Message_NullKeepsEmptyClearsValueIsTrimmed()
         {
             var service = CreateService(WithCustomScope());
-            var cart = new ShoppingCart();
+            var cart = OwnedCart();
 
             await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId], message: "  Hello  "));
             cart.SharingSettings[0].Message.Should().Be("Hello");
@@ -355,7 +409,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         [Fact]
         public async Task UpdateScopeAsync_MessageTooLong_Throws()
         {
-            var cart = new ShoppingCart();
+            var cart = OwnedCart();
             var context = CustomContext(addSharedWithIds: [OrgId], message: new string('x', CartModuleConstants.Sharing.MessageMaxLength + 1));
 
             var act = () => CreateService(WithCustomScope()).UpdateScopeAsync(cart, context);
@@ -369,7 +423,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         {
             // One write persists one row per id, so the add list is bounded the way the communication mutation's
             // organization list is - a rep serving the stated ceiling of ~1000 customers still fits in one call.
-            var cart = new ShoppingCart();
+            var cart = OwnedCart();
             var ids = Enumerable.Range(0, CartModuleConstants.Sharing.MaxTargets + 1).Select(x => $"org-{x}").ToList();
 
             var act = () => CreateService(WithCustomScope()).UpdateScopeAsync(cart, CustomContext(addSharedWithIds: ids));
@@ -381,7 +435,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         [Fact]
         public async Task UpdateScopeAsync_IdBothAddedAndRemoved_Throws()
         {
-            var cart = new ShoppingCart();
+            var cart = OwnedCart();
             var context = CustomContext(addSharedWithIds: [OrgId], removeSharedWithIds: [OrgId.ToUpperInvariant()]);
 
             var act = () => CreateService(WithCustomScope()).UpdateScopeAsync(cart, context);
@@ -394,7 +448,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         public async Task UpdateScopeAsync_ScopeChange_ClearsTargetsAndMessageButKeepsTheKey()
         {
             var service = CreateService(WithCustomScope());
-            var cart = new ShoppingCart();
+            var cart = OwnedCart();
 
             await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId], message: "Hello", sharingKey: "key-1"));
             await service.UpdateScopeAsync(cart, new WishlistScopeContext
@@ -423,7 +477,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         [Fact]
         public async Task UpdateScopeAsync_BuiltInScope_IgnoresStrayTargetsAndMessage()
         {
-            var cart = new ShoppingCart();
+            var cart = OwnedCart();
             var context = new WishlistScopeContext
             {
                 Scope = CartSharingScope.AnyoneAnonymous,
@@ -529,7 +583,7 @@ namespace VirtoCommerce.XCart.Tests.Services
             policies.Add(new MultiRowScopePolicy(CustomScope));
             var service = CreateService(policies);
 
-            var cart = new ShoppingCart();
+            var cart = OwnedCart();
             await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OrgId]));
             await service.UpdateScopeAsync(cart, CustomContext(addSharedWithIds: [OtherOrgId]));
 
@@ -550,6 +604,9 @@ namespace VirtoCommerce.XCart.Tests.Services
             cart.SharingSettings[0].Id.Should().Be("existing-key");
             cart.SharingSettings[0].Scope.Should().Be(CartSharingScope.Private);
         }
+
+        // A list always has an owner by the time its scope is written: the create handler assigns it first.
+        private static ShoppingCart OwnedCart() => new() { CustomerId = OwnerId };
 
         private static ShoppingCart CartWithScope(string scope)
         {
@@ -617,12 +674,12 @@ namespace VirtoCommerce.XCart.Tests.Services
 
             public override Task ApplyAsync(ShoppingCart cart, WishlistScopeContext context)
             {
-                var setting = EnsureSetting(cart, context.SharingKey, CartSharingAccess.Read);
+                var setting = EnsureSetting(cart, context.SharingKey);
 
                 setting.ApplyTargets(context.AddSharedWithIds, context.RemoveSharedWithIds);
                 setting.ApplyMessage(context.Message);
 
-                SetOwner(cart, context.CurrentUserId, context.CustomerName, organizationId: null);
+                SetOrganization(cart, organizationId: null);
 
                 return Task.CompletedTask;
             }
@@ -665,7 +722,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         {
             public override string Scope => scope;
 
-            public override CartSharingSetting EnsureSetting(ShoppingCart cart, string sharingKey, string access)
+            public override CartSharingSetting EnsureSetting(ShoppingCart cart, string sharingKey)
             {
                 cart.SharingSettings ??= [];
 
@@ -674,7 +731,7 @@ namespace VirtoCommerce.XCart.Tests.Services
                     Id = sharingKey,
                     ShoppingCartId = cart.Id,
                     Scope = Scope,
-                    Access = access,
+                    Access = GetAccess(cart, currentUserId: null),
                 };
 
                 cart.SharingSettings.Add(setting);
@@ -689,7 +746,7 @@ namespace VirtoCommerce.XCart.Tests.Services
 
             public override Task ApplyAsync(ShoppingCart cart, WishlistScopeContext context)
             {
-                EnsureSetting(cart, context.SharingKey, CartSharingAccess.Read).ApplyTargets(context.AddSharedWithIds, context.RemoveSharedWithIds);
+                EnsureSetting(cart, context.SharingKey).ApplyTargets(context.AddSharedWithIds, context.RemoveSharedWithIds);
 
                 return Task.CompletedTask;
             }

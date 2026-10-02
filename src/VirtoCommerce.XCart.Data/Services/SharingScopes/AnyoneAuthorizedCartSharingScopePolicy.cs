@@ -12,11 +12,6 @@ public class AnyoneAuthorizedCartSharingScopePolicy : CartSharingScopePolicyBase
     // Never settable: UpdateScopeAsync has always rejected this scope.
     public override bool CanApply => false;
 
-    public override string GetAccess(ShoppingCart cart, string currentUserId)
-    {
-        return IsOwner(cart, currentUserId) ? CartSharingAccess.Write : CartSharingAccess.Read;
-    }
-
     public override bool IsAuthorized(ShoppingCart cart, string currentUserId, string currentOrganizationId)
     {
         return !string.IsNullOrEmpty(currentUserId);
