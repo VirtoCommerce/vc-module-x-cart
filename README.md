@@ -43,11 +43,8 @@ public class PartnerCartSharingScopePolicy : CartSharingScopePolicyBase
 
     public override string Description => "Shared with specific partner organizations";
 
-    public override string GetAccess(ShoppingCart cart, string currentUserId)
-    {
-        return IsOwner(cart, currentUserId) ? CartSharingAccess.Write : CartSharingAccess.Read;
-    }
-
+    // No GetAccess override: the base already gives the owner Write and every other viewer Read. Override it
+    // only to widen, the way the Organization scope does.
     public override bool IsAuthorized(ShoppingCart cart, string currentUserId, string currentOrganizationId)
     {
         if (string.IsNullOrEmpty(currentUserId))
@@ -60,23 +57,22 @@ public class PartnerCartSharingScopePolicy : CartSharingScopePolicyBase
             return true;
         }
 
-        // Targets are the scope's own id space - partner organization ids here.
-        var setting = cart.GetEffectiveSharingSetting();
-
-        return !string.IsNullOrEmpty(currentOrganizationId)
-            && setting?.Scope.EqualsIgnoreCase(Scope) == true
-            && setting.Targets?.Any(x => x.SharedWithId.EqualsIgnoreCase(currentOrganizationId)) == true;
+        // Targets are the scope's own id space - partner organization ids here. IsSharedWith does the scope
+        // match and the ignore-case comparison for you; do not hand-roll it.
+        return IsSharedWith(cart, currentOrganizationId);
     }
 
     public override Task ApplyAsync(ShoppingCart cart, WishlistScopeContext context)
     {
         // Authorize context.AddSharedWithIds here if the scope needs it; never the removals - an owner must always be able to revoke.
-        var setting = EnsureSetting(cart, context.SharingKey, CartSharingAccess.Read);
+        var setting = EnsureSetting(cart, context.SharingKey);
 
         setting.ApplyTargets(context.AddSharedWithIds, context.RemoveSharedWithIds);
         setting.ApplyMessage(context.Message);
 
-        SetOwner(cart, context.CurrentUserId, context.CustomerName, organizationId: null);
+        // A scope write never changes who owns the list - only which organization the scope implies. There is
+        // deliberately no way for a policy to reassign the owner.
+        SetOrganization(cart, organizationId: null);
 
         return Task.CompletedTask;
     }
@@ -118,10 +114,10 @@ That is all: no `ICartSharingService` override and no GraphQL enum override. The
 | `Scope` | The stored `CartSharingSetting.Scope` value and the GraphQL enum value. Must be a valid GraphQL enum value name (`[_A-Za-z][_0-9A-Za-z]*`). |
 | `Description` | The enum value's schema description. Defaults to `"<Scope> scope"`. |
 | `CanApply` | `false` for a scope that can be read but never set - `UpdateScopeAsync` then rejects it. Defaults to `true`. |
-| `GetAccess` | `Read` or `Write` for the current caller. Defaults to `Read`. |
+| `GetAccess` | `Read` or `Write` for the current caller. Defaults to `Write` for the list's owner and `Read` for everyone else; override only to widen. |
 | `IsAuthorized` | Whether the caller may see the cart. Fail closed. |
-| `ApplyAsync` | Writes the scope onto the cart: `EnsureSetting` for the row, `ApplyTargets` / `ApplyMessage` for a targeted scope. Any authorization for *setting* the scope belongs here. |
-| `EnsureSetting` | How the setting row is written. The default keeps one effective setting per cart (its `Id` is the sharing key), drops legacy extra rows, and resets the targets and the message when the scope changes. |
+| `ApplyAsync` | Writes the scope onto the cart: `EnsureSetting` for the row, `ApplyTargets` / `ApplyMessage` for a targeted scope, `SetOrganization` if the scope implies one. Any authorization for *setting* the scope belongs here, and must run **before** the first mutation - the cart you are handed is the one the cached aggregate holds, so a write rejected afterwards is still served to later reads. Only the list's owner ever reaches this method. |
+| `EnsureSetting` | How the setting row is written. The default keeps one effective setting per cart (its `Id` is the sharing key), drops legacy extra rows, resets the targets and the message when the scope changes, and stores the access `GetAccess` gives a non-owner. |
 | `ResolveTargetsAsync` | Display data (`Name`, `Subtitle`, `ImageUrl`) for the `targets` of a `sharingSetting`. Defaults to the ids only. Return one target per id you are given; an id you drop is filled back in with its bare id, so a recipient whose principal no longer exists is always visible and revocable. It is called through a request-scoped batch loader: the ids of **every list in the request** arrive in one call per scope, so a page of wishlists costs one resolve, not one per list. Resolved for the **list owner only** - `sharingSetting.targets` is `[]` and `sharedWithId` is `null` for every other viewer, so a recipient never learns who else the list was shared with; `message` stays visible to recipients. |
 | `ConfigureSearchCriteria` | How `wishlists(scope: ...)` narrows its search. Defaults to no narrowing. |
 

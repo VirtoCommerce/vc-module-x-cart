@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
@@ -91,6 +92,18 @@ public abstract class CartSharingScopePolicyBase : ICartSharingScopePolicy
 
     protected static bool IsOwner(ShoppingCart cart, string currentUserId)
     {
-        return !string.IsNullOrEmpty(currentUserId) && cart?.CustomerId.EqualsIgnoreCase(currentUserId) == true;
+        return cart.IsOwnedBy(currentUserId);
+    }
+
+    // The other half of a targeted scope's authorization: is this principal one of the ids the list was shared
+    // with? Here rather than copied into each policy - it is the data-isolation check, and the scope match and
+    // the ignore-case comparison are both easy to get wrong.
+    protected bool IsSharedWith(ShoppingCart cart, string principalId)
+    {
+        var setting = cart.GetEffectiveSharingSetting();
+
+        return !string.IsNullOrEmpty(principalId)
+            && setting?.Scope.EqualsIgnoreCase(Scope) == true
+            && setting.Targets?.Any(x => x.SharedWithId.EqualsIgnoreCase(principalId)) == true;
     }
 }

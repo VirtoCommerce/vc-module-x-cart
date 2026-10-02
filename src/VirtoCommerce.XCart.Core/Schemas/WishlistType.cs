@@ -27,7 +27,9 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<CurrencyType>("currency").Description("Currency").Resolve(context => context.Source.Currency);
             ExtendableField<ListGraphType<LineItemType>>("items", "Items", resolve: context => context.Source.LineItems);
             Field<IntGraphType>("itemsCount").Description("Item count").Resolve(context => context.Source.Cart.LineItemsCount);
-            ExtendableField<WishlistScopeType>("Scope", "Wishlist scope", resolve: context => (ResolveSharingSetting(context) as CartSharingSetting)?.Scope, deprecationReason: "Use SharingSetting.Scope instead");
+            // Directly, not off ResolveSharingSetting: that builds a whole setting - a new key, three service calls
+            // and a sort of every target - for one string this field then reads back.
+            ExtendableField<WishlistScopeType>("Scope", "Wishlist scope", resolve: context => _cartSharingService.GetSharingScope(context.Source.Cart), deprecationReason: "Use SharingSetting.Scope instead");
             Field(x => x.Cart.Description, nullable: true).Description("Wishlist description");
             Field(x => x.Cart.ModifiedDate, nullable: true).Description("Wishlist modified date");
             Field<NonNullGraphType<MoneyType>>("subTotal").Description("Wishlist subtotal").Resolve(context => context.GetTotal(context.Source.Cart.SubTotal));

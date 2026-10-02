@@ -13,6 +13,7 @@ public interface ICartSharingService
     string GetSharingAccess(ShoppingCart cart, string currentUserId);
     bool IsAuthorized(ShoppingCart cart, string currentUserId, string currentOrganizationId);
 
+    [Obsolete("Ownership is assigned when the list is created and a scope write must not change it.", DiagnosticId = "VC0015", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions")]
     void SetOwner(ShoppingCart cart, string userId, string customerName, string organizationId);
     string GetSharingOwnerUserId(ShoppingCart cart);
     string GetSharingOwnerOrganizationId(ShoppingCart cart);

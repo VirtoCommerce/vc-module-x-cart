@@ -24,7 +24,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<StringGraphType>("SharedWithId")
                 .Description("Id of the first target the list is shared with; owner only, null for non-targeted scopes")
                 .DeprecationReason("Use targets")
-                .Resolve(context => ResolveIsOwner(context) ? context.Source.Targets?.FirstOrDefault()?.SharedWithId : null);
+                .Resolve(context => ResolveIsOwner(context) ? context.Source.SharedWithIdValue : null);
             Field(x => x.Message, nullable: true).Description("Message saved with the share (one for all targets)");
             AddField(new FieldType
             {

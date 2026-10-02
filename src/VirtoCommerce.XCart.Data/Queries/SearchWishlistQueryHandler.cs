@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.SearchModule.Core.Services;
+using VirtoCommerce.Xapi.Core.Extensions;
 using VirtoCommerce.Xapi.Core.Infrastructure;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
@@ -58,8 +59,7 @@ namespace VirtoCommerce.XCart.Data.Queries
         {
             var result = CartResponseGroup.WithLineItems;
 
-            if (request.IncludeFields?.Any(x => x.Contains("targets", StringComparison.OrdinalIgnoreCase) ||
-                                                x.Contains("sharedWithId", StringComparison.OrdinalIgnoreCase)) == true)
+            if (request.IncludeFields?.ContainsAny("targets", "sharedWithId") == true)
             {
                 result |= CartResponseGroup.WithSharingTargets;
             }

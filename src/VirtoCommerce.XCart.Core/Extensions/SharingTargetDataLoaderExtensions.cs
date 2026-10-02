@@ -14,9 +14,7 @@ public static class SharingTargetDataLoaderExtensions
 {
     private const string LoaderKey = "cart_sharing_targets";
 
-    private static readonly DataLoaderResult<WishlistSharingTarget[]> _noTargets = new([]);
-
-    public static IDataLoaderResult<WishlistSharingTarget[]> NoTargets => _noTargets;
+    public static IDataLoaderResult<WishlistSharingTarget[]> NoTargets { get; } = new DataLoaderResult<WishlistSharingTarget[]>([]);
 
     /// <summary>
     /// Resolves the recipients of one sharing setting through a request-scoped batch loader: a page of wishlists
@@ -33,7 +31,7 @@ public static class SharingTargetDataLoaderExtensions
 
         if (sharedWithIds.Count == 0)
         {
-            return _noTargets;
+            return NoTargets;
         }
 
         var loader = dataLoader.Context.GetOrAddBatchLoader<(string Scope, string SharedWithId), WishlistSharingTarget>(
@@ -69,8 +67,7 @@ public static class SharingTargetDataLoaderExtensions
                 }
 
                 return result;
-            },
-            keyComparer: AnonymousComparer.Create(((string Scope, string SharedWithId) x) => $"{x.Scope}:{x.SharedWithId}"));
+            });
 
         return loader.LoadAsync(sharedWithIds.Select(x => (setting.Scope, x)));
     }

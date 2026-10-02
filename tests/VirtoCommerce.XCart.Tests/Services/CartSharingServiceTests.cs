@@ -721,14 +721,6 @@ namespace VirtoCommerce.XCart.Tests.Services
                 return Task.CompletedTask;
             }
 
-            private bool IsSharedWith(ShoppingCart cart, string organizationId)
-            {
-                var setting = cart.GetEffectiveSharingSetting();
-
-                return !string.IsNullOrEmpty(organizationId)
-                    && setting?.Scope.EqualsIgnoreCase(Scope) == true
-                    && setting.Targets?.Any(x => x.SharedWithId.EqualsIgnoreCase(organizationId)) == true;
-            }
         }
 
         // A scope that resolves display data for its targets, the way a module owning the id space would.

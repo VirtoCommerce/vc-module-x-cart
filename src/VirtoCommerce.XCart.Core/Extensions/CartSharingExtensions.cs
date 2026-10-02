@@ -9,6 +9,13 @@ namespace VirtoCommerce.XCart.Core.Extensions;
 
 public static class CartSharingExtensions
 {
+    // The one definition of ownership. Ownership decides who may share, re-scope or remove a list, so it must
+    // not drift between the policies, the sharing service and the authorization handler.
+    public static bool IsOwnedBy(this ShoppingCart cart, string userId)
+    {
+        return !string.IsNullOrEmpty(userId) && cart?.CustomerId.EqualsIgnoreCase(userId) == true;
+    }
+
     // The setting that carries the scope, key, targets and message: the first non-Private row (a legacy multi-row
     // cart keeps demoted Private rows), else the first row.
     public static CartSharingSetting GetEffectiveSharingSetting(this ShoppingCart cart)
@@ -23,18 +30,44 @@ public static class CartSharingExtensions
         return settings.FirstOrDefault(x => !CartSharingScope.Private.EqualsIgnoreCase(x.Scope)) ?? settings[0];
     }
 
-    // Union with the adds, minus the removes; ids are compared case-insensitively.
+    // Which ids the set would hold after the change: the current ones minus the removals, plus the non-empty
+    // additions, compared case-insensitively and in that order. Pure, so a policy can check the outcome BEFORE
+    // anything is written - a write rejected after the fact stays in the cached aggregate (VCST-6113).
+    // Sets, not scans: a list may be shared with a thousand recipients and changed by as many ids at once.
+    public static IList<string> GetResultingSharedWithIds(this CartSharingSetting setting, IEnumerable<string> addSharedWithIds, IEnumerable<string> removeSharedWithIds)
+    {
+        var removeIds = (removeSharedWithIds ?? []).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var resultIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var result = new List<string>();
+
+        var kept = (setting?.Targets ?? []).Select(x => x.SharedWithId).Where(x => !removeIds.Contains(x));
+        var added = (addSharedWithIds ?? []).Where(x => !string.IsNullOrEmpty(x));
+
+        foreach (var sharedWithId in kept.Concat(added))
+        {
+            // Add reports whether the id is new, so an id already present - or repeated in the input - is skipped.
+            if (resultIds.Add(sharedWithId))
+            {
+                result.Add(sharedWithId);
+            }
+        }
+
+        return result;
+    }
+
+    // Union with the adds, minus the removes, applied to the stored rows. Built on GetResultingSharedWithIds so
+    // the rule a policy validates against and the rule that is written are the same one.
     public static void ApplyTargets(this CartSharingSetting setting, IEnumerable<string> addSharedWithIds, IEnumerable<string> removeSharedWithIds)
     {
         setting.Targets ??= [];
 
-        // Sets, not scans: a list may be shared with a thousand recipients and changed by as many ids at once.
-        var removeIds = (removeSharedWithIds ?? []).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var resulting = setting.GetResultingSharedWithIds(addSharedWithIds, removeSharedWithIds);
+        var resultingIds = resulting.ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         // By index: Entity.Equals treats two transient (Id-less) rows as equal, so Remove(item) may drop the wrong one.
         for (var i = setting.Targets.Count - 1; i >= 0; i--)
         {
-            if (removeIds.Contains(setting.Targets[i].SharedWithId))
+            if (!resultingIds.Contains(setting.Targets[i].SharedWithId))
             {
                 setting.Targets.RemoveAt(i);
             }
@@ -42,14 +75,8 @@ public static class CartSharingExtensions
 
         var currentIds = setting.Targets.Select(x => x.SharedWithId).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var sharedWithId in (addSharedWithIds ?? []).Where(x => !string.IsNullOrEmpty(x)))
+        foreach (var sharedWithId in resulting.Where(x => !currentIds.Contains(x)))
         {
-            // Add reports whether the id is new, so an id already shared with - or repeated in the input - is skipped.
-            if (!currentIds.Add(sharedWithId))
-            {
-                continue;
-            }
-
             var target = AbstractTypeFactory<CartSharingSettingTarget>.TryCreateInstance();
 
             target.CartSharingSettingId = setting.Id;

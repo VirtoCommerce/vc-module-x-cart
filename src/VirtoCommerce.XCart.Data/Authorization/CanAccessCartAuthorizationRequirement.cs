@@ -13,6 +13,7 @@ using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Security.Authorization;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
+using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
 using VirtoCommerce.XCart.Core.Services;
@@ -131,7 +132,7 @@ namespace VirtoCommerce.XCart.Data.Authorization
             }
 
             // Only the owner may remove a list. Fails closed when the cart could not be loaded.
-            if (context.RequireOwner && context.Cart?.CustomerId.EqualsIgnoreCase(context.CurrentUserId) != true)
+            if (context.RequireOwner && !context.Cart.IsOwnedBy(context.CurrentUserId))
             {
                 return false;
             }

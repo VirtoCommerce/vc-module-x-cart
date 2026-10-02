@@ -54,7 +54,7 @@ public class CartSharingService : ICartSharingService
 
         return policy != null
             ? policy.IsAuthorized(cart, currentUserId, currentOrganizationId)
-            : IsOwner(cart, currentUserId);
+            : cart.IsOwnedBy(currentUserId);
     }
 
     public virtual void SetOwner(ShoppingCart cart, string userId, string customerName, string organizationId)
@@ -156,7 +156,7 @@ public class CartSharingService : ICartSharingService
     // AnyoneAnonymous, while the owner lost it (VCST-6125).
     protected virtual void AuthorizeSharingChange(ShoppingCart cart, WishlistScopeContext context)
     {
-        if (!IsOwner(cart, context.CurrentUserId))
+        if (!cart.IsOwnedBy(context.CurrentUserId))
         {
             throw AuthorizationError.Forbidden();
         }
@@ -224,10 +224,6 @@ public class CartSharingService : ICartSharingService
         return null;
     }
 
-    private static bool IsOwner(ShoppingCart cart, string currentUserId)
-    {
-        return !string.IsNullOrEmpty(currentUserId) && cart?.CustomerId.EqualsIgnoreCase(currentUserId) == true;
-    }
 
     private static Dictionary<string, ICartSharingScopePolicy> BuildScopePolicyIndex(IEnumerable<ICartSharingScopePolicy> scopePolicies)
     {
