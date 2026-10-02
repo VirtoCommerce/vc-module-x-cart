@@ -1416,9 +1416,13 @@ namespace VirtoCommerce.XCart.Data.Schemas
                          {
                              var commandType = GenericTypeHelper.GetActualType<AddWishlistItemCommand>();
                              var command = (AddWishlistItemCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
+
+                             // Before Send: the handler persists, so authorizing afterwards let any caller who
+                             // knows the list id write to someone else's list and only then be told no (VCST-6116).
+                             await AuthorizeByListIdAsync(context, command);
+
                              var cartAggregate = await context.GetMediator().Send(command);
                              context.UserContext["storeId"] = cartAggregate.Cart.StoreId;
-                             await AuthorizeByListIdAsync(context, command);
                              context.SetExpandedObjectGraph(cartAggregate);
                              return cartAggregate;
                          })
@@ -1433,9 +1437,13 @@ namespace VirtoCommerce.XCart.Data.Schemas
                          {
                              var commandType = GenericTypeHelper.GetActualType<UpdateWishlistItemsCommand>();
                              var command = (UpdateWishlistItemsCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
+
+                             // Before Send: the handler persists, so authorizing afterwards let any caller who
+                             // knows the list id write to someone else's list and only then be told no (VCST-6116).
+                             await AuthorizeByListIdAsync(context, command);
+
                              var cartAggregate = await context.GetMediator().Send(command);
                              context.UserContext["storeId"] = cartAggregate.Cart.StoreId;
-                             await AuthorizeByListIdAsync(context, command);
                              context.SetExpandedObjectGraph(cartAggregate);
                              return cartAggregate;
                          })
