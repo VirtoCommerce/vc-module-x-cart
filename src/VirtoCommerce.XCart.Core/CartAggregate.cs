@@ -229,10 +229,7 @@ namespace VirtoCommerce.XCart.Core
 #pragma warning restore VC0015
         }
 
-        /// <summary>
-        /// Returns all cached validation errors across all rulesets that have been validated,
-        /// combined with <see cref="OperationValidationErrors"/>. Does not trigger validation.
-        /// </summary>
+        [Obsolete("Use ValidateAsync(ruleSet) and OperationValidationErrors instead. This method does not track which ruleSet was validated.", DiagnosticId = "VC0016", UrlFormat = "https://docs.virtocommerce.org/products/products-virto3-versions/")]
         public virtual IList<ValidationFailure> GetValidationErrors()
         {
 #pragma warning disable VC0015 // Obsolete: maintained for backward compatibility
@@ -998,6 +995,11 @@ namespace VirtoCommerce.XCart.Core
 
             if (ValidationErrorsByRuleSet.TryGetValue(key, out var cached))
             {
+#pragma warning disable VC0015 // Backward-compat mirrors kept in sync until the VC0015 members are removed
+                CartValidationErrors = cached;
+                IsValidated = true;
+#pragma warning restore VC0015
+
                 return cached;
             }
 
