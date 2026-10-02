@@ -1401,7 +1401,10 @@ namespace VirtoCommerce.XCart.Data.Schemas
                          {
                              var commandType = GenericTypeHelper.GetActualType<RemoveWishlistCommand>();
                              var command = (RemoveWishlistCommand)context.GetArgument(commandType, SchemaConstants.CommandName);
-                             await AuthorizeByListIdAsync(context, command);
+
+                             // Owner only: a co-member of an organization list holds Write and could delete it,
+                             // which VCST-6125 left as the last destructive act open to them.
+                             await AuthorizeByListIdAsync(context, command, requireOwner: true);
                              await context.GetMediator().Send(command);
                              return true;
                          })
@@ -1632,9 +1635,9 @@ namespace VirtoCommerce.XCart.Data.Schemas
             await AuthorizeAsync(context, cart);
         }
 
-        private async Task AuthorizeByListIdAsync(IResolveFieldContext context, WishlistCommand command, string scope = null)
+        private async Task AuthorizeByListIdAsync(IResolveFieldContext context, WishlistCommand command, string scope = null, bool requireOwner = false)
         {
-            var wishlistUserContext = await InitializeWishlistUserContext(context, listId: command?.ListId, userId: command?.UserId, scope: scope);
+            var wishlistUserContext = await InitializeWishlistUserContext(context, listId: command?.ListId, userId: command?.UserId, scope: scope, requireOwner: requireOwner);
             await AuthorizeByListAsync(context, wishlistUserContext, command);
         }
 
@@ -1699,7 +1702,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
             await AuthorizeAsync(context, resource);
         }
 
-        private async Task<WishlistUserContext> InitializeWishlistUserContext(IResolveFieldContext context, string listId = null, ShoppingCart cart = null, string userId = null, string scope = null, string requestedAccess = CartSharingAccess.Write)
+        private async Task<WishlistUserContext> InitializeWishlistUserContext(IResolveFieldContext context, string listId = null, ShoppingCart cart = null, string userId = null, string scope = null, string requestedAccess = CartSharingAccess.Write, bool requireOwner = false)
         {
             var currentUserId = context.GetCurrentUserId();
 
@@ -1716,6 +1719,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                 Cart = cart,
                 UserId = userId,
                 RequestedAccess = requestedAccess,
+                RequireOwner = requireOwner,
             };
             InitializeWishlistUserContextScope(wishlistUserContext, scope);
 

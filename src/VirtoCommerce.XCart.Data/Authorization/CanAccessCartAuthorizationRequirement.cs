@@ -130,6 +130,12 @@ namespace VirtoCommerce.XCart.Data.Authorization
                 return false;
             }
 
+            // Only the owner may remove a list. Fails closed when the cart could not be loaded.
+            if (context.RequireOwner && context.Cart?.CustomerId.EqualsIgnoreCase(context.CurrentUserId) != true)
+            {
+                return false;
+            }
+
             var result = true;
             if (context.Cart != null)
             {

@@ -49,15 +49,43 @@ namespace VirtoCommerce.XCart.Tests.Authorization
             authorized.Should().BeTrue();
         }
 
+        [Fact]
+        public async Task RemoveOfAnOrganizationList_ByAWriteCoMember_IsRefused()
+        {
+            // Deleting is an ownership act: every member of an organization list holds Write, so Write cannot gate
+            // it. After VCST-6125 blocked the takeover, this was the last destructive act left to a co-member.
+            var authorized = await AuthorizeAsync(new RemoveWishlistCommand("list-1"), requireOwner: true);
+
+            authorized.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task RemoveOfAnOrganizationList_ByTheOwner_IsAllowed()
+        {
+            var authorized = await AuthorizeAsync(new RemoveWishlistCommand("list-1"), requireOwner: true, callerId: OwnerId);
+
+            authorized.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task WriteToAnOrganizationList_ByAWriteCoMember_IsStillAllowed()
+        {
+            // The guard is scoped to removal: renaming and editing items stay open to the organization.
+            var authorized = await AuthorizeAsync(new ChangeWishlistCommand());
+
+            authorized.Should().BeTrue();
+        }
+
         // An organization-scoped list owned by someone else: every member of the organization may write it.
-        private static async Task<bool> AuthorizeAsync(WishlistCommand command)
+        private static async Task<bool> AuthorizeAsync(WishlistCommand command, bool requireOwner = false, string callerId = CallerId)
         {
             command.WishlistUserContext = new WishlistUserContext
             {
-                CurrentUserId = CallerId,
+                CurrentUserId = callerId,
                 CurrentOrganizationId = OrgId,
                 UserId = command.UserId,
                 RequestedAccess = CartSharingAccess.Write,
+                RequireOwner = requireOwner,
                 Scope = CartSharingScope.Organization,
                 Cart = new ShoppingCart
                 {
