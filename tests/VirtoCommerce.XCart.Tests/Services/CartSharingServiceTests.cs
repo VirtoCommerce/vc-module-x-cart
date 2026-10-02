@@ -96,7 +96,7 @@ namespace VirtoCommerce.XCart.Tests.Services
         }
 
         [Theory]
-        [InlineData(CartSharingScope.Private, CartSharingAccess.Read)]
+        [InlineData(CartSharingScope.Private, CartSharingAccess.Write)]
         [InlineData(CartSharingScope.Organization, CartSharingAccess.Write)]
         [InlineData(CartSharingScope.User, CartSharingAccess.Read)]
         [InlineData(CartSharingScope.AnyoneAnonymous, CartSharingAccess.Read)]
@@ -260,6 +260,9 @@ namespace VirtoCommerce.XCart.Tests.Services
             cart.SharingSettings[0].Scope.Should().Be(CartSharingScope.Private);
             cart.SharingSettings[0].Id.Should().BeNull();
             cart.OrganizationId.Should().BeNull();
+
+            // The stored access is what the scope hands out, and a Private list is handed to its owner alone.
+            cart.SharingSettings[0].Access.Should().Be(CartSharingAccess.Write);
         }
 
         [Fact]

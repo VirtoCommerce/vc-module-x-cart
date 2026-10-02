@@ -121,6 +121,8 @@ That is all: no `ICartSharingService` override and no GraphQL enum override. The
 | `ResolveTargetsAsync` | Display data (`Name`, `Subtitle`, `ImageUrl`) for the `targets` of a `sharingSetting`. Defaults to the ids only. Return one target per id you are given; an id you drop is filled back in with its bare id, so a recipient whose principal no longer exists is always visible and revocable. It is called through a request-scoped batch loader: the ids of **every list in the request** arrive in one call per scope, so a page of wishlists costs one resolve, not one per list. Resolved for the **list owner only** - `sharingSetting.targets` is `[]` and `sharedWithId` is `null` for every other viewer, so a recipient never learns who else the list was shared with; `message` stays visible to recipients. |
 | `ConfigureSearchCriteria` | How `wishlists(scope: ...)` narrows its search. Defaults to no narrowing. |
 
+**Sharing and ownership belong to the list's owner.** `UpdateScopeAsync` refuses a scope, recipient or message write from anyone else, so a policy's `ApplyAsync` only ever runs for the owner, and `removeWishlist` is owner-only too. Write access is not enough for either: every member of an organization-scoped list holds it, and it is what lets them rename the list and add, change or remove its items — which stays unchanged. A policy cannot re-assign the owner; `SetOrganization` only aligns the organization the scope implies.
+
 Two policies claiming the same `Scope` throw at startup naming both types, so a collision is never silent.
 Scope lookup is case-insensitive, so compare stored scope values with `EqualsIgnoreCase` as above.
 `Targets` are the scope's own id space (partner organization ids here); the built-in scopes keep the set empty

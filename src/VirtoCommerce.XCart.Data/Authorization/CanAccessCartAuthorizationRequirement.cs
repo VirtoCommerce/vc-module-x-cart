@@ -146,17 +146,21 @@ namespace VirtoCommerce.XCart.Data.Authorization
                 }
                 else if (context.Cart.Type == CartType.SavedForLater)
                 {
-                    result = context.Cart.CustomerId == context.CurrentUserId || (context.Cart.OrganizationId != null && context.Cart.OrganizationId == context.CurrentOrganizationId);
+                    result = context.Cart.IsOwnedBy(context.CurrentUserId)
+                        || (context.Cart.OrganizationId != null && context.Cart.OrganizationId.EqualsIgnoreCase(context.CurrentOrganizationId));
                 }
                 else
                 {
+                    // Ignoring case, like the guards above: ids are strings holding GUIDs, and the owner check
+                    // that admits a casing must not be followed by one that rejects it - that locks the owner
+                    // out of their own list.
                     if (context.Cart.OrganizationId != null)
                     {
-                        result = context.Cart.OrganizationId == context.CurrentOrganizationId;
+                        result = context.Cart.OrganizationId.EqualsIgnoreCase(context.CurrentOrganizationId);
                     }
                     else
                     {
-                        result = context.Cart.CustomerId == context.CurrentUserId;
+                        result = context.Cart.IsOwnedBy(context.CurrentUserId);
                     }
                 }
             }
