@@ -54,12 +54,7 @@ namespace VirtoCommerce.XCart.Data.Authorization
 
                     if (!authorized && file.OwnerTypeIs<ShoppingCart>())
                     {
-                        var cart = await _shoppingCartService.GetByIdAsync(file.OwnerEntityId);
-
-                        if (cart != null)
-                        {
-                            resource = cart;
-                        }
+                        resource = await _shoppingCartService.GetByIdAsync(file.OwnerEntityId);
                     }
                 }
 

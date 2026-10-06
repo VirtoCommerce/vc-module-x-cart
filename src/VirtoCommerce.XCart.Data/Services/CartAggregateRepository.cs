@@ -394,24 +394,7 @@ namespace VirtoCommerce.XCart.Data.Services
                 .Distinct()
                 .ToArray();
 
-            if (fileUrls.IsNullOrEmpty())
-            {
-                return;
-            }
-
-            var files = (await _fileUploadService.GetByPublicUrlAsync(fileUrls))
-                .Where(x => x.Scope == ConfigurationSectionFilesScope)
-                .ToList();
-
-            if (files.Count > 0)
-            {
-                foreach (var file in files)
-                {
-                    file.SetOwner(cart);
-                }
-
-                await _fileUploadService.SaveChangesAsync(files);
-            }
+            await _fileUploadService.SetOwnerAsync(fileUrls, ConfigurationSectionFilesScope, cart);
         }
     }
 }
