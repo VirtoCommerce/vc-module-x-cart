@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
@@ -18,11 +20,23 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
         _cartSharingService = cartSharingService;
     }
 
-    protected virtual Task UpdateScopeAsync(CartAggregate cartAggregate, TCommand request)
+    protected virtual async Task UpdateScopeAsync(CartAggregate cartAggregate, TCommand request)
     {
         var context = CreateScopeContext(request);
 
-        return _cartSharingService.UpdateScopeAsync(cartAggregate.Cart, context);
+        try
+        {
+            await _cartSharingService.UpdateScopeAsync(cartAggregate.Cart, context);
+        }
+        catch
+        {
+            // A policy may have written part of the scope before validation rejected the rest. The aggregate is
+            // cached by reference, so leaving it in place would serve the rejected state to later reads - and the
+            // next save would persist it (VCST-6113).
+            GenericCachingRegion<CartAggregate>.ExpireTokenForKey(cartAggregate.Id);
+
+            throw;
+        }
     }
 
     protected virtual WishlistScopeContext CreateScopeContext(TCommand request)
@@ -31,7 +45,10 @@ public abstract class ScopedWishlistCommandHandlerBase<TCommand> : CartCommandHa
 
         context.Scope = request.Scope;
         context.SharingKey = request.SharingKey;
-        context.SharedWithId = request.SharedWithId;
+        context.AddSharedWithIds = request.AddSharedWithIds;
+        context.RemoveSharedWithIds = request.RemoveSharedWithIds;
+        context.LegacySharedWithId = request.SharedWithId;
+        context.Message = request.Message;
         context.CurrentUserId = request.WishlistUserContext.CurrentUserId;
         context.CustomerName = request.WishlistUserContext.CurrentContact.Name;
         context.CurrentOrganizationId = request.WishlistUserContext.CurrentOrganizationId;
