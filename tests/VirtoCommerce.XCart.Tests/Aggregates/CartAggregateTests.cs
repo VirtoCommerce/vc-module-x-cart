@@ -959,13 +959,14 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
         }
 
         [Fact]
-        public async Task ValidateAsync_CacheHit_SyncsObsoleteMirror()
+        public async Task ValidateAsync_MissAndHit_SyncObsoleteMirror()
         {
             // Arrange
-            // VCST-6089 stop-gap: the deprecated GetValidationErrors() reads the CartValidationErrors mirror,
-            // which a cache hit used to leave untouched. After "items" (with errors) and then "default" (clean),
-            // re-requesting "items" left the mirror on the clean "default" result, so a caller still on the
-            // deprecated read saw no errors for the ruleSet it had just validated.
+            // VCST-6089 stop-gap: the deprecated GetValidationErrors() reads the CartValidationErrors mirror, which a
+            // cache hit used to leave untouched. After "items" (with errors) and then "default" (clean), re-requesting
+            // "items" left the mirror on the clean "default" result, so a caller still on the deprecated read saw no
+            // errors for the ruleSet it had just validated. Both halves are pinned: the mirror must follow the
+            // requested ruleSet after a miss and after a hit, so they survive when the VC0015 mirror is replaced.
             var cartAggregate = GetValidCartAggregate();
 
             var invalidLineItem = new LineItem
@@ -983,17 +984,21 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
                 .Setup(x => x.CreateValidationContextAsync(cartAggregate))
                 .ReturnsAsync(new CartValidationContext());
 
-            await cartAggregate.ValidateAsync(ModuleConstants.ValidationRuleSets.Items);
+            // Act
+#pragma warning disable VC0016 // The deprecated read is exactly what this test pins
+            var missErrors = await cartAggregate.ValidateAsync(ModuleConstants.ValidationRuleSets.Items);
+            var mirrorAfterMiss = cartAggregate.GetValidationErrors();
+
             await cartAggregate.ValidateAsync(ModuleConstants.ValidationRuleSets.Default);
 
-            // Act
-            var errors = await cartAggregate.ValidateAsync(ModuleConstants.ValidationRuleSets.Items);
+            var hitErrors = await cartAggregate.ValidateAsync(ModuleConstants.ValidationRuleSets.Items);
+            var mirrorAfterHit = cartAggregate.GetValidationErrors();
+#pragma warning restore VC0016
 
             // Assert
-            errors.Should().Contain(x => x.ErrorCode == "LINE_ITEM_LIMIT");
-#pragma warning disable VC0016 // The deprecated read is exactly what this test pins
-            cartAggregate.GetValidationErrors().Should().Equal(errors);
-#pragma warning restore VC0016
+            hitErrors.Should().Contain(x => x.ErrorCode == "LINE_ITEM_LIMIT");
+            mirrorAfterMiss.Should().Equal(missErrors);
+            mirrorAfterHit.Should().Equal(hitErrors);
         }
 
         #endregion ValidateAsync

@@ -2202,7 +2202,9 @@ namespace VirtoCommerce.XCart.Core
 
             // Re-create mutable collections so the clone doesn't share references with the original.
             // MemberwiseClone copies references — writes/clears on one instance would leak to the other.
-            result.ValidationErrorsByRuleSet = new ConcurrentDictionary<string, IList<ValidationFailure>>(ValidationErrorsByRuleSet, StringComparer.OrdinalIgnoreCase);
+            result.ValidationErrorsByRuleSet = new ConcurrentDictionary<string, IList<ValidationFailure>>(
+                ValidationErrorsByRuleSet.ToDictionary(kvp => kvp.Key, kvp => (IList<ValidationFailure>)new List<ValidationFailure>(kvp.Value)),
+                StringComparer.OrdinalIgnoreCase);
 #pragma warning disable VC0015 // Obsolete: maintained for backward compatibility
             result.CartValidationErrors = new List<ValidationFailure>(CartValidationErrors);
 #pragma warning restore VC0015
