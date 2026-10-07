@@ -13,6 +13,7 @@ using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.Security;
 using VirtoCommerce.Platform.Security.Authorization;
 using VirtoCommerce.XCart.Core.Commands.BaseCommands;
+using VirtoCommerce.XCart.Core.Extensions;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Queries;
 using VirtoCommerce.XCart.Core.Services;
@@ -123,6 +124,19 @@ namespace VirtoCommerce.XCart.Data.Authorization
 
         private bool CheckWishlistUserContext(WishlistUserContext context)
         {
+            // A command may only act as the caller: userId names the owner of the list being created or cloned, and
+            // a clone's source list is shared - so this has to run before the shared-cart branch returns (VCST-6125).
+            if (!string.IsNullOrEmpty(context.UserId) && !context.UserId.EqualsIgnoreCase(context.CurrentUserId))
+            {
+                return false;
+            }
+
+            // Only the owner may remove a list. Fails closed when the cart could not be loaded.
+            if (context.RequireOwner && !context.Cart.IsOwnedBy(context.CurrentUserId))
+            {
+                return false;
+            }
+
             var result = true;
             if (context.Cart != null)
             {
@@ -132,25 +146,23 @@ namespace VirtoCommerce.XCart.Data.Authorization
                 }
                 else if (context.Cart.Type == CartType.SavedForLater)
                 {
-                    result = context.Cart.CustomerId == context.CurrentUserId || (context.Cart.OrganizationId != null && context.Cart.OrganizationId == context.CurrentOrganizationId);
+                    result = context.Cart.IsOwnedBy(context.CurrentUserId)
+                        || (context.Cart.OrganizationId != null && context.Cart.OrganizationId.EqualsIgnoreCase(context.CurrentOrganizationId));
                 }
                 else
                 {
+                    // Ignoring case, like the guards above: ids are strings holding GUIDs, and the owner check
+                    // that admits a casing must not be followed by one that rejects it - that locks the owner
+                    // out of their own list.
                     if (context.Cart.OrganizationId != null)
                     {
-                        result = context.Cart.OrganizationId == context.CurrentOrganizationId;
+                        result = context.Cart.OrganizationId.EqualsIgnoreCase(context.CurrentOrganizationId);
                     }
                     else
                     {
-                        result = context.Cart.CustomerId == context.CurrentUserId;
+                        result = context.Cart.IsOwnedBy(context.CurrentUserId);
                     }
                 }
-            }
-
-            //TODO: what is this?
-            if (result && !string.IsNullOrEmpty(context.UserId))
-            {
-                result = context.UserId == context.CurrentUserId;
             }
 
             return result;
