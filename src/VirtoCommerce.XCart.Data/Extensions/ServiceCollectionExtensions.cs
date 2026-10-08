@@ -52,7 +52,7 @@ namespace VirtoCommerce.XCart.Data.Extensions
             services.AddTransient<IConfiguredLineItemContainerService, ConfiguredLineItemContainerService>();
             services.AddTransient<ICartConfigurationService, CartConfigurationService>();
             services.AddTransient<IConfigurationItemValidator, ConfigurationItemValidator>();
-            services.AddSingleton<IFileAuthorizationRequirementFactory, ConfigurationItemFileAuthorizationRequirementFactory>();
+            services.AddSingleton<IFileAuthorizationRequirementFactory, CartFileAuthorizationRequirementFactory>();
 
             services.AddTransient<ICartValidatorRegistry, CartValidatorRegistry>();
 
