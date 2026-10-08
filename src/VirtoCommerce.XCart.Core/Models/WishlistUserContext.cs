@@ -18,5 +18,9 @@ namespace VirtoCommerce.XCart.Core.Models
         public string Scope { get; set; }
 
         public string RequestedAccess { get; set; }
+
+        // Removing a list is an ownership act rather than a write: every member of an organization-scoped list
+        // holds Write, so Write cannot be what gates it. Renaming and editing items stay open to them.
+        public bool RequireOwner { get; set; }
     }
 }
