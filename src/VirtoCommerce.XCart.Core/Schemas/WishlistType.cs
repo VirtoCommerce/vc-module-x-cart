@@ -27,7 +27,9 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field<CurrencyType>("currency").Description("Currency").Resolve(context => context.Source.Currency);
             ExtendableField<ListGraphType<LineItemType>>("items", "Items", resolve: context => context.Source.LineItems);
             Field<IntGraphType>("itemsCount").Description("Item count").Resolve(context => context.Source.Cart.LineItemsCount);
-            ExtendableField<WishlistScopeType>("Scope", "Wishlist scope", resolve: context => (ResolveSharingSetting(context) as CartSharingSetting)?.Scope, deprecationReason: "Use SharingSetting.Scope instead");
+            // Directly, not off ResolveSharingSetting: that builds a whole setting - a new key, three service calls
+            // and a sort of every target - for one string this field then reads back.
+            ExtendableField<WishlistScopeType>("Scope", "Wishlist scope", resolve: context => _cartSharingService.GetSharingScope(context.Source.Cart), deprecationReason: "Use SharingSetting.Scope instead");
             Field(x => x.Cart.Description, nullable: true).Description("Wishlist description");
             Field(x => x.Cart.ModifiedDate, nullable: true).Description("Wishlist modified date");
             Field<NonNullGraphType<MoneyType>>("subTotal").Description("Wishlist subtotal").Resolve(context => context.GetTotal(context.Source.Cart.SubTotal));
@@ -38,14 +40,18 @@ namespace VirtoCommerce.XCart.Core.Schemas
         {
             var result = AbstractTypeFactory<CartSharingSetting>.TryCreateInstance();
 
-            var existingSetting = context.Source.Cart.SharingSettings.FirstOrDefault();
+            var existingSetting = context.Source.Cart.GetEffectiveSharingSetting();
 
             result.Id = existingSetting?.Id ?? Guid.NewGuid().ToString();
 
             result.CreatedBy = _cartSharingService.GetSharingOwnerUserId(context.Source.Cart);//TODO: refactor
             result.Scope = _cartSharingService.GetSharingScope(context.Source.Cart);
             result.Access = _cartSharingService.GetSharingAccess(context.Source.Cart, context.User.GetUserId());
-            result.SharedWithId = existingSetting?.SharedWithId;
+            result.Message = existingSetting?.Message;
+            // One order on every surface. A mutation response carries the in-memory order and a read whatever
+            // the database returns, so "the first target" - which is what the deprecated sharedWithId means -
+            // differed between them (VCST-6152). Ordered by id: the only key populated in both.
+            result.Targets = existingSetting?.Targets?.OrderBy(x => x.SharedWithId, StringComparer.OrdinalIgnoreCase).ToList();
 
             return result;
         }
