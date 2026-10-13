@@ -6,6 +6,7 @@ using Moq;
 using VirtoCommerce.CartModule.Core.Model;
 using VirtoCommerce.CartModule.Core.Model.Search;
 using VirtoCommerce.CatalogModule.Core.Model;
+using VirtoCommerce.FileExperienceApi.Core.Extensions;
 using VirtoCommerce.FileExperienceApi.Core.Models;
 using VirtoCommerce.XCart.Core;
 using VirtoCommerce.XCart.Core.Commands;
@@ -237,9 +238,9 @@ public class SavedForLaterListServiceTests : XCartMoqHelper
             PublicUrl = fileUrl,
             Name = "spec.pdf",
             Scope = ConfigurationSectionFilesScope,
-            OwnerEntityId = owner.Id,
-            OwnerEntityType = typeof(ShoppingCart).FullName,
         };
+
+        file.SetOwner(owner);
 
         _fileUploadService
             .Setup(x => x.GetAsync(It.IsAny<IList<string>>(), It.IsAny<string>(), It.IsAny<bool>()))

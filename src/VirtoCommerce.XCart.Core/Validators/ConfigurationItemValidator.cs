@@ -112,7 +112,8 @@ public class ConfigurationItemValidator : AbstractValidator<LineItem>, IConfigur
 
     private static void ValidateSectionTypeFile(ConfigurationItem configurationItem, ProductConfigurationSection section, ValidationContext<LineItem> context, int limitOfFiles)
     {
-        if (section != null && section.IsRequired && configurationItem.Files.IsNullOrEmpty())
+        if (section != null && section.IsRequired &&
+            (configurationItem.Files.IsNullOrEmpty() || configurationItem.Files.All(x => x.Size <= 0)))
         {
             context.AddFailure(CartErrorDescriber.AddingFileIsRequired(section));
         }
