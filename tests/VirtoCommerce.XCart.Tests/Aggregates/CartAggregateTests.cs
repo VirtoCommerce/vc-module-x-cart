@@ -107,9 +107,9 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             var aggregateAfterAddItem = await _aggregate.AddItemAsync(newCartItem);
 
             // Assert
-            aggregateAfterAddItem.GetValidationErrors().Should().NotBeEmpty();
-            aggregateAfterAddItem.GetValidationErrors().Should().Contain(x => x.ErrorCode == "GreaterThanValidator");
-            aggregateAfterAddItem.GetValidationErrors().Should().Contain(x => x.ErrorCode == "NotNullValidator");
+            aggregateAfterAddItem.OperationValidationErrors.Should().NotBeEmpty();
+            aggregateAfterAddItem.OperationValidationErrors.Should().Contain(x => x.ErrorCode == "GreaterThanValidator");
+            aggregateAfterAddItem.OperationValidationErrors.Should().Contain(x => x.ErrorCode == "NotNullValidator");
         }
 
         [Fact]
@@ -323,8 +323,8 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             });
 
             // Assert
-            cartAggregateAfterChangeItemQty.GetValidationErrors().Should().NotBeEmpty();
-            cartAggregateAfterChangeItemQty.GetValidationErrors().Should().Contain(x => x.ErrorCode == "LINE_ITEM_NOT_FOUND");
+            cartAggregateAfterChangeItemQty.OperationValidationErrors.Should().NotBeEmpty();
+            cartAggregateAfterChangeItemQty.OperationValidationErrors.Should().Contain(x => x.ErrorCode == "LINE_ITEM_NOT_FOUND");
         }
 
         #endregion ChangeItemQuantityAsync
@@ -956,7 +956,49 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
 
             // Assert
             errors.Should().BeEmpty();
-            cartAggregate.GetValidationErrors().Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task ValidateAsync_MissAndHit_SyncObsoleteMirror()
+        {
+            // Arrange
+            // VCST-6089 stop-gap: the deprecated GetValidationErrors() reads the CartValidationErrors mirror, which a
+            // cache hit used to leave untouched. After "items" (with errors) and then "default" (clean), re-requesting
+            // "items" left the mirror on the clean "default" result, so a caller still on the deprecated read saw no
+            // errors for the ruleSet it had just validated. Both halves are pinned: the mirror must follow the
+            // requested ruleSet after a miss and after a hit, so they survive when the VC0015 mirror is replaced.
+            var cartAggregate = GetValidCartAggregate();
+
+            var invalidLineItem = new LineItem
+            {
+                Id = "line-1",
+                ProductId = "product-1",
+                Currency = CURRENCY_CODE,
+                IsGift = false,
+                SelectedForCheckout = true,
+                Quantity = ModuleConstants.LineItemQualityLimit + 1,
+            };
+            cartAggregate.Cart.Items = new List<LineItem> { invalidLineItem };
+
+            _cartValidationContextFactoryMock
+                .Setup(x => x.CreateValidationContextAsync(cartAggregate))
+                .ReturnsAsync(new CartValidationContext());
+
+            // Act
+#pragma warning disable VC0016 // The deprecated read is exactly what this test pins
+            var missErrors = await cartAggregate.ValidateAsync(ModuleConstants.ValidationRuleSets.Items);
+            var mirrorAfterMiss = cartAggregate.GetValidationErrors();
+
+            await cartAggregate.ValidateAsync(ModuleConstants.ValidationRuleSets.Default);
+
+            var hitErrors = await cartAggregate.ValidateAsync(ModuleConstants.ValidationRuleSets.Items);
+            var mirrorAfterHit = cartAggregate.GetValidationErrors();
+#pragma warning restore VC0016
+
+            // Assert
+            hitErrors.Should().Contain(x => x.ErrorCode == "LINE_ITEM_LIMIT");
+            mirrorAfterMiss.Should().Equal(missErrors);
+            mirrorAfterHit.Should().Equal(hitErrors);
         }
 
         #endregion ValidateAsync
