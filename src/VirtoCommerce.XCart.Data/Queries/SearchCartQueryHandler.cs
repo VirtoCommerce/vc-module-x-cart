@@ -48,6 +48,7 @@ namespace VirtoCommerce.XCart.Data.Queries
                                      .WithLanguage(request.CultureName)
                                      .WithCustomerId(request.UserId)
                                      .WithOrganizationId(request.OrganizationId)
+                                     .WithLineItemIds(request.LineItemIds)
                                      .WithResponseGroup(EnumUtility.SafeParseFlags(_cartResponseGroupParser.GetResponseGroup(request.IncludeFields), CartResponseGroup.Full))
                                      .WithPaging(request.Skip, request.Take)
                                      .WithSorting(request.Sort)
