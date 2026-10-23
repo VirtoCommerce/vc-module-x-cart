@@ -96,6 +96,18 @@ namespace VirtoCommerce.XCart.Data.Services
         }
 
         /// <summary>
+        /// Set customerId and organizationId unconditionally
+        /// </summary>
+        public CartSearchCriteriaBuilder WithOwner(string customerId, string organizationId)
+        {
+            _searchCriteria.CustomerId = customerId;
+            _searchCriteria.CustomerIds = null;
+            _searchCriteria.OrganizationId = organizationId;
+            _searchCriteria.CustomerOrOrganization = false;
+            return this;
+        }
+
+        /// <summary>
         /// Scope should be used only for wishlists
         /// </summary>
         public CartSearchCriteriaBuilder WithScope(string scope)
