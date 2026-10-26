@@ -836,6 +836,7 @@ namespace VirtoCommerce.XCart.Data.Schemas
                                                  var cartCommand = context.GetCartCommand<MergeCartCommand>();
 
                                                  await CheckAuthByCartCommandAsync(context, cartCommand);
+                                                 await CheckAuthBySecondCartAsync(context, cartCommand);
 
                                                  //We need to add cartAggregate to the context to be able use it on nested cart types resolvers (e.g for currency)
                                                  var cartAggregate = await context.GetMediator().Send(cartCommand);
@@ -1635,6 +1636,27 @@ namespace VirtoCommerce.XCart.Data.Schemas
             await AuthorizeAsync(context, cart);
         }
 
+        private async Task CheckAuthBySecondCartAsync(IResolveFieldContext context, MergeCartCommand cartCommand)
+        {
+            var secondCart = await _cartService.GetByIdAsync(cartCommand.SecondCartId, CartResponseGroup.Default.ToString());
+
+            if (secondCart == null)
+            {
+                return;
+            }
+
+            if (!secondCart.StoreId.EqualsIgnoreCase(cartCommand.StoreId))
+            {
+                throw AccessDenied(context);
+            }
+
+            // Sign-in merges the guest cart into the user's cart; any anonymous caller can open a guest cart anyway.
+            if (!secondCart.IsAnonymous)
+            {
+                await AuthorizeAsync(context, secondCart);
+            }
+        }
+
         private async Task AuthorizeByListIdAsync(IResolveFieldContext context, WishlistCommand command, string scope = null, bool requireOwner = false)
         {
             var wishlistUserContext = await InitializeWishlistUserContext(context, listId: command?.ListId, userId: command?.UserId, scope: scope, requireOwner: requireOwner);
@@ -1743,10 +1765,15 @@ namespace VirtoCommerce.XCart.Data.Schemas
 
             if (!authorizationResult.Succeeded)
             {
-                throw context.IsAuthenticated()
-                    ? AuthorizationError.Forbidden()
-                    : AuthorizationError.AnonymousAccessDenied();
+                throw AccessDenied(context);
             }
+        }
+
+        private static AuthorizationError AccessDenied(IResolveFieldContext context)
+        {
+            return context.IsAuthenticated()
+                ? AuthorizationError.Forbidden()
+                : AuthorizationError.AnonymousAccessDenied();
         }
     }
 }
