@@ -14,7 +14,7 @@
     <PackageReference Include="VirtoCommerce.FileExperienceApi.Core" Version="3.1008.0" />
     <PackageReference Include="VirtoCommerce.InventoryModule.Core" Version="3.1010.0" />
     <PackageReference Include="VirtoCommerce.MarketingModule.Core" Version="3.1009.0" />
-    <PackageReference Include="VirtoCommerce.PaymentModule.Core" Version="3.1010.0" />
+    <PackageReference Include="VirtoCommerce.PaymentModule.Core" Version="3.1011.0-alpha.325-vcst-6507" />
     <PackageReference Include="VirtoCommerce.PricingModule.Core" Version="3.1008.0" />
     <PackageReference Include="VirtoCommerce.ShippingModule.Core" Version="3.1009.0" />
     <PackageReference Include="VirtoCommerce.Xapi.Core" Version="3.1026.0" />
