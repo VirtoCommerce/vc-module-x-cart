@@ -41,6 +41,11 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
     {
         var result = AbstractTypeFactory<ProductConfigurationQueryResponse>.TryCreateInstance();
 
+        if (request.ConfigurableProductId.IsNullOrEmpty())
+        {
+            return result;
+        }
+
         var responseGroup = GetResponseGroup(request);
 
         var configuration = await GetConfiguration(request, responseGroup);
@@ -187,6 +192,7 @@ public class GetProductConfigurationQueryHandler : IQueryHandler<GetProductConfi
         criteria.ProductId = request.ConfigurableProductId;
         criteria.IsActive = true;
         criteria.ResponseGroup = responseGroup.ToString();
+        criteria.Take = 1;
 
         var configurationsResult = await _productConfigurationSearchService.SearchNoCloneAsync(criteria);
 

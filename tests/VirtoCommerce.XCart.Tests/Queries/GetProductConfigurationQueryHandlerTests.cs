@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Moq;
 using VirtoCommerce.CatalogModule.Core.Model.Configuration;
+using VirtoCommerce.CatalogModule.Core.Model.Search;
 using VirtoCommerce.CatalogModule.Core.Search;
 using VirtoCommerce.Platform.Caching;
 using VirtoCommerce.Platform.Core.Caching;
@@ -78,6 +79,26 @@ namespace VirtoCommerce.XCart.Tests.Queries
 
             // Assert
             responseGroup.Should().Be(expected);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        public async Task Handle_EmptyConfigurableProductId_ReturnsEmptyResultWithoutSearch(string configurableProductId)
+        {
+            // Arrange
+            var handler = new GetProductConfigurationQueryHandler(
+                _searchServiceMock.Object, _containerServiceMock.Object, _cartProductServiceMock.Object, _requestScopedCache);
+
+            var request = new GetProductConfigurationQuery { ConfigurableProductId = configurableProductId };
+
+            // Act
+            var result = await handler.Handle(request, CancellationToken.None);
+
+            // Assert
+            result.ConfigurationSections.Should().BeEmpty();
+            _searchServiceMock.Verify(x => x.SearchAsync(It.IsAny<ProductConfigurationSearchCriteria>(), It.IsAny<bool>()), Times.Never);
+            _containerServiceMock.Verify(x => x.CreateContainerAsync(It.IsAny<ICartProductContainerRequest>()), Times.Never);
         }
 
         [Fact]
