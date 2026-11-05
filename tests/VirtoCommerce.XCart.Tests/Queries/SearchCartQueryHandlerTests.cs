@@ -24,7 +24,7 @@ namespace VirtoCommerce.XCart.Tests.Queries
         [Theory]
         [InlineData(OrgId)]
         [InlineData(null)]
-        public async Task Handle_FilterWithOwners_OwnerNotOvewrittenByFilters(string organizationId)
+        public async Task Handle_FilterWithOwners_OwnerNotOverwrittenByFilters(string organizationId)
         {
             var criteria = await SearchAsync(organizationId,
                 new TermFilter { FieldName = "customerOrOrganization", Values = ["true"] },
