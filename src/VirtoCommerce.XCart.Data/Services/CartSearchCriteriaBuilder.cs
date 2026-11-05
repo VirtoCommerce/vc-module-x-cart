@@ -143,5 +143,12 @@ namespace VirtoCommerce.XCart.Data.Services
 
             return this;
         }
+
+        public CartSearchCriteriaBuilder WithLineItemIds(IList<string> lineItemIds)
+        {
+            _searchCriteria.LineItemIds = lineItemIds;
+
+            return this;
+        }
     }
 }
