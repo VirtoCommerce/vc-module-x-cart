@@ -787,6 +787,19 @@ namespace VirtoCommerce.XCart.Core
             return Task.FromResult(this);
         }
 
+        public virtual Task<CartAggregate> ChangePurchaseOrderLineNumber(string lineItemId, string purchaseOrderLineNumber)
+        {
+            EnsureCartExists();
+
+            var lineItem = Cart.Items.FirstOrDefault(x => x.Id == lineItemId);
+            if (lineItem != null)
+            {
+                lineItem.PurchaseOrderLineNumber = purchaseOrderLineNumber;
+            }
+
+            return Task.FromResult(this);
+        }
+
         public virtual async Task<CartAggregate> AddShipmentAsync(Shipment shipment, IEnumerable<ShippingRate> availRates)
         {
             EnsureCartExists();
