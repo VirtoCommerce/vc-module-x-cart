@@ -787,7 +787,7 @@ namespace VirtoCommerce.XCart.Core
             return Task.FromResult(this);
         }
 
-        public virtual Task<CartAggregate> ChangePurchaseOrderLineNumber(string lineItemId, string purchaseOrderLineNumber)
+        public virtual Task<CartAggregate> ChangePurchaseOrderLineNumberAsync(string lineItemId, string purchaseOrderLineNumber)
         {
             EnsureCartExists();
 
