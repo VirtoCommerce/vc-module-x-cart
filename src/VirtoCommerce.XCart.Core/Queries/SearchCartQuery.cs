@@ -19,6 +19,7 @@ namespace VirtoCommerce.XCart.Core.Queries
         public string CurrencyCode { get; set; }
         public string CultureName { get; set; }
         public string Filter { get; set; }
+        public IList<string> LineItemIds { get; set; }
 
         public IList<string> IncludeFields { get; set; } = Array.Empty<string>();
 

@@ -96,6 +96,18 @@ namespace VirtoCommerce.XCart.Data.Services
         }
 
         /// <summary>
+        /// Set customerId and organizationId unconditionally
+        /// </summary>
+        public CartSearchCriteriaBuilder WithOwner(string customerId, string organizationId)
+        {
+            _searchCriteria.CustomerId = customerId;
+            _searchCriteria.CustomerIds = null;
+            _searchCriteria.OrganizationId = organizationId;
+            _searchCriteria.CustomerOrOrganization = false;
+            return this;
+        }
+
+        /// <summary>
         /// Scope should be used only for wishlists
         /// </summary>
         public CartSearchCriteriaBuilder WithScope(string scope)
@@ -128,6 +140,13 @@ namespace VirtoCommerce.XCart.Data.Services
         public CartSearchCriteriaBuilder WithResponseGroup(CartResponseGroup responseGroup)
         {
             _searchCriteria.ResponseGroup = responseGroup.ToString();
+
+            return this;
+        }
+
+        public CartSearchCriteriaBuilder WithLineItemIds(IList<string> lineItemIds)
+        {
+            _searchCriteria.LineItemIds = lineItemIds;
 
             return this;
         }
