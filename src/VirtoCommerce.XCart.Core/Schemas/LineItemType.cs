@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using GraphQL.DataLoader;
 using GraphQL.Resolvers;
 using GraphQL.Types;
@@ -89,6 +88,7 @@ namespace VirtoCommerce.XCart.Core.Schemas
             Field(x => x.Width, nullable: true).Description("Width value");
             Field(x => x.FulfillmentCenterId, nullable: true).Description("Line item fulfillment center ID value");
             Field(x => x.FulfillmentCenterName, nullable: true).Description("Line item fulfillment center name value");
+            Field(x => x.PurchaseOrderLineNumber, nullable: true).Description("Purchase order line number");
             Field<StringGraphType>("currencyCode")
                 .Description("Line item currency code")
                 .Resolve(context => context.Source.Currency);
