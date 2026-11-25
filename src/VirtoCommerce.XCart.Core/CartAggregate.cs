@@ -1321,8 +1321,8 @@ namespace VirtoCommerce.XCart.Core
                 var tierPrice = product.Price.GetTierPrice(quantity);
                 if (CheckPricePolicy(tierPrice))
                 {
-                    lineItem.SalePrice = tierPrice.ActualPrice.Amount;
-                    lineItem.ListPrice = tierPrice.Price.Amount;
+                    lineItem.SalePrice = tierPrice.ActualPrice.InternalAmount;
+                    lineItem.ListPrice = tierPrice.Price.InternalAmount;
                 }
             }
             if (quantity > 0)
@@ -1503,8 +1503,8 @@ namespace VirtoCommerce.XCart.Core
             var tierPrice = productPrice.GetTierPrice(quantity);
             if (tierPrice.Price.Amount > 0)
             {
-                lineItem.SalePrice = tierPrice.ActualPrice.Amount;
-                lineItem.ListPrice = tierPrice.Price.Amount;
+                lineItem.SalePrice = tierPrice.ActualPrice.InternalAmount;
+                lineItem.ListPrice = tierPrice.Price.InternalAmount;
             }
         }
 
@@ -1979,8 +1979,8 @@ namespace VirtoCommerce.XCart.Core
             if (cartProduct.Price != null)
             {
                 var tierPrice = cartProduct.Price.GetTierPrice(configurationSection.Option.Quantity);
-                item.ListPrice = tierPrice.Price.Amount;
-                item.SalePrice = tierPrice.ActualPrice.Amount;
+                item.ListPrice = tierPrice.Price.InternalAmount;
+                item.SalePrice = tierPrice.ActualPrice.InternalAmount;
             }
         }
 
