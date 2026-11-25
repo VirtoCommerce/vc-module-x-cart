@@ -3,9 +3,9 @@
   <id>VirtoCommerce.XCart</id>
   <version>3.1049.0</version>
   <version-tag></version-tag>
-  <platformVersion>3.1097.0</platformVersion>
+  <platformVersion>3.1101.0</platformVersion>
   <dependencies>
-    <dependency id="VirtoCommerce.Cart" version="3.1015.0" />
+    <dependency id="VirtoCommerce.Cart" version="3.1017.0-alpha.832-vcst-6824" />
     <dependency id="VirtoCommerce.Catalog" version="3.1048.0" />
     <dependency id="VirtoCommerce.FileExperienceApi" version="3.1009.0" />
     <dependency id="VirtoCommerce.Inventory" version="3.1010.0" />

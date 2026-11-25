@@ -1310,13 +1310,14 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             [MidpointRounding.AwayFromZero, 0.01m, 10, 10m, true, 0.000m, 0.10m, 0.00m, 0.10m],
             [MidpointRounding.ToZero, 0.01m, 10, 10m, true, 0.000m, 0.10m, 0.00m, 0.10m],
 
-            [MidpointRounding.AwayFromZero, 7.50m, 1, 3m, false, 0.225m, 7.50m, 0.23m, 7.27m],
-            [MidpointRounding.ToZero, 7.50m, 1, 3m, false, 0.225m, 7.50m, 0.22m, 7.28m],
+            // VCST-6824: on an exact midpoint the line price is rounded and the discount is the remainder
+            [MidpointRounding.AwayFromZero, 7.50m, 1, 3m, false, 0.225m, 7.50m, 0.22m, 7.28m],
+            [MidpointRounding.ToZero, 7.50m, 1, 3m, false, 0.225m, 7.50m, 0.23m, 7.27m],
             [MidpointRounding.AwayFromZero, 7.50m, 1, 3m, true, 0.230m, 7.50m, 0.23m, 7.27m],
             [MidpointRounding.ToZero, 7.50m, 1, 3m, true, 0.220m, 7.50m, 0.22m, 7.28m],
 
-            [MidpointRounding.AwayFromZero, 422.50m, 1, 45m, false, 190.125m, 422.50m, 190.13m, 232.37m],
-            [MidpointRounding.ToZero, 422.50m, 1, 45m, false, 190.125m, 422.50m, 190.12m, 232.38m],
+            [MidpointRounding.AwayFromZero, 422.50m, 1, 45m, false, 190.125m, 422.50m, 190.12m, 232.38m],
+            [MidpointRounding.ToZero, 422.50m, 1, 45m, false, 190.125m, 422.50m, 190.13m, 232.37m],
             [MidpointRounding.AwayFromZero, 422.50m, 10, 45m, false, 190.125m, 4225.00m, 1901.25m, 2323.75m],
             [MidpointRounding.ToZero, 422.50m, 10, 45m, false, 190.125m, 4225.00m, 1901.25m, 2323.75m],
             [MidpointRounding.AwayFromZero, 422.50m, 1, 45m, true, 190.130m, 422.50m, 190.13m, 232.37m],
