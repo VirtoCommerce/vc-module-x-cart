@@ -327,6 +327,69 @@ namespace VirtoCommerce.XCart.Tests.Aggregates
             cartAggregateAfterChangeItemQty.OperationValidationErrors.Should().Contain(x => x.ErrorCode == "LINE_ITEM_NOT_FOUND");
         }
 
+        [Fact]
+        public async Task ChangeItemQuantityAsync_QuantityNotMultipleOfPackSize_KeepsQuantityAndReturnsError()
+        {
+            // Arrange
+            var (cartAggregate, lineItem, cartProduct) = CreateCartWithPackSizeItem(packSize: 6, quantity: 6);
+            var salePriceBefore = lineItem.SalePrice;
+
+            // Act
+            await cartAggregate.ChangeItemQuantityAsync(new ItemQtyAdjustment
+            {
+                LineItem = lineItem,
+                LineItemId = lineItem.Id,
+                NewQuantity = 7,
+                CartProduct = cartProduct,
+            });
+
+            // Assert
+            lineItem.Quantity.Should().Be(6);
+            lineItem.SalePrice.Should().Be(salePriceBefore);
+            cartAggregate.OperationValidationErrors.Should().Contain(x => x.ErrorCode == "PRODUCT_PACK_SIZE_LIMIT");
+        }
+
+        [Fact]
+        public async Task ChangeItemQuantityAsync_QuantityMultipleOfPackSize_ChangesQuantity()
+        {
+            // Arrange
+            var (cartAggregate, lineItem, cartProduct) = CreateCartWithPackSizeItem(packSize: 6, quantity: 6);
+
+            // Act
+            await cartAggregate.ChangeItemQuantityAsync(new ItemQtyAdjustment
+            {
+                LineItem = lineItem,
+                LineItemId = lineItem.Id,
+                NewQuantity = 12,
+                CartProduct = cartProduct,
+            });
+
+            // Assert
+            lineItem.Quantity.Should().Be(12);
+            cartAggregate.OperationValidationErrors.Should().NotContain(x => x.ErrorCode == "PRODUCT_PACK_SIZE_LIMIT");
+        }
+
+        private (CartAggregate, LineItem, CartProduct) CreateCartWithPackSizeItem(int packSize, int quantity)
+        {
+            var cartAggregate = GetValidCartAggregate();
+
+            var product = _fixture.Create<CatalogProduct>();
+            product.PackSize = packSize;
+            product.MinQuantity = null;
+            product.MaxQuantity = null;
+            product.TrackInventory = false;
+
+            var lineItem = _fixture.Create<LineItem>();
+            lineItem.ProductId = product.Id;
+            lineItem.Quantity = quantity;
+            lineItem.IsReadOnly = false;
+            lineItem.IsGift = false;
+            lineItem.IsConfigured = false;
+            cartAggregate.Cart.Items = new List<LineItem> { lineItem };
+
+            return (cartAggregate, lineItem, new CartProduct(product));
+        }
+
         #endregion ChangeItemQuantityAsync
 
         #region ChangeItemCommentAsync

@@ -626,6 +626,12 @@ namespace VirtoCommerce.XCart.Core
             if (validationErrors.Count > 0)
             {
                 OperationValidationErrors.AddRange(validationErrors);
+
+                // special case of packs
+                if (IsQuantityChangeRejected(qtyAdjustment, validationErrors))
+                {
+                    return this;
+                }
             }
 
             var lineItem = Cart.Items.FirstOrDefault(i => i.Id == qtyAdjustment.LineItemId);
@@ -645,6 +651,11 @@ namespace VirtoCommerce.XCart.Core
             }
 
             return this;
+        }
+
+        protected virtual bool IsQuantityChangeRejected(ItemQtyAdjustment qtyAdjustment, IList<ValidationFailure> validationErrors)
+        {
+            return validationErrors.Any(x => x.ErrorCode == "PRODUCT_PACK_SIZE_LIMIT");
         }
 
         public virtual Task<CartAggregate> ChangeItemCommentAsync(NewItemComment newItemComment)
