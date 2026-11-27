@@ -25,7 +25,7 @@ namespace VirtoCommerce.XCart.Data.Commands
             var cartAggregate = await GetOrCreateCartFromCommandAsync(request);
 
             var requestItems = request.CartItems.ToList();
-            foreach (var requestItem in request.CartItems.Where(x => x.Quantity == 0))
+            foreach (var requestItem in request.CartItems.Where(x => x.Quantity <= 0))
             {
                 await cartAggregate.RemoveItemAsync(requestItem.LineItemId);
                 requestItems.Remove(requestItem);

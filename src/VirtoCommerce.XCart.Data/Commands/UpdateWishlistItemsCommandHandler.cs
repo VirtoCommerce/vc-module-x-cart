@@ -28,7 +28,16 @@ namespace VirtoCommerce.XCart.Data.Commands
             foreach (var item in request.Items)
             {
                 var lineItem = cartAggregate.Cart.Items.FirstOrDefault(x => x.Id.Equals(item.LineItemId));
-                if (lineItem != null)
+                if (lineItem == null)
+                {
+                    continue;
+                }
+
+                if (item.Quantity <= 0)
+                {
+                    await cartAggregate.RemoveItemAsync(item.LineItemId);
+                }
+                else
                 {
                     var product = (await _cartProductService.GetCartProductsAsync(cartAggregate, [(lineItem.Currency, lineItem.ProductId)])).Values.FirstOrDefault();
 
