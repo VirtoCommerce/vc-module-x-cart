@@ -23,7 +23,7 @@ namespace VirtoCommerce.XCart.Data.Commands
         {
             var cartAggregate = await GetOrCreateCartFromCommandAsync(request);
 
-            if (request.Quantity == 0)
+            if (request.Quantity <= 0)
             {
                 await cartAggregate.RemoveItemAsync(request.LineItemId);
                 return await SaveCartAsync(cartAggregate);
