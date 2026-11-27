@@ -1,4 +1,5 @@
 using FluentValidation;
+using VirtoCommerce.CoreModule.Core.Currency;
 
 namespace VirtoCommerce.XCart.Core.Validators
 {
@@ -22,7 +23,10 @@ namespace VirtoCommerce.XCart.Core.Validators
                     cartProduct?.Price != null)
                 {
                     var tierPrice = cartProduct.Price.GetTierPrice(lineItem.Quantity);
-                    if (HasPriceChanged(lineItem.SalePrice, tierPrice.ActualPrice.Amount))
+                    // The line item keeps the exact sale price, ActualPrice.Amount is rounded to the currency:
+                    // compare both at the currency precision
+                    var currentPrice = new Money(lineItem.SalePrice, tierPrice.ActualPrice.Currency).Amount;
+                    if (HasPriceChanged(currentPrice, tierPrice.ActualPrice.Amount))
                     {
                         context.AddFailure(CartErrorDescriber.ProductPriceChangedError(lineItem, lineItem.SalePrice, lineItem.SalePriceWithTax, tierPrice.ActualPrice.Amount, tierPrice.ActualPriceWithTax.Amount));
                     }

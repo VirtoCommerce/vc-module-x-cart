@@ -61,8 +61,8 @@ namespace VirtoCommerce.XCart.Core
                 var tierPrice = cartProduct.Price.GetTierPrice(quantity);
                 if (tierPrice.Price.Amount > 0)
                 {
-                    lineItem.SalePrice = tierPrice.ActualPrice.Amount;
-                    lineItem.ListPrice = tierPrice.Price.Amount;
+                    lineItem.SalePrice = tierPrice.ActualPrice.InternalAmount;
+                    lineItem.ListPrice = tierPrice.Price.InternalAmount;
                 }
 
                 lineItem.DiscountAmount = Math.Max(0, lineItem.ListPrice - lineItem.SalePrice);
@@ -351,9 +351,9 @@ namespace VirtoCommerce.XCart.Core
             var configurableProductPrice = ConfigurableProduct?.Price ?? new Xapi.Core.Models.ProductPrice(Currency);
             var items = Items.Where(x => x.Item is { SelectedForCheckout: true }).Select(x => x.Item).ToArray();
 
-            lineItem.ListPrice = items.Sum(x => x.ListPrice * x.Quantity) + configurableProductPrice.ListPrice.Amount;
-            lineItem.SalePrice = items.Sum(x => x.SalePrice * x.Quantity) + configurableProductPrice.SalePrice.Amount;
-            lineItem.DiscountAmount = items.Sum(x => x.DiscountAmount * x.Quantity) + configurableProductPrice.DiscountAmount.Amount;
+            lineItem.ListPrice = items.Sum(x => x.ListPrice * x.Quantity) + configurableProductPrice.ListPrice.InternalAmount;
+            lineItem.SalePrice = items.Sum(x => x.SalePrice * x.Quantity) + configurableProductPrice.SalePrice.InternalAmount;
+            lineItem.DiscountAmount = items.Sum(x => x.DiscountAmount * x.Quantity) + configurableProductPrice.DiscountAmount.InternalAmount;
             lineItem.PlacedPrice = lineItem.ListPrice - lineItem.DiscountAmount;
             lineItem.ExtendedPrice = lineItem.PlacedPrice * lineItem.Quantity;
         }
