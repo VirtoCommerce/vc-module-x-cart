@@ -4,6 +4,7 @@ using AutoFixture;
 using FluentAssertions;
 using FluentValidation;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.CatalogModule.Core.Model;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Validators;
 using VirtoCommerce.XCart.Tests.Helpers;
@@ -172,6 +173,67 @@ namespace VirtoCommerce.XCart.Tests.Validators
 
             // Assert
             result.IsValid.Should().BeTrue();
+        }
+
+        [Theory]
+        [InlineData(6, 7, true)]
+        [InlineData(6, 5, true)]
+        [InlineData(6, 6, false)]
+        [InlineData(6, 12, false)]
+        [InlineData(1, 7, false)]
+        public async Task ValidateItemQtyAdjustment_PackSize_StrictRuleSet(int packSize, int newQuantity, bool expectPackSizeError)
+        {
+            // Arrange
+            var item = CreatePackSizeAdjustment(packSize, newQuantity);
+            var validator = new ItemQtyAdjustmentValidator();
+
+            // Act
+            var result = await validator.ValidateAsync(item, options => options.IncludeRuleSets("strict"), TestContext.Current.CancellationToken);
+
+            // Assert
+            if (expectPackSizeError)
+            {
+                result.Errors.Should().Contain(x => x.ErrorCode == "PRODUCT_PACK_SIZE_LIMIT");
+            }
+            else
+            {
+                result.Errors.Should().NotContain(x => x.ErrorCode == "PRODUCT_PACK_SIZE_LIMIT");
+            }
+        }
+
+        [Fact]
+        public async Task ValidateItemQtyAdjustment_PackSize_NotCheckedInDefaultRuleSet()
+        {
+            // Arrange
+            var item = CreatePackSizeAdjustment(packSize: 6, newQuantity: 7);
+            var validator = new ItemQtyAdjustmentValidator();
+
+            // Act
+            var result = await validator.ValidateAsync(item, options => options.IncludeRuleSets("default"), TestContext.Current.CancellationToken);
+
+            // Assert
+            result.Errors.Should().NotContain(x => x.ErrorCode == "PRODUCT_PACK_SIZE_LIMIT");
+        }
+
+        private ItemQtyAdjustment CreatePackSizeAdjustment(int packSize, int newQuantity)
+        {
+            var lineItem = _fixture.Create<LineItem>();
+            lineItem.IsReadOnly = false;
+            lineItem.IsGift = false;
+
+            var product = _fixture.Create<CatalogProduct>();
+            product.PackSize = packSize;
+            product.MinQuantity = null;
+            product.MaxQuantity = null;
+            product.TrackInventory = false;
+
+            return new ItemQtyAdjustment
+            {
+                LineItem = lineItem,
+                LineItemId = lineItem.Id,
+                NewQuantity = newQuantity,
+                CartProduct = new CartProduct(product),
+            };
         }
     }
 }

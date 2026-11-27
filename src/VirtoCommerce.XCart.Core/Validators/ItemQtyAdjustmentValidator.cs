@@ -1,5 +1,6 @@
 using FluentValidation;
 using VirtoCommerce.CartModule.Core.Model;
+using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.XCart.Core.Models;
 using VirtoCommerce.XCart.Core.Specifications;
 
@@ -31,6 +32,11 @@ namespace VirtoCommerce.XCart.Core.Validators
                     if (qtyAdjust.CartProduct != null && !new ProductIsAvailableSpecification().IsSatisfiedBy(qtyAdjust.CartProduct, qtyAdjust.NewQuantity))
                     {
                         context.AddFailure(CartErrorDescriber.ProductQtyInsufficientError(qtyAdjust.CartProduct, qtyAdjust.NewQuantity, qtyAdjust.CartProduct.AvailableQuantity));
+                    }
+
+                    if (qtyAdjust.CartProduct?.Product != null && !AbstractTypeFactory<PackSizeLimitSpecification>.TryCreateInstance().IsSatisfiedBy(qtyAdjust.CartProduct, qtyAdjust.NewQuantity))
+                    {
+                        context.AddFailure(CartErrorDescriber.ProductPackSizeError((IEntity)qtyAdjust.LineItem ?? qtyAdjust.CartProduct.Product, qtyAdjust.NewQuantity, qtyAdjust.CartProduct.Product.PackSize));
                     }
 
                     var minQuantity = qtyAdjust.CartProduct?.Product?.MinQuantity;
